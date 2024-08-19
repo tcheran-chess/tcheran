@@ -1,3 +1,4 @@
+
 use crate::chess::game::Game;
 use crate::chess::moves::Move;
 use crate::engine::eval::Eval;
@@ -53,6 +54,9 @@ mod params {
 
     pub const SOFT_TIME_MULTIPLIER: f32 = 0.75;
     pub const HARD_TIME_MULTIPLIER: f32 = 3.00;
+
+    pub const BEST_MOVE_STABILITY_INITIAL_DEPTH: u8 = 5;
+    pub const BEST_MOVE_STABILITY_TIME_MULTIPLIERS: [f32; 5] = [2.50, 1.20, 1.00, 0.80, 0.75];
 }
 
 pub struct PersistentState {

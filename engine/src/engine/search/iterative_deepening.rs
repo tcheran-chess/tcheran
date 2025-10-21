@@ -26,9 +26,10 @@ pub fn search(
             break;
         }
 
-        let Ok(eval) = aspiration_search(game, depth, overall_eval, pv, ctx) else {
+        let eval = aspiration_search(game, depth, overall_eval, pv, ctx);
+        if ctx.time_control.stopped() {
             break;
-        };
+        }
 
         let new_best_move = *pv.first().unwrap_or_else(|| {
             panic!(
@@ -41,7 +42,7 @@ pub fn search(
         best_move = Some(new_best_move);
         overall_eval = Some(eval);
 
-        ctx.time_control.update(new_best_move, depth);
+        ctx.time_control.update_after_search(new_best_move, depth);
 
         reporter.report_search_progress(
             game,

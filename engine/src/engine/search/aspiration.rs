@@ -61,7 +61,7 @@ pub fn aspiration_search(
     eval: Option<Eval>,
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
-) -> Result<Eval, ()> {
+) -> Eval {
     let mut window = if depth < params::ASPIRATION_MIN_DEPTH {
         Window::no_window()
     } else {
@@ -72,16 +72,17 @@ pub fn aspiration_search(
     };
 
     loop {
-        let Ok(eval) = negamax::negamax(game, window.alpha, window.beta, depth, 0, pv, ctx) else {
-            return Err(());
-        };
+        let eval = negamax::negamax(game, window.alpha, window.beta, depth, 0, pv, ctx);
+        if ctx.time_control.stopped() {
+            return Eval::MIN;
+        }
 
         if eval <= window.alpha {
             window.widen_down();
         } else if eval >= window.beta {
             window.widen_up();
         } else {
-            return Ok(eval);
+            return eval;
         }
     }
 }

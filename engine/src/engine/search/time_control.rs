@@ -17,6 +17,7 @@ use crate::{
 pub(crate) struct TimeStrategy {
     time_control: TimeControl,
     started_at: Instant,
+    stopped: bool,
 
     soft_stop: Duration,
     hard_stop: Duration,
@@ -108,6 +109,7 @@ impl TimeStrategy {
         Self {
             time_control: time_control.clone(),
             started_at: now,
+            stopped: false,
 
             soft_stop,
             hard_stop,
@@ -152,7 +154,15 @@ impl TimeStrategy {
         }
     }
 
-    pub fn should_stop(&mut self, nodes_visited: u64) -> bool {
+    pub fn stopped(&self) -> bool {
+        self.stopped
+    }
+
+    pub fn update(&mut self, nodes_visited: u64) {
+        self.stopped = self.should_stop(nodes_visited);
+    }
+
+    fn should_stop(&mut self, nodes_visited: u64) -> bool {
         if nodes_visited < self.next_check_at {
             return false;
         }
@@ -171,7 +181,7 @@ impl TimeStrategy {
         }
     }
 
-    pub fn update(&mut self, best_move: Move, depth: u8) {
+    pub fn update_after_search(&mut self, best_move: Move, depth: u8) {
         if depth >= params::BEST_MOVE_STABILITY_INITIAL_DEPTH {
             self.best_move_stability = if Some(best_move) == self.last_best_move {
                 std::cmp::min(4, self.best_move_stability + 1)

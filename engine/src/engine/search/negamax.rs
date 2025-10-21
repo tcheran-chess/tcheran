@@ -49,20 +49,20 @@ pub fn negamax(
     plies: u8,
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
-) -> Result<Eval, ()> {
+) -> Eval {
     let is_root = plies == 0;
     let is_pv = alpha != beta - Eval(1);
 
-    // Check periodically to see if we're out of time. If we are, we shouldn't continue the search
-    // so we return Err to signal to the caller that the search did not complete.
-    if ctx.time_control.should_stop(ctx.nodes_visited) {
-        return Err(());
+    // Check periodically to see if we're out of time.
+    ctx.time_control.update(ctx.nodes_visited);
+    if ctx.time_control.stopped() {
+        return Eval::MIN;
     }
 
     ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
 
     if !is_root && game.is_draw() {
-        return Ok(Eval::DRAW);
+        return Eval::DRAW;
     }
 
     // Check extension: If we're about to finish searching, but we are in check, we
@@ -88,9 +88,9 @@ pub fn negamax(
             let tt_score = tt_entry.score;
 
             match tt_entry.bound {
-                NodeBound::Exact => return Ok(tt_score),
-                NodeBound::Upper if tt_score <= alpha => return Ok(tt_score),
-                NodeBound::Lower if tt_score >= beta => return Ok(tt_score),
+                NodeBound::Exact => return tt_score,
+                NodeBound::Upper if tt_score <= alpha => return tt_score,
+                NodeBound::Lower if tt_score >= beta => return tt_score,
                 _ => {}
             }
         }
@@ -133,7 +133,7 @@ pub fn negamax(
                     plies,
                 );
 
-                return Ok(score);
+                return score;
             }
 
             if is_pv && tb_bound == NodeBound::Lower {
@@ -159,7 +159,7 @@ pub fn negamax(
         if depth <= params::REVERSE_FUTILITY_PRUNE_DEPTH
             && eval - params::REVERSE_FUTILITY_PRUNE_MARGIN_PER_PLY * i32::from(depth) > beta
         {
-            return Ok(beta);
+            return beta;
         }
 
         // Null move pruning
@@ -180,12 +180,16 @@ pub fn negamax(
                 plies + 1,
                 &mut PrincipalVariation::new(),
                 ctx,
-            )?;
+            );
 
             game.undo_null_move();
 
+            if ctx.time_control.stopped() {
+                return Eval::MIN;
+            }
+
             if null_score >= beta {
-                return Ok(null_score);
+                return null_score;
             }
         }
     }
@@ -239,7 +243,7 @@ pub fn negamax(
         number_of_legal_moves += 1;
 
         let move_score = if number_of_legal_moves == 1 {
-            -negamax(game, -beta, -alpha, depth - 1, plies + 1, &mut node_pv, ctx)?
+            -negamax(game, -beta, -alpha, depth - 1, plies + 1, &mut node_pv, ctx)
         } else {
             let reduction = if depth >= params::LMR_DEPTH
                 && number_of_legal_moves >= params::LMR_MOVE_THRESHOLD
@@ -264,7 +268,7 @@ pub fn negamax(
                 plies + 1,
                 &mut node_pv,
                 ctx,
-            )?;
+            );
 
             // If we raised alpha, but we were searching with reduced depth, we probably want to double
             // check we didn't miss something, so search without the reduction.
@@ -277,19 +281,23 @@ pub fn negamax(
                     plies + 1,
                     &mut node_pv,
                     ctx,
-                )?;
+                );
             }
 
             // If searching at full depth STILL raised alpha, re-search with normal alpha/beta
             // bounds.
             if pvs_score > alpha && pvs_score < beta {
-                -negamax(game, -beta, -alpha, depth - 1, plies + 1, &mut node_pv, ctx)?
+                -negamax(game, -beta, -alpha, depth - 1, plies + 1, &mut node_pv, ctx)
             } else {
                 pvs_score
             }
         };
 
         game.undo_move();
+
+        if ctx.time_control.stopped() {
+            return Eval::MIN;
+        }
 
         if move_score > best_eval {
             best_move = Some(mv);
@@ -315,11 +323,11 @@ pub fn negamax(
     }
 
     if number_of_legal_moves == 0 {
-        return Ok(if game.is_king_in_check() {
+        return if game.is_king_in_check() {
             Eval::mated_in(plies)
         } else {
             Eval::DRAW
-        });
+        };
     }
 
     if tt_node_bound == NodeBound::Lower {
@@ -354,5 +362,5 @@ pub fn negamax(
         plies,
     );
 
-    Ok(best_eval)
+    best_eval
 }

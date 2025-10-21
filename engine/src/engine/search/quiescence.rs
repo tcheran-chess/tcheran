@@ -10,28 +10,28 @@ pub fn quiescence(
     beta: Eval,
     plies: u8,
     ctx: &mut SearchContext<'_>,
-) -> Result<Eval, ()> {
-    // Check periodically to see if we're out of time. If we are, we shouldn't continue the search
-    // so we return Err to signal to the caller that the search did not complete.
-    if ctx.time_control.should_stop(ctx.nodes_visited) {
-        return Err(());
+) -> Eval {
+    // Check periodically to see if we're out of time.
+    ctx.time_control.update(ctx.nodes_visited);
+    if ctx.time_control.stopped() {
+        return Eval::MIN;
     }
 
     ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
     ctx.nodes_visited += 1;
 
     if plies == MAX_SEARCH_DEPTH {
-        return Ok(eval::eval(game));
+        return eval::eval(game);
     }
 
     if game.is_draw() {
-        return Ok(Eval::DRAW);
+        return Eval::DRAW;
     }
 
     let eval = eval::eval(game);
 
     if eval >= beta {
-        return Ok(eval);
+        return eval;
     }
 
     if eval > alpha {
@@ -44,9 +44,13 @@ pub fn quiescence(
     while let Some(mv) = moves.next(game, ctx, plies) {
         game.make_move(mv);
 
-        let move_score = -quiescence(game, -beta, -alpha, plies + 1, ctx)?;
+        let move_score = -quiescence(game, -beta, -alpha, plies + 1, ctx);
 
         game.undo_move();
+
+        if ctx.time_control.stopped() {
+            return Eval::MIN;
+        }
 
         if move_score > best_eval {
             best_eval = move_score;
@@ -62,5 +66,5 @@ pub fn quiescence(
         }
     }
 
-    Ok(best_eval)
+    best_eval
 }

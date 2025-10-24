@@ -243,6 +243,19 @@ pub fn negamax(
             }
         }
 
+        let lmp_moves = params::LMP_MOVE_THRESHOLD as usize + (depth as usize * depth as usize);
+
+        if depth <= params::LMP_DEPTH
+            && !is_root
+            && !is_pv
+            && !in_check
+            && number_of_legal_moves >= lmp_moves
+            && moves.stage >= GenStage::CounterMove
+            && !best_eval.is_mate()
+        {
+            moves.yield_only_tacticals();
+        }
+
         ctx.nnue.push(&game.board, mv);
         game.make_move(mv);
         number_of_legal_moves += 1;

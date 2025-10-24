@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 * Start using the transposition table in quiescence (40.16 +- 11.74)
+* Add late move pruning (9.63 +- 5.59)
 
 ## [9.0]
 

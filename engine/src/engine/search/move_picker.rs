@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-#[derive(Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
 pub enum GenStage {
     BestMove,
     GenTacticals,
@@ -149,15 +149,18 @@ impl MovePicker {
         if self.stage == GenQuiets {
             self.stage = Killer;
 
-            movegen::generate_quiets(game, &self.movegencache, &mut |mv| {
-                self.moves.push(MoveEntry { mv, score: 0 });
-            });
+            if !self.only_tacticals {
+                movegen::generate_quiets(game, &self.movegencache, &mut |mv| {
+                    self.moves.push(MoveEntry { mv, score: 0 });
+                });
+            }
         }
 
         if self.stage == Killer {
             self.stage = CounterMove;
 
-            if let Some(killer) = tables.killer_moves.get(plies)
+            if !self.only_tacticals
+                && let Some(killer) = tables.killer_moves.get(plies)
                 && self.moves.remove(killer)
                 && Some(killer) != self.previous_best_move
             {
@@ -168,7 +171,8 @@ impl MovePicker {
         if self.stage == CounterMove {
             self.stage = BadTacticals;
 
-            if let Some(previous_move) = game.history.last().and_then(|h| h.mv)
+            if !self.only_tacticals
+                && let Some(previous_move) = game.history.last().and_then(|h| h.mv)
                 && let Some(counter_move) = tables.countermoves.get(game.player, previous_move)
                 && self.moves.remove(counter_move)
                 && Some(counter_move) != self.previous_best_move
@@ -196,18 +200,22 @@ impl MovePicker {
         if self.stage == ScoreQuiets {
             self.stage = Quiets;
 
-            for entry in &mut self.moves {
-                entry.score = score_quiet(game, entry.mv, tables);
+            if !self.only_tacticals {
+                for entry in &mut self.moves {
+                    entry.score = score_quiet(game, entry.mv, tables);
+                }
             }
         }
 
         if self.stage == Quiets {
-            while let Some(entry) = self.moves.next_best() {
-                if Some(entry.mv) == self.previous_best_move {
-                    continue;
-                }
+            if !self.only_tacticals {
+                while let Some(entry) = self.moves.next_best() {
+                    if Some(entry.mv) == self.previous_best_move {
+                        continue;
+                    }
 
-                return Some(entry.mv);
+                    return Some(entry.mv);
+                }
             }
 
             self.stage = Done;
@@ -218,6 +226,10 @@ impl MovePicker {
         }
 
         unreachable!()
+    }
+
+    pub fn yield_only_tacticals(&mut self) {
+        self.only_tacticals = true;
     }
 }
 
@@ -339,7 +351,7 @@ mod tests {
             Game::from_fen("rnb1kbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").unwrap();
 
         let mut moves: Vec<Move> = Vec::new();
-        let mut move_provider = MovePicker::new_loud();
+        let mut move_provider = MovePicker::new_loud(None);
 
         while let Some(m) = move_provider.next(&game, &Tables::new(), 0) {
             moves.push(m);

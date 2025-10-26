@@ -62,6 +62,8 @@ mod params {
     pub const LMP_DEPTH: u8 = 2;
     pub const LMP_MOVE_THRESHOLD: u8 = 5;
 
+    pub const IIR_DEPTH: u8 = 4;
+
     pub const MAX_TIME_PER_MOVE: f32 = 0.5;
     pub const INCREMENT_TO_USE: f32 = 0.5;
     pub const BASE_TIME_PER_MOVE: f32 = 0.033;

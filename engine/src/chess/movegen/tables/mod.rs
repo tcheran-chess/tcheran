@@ -15,7 +15,6 @@ pub fn init() {
     magics::init();
 
     knights::init();
-    king::init();
 
     between::init();
 }

@@ -98,7 +98,7 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    pub fn in_direction(self, direction: Direction) -> Self {
+    pub const fn in_direction(self, direction: Direction) -> Self {
         match direction {
             Direction::North => self.north(),
             Direction::NorthEast => self.north_east(),

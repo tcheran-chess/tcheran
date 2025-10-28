@@ -63,13 +63,19 @@ fn generate_sliding_attacks(
     attacks
 }
 
-pub fn generate_king_attacks(square: Square) -> Bitboard {
-    let mut attacks = Bitboard::EMPTY;
+pub const fn generate_king_attacks(square: Square) -> Bitboard {
+    let mut attacks = Bitboard::EMPTY.as_u64();
     let sq = square.bb();
 
-    for direction in Direction::ALL {
-        attacks |= sq.in_direction(*direction);
-    }
+    // To be const, we can't loop over Direction::ALL
+    attacks |= sq.in_direction(Direction::North).as_u64();
+    attacks |= sq.in_direction(Direction::NorthEast).as_u64();
+    attacks |= sq.in_direction(Direction::East).as_u64();
+    attacks |= sq.in_direction(Direction::SouthEast).as_u64();
+    attacks |= sq.in_direction(Direction::South).as_u64();
+    attacks |= sq.in_direction(Direction::SouthWest).as_u64();
+    attacks |= sq.in_direction(Direction::West).as_u64();
+    attacks |= sq.in_direction(Direction::NorthWest).as_u64();
 
-    attacks
+    Bitboard::new(attacks)
 }

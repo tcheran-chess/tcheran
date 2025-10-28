@@ -1,13 +1,16 @@
 use crate::chess::{bitboard::Bitboard, direction::Direction, player::Player, square::Square};
 
-pub fn generate_pawn_attacks(square: Square, player: Player) -> Bitboard {
-    let mut attacks = Bitboard::EMPTY;
+// In order for these functions to be const, they need to work with u64s instead of BitBoards,
+// until we can make BitBoards' trait impls const.
+
+pub const fn generate_pawn_attacks(square: Square, player: Player) -> Bitboard {
+    let mut attacks = Bitboard::EMPTY.as_u64();
     let sq = square.bb();
 
-    attacks |= sq.forward(player).west();
-    attacks |= sq.forward(player).east();
+    attacks |= sq.forward(player).west().as_u64();
+    attacks |= sq.forward(player).east().as_u64();
 
-    attacks
+    Bitboard::new(attacks)
 }
 
 pub fn generate_knight_attacks(square: Square) -> Bitboard {

@@ -1,21 +1,20 @@
 use super::attacks;
 use crate::chess::{bitboard::Bitboard, player::Player, square::Square};
 
-static mut ATTACKS_TABLE: [[Bitboard; Square::N]; Player::N] =
-    [[Bitboard::EMPTY; Square::N]; Player::N];
+static ATTACKS_TABLE: [[Bitboard; Square::N]; Player::N] = const {
+    let mut arr = [[Bitboard::EMPTY; Square::N]; Player::N];
 
-pub fn pawn_attacks(s: Square, player: Player) -> Bitboard {
-    unsafe { ATTACKS_TABLE[player][s] }
-}
-
-pub fn init() {
-    for s in Bitboard::FULL {
-        let white_attacks = attacks::generate_pawn_attacks(s, Player::White);
-        let black_attacks = attacks::generate_pawn_attacks(s, Player::Black);
-
-        unsafe {
-            ATTACKS_TABLE[Player::White][s] = white_attacks;
-            ATTACKS_TABLE[Player::Black][s] = black_attacks;
-        }
+    let mut bb = Bitboard::FULL;
+    while let Some(s) = bb.pop_square_inplace() {
+        arr[Player::White][s] = attacks::generate_pawn_attacks(s, Player::White);
+        arr[Player::Black][s] = attacks::generate_pawn_attacks(s, Player::Black);
     }
+
+    arr
+};
+
+#[inline]
+pub fn pawn_attacks(s: Square, player: Player) -> Bitboard {
+    let a = unsafe { ATTACKS_TABLE[player][s] };
+    a
 }

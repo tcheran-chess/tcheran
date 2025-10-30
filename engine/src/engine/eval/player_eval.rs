@@ -16,7 +16,8 @@ pub struct Eval(pub i32);
 
 impl Eval {
     pub(crate) const MAX: Self = Self(i16::MAX as i32);
-    pub(crate) const MIN: Self = Self(i16::MIN as i32);
+    pub(crate) const MIN: Self = Self(i16::MIN as i32 + 1);
+    pub(crate) const NONE: Self = Self(i16::MIN as i32);
     pub(crate) const DRAW: Self = Self(0);
 
     const MATE: i32 = 32000;

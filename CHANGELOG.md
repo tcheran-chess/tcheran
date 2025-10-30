@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 * Do SEE when picking moves instead of when scoring moves (11.32 +- 6.27)
+* Cache static eval of positions in the transposition table (5.05 +- 3.69)
 
 ### Misc
 

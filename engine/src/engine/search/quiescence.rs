@@ -24,10 +24,7 @@ pub fn quiescence(
         return Ok(eval::eval(game));
     }
 
-    if game.is_repeated_position()
-        || game.is_stalemate_by_fifty_move_rule()
-        || game.is_stalemate_by_insufficient_material()
-    {
+    if game.is_draw() {
         return Ok(Eval::DRAW);
     }
 

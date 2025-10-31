@@ -136,6 +136,13 @@ impl Game {
         self.plies / 2 + 1
     }
 
+    #[inline]
+    pub fn is_draw(&self) -> bool {
+        self.is_repeated_position()
+            || self.is_stalemate_by_fifty_move_rule()
+            || self.is_stalemate_by_insufficient_material()
+    }
+
     pub fn is_stalemate_by_fifty_move_rule(&self) -> bool {
         if self.halfmove_clock >= 100 {
             let mut movelist = MoveList::new();

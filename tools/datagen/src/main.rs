@@ -458,10 +458,7 @@ fn game_result(game: &Game, config: &DatagenConfig) -> Option<(Outcome, ResultSo
     }
 
     // ?: Is this a problem if we're using 2-repetition?
-    if game.is_repeated_position()
-        || game.is_stalemate_by_fifty_move_rule()
-        || game.is_stalemate_by_insufficient_material()
-    {
+    if game.is_draw() {
         return Some((Outcome::Draw, ResultSource::Actual));
     }
 

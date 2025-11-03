@@ -20,6 +20,7 @@ Parameters in the following table are noted only where they differ from Bullet's
 | ---------- | ------------------ | ------------------  | -------------- | --------------- | -------------------- |
 | Dataset #0 | (768->128)x2->1    | WDL 0.1, LR 0.01    | net0           | -17.77 +- 9.74  | Hello world!         |
 | Dataset #0 | (768->256)x2->1    | WDL 0.3, LR 0.001   | net0           | -83.64 +- 20.98 |                      |
+| Dataset #2 | (768->384)x2->1    | WDL 0.3, LR 0.001   | net4           | -29.02 +- 26.87 | Trying some different training params. Realised that WDL is broken because of a bug in adjudication. |
 
 ## Training datasets
 

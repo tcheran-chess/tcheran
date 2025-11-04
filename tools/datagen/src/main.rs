@@ -243,17 +243,57 @@ fn update_stats(result: &GameResult) {
     };
 }
 
+struct RotatingDataFile {
+    thread_id: usize,
+    dir: String,
+    file_name: String,
+    file: Option<std::fs::File>,
+    file_writer: Option<BufWriter<std::fs::File>>,
+}
+
+impl RotatingDataFile {
+    fn new(thread_id: usize, dir: &str) -> Self {
+        Self {
+            thread_id,
+            dir: dir.to_string(),
+            file_name: String::new(),
+            file: None,
+            file_writer: None,
+        }
+    }
+
+    fn current_file_name(&self) -> String {
+        let current_day = jiff::Zoned::now().strftime("%y%m%d");
+        format!("{}/data-{}-{}.txt", self.dir, self.thread_id, current_day)
+    }
+
+    fn rotate(&mut self) {
+        let current_file_name = self.current_file_name();
+        if self.file_name != current_file_name {
+            self.file = Some(std::fs::File::create(&current_file_name).unwrap());
+            self.file_writer = Some(BufWriter::new(
+                std::fs::File::create(&current_file_name).unwrap(),
+            ));
+            self.file_name = current_file_name;
+        }
+    }
+
+    fn writer(&mut self) -> &mut BufWriter<std::fs::File> {
+        self.file_writer.as_mut().unwrap()
+    }
+}
+
 fn datagen_thread(id: usize, games: usize, dir: &str, config: &DatagenConfig) {
     let mut rand = rand::rng();
-    let data_file_name = format!("{dir}/data-{id}.txt");
-    let mut data_file = std::fs::File::create(&data_file_name).unwrap();
-    let mut data_file_writer = BufWriter::new(&mut data_file);
-
+    let mut data_file = RotatingDataFile::new(id, dir);
     let mut player_states = PlayerStates::new(16, config);
 
     for _ in 0..games {
+        data_file.rotate();
+
         if STOP.load(Ordering::SeqCst) {
-            data_file_writer
+            data_file
+                .writer()
                 .flush()
                 .expect("Should be able to flush data file buffer");
 
@@ -268,7 +308,7 @@ fn datagen_thread(id: usize, games: usize, dir: &str, config: &DatagenConfig) {
             let eval = position.1;
 
             writeln!(
-                data_file_writer,
+                data_file.writer(),
                 "{} | {} | {}",
                 fen,
                 eval.0,
@@ -282,7 +322,8 @@ fn datagen_thread(id: usize, games: usize, dir: &str, config: &DatagenConfig) {
         }
     }
 
-    data_file_writer
+    data_file
+        .writer()
         .flush()
         .expect("Should be able to flush data file buffer");
 }

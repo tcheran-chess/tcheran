@@ -19,28 +19,29 @@ const PIECES: i32 = PieceKind::N as i32;
 const MVV_ORDER: [i32; PieceKind::N] = [0, PIECES, PIECES * 2, PIECES * 3, PIECES * 4, PIECES * 5];
 const LVA_ORDER: [i32; PieceKind::N] = [5, 4, 3, 2, 1, 0];
 
+#[inline]
+pub const fn mvv_lva(victim: PieceKind, attacker: PieceKind) -> i32 {
+    let victim_score = MVV_ORDER[victim.array_idx()];
+    let attacker_score = LVA_ORDER[attacker.array_idx()];
+
+    victim_score + attacker_score
+}
+
 pub fn score_tactical(game: &Game, mv: Move) -> i32 {
     let moved_piece = game.board.piece_guaranteed_at(mv.src());
 
     if mv.is_capture() {
         if mv.is_en_passant() {
-            return GOOD_CAPTURE_SCORE
-                + MVV_ORDER[PieceKind::Pawn.array_idx()]
-                + LVA_ORDER[PieceKind::Pawn.array_idx()];
+            return GOOD_CAPTURE_SCORE + mvv_lva(PieceKind::Pawn, PieceKind::Pawn);
         }
 
         let captured_piece = game.board.piece_guaranteed_at(mv.dst());
-
-        let victim_score = MVV_ORDER[captured_piece.kind.array_idx()];
-        let attacker_score = LVA_ORDER[moved_piece.kind.array_idx()];
-
-        let mvv_lva = victim_score + attacker_score;
 
         return if see(game, mv, Eval(0)) {
             GOOD_CAPTURE_SCORE
         } else {
             BAD_CAPTURE_SCORE
-        } + mvv_lva;
+        } + mvv_lva(captured_piece.kind, moved_piece.kind);
     }
 
     // Score promotions just below good captures, and prioritise them by piece value
@@ -67,21 +68,30 @@ mod tests {
         }
     }
 
+    fn score_mvv_lva(game: &Game, mv: Move) -> i32 {
+        let moved_piece = game.board.piece_guaranteed_at(mv.src());
+        let captured_piece = game.board.piece_at(mv.dst());
+
+        match captured_piece {
+            Some(captured_piece) => mvv_lva(captured_piece.kind, moved_piece.kind),
+            None => 0,
+        }
+    }
+
     #[test]
-    #[ignore = "SEE ordering needs to be taken into account"]
     fn test_mvv_lva() {
         crate::init();
 
         let game = Game::from_fen("k3B3/8/n1q1R1r1/1P6/1NQn4/7P/2r5/5K2 w - - 0 1").unwrap();
         let mut moves: Vec<ScoredMove> = game
             .moves()
-            .to_vec()
             .into_iter()
+            .filter(|m| m.is_capture())
             .map(ScoredMove::new)
             .collect();
 
         for mv in &mut moves {
-            mv.score = score_tactical(&game, mv.mv);
+            mv.score = score_mvv_lva(&game, mv.mv);
         }
 
         moves.sort_unstable_by_key(|m| -m.score);

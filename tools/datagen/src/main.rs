@@ -214,24 +214,30 @@ fn update_stats(result: &GameResult) {
     stats::GAMES.fetch_add(1, Ordering::SeqCst);
     stats::FENS.fetch_add(result.positions.len() as u64, Ordering::SeqCst);
 
-    match (&result.result, &result.source) {
-        (WDL::Win, ResultSource::Actual) => stats::WHITE_WINS.fetch_add(1, Ordering::Relaxed),
-        (WDL::Draw, ResultSource::Actual) => stats::DRAWS.fetch_add(1, Ordering::Relaxed),
-        (WDL::Loss, ResultSource::Actual) => stats::BLACK_WINS.fetch_add(1, Ordering::Relaxed),
+    match (&result.outcome, &result.source) {
+        (Outcome::WinForWhite, ResultSource::Actual) => {
+            stats::WHITE_WINS.fetch_add(1, Ordering::Relaxed)
+        }
+        (Outcome::Draw, ResultSource::Actual) => stats::DRAWS.fetch_add(1, Ordering::Relaxed),
+        (Outcome::LossForWhite, ResultSource::Actual) => {
+            stats::BLACK_WINS.fetch_add(1, Ordering::Relaxed)
+        }
 
-        (WDL::Win, ResultSource::Adjudicated) => {
+        (Outcome::WinForWhite, ResultSource::Adjudicated) => {
             stats::ADJUDICATED_WHITE_WINS.fetch_add(1, Ordering::Relaxed)
         }
-        (WDL::Draw, ResultSource::Adjudicated) => {
+        (Outcome::Draw, ResultSource::Adjudicated) => {
             stats::ADJUDICATED_DRAWS.fetch_add(1, Ordering::Relaxed)
         }
-        (WDL::Loss, ResultSource::Adjudicated) => {
+        (Outcome::LossForWhite, ResultSource::Adjudicated) => {
             stats::ADJUDICATED_BLACK_WINS.fetch_add(1, Ordering::Relaxed)
         }
 
-        (WDL::Win, ResultSource::Tablebase) => stats::TB_WHITE_WINS.fetch_add(1, Ordering::Relaxed),
-        (WDL::Draw, ResultSource::Tablebase) => stats::TB_DRAWS.fetch_add(1, Ordering::Relaxed),
-        (WDL::Loss, ResultSource::Tablebase) => {
+        (Outcome::WinForWhite, ResultSource::Tablebase) => {
+            stats::TB_WHITE_WINS.fetch_add(1, Ordering::Relaxed)
+        }
+        (Outcome::Draw, ResultSource::Tablebase) => stats::TB_DRAWS.fetch_add(1, Ordering::Relaxed),
+        (Outcome::LossForWhite, ResultSource::Tablebase) => {
             stats::TB_BLACK_WINS.fetch_add(1, Ordering::Relaxed)
         }
     };
@@ -266,10 +272,10 @@ fn datagen_thread(id: usize, games: usize, dir: &str, config: &DatagenConfig) {
                 "{} | {} | {}",
                 fen,
                 eval.0,
-                match r.result {
-                    WDL::Win => "1",
-                    WDL::Draw => "0.5",
-                    WDL::Loss => "0",
+                match r.outcome {
+                    Outcome::WinForWhite => "1",
+                    Outcome::Draw => "0.5",
+                    Outcome::LossForWhite => "0",
                 }
             )
             .expect("Failed to write to file");
@@ -283,12 +289,14 @@ fn datagen_thread(id: usize, games: usize, dir: &str, config: &DatagenConfig) {
 
 struct GamePosition(pub String, pub WhiteEval);
 
-enum WDL {
-    Win,
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
+enum Outcome {
+    WinForWhite,
     Draw,
-    Loss,
+    LossForWhite,
 }
 
+#[derive(Eq, PartialEq)]
 enum ResultSource {
     Actual,
     Adjudicated,
@@ -297,7 +305,7 @@ enum ResultSource {
 
 struct GameResult {
     positions: Vec<GamePosition>,
-    result: WDL,
+    outcome: Outcome,
     source: ResultSource,
 }
 
@@ -371,14 +379,24 @@ fn search_position(
     (best_move, reporter.eval.unwrap())
 }
 
-fn game_result(game: &Game, config: &DatagenConfig) -> Option<(WDL, ResultSource)> {
+fn game_result(game: &Game, config: &DatagenConfig) -> Option<(Outcome, ResultSource)> {
     if let Some(tb) = &config.tb {
-        if let Some(r) = tb.wdl(game).map(|wdl| match wdl {
-            Wdl::Win => WDL::Win,
-            Wdl::Draw => WDL::Draw,
-            Wdl::Loss => WDL::Loss,
-        }) {
-            return Some((r, ResultSource::Tablebase));
+        if let Some(r) = tb.wdl(game) {
+            return Some((
+                match game.player {
+                    Player::White => match r {
+                        Wdl::Win => Outcome::WinForWhite,
+                        Wdl::Draw => Outcome::Draw,
+                        Wdl::Loss => Outcome::LossForWhite,
+                    },
+                    Player::Black => match r {
+                        Wdl::Win => Outcome::LossForWhite,
+                        Wdl::Draw => Outcome::Draw,
+                        Wdl::Loss => Outcome::WinForWhite,
+                    },
+                },
+                ResultSource::Tablebase,
+            ));
         }
     }
 
@@ -387,9 +405,12 @@ fn game_result(game: &Game, config: &DatagenConfig) -> Option<(WDL, ResultSource
     if nmoves == 0 {
         return Some((
             if game.is_king_in_check() {
-                WDL::Loss
+                match game.player {
+                    Player::White => Outcome::LossForWhite,
+                    Player::Black => Outcome::WinForWhite,
+                }
             } else {
-                WDL::Draw
+                Outcome::Draw
             },
             ResultSource::Actual,
         ));
@@ -400,7 +421,7 @@ fn game_result(game: &Game, config: &DatagenConfig) -> Option<(WDL, ResultSource
         || game.is_stalemate_by_fifty_move_rule()
         || game.is_stalemate_by_insufficient_material()
     {
-        return Some((WDL::Draw, ResultSource::Actual));
+        return Some((Outcome::Draw, ResultSource::Actual));
     }
 
     None
@@ -422,7 +443,24 @@ impl AdjudicationStats {
     }
 }
 
-fn adjudicate_result(eval: WhiteEval, adjudication_stats: &mut AdjudicationStats) -> Option<WDL> {
+fn adjudicate_forced_mate(eval: WhiteEval) -> Option<Outcome> {
+    let eval_for_white = eval.for_player(Player::White);
+
+    if eval_for_white.mating() {
+        return Some(Outcome::WinForWhite);
+    }
+
+    if eval_for_white.being_mated() {
+        return Some(Outcome::LossForWhite);
+    }
+
+    None
+}
+
+fn adjudicate_result(
+    eval: WhiteEval,
+    adjudication_stats: &mut AdjudicationStats,
+) -> Option<Outcome> {
     const WHITE_ADJUDICATION_SCORE: WhiteEval = WhiteEval(ADJUDICATION_THRESHOLD);
     const BLACK_ADJUDICATION_SCORE: WhiteEval = WhiteEval(-ADJUDICATION_THRESHOLD);
 
@@ -445,15 +483,15 @@ fn adjudicate_result(eval: WhiteEval, adjudication_stats: &mut AdjudicationStats
     }
 
     if adjudication_stats.white_winning > ADJUDICATE_WINS_AFTER {
-        return Some(WDL::Win);
+        return Some(Outcome::WinForWhite);
     }
 
     if adjudication_stats.black_winning > ADJUDICATE_WINS_AFTER {
-        return Some(WDL::Loss);
+        return Some(Outcome::LossForWhite);
     }
 
     if adjudication_stats.drawing > ADJUDICATE_DRAWS_AFTER {
-        return Some(WDL::Draw);
+        return Some(Outcome::Draw);
     }
 
     None
@@ -484,7 +522,7 @@ fn play_game(rand: &mut impl Rng, config: &DatagenConfig, states: &mut PlayerSta
 
     let mut positions: Vec<GamePosition> = Vec::new();
     let mut adjudication_stats = AdjudicationStats::new();
-    let result: Option<WDL>;
+    let outcome: Option<Outcome>;
     let source: Option<ResultSource>;
 
     let time_control = match config.mode {
@@ -495,7 +533,7 @@ fn play_game(rand: &mut impl Rng, config: &DatagenConfig, states: &mut PlayerSta
 
     loop {
         if let Some((r, s)) = game_result(&game, config) {
-            result = Some(r);
+            outcome = Some(r);
             source = Some(s);
             break;
         }
@@ -508,8 +546,14 @@ fn play_game(rand: &mut impl Rng, config: &DatagenConfig, states: &mut PlayerSta
             positions.push(GamePosition(game.to_fen(), white_eval));
         }
 
+        if let Some(r) = adjudicate_forced_mate(white_eval) {
+            outcome = Some(r);
+            source = Some(ResultSource::Actual);
+            break;
+        }
+
         if let Some(r) = adjudicate_result(white_eval, &mut adjudication_stats) {
-            result = Some(r);
+            outcome = Some(r);
             source = Some(ResultSource::Adjudicated);
             break;
         }
@@ -517,21 +561,12 @@ fn play_game(rand: &mut impl Rng, config: &DatagenConfig, states: &mut PlayerSta
         game.make_move(next_move);
     }
 
-    let result = result.expect("Game ended without a result");
+    let outcome = outcome.expect("Game ended without a result");
     let source = source.expect("Unknown result source");
-
-    // Reinterpret result from white's perspective
-    let result = match (game.player, result) {
-        (_, WDL::Draw) => WDL::Draw,
-
-        // Convert wins/losses as black to be in white's perspective.
-        (Player::White, WDL::Win) | (Player::Black, WDL::Loss) => WDL::Win,
-        (Player::White, WDL::Loss) | (Player::Black, WDL::Win) => WDL::Loss,
-    };
 
     GameResult {
         positions,
-        result,
+        outcome,
         source,
     }
 }

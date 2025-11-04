@@ -1,6 +1,17 @@
+use crate::{chess::player::Player, engine::eval::Eval};
+
 /// A classical evaluation value from the white player's perspective
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct WhiteEval(pub i32);
+
+impl WhiteEval {
+    pub fn for_player(self, player: Player) -> Eval {
+        match player {
+            Player::White => Eval(self.0),
+            Player::Black => Eval((-self).0),
+        }
+    }
+}
 
 impl std::ops::Add for WhiteEval {
     type Output = Self;

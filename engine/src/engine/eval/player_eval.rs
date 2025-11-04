@@ -64,13 +64,6 @@ impl Eval {
             Player::Black => -WhiteEval(self.0),
         }
     }
-
-    pub fn from_white_eval(eval: WhiteEval, player: Player) -> Self {
-        match player {
-            Player::White => Self(eval.0),
-            Player::Black => Self((-eval).0),
-        }
-    }
 }
 
 impl std::ops::Add for Eval {

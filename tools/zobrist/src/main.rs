@@ -17,6 +17,7 @@ fn suffix(n: usize, bound: usize) -> &'static str {
     unused_assignments,
     reason = "We define some components as 0 first to ensure we keep the order"
 )]
+#[expect(clippy::needless_range_loop, reason = "Feels more readable this way")]
 fn main() -> ExitCode {
     let mut random = StdRng::seed_from_u64(0);
 

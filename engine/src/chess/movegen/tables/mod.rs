@@ -10,7 +10,3 @@ pub use king::king_attacks;
 pub use knights::knight_attacks;
 pub use magics::{bishop_attacks, rook_attacks};
 pub use pawns::pawn_attacks;
-
-pub fn init() {
-    magics::init();
-}

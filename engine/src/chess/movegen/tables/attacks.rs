@@ -30,37 +30,41 @@ pub const fn generate_knight_attacks(square: Square) -> Bitboard {
     Bitboard::new(attacks)
 }
 
-pub fn generate_bishop_attacks(square: Square, pieces: Bitboard) -> Bitboard {
+pub const fn generate_bishop_attacks(square: Square, pieces: Bitboard) -> Bitboard {
     generate_sliding_attacks(square, Direction::DIAGONAL, pieces)
 }
 
-pub fn generate_rook_attacks(square: Square, pieces: Bitboard) -> Bitboard {
+pub const fn generate_rook_attacks(square: Square, pieces: Bitboard) -> Bitboard {
     generate_sliding_attacks(square, Direction::CARDINAL, pieces)
 }
 
-fn generate_sliding_attacks(
+const fn generate_sliding_attacks(
     square: Square,
     directions: &[Direction],
     pieces: Bitboard,
 ) -> Bitboard {
-    let mut attacks = Bitboard::EMPTY;
+    let mut attacks = Bitboard::EMPTY.as_u64();
 
-    for direction in directions {
+    let mut direction_idx = 0;
+    while direction_idx < directions.len() {
+        let direction = directions[direction_idx];
         let mut current_square = square.bb();
 
         // Until we're off the board
         while current_square.any() {
-            current_square = current_square.in_direction(*direction);
-            attacks |= current_square;
+            current_square = current_square.in_direction(direction);
+            attacks |= current_square.as_u64();
 
             // Future squares blocked
-            if (pieces & current_square).any() {
+            if (pieces.as_u64() & current_square.as_u64()) != 0 {
                 break;
             }
         }
+
+        direction_idx += 1;
     }
 
-    attacks
+    Bitboard::new(attacks)
 }
 
 pub const fn generate_king_attacks(square: Square) -> Bitboard {

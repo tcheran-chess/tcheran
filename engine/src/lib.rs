@@ -19,6 +19,5 @@ pub fn engine_version() -> String {
 }
 
 pub fn init() {
-    chess::init();
     engine::init();
 }

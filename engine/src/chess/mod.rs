@@ -12,7 +12,3 @@ pub mod player;
 pub mod san;
 pub mod square;
 pub mod zobrist;
-
-pub fn init() {
-    movegen::init();
-}

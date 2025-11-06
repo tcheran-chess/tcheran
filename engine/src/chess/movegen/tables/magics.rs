@@ -32,14 +32,60 @@ static ROOK_NOT_MASKS: [Bitboard; Square::N] = {
 const ROOK_SHIFT: usize = 12;
 
 type AttacksTable = [Bitboard; 87988];
-static mut ATTACKS_TABLE: AttacksTable = [Bitboard::EMPTY; 87988];
+#[allow(long_running_const_eval)]
+static ATTACKS_TABLE: AttacksTable = {
+    let mut arr = [Bitboard::EMPTY; 87988];
+
+    let mut bb = Bitboard::FULL;
+    while let Some(s) = bb.pop_square_inplace() {
+        // Bishop
+        {
+            let occupancies = generate_bishop_occupancies(s);
+
+            let mut occupancy_subsets_state = Bitboard::EMPTY.as_u64();
+            let mut stop = false;
+
+            while !stop {
+                let blockers = Bitboard::new(occupancy_subsets_state);
+                let idx = table_index_bishop(s, blockers);
+                arr[idx] = attacks::generate_bishop_attacks(s, blockers);
+
+                occupancy_subsets_state = (occupancy_subsets_state.wrapping_sub(occupancies.as_u64())) & occupancies.as_u64();
+                if occupancy_subsets_state == 0 {
+                    stop = true;
+                }
+            }
+        }
+
+        // Rook
+        {
+            let occupancies = generate_rook_occupancies(s);
+
+            let mut occupancy_subsets_state = Bitboard::EMPTY.as_u64();
+            let mut stop = false;
+
+            while !stop {
+                let blockers = Bitboard::new(occupancy_subsets_state);
+                let idx = table_index_rook(s, blockers);
+                arr[idx] = attacks::generate_rook_attacks(s, blockers);
+
+                occupancy_subsets_state = (occupancy_subsets_state.wrapping_sub(occupancies.as_u64())) & occupancies.as_u64();
+                if occupancy_subsets_state == 0 {
+                    stop = true;
+                }
+            }
+        }
+    }
+
+    arr
+};
 
 // Black magics found by Volker Annuss and Niklas Fiekas
 // See http://talkchess.com/forum/viewtopic.php?t=64790
 
 #[rustfmt::skip]
 #[expect(clippy::unreadable_literal, reason = "Not intended to be readable!")]
-const DEFAULT_BISHOP_MAGICS: [(u64, usize); Square::N] = [
+static DEFAULT_BISHOP_MAGICS: [(u64, usize); Square::N] = [
     (0xA7020080601803D8, 60984), (0x13802040400801F1, 66046), (0x0A0080181001F60C, 32910),
     (0x1840802004238008, 16369), (0xC03FE00100000000, 42115), (0x24C00BFFFF400000,   835),
     (0x0808101F40007F04, 18910), (0x100808201EC00080, 25911), (0xFFA2FEFFBFEFB7FF, 63301),
@@ -66,7 +112,7 @@ const DEFAULT_BISHOP_MAGICS: [(u64, usize); Square::N] = [
 
 #[rustfmt::skip]
 #[expect(clippy::unreadable_literal, reason = "Not intended to be readable!")]
-const DEFAULT_ROOK_MAGICS: [(u64, usize); Square::N] = [
+static DEFAULT_ROOK_MAGICS: [(u64, usize); Square::N] = [
 	(0x80280013FF84FFFF, 10890), (0x5FFBFEFDFEF67FFF, 50579), (0xFFEFFAFFEFFDFFFF, 62020),
     (0x003000900300008A, 67322), (0x0050028010500023, 80251), (0x0020012120A00020, 58503),
     (0x0030006000C00030, 51175), (0x0058005806B00002, 83130), (0x7FBFF7FBFBEAFFFC, 50430),
@@ -91,42 +137,9 @@ const DEFAULT_ROOK_MAGICS: [(u64, usize); Square::N] = [
     (0x0002000308482882,  1009)
 ];
 
-struct SubsetsOf {
-    bitboard: Bitboard,
-    state: Bitboard,
-    stop: bool,
-}
-
-impl SubsetsOf {
-    const fn new(bitboard: Bitboard) -> Self {
-        Self {
-            bitboard,
-            state: Bitboard::EMPTY,
-            stop: false,
-        }
-    }
-}
-
-impl Iterator for SubsetsOf {
-    type Item = Bitboard;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.stop {
-            return None;
-        }
-
-        self.state = (self.state - self.bitboard) & self.bitboard;
-
-        if self.state.is_empty() {
-            self.stop = true;
-        }
-
-        Some(self.state)
-    }
-}
-
 const fn generate_bishop_occupancies(square: Square) -> Bitboard {
     generate_sliding_occupancies(square, Direction::DIAGONAL)
+
 }
 
 const fn generate_rook_occupancies(square: Square) -> Bitboard {
@@ -166,11 +179,6 @@ const fn generate_sliding_occupancies(square: Square, directions: &[Direction]) 
     Bitboard::new(squares)
 }
 
-pub fn init() {
-    initialise_rook_attacks();
-    initialise_bishop_attacks();
-}
-
 pub fn rook_attacks(s: Square, blockers: Bitboard) -> Bitboard {
     let table_idx = table_index_rook(s, blockers);
     *unsafe { ATTACKS_TABLE.get_unchecked(table_idx) }
@@ -181,63 +189,31 @@ pub fn bishop_attacks(s: Square, blockers: Bitboard) -> Bitboard {
     *unsafe { ATTACKS_TABLE.get_unchecked(table_idx) }
 }
 
-fn initialise_bishop_attacks() {
-    for s in Bitboard::FULL {
-        let occupancies = generate_bishop_occupancies(s);
-
-        let occupancy_subsets = SubsetsOf::new(occupancies);
-
-        for blockers in occupancy_subsets {
-            let idx = table_index_bishop(s, blockers);
-
-            unsafe {
-                ATTACKS_TABLE[idx] = attacks::generate_bishop_attacks(s, blockers);
-            }
-        }
-    }
-}
-
 #[expect(
     clippy::cast_possible_truncation,
     reason = "Assuming we only run on 64-bit platforms, u64 -> usize will not truncate"
 )]
-fn table_index_bishop(s: Square, blockers: Bitboard) -> usize {
-    let (magic, index) = DEFAULT_BISHOP_MAGICS[s];
-    let not_mask = unsafe { BISHOP_NOT_MASKS[s] };
+const fn table_index_bishop(s: Square, blockers: Bitboard) -> usize {
+    let (magic, index) =  DEFAULT_BISHOP_MAGICS[s];
+    let not_mask = BISHOP_NOT_MASKS[s];
 
-    let relevant_occupancies = blockers | not_mask;
-    let mut occupancies_index_offset: u64 = relevant_occupancies.as_u64().wrapping_mul(magic);
+    let relevant_occupancies = blockers.as_u64() | not_mask.as_u64();
+    let mut occupancies_index_offset: u64 = relevant_occupancies.wrapping_mul(magic);
     occupancies_index_offset >>= Square::N - BISHOP_SHIFT;
 
     index + occupancies_index_offset as usize
 }
 
-fn initialise_rook_attacks() {
-    for s in Bitboard::FULL {
-        let occupancies = generate_rook_occupancies(s);
-
-        let occupancy_subsets = SubsetsOf::new(occupancies);
-
-        for blockers in occupancy_subsets {
-            let idx = table_index_rook(s, blockers);
-
-            unsafe {
-                ATTACKS_TABLE[idx] = attacks::generate_rook_attacks(s, blockers);
-            }
-        }
-    }
-}
-
 #[expect(
     clippy::cast_possible_truncation,
     reason = "Assuming we only run on 64-bit platforms, u64 -> usize will not truncate"
 )]
-fn table_index_rook(s: Square, blockers: Bitboard) -> usize {
+const fn table_index_rook(s: Square, blockers: Bitboard) -> usize {
     let (magic, index) = DEFAULT_ROOK_MAGICS[s];
-    let not_mask = unsafe { ROOK_NOT_MASKS[s] };
+    let not_mask = ROOK_NOT_MASKS[s];
 
-    let relevant_occupancies = blockers | not_mask;
-    let mut occupancies_index_offset: u64 = relevant_occupancies.as_u64().wrapping_mul(magic);
+    let relevant_occupancies = blockers.as_u64() | not_mask.as_u64();
+    let mut occupancies_index_offset: u64 = relevant_occupancies.wrapping_mul(magic);
     occupancies_index_offset >>= Square::N - ROOK_SHIFT;
 
     index + occupancies_index_offset as usize

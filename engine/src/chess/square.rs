@@ -40,7 +40,7 @@ impl File {
 
     pub const N: usize = Self::ALL.len();
 
-    pub fn from_idx(idx: u8) -> Self {
+    pub const fn from_idx(idx: u8) -> Self {
         debug_assert!(idx < 8);
 
         match idx {
@@ -152,7 +152,7 @@ impl Rank {
     pub const N: usize = Self::ALL.len();
 
     #[inline(always)]
-    pub fn from_idx(idx: u8) -> Self {
+    pub const fn from_idx(idx: u8) -> Self {
         debug_assert!(idx < 8);
 
         match idx {
@@ -262,12 +262,12 @@ impl Square {
     }
 
     #[inline(always)]
-    pub fn rank(self) -> Rank {
+    pub const fn rank(self) -> Rank {
         Rank::from_idx(self.idx() / 8)
     }
 
     #[inline(always)]
-    pub fn file(self) -> File {
+    pub const fn file(self) -> File {
         File::from_idx(self.idx() % 8)
     }
 

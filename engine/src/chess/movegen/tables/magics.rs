@@ -5,9 +5,30 @@ use crate::chess::{
     square::Square,
 };
 
-static mut BISHOP_NOT_MASKS: [Bitboard; Square::N] = [Bitboard::EMPTY; Square::N];
+static BISHOP_NOT_MASKS: [Bitboard; Square::N] = {
+    let mut arr = [Bitboard::EMPTY; Square::N];
+
+    let mut bb = Bitboard::FULL;
+    while let Some(s) = bb.pop_square_inplace() {
+        let occupancies = generate_bishop_occupancies(s);
+        arr[s] = occupancies.invert();
+    }
+
+    arr
+};
 const BISHOP_SHIFT: usize = 9;
-static mut ROOK_NOT_MASKS: [Bitboard; Square::N] = [Bitboard::EMPTY; Square::N];
+
+static ROOK_NOT_MASKS: [Bitboard; Square::N] = {
+    let mut arr = [Bitboard::EMPTY; Square::N];
+
+    let mut bb = Bitboard::FULL;
+    while let Some(s) = bb.pop_square_inplace() {
+        let occupancies = generate_rook_occupancies(s);
+        arr[s] = occupancies.invert();
+    }
+
+    arr
+};
 const ROOK_SHIFT: usize = 12;
 
 type AttacksTable = [Bitboard; 87988];
@@ -104,47 +125,48 @@ impl Iterator for SubsetsOf {
     }
 }
 
-fn generate_bishop_occupancies(square: Square) -> Bitboard {
+const fn generate_bishop_occupancies(square: Square) -> Bitboard {
     generate_sliding_occupancies(square, Direction::DIAGONAL)
 }
 
-fn generate_rook_occupancies(square: Square) -> Bitboard {
+const fn generate_rook_occupancies(square: Square) -> Bitboard {
     generate_sliding_occupancies(square, Direction::CARDINAL)
 }
 
-fn generate_sliding_occupancies(square: Square, directions: &[Direction]) -> Bitboard {
-    let mut squares = Bitboard::EMPTY;
+const fn generate_sliding_occupancies(square: Square, directions: &[Direction]) -> Bitboard {
+    let mut squares = Bitboard::EMPTY.as_u64();
 
-    let mut end_mask = Bitboard::EMPTY;
+    let mut end_mask = Bitboard::EMPTY.as_u64();
     if !bitboards::A_FILE.contains(square) {
-        end_mask |= bitboards::A_FILE;
+        end_mask |= bitboards::A_FILE.as_u64();
     }
     if !bitboards::H_FILE.contains(square) {
-        end_mask |= bitboards::H_FILE;
+        end_mask |= bitboards::H_FILE.as_u64();
     }
     if !bitboards::RANK_1.contains(square) {
-        end_mask |= bitboards::RANK_1;
+        end_mask |= bitboards::RANK_1.as_u64();
     }
     if !bitboards::RANK_8.contains(square) {
-        end_mask |= bitboards::RANK_8;
+        end_mask |= bitboards::RANK_8.as_u64();
     }
 
-    for direction in directions {
+    let mut direction_idx = 0;
+    while direction_idx < directions.len() {
+        let direction = directions[direction_idx];
         let mut sq = square.bb();
 
         while sq.any() {
-            sq = sq.in_direction(*direction) & !end_mask;
-            squares |= sq;
+            sq = Bitboard::new(sq.in_direction(direction).as_u64() & !end_mask);
+            squares |= sq.as_u64();
         }
+
+        direction_idx += 1;
     }
 
-    squares
+    Bitboard::new(squares)
 }
 
 pub fn init() {
-    initialise_bishop_not_masks();
-    initialise_rook_not_masks();
-
     initialise_rook_attacks();
     initialise_bishop_attacks();
 }
@@ -171,15 +193,6 @@ fn initialise_bishop_attacks() {
             unsafe {
                 ATTACKS_TABLE[idx] = attacks::generate_bishop_attacks(s, blockers);
             }
-        }
-    }
-}
-
-fn initialise_bishop_not_masks() {
-    for s in Bitboard::FULL {
-        let occupancies = generate_bishop_occupancies(s);
-        unsafe {
-            BISHOP_NOT_MASKS[s] = occupancies.invert();
         }
     }
 }
@@ -211,15 +224,6 @@ fn initialise_rook_attacks() {
             unsafe {
                 ATTACKS_TABLE[idx] = attacks::generate_rook_attacks(s, blockers);
             }
-        }
-    }
-}
-
-fn initialise_rook_not_masks() {
-    for s in Bitboard::FULL {
-        let occupancies = generate_rook_occupancies(s);
-        unsafe {
-            ROOK_NOT_MASKS[s] = occupancies.invert();
         }
     }
 }

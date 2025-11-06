@@ -35,8 +35,8 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    pub fn contains(self, square: Square) -> bool {
-        (self & square.bb()).any()
+    pub const fn contains(self, square: Square) -> bool {
+        (self.as_u64() & square.bb().as_u64()) != 0
     }
 
     #[inline(always)]

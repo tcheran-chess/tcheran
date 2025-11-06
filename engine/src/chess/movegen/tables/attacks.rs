@@ -13,21 +13,21 @@ pub const fn generate_pawn_attacks(square: Square, player: Player) -> Bitboard {
     Bitboard::new(attacks)
 }
 
-pub fn generate_knight_attacks(square: Square) -> Bitboard {
-    let mut attacks = Bitboard::EMPTY;
+pub const fn generate_knight_attacks(square: Square) -> Bitboard {
+    let mut attacks = Bitboard::EMPTY.as_u64();
     let sq = square.bb();
 
     // Going clockwise, starting at 12
-    attacks |= sq.north().north_east();
-    attacks |= sq.east().north_east();
-    attacks |= sq.east().south_east();
-    attacks |= sq.south().south_east();
-    attacks |= sq.south().south_west();
-    attacks |= sq.west().south_west();
-    attacks |= sq.west().north_west();
-    attacks |= sq.north().north_west();
+    attacks |= sq.north().north_east().as_u64();
+    attacks |= sq.east().north_east().as_u64();
+    attacks |= sq.east().south_east().as_u64();
+    attacks |= sq.south().south_east().as_u64();
+    attacks |= sq.south().south_west().as_u64();
+    attacks |= sq.west().south_west().as_u64();
+    attacks |= sq.west().north_west().as_u64();
+    attacks |= sq.north().north_west().as_u64();
 
-    attacks
+    Bitboard::new(attacks)
 }
 
 pub fn generate_bishop_attacks(square: Square, pieces: Bitboard) -> Bitboard {

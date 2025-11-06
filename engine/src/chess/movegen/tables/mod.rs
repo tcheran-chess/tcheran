@@ -14,7 +14,5 @@ pub use pawns::pawn_attacks;
 pub fn init() {
     magics::init();
 
-    knights::init();
-
     between::init();
 }

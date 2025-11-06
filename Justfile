@@ -20,6 +20,9 @@ generate-fathom-bindings:
 run:
 	@cargo run --release
 
+bench:
+	@cargo run --release -- bench
+
 ################################## Tests ######################################
 
 test:

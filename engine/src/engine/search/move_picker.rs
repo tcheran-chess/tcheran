@@ -95,7 +95,7 @@ impl MovePicker {
             self.first_quiet = self.moves.len();
 
             for i in 0..self.moves.len() {
-                self.scores[i] = score_tactical(game, *self.moves.get(i).unwrap());
+                self.scores[i] = score_tactical(game, *self.moves.get(i));
             }
         }
 
@@ -129,7 +129,7 @@ impl MovePicker {
 
             if let Some(killer1) = ctx.killer_moves.get_0(plies) {
                 for i in self.first_quiet..self.moves.len() {
-                    if self.moves.get(i).is_some_and(|m| *m == killer1) {
+                    if *self.moves.get(i) == killer1 {
                         self.moves.swap(self.first_quiet, i);
                         self.first_quiet += 1;
 
@@ -146,7 +146,7 @@ impl MovePicker {
 
             if let Some(killer2) = ctx.killer_moves.get_1(plies) {
                 for i in self.first_quiet..self.moves.len() {
-                    if self.moves.get(i).is_some_and(|m| *m == killer2) {
+                    if *self.moves.get(i) == killer2 {
                         self.moves.swap(self.first_quiet, i);
                         self.first_quiet += 1;
 
@@ -173,7 +173,7 @@ impl MovePicker {
             if let Some(previous_move) = game.history.last().and_then(|h| h.mv) {
                 if let Some(counter_move) = ctx.countermove_table.get(game.player, previous_move) {
                     for i in self.first_quiet..self.moves.len() {
-                        if self.moves.get(i).is_some_and(|m| *m == counter_move) {
+                        if *self.moves.get(i) == counter_move {
                             self.moves.swap(self.first_quiet, i);
                             self.first_quiet += 1;
 
@@ -203,7 +203,7 @@ impl MovePicker {
             self.idx = self.first_quiet;
 
             for i in self.idx..self.moves.len() {
-                self.scores[i] = score_quiet(game, *self.moves.get(i).unwrap(), ctx.history_table);
+                self.scores[i] = score_quiet(game, *self.moves.get(i), ctx.history_table);
             }
         }
 
@@ -242,7 +242,7 @@ impl MovePicker {
                 }
             }
 
-            let best_move = *self.moves.get(best_move_idx).unwrap();
+            let best_move = *self.moves.get(best_move_idx);
 
             // Move our best move to the start of the moves we haven't tried
             self.moves.swap(self.idx, best_move_idx);

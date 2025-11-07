@@ -56,19 +56,17 @@ fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> 
         // To get good coverage, we use the length of the move list to determine whether to try captures/quiets
         // in best move/killers.
         if captures_movelist.len() >= 3 {
-            best_move = Some(*captures_movelist.first().unwrap());
+            best_move = Some(*captures_movelist.iter().next().unwrap());
         } else if quiets_movelist.len() >= 3 {
-            best_move = Some(*quiets_movelist.first().unwrap());
+            best_move = Some(*quiets_movelist.iter().next().unwrap());
         }
 
         if quiets_movelist.len() >= 3 {
-            ctx.killer_moves
-                .try_push(depth, *quiets_movelist.get(2).unwrap());
+            ctx.killer_moves.try_push(depth, *quiets_movelist.get(2));
         }
 
         if quiets_movelist.len() >= 4 {
-            ctx.killer_moves
-                .try_push(depth, *quiets_movelist.get(3).unwrap());
+            ctx.killer_moves.try_push(depth, *quiets_movelist.get(3));
         }
     }
 
@@ -83,7 +81,7 @@ fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> 
     }
 
     if test_individual_node_move_counts {
-        let legal_moves = game.moves().to_vec();
+        let legal_moves = game.moves();
 
         if moves_at_this_node.len() < legal_moves.len() {
             let missing_moves = legal_moves
@@ -96,7 +94,7 @@ fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> 
                 game.to_fen(),
                 legal_moves.len(),
                 moves_at_this_node.len(),
-                legal_moves,
+                legal_moves.iter().cloned().collect::<Vec<_>>(),
                 moves_at_this_node,
                 best_move,
                 ctx.killer_moves.get_0(depth),

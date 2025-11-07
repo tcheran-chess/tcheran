@@ -199,7 +199,7 @@ mod tests {
         for (fen, ucimv, threshold, result) in SEE_SUITE {
             println!("{fen}");
             let game = Game::from_fen(fen).unwrap();
-            let moves = game.moves().to_vec();
+            let moves = game.moves();
 
             let mv = moves.iter().find(|m| format!("{m:?}") == ucimv).unwrap();
 
@@ -290,7 +290,7 @@ mod tests {
         for (fen, ucimv, threshold, result) in suite {
             println!("{fen}");
             let game = Game::from_fen(fen).unwrap();
-            let moves = game.moves().to_vec();
+            let moves = game.moves();
 
             let mv = moves.iter().find(|m| format!("{m:?}") == ucimv).unwrap();
 

@@ -293,7 +293,7 @@ fn random_starting_position(rand: &mut impl Rng) -> Result<Game, ()> {
     let number_of_random_moves = DEFAULT_STARTING_MOVES + black_starts;
 
     for _ in 0..number_of_random_moves {
-        let moves = game.moves();
+        let moves = game.moves().iter().copied().collect::<Vec<_>>();
         let random_move = moves.choose(rand);
 
         // We stumbled into a checkmate or draw

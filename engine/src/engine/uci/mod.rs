@@ -66,8 +66,8 @@ impl UciReporter {
             pv: Some(
                 progress
                     .pv
-                    .clone()
-                    .into_iter()
+                    .iter()
+                    .copied()
                     .map(std::convert::Into::into)
                     .collect(),
             ),
@@ -152,8 +152,8 @@ impl UciReporter {
         );
 
         print!("  ");
-        for mv in progress.pv.clone() {
-            let san_mv = san::format_move(&game, mv);
+        for mv in progress.pv.iter() {
+            let san_mv = san::format_move(&game, *mv);
 
             print!(
                 " {}",
@@ -163,7 +163,7 @@ impl UciReporter {
                 }
             );
 
-            game.make_move(mv);
+            game.make_move(*mv);
         }
 
         println!();

@@ -1,8 +1,6 @@
 use std::num::NonZeroU16;
 
-use arrayvec::ArrayVec;
-
-use crate::chess::{piece::PromotionPieceKind, square::Square};
+use crate::chess::{arrayvec::ArrayVec, piece::PromotionPieceKind, square::Square};
 
 const MAX_LEGAL_MOVES: usize = 218;
 
@@ -25,7 +23,7 @@ impl MoveListExt for MoveList {
         promotion: Option<PromotionPieceKind>,
     ) -> Move {
         for i in 0..self.len() {
-            let mv = *self.get(i).unwrap();
+            let mv = *self.get(i);
 
             if mv.src() == src && mv.dst() == dst && mv.promotion() == promotion {
                 return mv;

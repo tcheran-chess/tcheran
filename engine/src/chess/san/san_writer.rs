@@ -103,11 +103,10 @@ fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
         return AmbiguityResolution::None;
     }
 
-    let moves = game.moves().to_vec();
-
-    let potentially_ambiguous_moves: Vec<Move> = moves
-        .into_iter()
-        .filter(|m| {
+    let potentially_ambiguous_moves: Vec<Move> = game
+        .moves()
+        .iter()
+        .filter(|&m| {
             // A move is potentially ambiguous if:
 
             // It moves to the same square our move
@@ -119,6 +118,7 @@ fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
                 // It's not the exact same move
                 *m != mv
         })
+        .copied()
         .collect();
 
     let ambiguity_by_file = potentially_ambiguous_moves

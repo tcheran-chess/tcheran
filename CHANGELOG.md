@@ -5,6 +5,7 @@
 ### Misc
 
 * Remove paste dev dependency
+* Remove arrayvec dependency
 
 ## [7.0]
 

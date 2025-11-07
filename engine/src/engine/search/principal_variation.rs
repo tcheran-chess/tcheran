@@ -1,6 +1,7 @@
-use arrayvec::ArrayVec;
-
-use crate::{chess::moves::Move, engine::search::MAX_SEARCH_DEPTH_SIZE};
+use crate::{
+    chess::{arrayvec::ArrayVec, moves::Move},
+    engine::search::MAX_SEARCH_DEPTH_SIZE,
+};
 
 #[derive(Clone)]
 pub struct PrincipalVariation(ArrayVec<Move, MAX_SEARCH_DEPTH_SIZE>);
@@ -8,7 +9,7 @@ pub struct PrincipalVariation(ArrayVec<Move, MAX_SEARCH_DEPTH_SIZE>);
 impl PrincipalVariation {
     #[inline]
     pub const fn new() -> Self {
-        Self(ArrayVec::new_const())
+        Self(ArrayVec::new())
     }
 
     #[inline]
@@ -20,9 +21,10 @@ impl PrincipalVariation {
     pub fn push(&mut self, mv: Move, child_pv: &Self) {
         self.0.clear();
         self.0.push(mv);
-        self.0
-            .try_extend_from_slice(&child_pv.0)
-            .expect("Could not construct PV");
+
+        for mv in child_pv.iter() {
+            self.0.push(*mv);
+        }
     }
 
     #[inline]
@@ -30,22 +32,17 @@ impl PrincipalVariation {
         self.0.push(mv);
     }
 
+    pub fn iter(&self) -> std::slice::Iter<'_, Move> {
+        self.0.iter()
+    }
+
     #[inline]
     pub fn first(&self) -> Option<&Move> {
-        self.0.first()
+        self.0.iter().next()
     }
 
     pub fn len(&self) -> u8 {
         u8::try_from(self.0.len()).unwrap()
-    }
-}
-
-impl IntoIterator for PrincipalVariation {
-    type Item = Move;
-    type IntoIter = arrayvec::IntoIter<Self::Item, MAX_SEARCH_DEPTH_SIZE>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
     }
 }
 
@@ -74,8 +71,8 @@ mod tests {
         pv_4.push(Move::quiet(E1, F1), &pv_3);
 
         assert_eq!(pv_4.len(), 3);
-        assert_eq!(pv_4.0.first().unwrap().src(), E1);
-        assert_eq!(pv_4.0.get(1).unwrap().src(), C1);
-        assert_eq!(pv_4.0.get(2).unwrap().src(), A1);
+        assert_eq!(pv_4.0.get(0).src(), E1);
+        assert_eq!(pv_4.0.get(1).src(), C1);
+        assert_eq!(pv_4.0.get(2).src(), A1);
     }
 }

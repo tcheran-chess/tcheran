@@ -1,0 +1,78 @@
+use std::{mem::MaybeUninit, ops::Index};
+
+#[derive(Clone)]
+pub struct ArrayVec<T: Copy, const N: usize> {
+    data: [MaybeUninit<T>; N],
+    len: usize,
+}
+
+impl<T: Copy, const N: usize> ArrayVec<T, N> {
+    pub const fn new() -> Self {
+        let data: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
+        Self { data, len: 0 }
+    }
+
+    pub const fn len(&self) -> usize {
+        self.len
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
+    pub fn get(&self, index: usize) -> &T {
+        debug_assert!(index < self.len);
+
+        unsafe { &*self.data.get_unchecked(index).as_ptr() }
+    }
+
+    pub fn push(&mut self, value: T) {
+        debug_assert!(self.len < N);
+
+        unsafe { self.data[self.len].as_mut_ptr().write(value) };
+        self.len += 1;
+    }
+
+    pub fn pop(&mut self) -> Option<T> {
+        if self.len == 0 {
+            return None;
+        }
+
+        self.len -= 1;
+        unsafe { Some(std::ptr::read(self.data[self.len].as_ptr())) }
+    }
+
+    pub fn clear(&mut self) {
+        self.len = 0;
+    }
+
+    pub fn swap(&mut self, a: usize, b: usize) {
+        unsafe {
+            std::ptr::swap(
+                self.data.get_unchecked_mut(a),
+                self.data.get_unchecked_mut(b),
+            );
+        }
+    }
+
+    pub fn iter(&self) -> std::slice::Iter<'_, T> {
+        unsafe { std::slice::from_raw_parts(self.data.as_ptr().cast(), self.len) }.iter()
+    }
+}
+
+impl<'a, T: Copy, const N: usize> IntoIterator for &'a ArrayVec<T, N> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<const N: usize, T: Copy> Index<usize> for ArrayVec<T, N> {
+    type Output = T;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        unsafe { &*self.data.get_unchecked(index).as_ptr() }
+    }
+}

@@ -12,9 +12,7 @@ use engine::{
         moves::Move,
         piece::PromotionPieceKind,
         player::Player,
-        square::{
-            Square, squares,
-        },
+        square::{Square, squares},
     },
     engine::{
         eval::{Eval, WhiteEval},
@@ -162,7 +160,8 @@ fn progress_thread(ngames: usize) {
         let positions_generated = stats::POSITIONS.load(Ordering::SeqCst);
         let elapsed_time = jiff::Timestamp::now() - start_time;
         let elapsed_seconds = elapsed_time.total(Unit::Second).unwrap();
-        let positions_per_second = f64::from(u32::try_from(positions_generated).unwrap()) / elapsed_seconds;
+        let positions_per_second =
+            f64::from(u32::try_from(positions_generated).unwrap()) / elapsed_seconds;
         let positions_per_game = positions_generated as f64 / games_played as f64;
 
         let approx_time_per_game = elapsed_seconds / games_played as f64;
@@ -208,9 +207,7 @@ fn update_stats(
     game: &viriformat::dataformat::Game,
     outcome: viriformat::chess::board::GameOutcome,
 ) {
-    use viriformat::chess::board::GameOutcome::*;
-    use viriformat::chess::board::WinType;
-    use viriformat::chess::board::DrawType;
+    use viriformat::chess::board::{DrawType, GameOutcome::*, WinType};
 
     stats::GAMES.fetch_add(1, Ordering::SeqCst);
     stats::POSITIONS.fetch_add(game.moves.len() as u64, Ordering::SeqCst);

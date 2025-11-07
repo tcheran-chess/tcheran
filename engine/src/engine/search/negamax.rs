@@ -162,13 +162,16 @@ pub fn negamax(
             // Don't let a player play a null move in response to a null move
             && game.history.last().is_none_or(|m| m.mv.is_some())
         {
+            let reduction = params::NULL_MOVE_PRUNING_BASE_REDUCTION
+                + depth / params::NULL_MOVE_PRUNING_REDUCTION_FACTOR;
+
             game.make_null_move();
 
             let null_score = -negamax(
                 game,
                 -beta,
                 -beta + Eval(1),
-                depth - 1 - params::NULL_MOVE_PRUNING_DEPTH_REDUCTION,
+                depth.saturating_sub(reduction),
                 plies + 1,
                 &mut PrincipalVariation::new(),
                 ctx,

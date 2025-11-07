@@ -13,6 +13,7 @@ Parameters in the following table are noted only where they differ from Bullet's
 | 2       | Dataset #1 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 48.88 +- 14.81  | Trained with bullet@main |
 | 3       | Dataset #1 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 17.29 +- 8.50   | Re-shuffled data before training |
 | 4       | Dataset #2 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 89.86 +- 20.11  | Same network architecture, trained with a dataset of ~450k FENs |
+| 5       | Dataset #3 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 108.74 +- 20.12 | No changes in network architecture or training method, but a fresh dataset with a crucial fix for accidentally inverted WDL scores |
 
 ## Experiments
 
@@ -31,3 +32,4 @@ All data used for training is self-play data generated using the datagen code fr
 |       0 |   3,847,979 | Depth 8, no persistent TT, no TBs |
 |       1 | 101,588,007 | Depth 8, added TTs and TBs |
 |       2 | 459,495,083 | Same setup as dataset #1, just adding more FENs. Incorporates datasets #0 and #1 |
+|       3 | 125,337,687 | Generated from scratch using net #4. Same setup as previous datasets, but fixing a critical bug that inverted WDL scores |

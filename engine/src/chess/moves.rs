@@ -94,6 +94,7 @@ const PROMOTION_FLAG_BIT: u8 = 0b0010;
 
 const CAPTURE_BIT_MASK: u16 = 0b0001_0000_0000_0000;
 const PROMOTION_BIT_MASK: u16 = 0b0010_0000_0000_0000;
+const NOT_QUIET_BIT_MASK: u16 = CAPTURE_BIT_MASK | PROMOTION_BIT_MASK;
 
 const fn flag_bits(f1: bool, f2: bool) -> u8 {
     ((f1 as u8) << 2) | ((f2 as u8) << 3)
@@ -191,6 +192,11 @@ impl Move {
     #[inline]
     fn flags(self) -> Flags {
         Flags::from_u8((self.0.get() >> FLAGS_SHIFT) as u8)
+    }
+
+    #[inline]
+    pub fn is_quiet(self) -> bool {
+        (self.data() & NOT_QUIET_BIT_MASK) == 0
     }
 
     #[inline]

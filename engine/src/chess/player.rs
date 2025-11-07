@@ -10,11 +10,6 @@ impl Player {
     pub fn other(self) -> Self {
         !self
     }
-
-    #[inline(always)]
-    pub const fn array_idx(self) -> usize {
-        self as usize
-    }
 }
 
 impl std::ops::Not for Player {
@@ -25,6 +20,20 @@ impl std::ops::Not for Player {
             Self::White => Self::Black,
             Self::Black => Self::White,
         }
+    }
+}
+
+impl<T> std::ops::Index<Player> for [T; Player::N] {
+    type Output = T;
+
+    fn index(&self, index: Player) -> &Self::Output {
+        unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
+impl<T> std::ops::IndexMut<Player> for [T; Player::N] {
+    fn index_mut(&mut self, index: Player) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index as usize) }
     }
 }
 
@@ -48,12 +57,12 @@ impl<T> ByPlayer<T> {
 
     #[inline(always)]
     pub fn for_player(&self, player: Player) -> &T {
-        &self.0[player.array_idx()]
+        &self.0[player]
     }
 
     #[inline(always)]
     pub fn for_player_mut(&mut self, player: Player) -> &mut T {
-        &mut self.0[player.array_idx()]
+        &mut self.0[player]
     }
 
     #[inline(always)]

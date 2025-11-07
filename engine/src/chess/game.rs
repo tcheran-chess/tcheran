@@ -22,11 +22,6 @@ pub enum CastleRightsSide {
 
 impl CastleRightsSide {
     pub const N: usize = 2;
-
-    #[inline(always)]
-    pub const fn array_idx(self) -> usize {
-        self as usize
-    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -64,6 +59,20 @@ impl Default for CastleRights {
             king_side: true,
             queen_side: true,
         }
+    }
+}
+
+impl<T> std::ops::Index<CastleRightsSide> for [T; CastleRightsSide::N] {
+    type Output = T;
+
+    fn index(&self, index: CastleRightsSide) -> &Self::Output {
+        unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
+impl<T> std::ops::IndexMut<CastleRightsSide> for [T; CastleRightsSide::N] {
+    fn index_mut(&mut self, index: CastleRightsSide) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index as usize) }
     }
 }
 

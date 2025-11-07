@@ -122,24 +122,15 @@ pub fn hash(game: &Game) -> ZobristHash {
 }
 
 fn piece_on_square(player: Player, piece: PieceKind, square: Square) -> ZobristComponent {
-    *unsafe {
-        components::PIECE_SQUARE
-            .get_unchecked(player.array_idx())
-            .get_unchecked(square.array_idx())
-            .get_unchecked(piece.array_idx())
-    }
+    components::PIECE_SQUARE[player][square][piece]
 }
 
 fn castle_rights(player: Player, side: CastleRightsSide) -> ZobristComponent {
-    *unsafe {
-        components::CASTLING
-            .get_unchecked(player.array_idx())
-            .get_unchecked(side.array_idx())
-    }
+    components::CASTLING[player][side]
 }
 
 fn en_passant(square: Square) -> ZobristComponent {
-    *unsafe { components::EN_PASSANT_SQUARE.get_unchecked(square.array_idx()) }
+    components::EN_PASSANT_SQUARE[square]
 }
 
 fn side_to_play() -> ZobristComponent {

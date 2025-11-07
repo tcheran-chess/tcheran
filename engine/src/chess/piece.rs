@@ -21,10 +21,19 @@ impl PieceKind {
         Self::Queen,
         Self::King,
     ];
+}
 
-    #[inline(always)]
-    pub const fn array_idx(self) -> usize {
-        self as usize
+impl<T> std::ops::Index<PieceKind> for [T; PieceKind::N] {
+    type Output = T;
+
+    fn index(&self, index: PieceKind) -> &Self::Output {
+        unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
+impl<T> std::ops::IndexMut<PieceKind> for [T; PieceKind::N] {
+    fn index_mut(&mut self, index: PieceKind) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index as usize) }
     }
 }
 

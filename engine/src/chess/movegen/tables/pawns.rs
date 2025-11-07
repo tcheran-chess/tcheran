@@ -5,11 +5,7 @@ static mut ATTACKS_TABLE: [[Bitboard; Square::N]; Player::N] =
     [[Bitboard::EMPTY; Square::N]; Player::N];
 
 pub fn pawn_attacks(s: Square, player: Player) -> Bitboard {
-    *unsafe {
-        ATTACKS_TABLE
-            .get_unchecked(player.array_idx())
-            .get_unchecked(s.array_idx())
-    }
+    unsafe { ATTACKS_TABLE[player][s] }
 }
 
 pub fn init() {
@@ -18,8 +14,8 @@ pub fn init() {
         let black_attacks = attacks::generate_pawn_attacks(s, Player::Black);
 
         unsafe {
-            ATTACKS_TABLE[Player::White.array_idx()][s.array_idx()] = white_attacks;
-            ATTACKS_TABLE[Player::Black.array_idx()][s.array_idx()] = black_attacks;
+            ATTACKS_TABLE[Player::White][s] = white_attacks;
+            ATTACKS_TABLE[Player::Black][s] = black_attacks;
         }
     }
 }

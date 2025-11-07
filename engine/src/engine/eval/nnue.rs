@@ -148,14 +148,14 @@ const fn nnue_index(piece: Piece, sq: Square) -> (usize, usize) {
     const COLOR_STRIDE: usize = Square::N * PieceKind::N;
     const PIECE_STRIDE: usize = Square::N;
 
-    let p = piece.kind.array_idx();
-    let c = piece.player.array_idx();
+    let p = piece.kind as usize;
+    let c = piece.player as usize;
 
     let white_idx =
-        c * COLOR_STRIDE + p * PIECE_STRIDE + sq.relative_for(Player::White).array_idx();
+        c * COLOR_STRIDE + p * PIECE_STRIDE + sq.relative_for(Player::White).idx() as usize;
 
     let black_idx =
-        (1 ^ c) * COLOR_STRIDE + p * PIECE_STRIDE + sq.relative_for(Player::Black).array_idx();
+        (1 ^ c) * COLOR_STRIDE + p * PIECE_STRIDE + sq.relative_for(Player::Black).idx() as usize;
 
     (white_idx, black_idx)
 }

@@ -26,7 +26,7 @@ impl Board {
 
     #[inline(always)]
     pub fn pieces_of_kind(&self, kind: PieceKind, player: Player) -> Bitboard {
-        self.pieces[kind.array_idx()] & self.occupancy_for(player)
+        self.pieces[kind] & self.occupancy_for(player)
     }
 
     pub fn pawns(&self, player: Player) -> Bitboard {
@@ -34,7 +34,7 @@ impl Board {
     }
 
     pub fn all_pawns(&self) -> Bitboard {
-        self.pieces[PieceKind::Pawn.array_idx()]
+        self.pieces[PieceKind::Pawn]
     }
 
     pub fn knights(&self, player: Player) -> Bitboard {
@@ -42,7 +42,7 @@ impl Board {
     }
 
     pub fn all_knights(&self) -> Bitboard {
-        self.pieces[PieceKind::Knight.array_idx()]
+        self.pieces[PieceKind::Knight]
     }
 
     pub fn bishops(&self, player: Player) -> Bitboard {
@@ -50,7 +50,7 @@ impl Board {
     }
 
     pub fn all_bishops(&self) -> Bitboard {
-        self.pieces[PieceKind::Bishop.array_idx()]
+        self.pieces[PieceKind::Bishop]
     }
 
     pub fn rooks(&self, player: Player) -> Bitboard {
@@ -58,7 +58,7 @@ impl Board {
     }
 
     pub fn all_rooks(&self) -> Bitboard {
-        self.pieces[PieceKind::Rook.array_idx()]
+        self.pieces[PieceKind::Rook]
     }
 
     pub fn queens(&self, player: Player) -> Bitboard {
@@ -66,7 +66,7 @@ impl Board {
     }
 
     pub fn all_queens(&self) -> Bitboard {
-        self.pieces[PieceKind::Queen.array_idx()]
+        self.pieces[PieceKind::Queen]
     }
 
     pub fn king(&self, player: Player) -> Bitboard {
@@ -74,7 +74,7 @@ impl Board {
     }
 
     pub fn all_kings(&self) -> Bitboard {
-        self.pieces[PieceKind::King.array_idx()]
+        self.pieces[PieceKind::King]
     }
 
     pub fn diagonal_sliders(&self, player: Player) -> Bitboard {
@@ -95,8 +95,7 @@ impl Board {
 
     #[inline(always)]
     pub fn piece_at(&self, square: Square) -> Option<Piece> {
-        // We know array_idx can only return up to Square::N - 1
-        unsafe { *self.squares.get_unchecked(square.array_idx()) }
+        self.squares[square]
     }
 
     #[inline(always)]
@@ -107,18 +106,18 @@ impl Board {
     #[inline(always)]
     pub fn remove_at(&mut self, square: Square) {
         let piece = self.piece_guaranteed_at(square);
-        self.pieces[piece.kind.array_idx()] ^= square.bb();
+        self.pieces[piece.kind] ^= square.bb();
         self.colors
             .for_player_mut(piece.player)
             .unset_inplace(square);
-        self.squares[square.array_idx()] = None;
+        self.squares[square] = None;
     }
 
     #[inline(always)]
     pub fn set_at(&mut self, square: Square, piece: Piece) {
-        self.pieces[piece.kind.array_idx()] |= square.bb();
+        self.pieces[piece.kind] |= square.bb();
         self.colors.for_player_mut(piece.player).set_inplace(square);
-        self.squares[square.array_idx()] = Some(piece);
+        self.squares[square] = Some(piece);
     }
 
     pub fn king_in_check(&self, player: Player) -> bool {

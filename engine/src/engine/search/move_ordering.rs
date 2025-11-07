@@ -20,9 +20,9 @@ const MVV_ORDER: [i32; PieceKind::N] = [0, PIECES, PIECES * 2, PIECES * 3, PIECE
 const LVA_ORDER: [i32; PieceKind::N] = [5, 4, 3, 2, 1, 0];
 
 #[inline]
-pub const fn mvv_lva(victim: PieceKind, attacker: PieceKind) -> i32 {
-    let victim_score = MVV_ORDER[victim.array_idx()];
-    let attacker_score = LVA_ORDER[attacker.array_idx()];
+pub fn mvv_lva(victim: PieceKind, attacker: PieceKind) -> i32 {
+    let victim_score = MVV_ORDER[victim];
+    let attacker_score = LVA_ORDER[attacker];
 
     victim_score + attacker_score
 }
@@ -45,7 +45,7 @@ pub fn score_tactical(game: &Game, mv: Move) -> i32 {
     }
 
     // Score promotions just below good captures, and prioritise them by piece value
-    HISTORY_MAX_SCORE - LVA_ORDER[moved_piece.kind.array_idx()]
+    HISTORY_MAX_SCORE - LVA_ORDER[moved_piece.kind]
 }
 
 pub fn score_quiet(game: &Game, mv: Move, history: &HistoryTable) -> i32 {

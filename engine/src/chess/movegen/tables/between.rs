@@ -4,11 +4,7 @@ static mut BETWEEN_TABLE: [[Bitboard; Square::N]; Square::N] =
     [[Bitboard::EMPTY; Square::N]; Square::N];
 
 pub fn between(s1: Square, s2: Square) -> Bitboard {
-    *unsafe {
-        BETWEEN_TABLE
-            .get_unchecked(s1.array_idx())
-            .get_unchecked(s2.array_idx())
-    }
+    unsafe { BETWEEN_TABLE[s1][s2] }
 }
 
 fn generate_squares_between(s1: Square, s2: Square) -> Option<Bitboard> {
@@ -83,8 +79,7 @@ pub fn init() {
             let between_squares = generate_squares_between(s1, s2);
 
             unsafe {
-                BETWEEN_TABLE[s1.array_idx()][s2.array_idx()] =
-                    between_squares.unwrap_or(Bitboard::EMPTY);
+                BETWEEN_TABLE[s1][s2] = between_squares.unwrap_or(Bitboard::EMPTY);
             }
         }
     }

@@ -65,7 +65,7 @@ impl HistoryTable {
     }
 
     pub fn get(&self, player: Player, mv: Move) -> i32 {
-        self.0[player.array_idx()][mv.src().array_idx()][mv.dst().array_idx()]
+        self.0[player][mv.src()][mv.dst()]
     }
 
     pub fn add_bonus_for(&mut self, player: Player, mv: Move, depth: u8) {
@@ -73,7 +73,7 @@ impl HistoryTable {
         let existing_score = self.get(player, mv);
         let new_score = std::cmp::min(existing_score + bonus, move_ordering::HISTORY_MAX_SCORE);
 
-        self.0[player.array_idx()][mv.src().array_idx()][mv.dst().array_idx()] = new_score;
+        self.0[player][mv.src()][mv.dst()] = new_score;
     }
 
     pub fn decay(&mut self, decay_factor: i32) {
@@ -95,11 +95,10 @@ impl CountermoveTable {
     }
 
     pub fn set(&mut self, player: Player, previous_move: Move, counter_move: Move) {
-        self.0[player.array_idx()][previous_move.src().array_idx()]
-            [previous_move.dst().array_idx()] = Some(counter_move);
+        self.0[player][previous_move.src()][previous_move.dst()] = Some(counter_move);
     }
 
     pub fn get(&self, player: Player, previous_move: Move) -> Option<Move> {
-        self.0[player.array_idx()][previous_move.src().array_idx()][previous_move.dst().array_idx()]
+        self.0[player][previous_move.src()][previous_move.dst()]
     }
 }

@@ -100,6 +100,20 @@ impl std::fmt::Display for File {
     }
 }
 
+impl<T> std::ops::Index<File> for [T; File::N] {
+    type Output = T;
+
+    fn index(&self, index: File) -> &Self::Output {
+        unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
+impl<T> std::ops::IndexMut<File> for [T; File::N] {
+    fn index_mut(&mut self, index: File) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index as usize) }
+    }
+}
+
 pub const RANKS: [Rank; Rank::N] = [
     Rank::R1,
     Rank::R2,
@@ -159,11 +173,6 @@ impl Rank {
         self as u8
     }
 
-    #[inline(always)]
-    pub const fn array_idx(self) -> usize {
-        self as usize
-    }
-
     pub const fn notation(self) -> &'static str {
         match self {
             Self::R1 => "1",
@@ -187,6 +196,20 @@ impl std::fmt::Debug for Rank {
 impl std::fmt::Display for Rank {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.notation())
+    }
+}
+
+impl<T> std::ops::Index<Rank> for [T; Rank::N] {
+    type Output = T;
+
+    fn index(&self, index: Rank) -> &Self::Output {
+        unsafe { self.get_unchecked(index as usize) }
+    }
+}
+
+impl<T> std::ops::IndexMut<Rank> for [T; Rank::N] {
+    fn index_mut(&mut self, index: Rank) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index as usize) }
     }
 }
 
@@ -236,11 +259,6 @@ impl Square {
     #[inline(always)]
     pub const fn idx(self) -> u8 {
         self.0
-    }
-
-    #[inline(always)]
-    pub const fn array_idx(self) -> usize {
-        self.0 as usize
     }
 
     #[inline(always)]
@@ -301,6 +319,20 @@ impl std::fmt::Debug for Square {
 impl std::fmt::Display for Square {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.notation())
+    }
+}
+
+impl<T> std::ops::Index<Square> for [T; Square::N] {
+    type Output = T;
+
+    fn index(&self, index: Square) -> &Self::Output {
+        unsafe { self.get_unchecked(index.0 as usize) }
+    }
+}
+
+impl<T> std::ops::IndexMut<Square> for [T; Square::N] {
+    fn index_mut(&mut self, index: Square) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(index.0 as usize) }
     }
 }
 

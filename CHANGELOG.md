@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Misc
+
+* Remove paste dev dependency
+
 ## [7.0]
 
 * Network #2, trained with bullet's `main` branch with the same parameters as before (48.88 +- 14.81)

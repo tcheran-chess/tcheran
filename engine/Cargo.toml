@@ -21,8 +21,5 @@ cc = "1.2.2"
 [dependencies]
 arrayvec = "0.7.6"
 
-[dev-dependencies]
-paste = "1.0.15"
-
 [lints]
 workspace = true

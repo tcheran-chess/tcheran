@@ -1,4 +1,4 @@
-use crate::engine::{options::EngineOptions, search::PersistentState};
+use crate::engine::{eval::Eval, options::EngineOptions, search::PersistentState};
 
 pub struct UciOption {
     pub name: &'static str,
@@ -117,6 +117,24 @@ pub trait ToUciSpinOptionValue {
 impl ToUciSpinOptionValue for usize {
     fn convert(self) -> isize {
         isize::try_from(self).expect("Value should fit in an isize")
+    }
+}
+
+impl ToUciSpinOptionValue for u8 {
+    fn convert(self) -> isize {
+        isize::from(self)
+    }
+}
+
+impl ToUciSpinOptionValue for i32 {
+    fn convert(self) -> isize {
+        isize::try_from(self).expect("Value should fit in an isize")
+    }
+}
+
+impl ToUciSpinOptionValue for Eval {
+    fn convert(self) -> isize {
+        isize::try_from(self.0).expect("Value should fit in an isize")
     }
 }
 

@@ -10,7 +10,7 @@ use crate::{
     chess::{game::Game, moves::Move, player::Player},
     engine::{
         options::EngineOptions,
-        search::{SearchContext, TimeControl, params},
+        search::{SearchContext, TimeControl},
     },
 };
 
@@ -27,6 +27,7 @@ pub struct TimeStrategy {
 
     next_check_at: u64,
 
+    options: EngineOptions,
     control: StopControl,
 }
 
@@ -84,22 +85,22 @@ impl TimeStrategy {
                     .saturating_sub(move_overhead)
                     .max(move_overhead);
 
-                let max_time_per_move = time_remaining.mul_f32(params::MAX_TIME_PER_MOVE);
+                let max_time_per_move = time_remaining.mul_f32(options.params.max_time_per_move);
 
                 let base_time = if let Some(moves_to_go) = clocks.moves_to_go {
                     // Try to use a roughly even amount of time per move
                     time_remaining / moves_to_go
                 } else {
-                    time_remaining.mul_f32(params::BASE_TIME_PER_MOVE)
-                } + increment.mul_f32(params::INCREMENT_TO_USE);
+                    time_remaining.mul_f32(options.params.base_time_per_move)
+                } + increment.mul_f32(options.params.increment_to_use);
 
                 soft_stop = std::cmp::min(
-                    base_time.mul_f32(params::SOFT_TIME_MULTIPLIER),
+                    base_time.mul_f32(options.params.soft_time_multiplier),
                     max_time_per_move,
                 );
 
                 hard_stop = std::cmp::min(
-                    base_time.mul_f32(params::HARD_TIME_MULTIPLIER),
+                    base_time.mul_f32(options.params.hard_time_multiplier),
                     max_time_per_move,
                 );
             }
@@ -119,6 +120,7 @@ impl TimeStrategy {
 
             next_check_at: CHECK_TERMINATION_NODE_FREQUENCY,
 
+            options: options.clone(),
             control,
         }
     }
@@ -139,9 +141,10 @@ impl TimeStrategy {
         match self.time_control {
             TimeControl::Infinite => true,
             TimeControl::Clocks(_) => {
-                let soft_stop = if depth > params::BEST_MOVE_STABILITY_INITIAL_DEPTH {
+                let soft_stop = if depth > self.options.params.best_move_stability_initial_depth {
                     self.soft_stop.mul_f32(
-                        params::BEST_MOVE_STABILITY_TIME_MULTIPLIERS[self.best_move_stability],
+                        self.options.params.best_move_stability_time_multipliers
+                            [self.best_move_stability],
                     )
                 } else {
                     self.soft_stop
@@ -198,7 +201,7 @@ impl TimeStrategy {
     }
 
     pub fn update_after_search(&mut self, best_move: Move, depth: u8) {
-        if depth >= params::BEST_MOVE_STABILITY_INITIAL_DEPTH {
+        if depth >= self.options.params.best_move_stability_initial_depth {
             self.best_move_stability = if Some(best_move) == self.last_best_move {
                 std::cmp::min(4, self.best_move_stability + 1)
             } else {

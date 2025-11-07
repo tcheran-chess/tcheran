@@ -7,6 +7,7 @@ default-run = "engine"
 
 [features]
 release = []
+spsa = []
 
 [lib]
 path = "src/lib.rs"

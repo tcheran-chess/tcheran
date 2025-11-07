@@ -1,7 +1,8 @@
 pub mod lmr_table;
 
 pub fn init() {
-    lmr_table::init();
+    // TODO: This means that LMR params cannot be tuned
+    lmr_table::init(&Params::default());
 }
 
 use std::cmp::min;
@@ -14,7 +15,10 @@ use crate::{
         player::Player,
         square::Square,
     },
-    engine::{search::MAX_SEARCH_DEPTH_SIZE, util::mem::alloc_boxed},
+    engine::{
+        search::{MAX_SEARCH_DEPTH_SIZE, Params},
+        util::mem::alloc_boxed,
+    },
 };
 
 pub struct Tables {

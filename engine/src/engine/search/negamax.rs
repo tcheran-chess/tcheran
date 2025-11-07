@@ -1,6 +1,6 @@
 use std::cmp::max;
 
-use super::{MAX_SEARCH_DEPTH, SearchContext, params};
+use super::{MAX_SEARCH_DEPTH, SearchContext};
 use crate::{
     chess::{
         game::Game,
@@ -188,8 +188,8 @@ pub fn negamax(
 
     if !is_root && !is_pv && !in_check && excluded_mv.is_none() {
         // Reverse futility pruning
-        if depth <= params::REVERSE_FUTILITY_PRUNE_DEPTH
-            && eval - params::REVERSE_FUTILITY_PRUNE_MARGIN_PER_PLY * i32::from(depth) > beta
+        if depth <= ctx.params.reverse_futility_prune_depth
+            && eval - ctx.params.reverse_futility_prune_margin_per_ply * i32::from(depth) > beta
         {
             return beta + (eval - beta) / 3;
         }
@@ -202,8 +202,8 @@ pub fn negamax(
         {
             ctx.tt.prefetch(game.approx_zobrist_after_null_move());
 
-            let reduction = params::NULL_MOVE_PRUNING_BASE_REDUCTION
-                + depth / params::NULL_MOVE_PRUNING_REDUCTION_FACTOR;
+            let reduction = ctx.params.null_move_pruning_base_reduction
+                + depth / ctx.params.null_move_pruning_reduction_factor;
 
             ctx.stack.get(plies).mv = None;
 
@@ -231,7 +231,7 @@ pub fn negamax(
         }
     }
 
-    if !is_root && tt_entry.is_none() && depth >= params::IIR_DEPTH {
+    if !is_root && tt_entry.is_none() && depth >= ctx.params.iir_depth {
         depth -= 1;
     }
 
@@ -241,11 +241,11 @@ pub fn negamax(
     let singular_extension_candidate = tt_entry
         .as_ref()
         .filter(|entry| {
-            depth >= params::SINGULAR_EXTENSION_DEPTH
+            depth >= ctx.params.singular_extension_depth
                 && !is_root
                 && excluded_mv.is_none()
                 && entry.bound != NodeBound::Upper
-                && entry.depth >= depth - params::SINGULAR_EXTENSION_ENTRY_DEPTH_DELTA
+                && entry.depth >= depth - ctx.params.singular_extension_entry_depth_delta
                 && !entry.score.is_mate()
         })
         .and_then(|entry| entry.best_move);
@@ -255,7 +255,7 @@ pub fn negamax(
         let tt_score = tt_entry.as_ref().unwrap().score;
 
         let se_depth = (depth - 1) / 2;
-        let se_beta = tt_score - params::SINGULAR_EXTENSION_MARGIN * i32::from(depth);
+        let se_beta = tt_score - ctx.params.singular_extension_margin * i32::from(depth);
 
         ctx.stack.get(plies).excluded_mv = Some(mv);
         let value = negamax(game, se_beta - Eval(1), se_beta, se_depth, plies, &mut se_pv, ctx);
@@ -265,8 +265,8 @@ pub fn negamax(
             singular_extension = 1;
 
             if !is_pv
-                && value + params::DOUBLE_EXTENSION_MARGIN < se_beta
-                && ctx.stack.get(plies).double_extensions <= params::DOUBLE_EXTENSION_MAX
+                && value + ctx.params.double_extension_margin < se_beta
+                && ctx.stack.get(plies).double_extensions <= ctx.params.double_extension_max
             {
                 singular_extension = 2;
                 ctx.stack.get(plies).double_extensions += 1;
@@ -301,13 +301,13 @@ pub fn negamax(
             && !is_pv
             && !mv.is_capture()
             && !in_check
-            && depth <= params::FUTILITY_PRUNE_DEPTH
-            && eval + params::FUTILITY_PRUNE_MAX_MOVE_VALUE < alpha
+            && depth <= ctx.params.futility_prune_depth
+            && eval + ctx.params.futility_prune_max_move_value < alpha
         {
             continue;
         }
 
-        if depth < params::SEE_PRUNE_DEPTH
+        if depth < ctx.params.see_prune_depth
             && moves.stage > GenStage::GoodTacticals
             && number_of_legal_moves > 0
             && !is_root
@@ -318,9 +318,9 @@ pub fn negamax(
                 i32::from(depth.saturating_sub(lmr_reduction(depth, number_of_legal_moves)));
 
             let margin = if mv.is_quiet() {
-                params::SEE_QUIET_MARGIN * lmr_depth * lmr_depth
+                ctx.params.see_quiet_margin * lmr_depth * lmr_depth
             } else {
-                params::SEE_CAPTURE_MARGIN * lmr_depth
+                ctx.params.see_capture_margin * lmr_depth
             };
 
             if !see(game, mv, margin) {
@@ -328,10 +328,11 @@ pub fn negamax(
             }
         }
 
-        let lmp_moves = (params::LMP_MOVE_THRESHOLD as usize + (depth as usize * depth as usize))
+        let lmp_moves = (ctx.params.lmp_move_threshold as usize
+            + (depth as usize * depth as usize))
             / (1 + usize::from(!improving));
 
-        if depth <= params::LMP_DEPTH
+        if depth <= ctx.params.lmp_depth
             && !is_root
             && !is_pv
             && !in_check
@@ -365,8 +366,8 @@ pub fn negamax(
                 ctx,
             )
         } else {
-            let reduction = if depth >= params::LMR_DEPTH
-                && number_of_legal_moves >= params::LMR_MOVE_THRESHOLD
+            let reduction = if depth >= ctx.params.lmr_depth
+                && number_of_legal_moves >= ctx.params.lmr_move_threshold
             {
                 let mut reduction = DepthReduction(lmr_reduction(depth, number_of_legal_moves));
 

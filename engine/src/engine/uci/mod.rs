@@ -33,10 +33,10 @@ use crate::{
         square::{File, Rank, Square},
     },
     engine::{
-        eval::{WhiteEval, nnue::NNUE, wdl},
+        eval::{Eval, WhiteEval, nnue::NNUE, wdl},
         options::EngineOptions,
         search,
-        search::{PersistentState, Reporter, time_control::StopControl},
+        search::{Params, PersistentState, Reporter, time_control::StopControl},
         uci::{bench::bench, options::UciOption},
         util,
         util::sync::LockLatch,
@@ -558,7 +558,9 @@ pub enum UciInputMode {
 }
 
 pub fn uci_options() -> Vec<UciOption> {
-    vec![
+    let p = Params::default();
+
+    let options = vec![
         UciOption::spin("Hash", |options, state, value| {
             options.hash_size =
                 usize::try_from(value).expect("min: 0 should prevent us getting negative values");
@@ -596,7 +598,167 @@ pub fn uci_options() -> Vec<UciOption> {
         })
         .default(String::new())
         .build(),
-    ]
+    ];
+
+    #[allow(clippy::allow_attributes, reason = "May be unused in non-SPSA builds")]
+    #[allow(unused, reason = "May be unused in non-SPSA builds")]
+    let spsa_options = vec![
+        UciOption::spin("AspirationMinDepth", |options, _state, value| {
+            options.params.aspiration_min_depth =
+                u8::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.aspiration_min_depth)
+        .with_bounds(1, 10)
+        .build(),
+        //
+        UciOption::spin("AspirationWindowSize", |options, _state, value| {
+            options.params.aspiration_window_size =
+                Eval(i32::try_from(value).expect("Checked min/max bounds"));
+        })
+        .default(p.aspiration_window_size)
+        .with_bounds(10, 500)
+        .build(),
+        //
+        UciOption::spin("NullMovePruningBaseReduction", |options, _state, value| {
+            options.params.null_move_pruning_base_reduction =
+                u8::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.null_move_pruning_base_reduction)
+        .with_bounds(0, 10)
+        .build(),
+        //
+        UciOption::spin("NullMovePruningReductionFactor", |options, _state, value| {
+            options.params.null_move_pruning_reduction_factor =
+                u8::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.null_move_pruning_reduction_factor)
+        .with_bounds(0, 10)
+        .build(),
+        //
+        UciOption::spin("FutilityPruningDepth", |options, _state, value| {
+            options.params.futility_prune_depth =
+                u8::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.futility_prune_depth)
+        .with_bounds(0, 10)
+        .build(),
+        //
+        UciOption::spin("FutilityPruneMaxMoveValue", |options, _state, value| {
+            options.params.futility_prune_max_move_value =
+                Eval(i32::try_from(value).expect("Checked min/max bounds"));
+        })
+        .default(p.futility_prune_max_move_value)
+        .with_bounds(0, 1000)
+        .build(),
+        //
+        UciOption::spin("SeePruneDepth", |options, _state, value| {
+            options.params.see_prune_depth = u8::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.see_prune_depth)
+        .with_bounds(0, 1000)
+        .build(),
+        //
+        UciOption::spin("SeeQuietMargin", |options, _state, value| {
+            options.params.see_quiet_margin =
+                Eval(i32::try_from(value).expect("Checked min/max bounds"));
+        })
+        .default(p.see_quiet_margin)
+        .with_bounds(-1000, 1000)
+        .build(),
+        //
+        UciOption::spin("SeeCaptureMargin", |options, _state, value| {
+            options.params.see_capture_margin =
+                Eval(i32::try_from(value).expect("Checked min/max bounds"));
+        })
+        .default(p.see_capture_margin)
+        .with_bounds(-1000, 1000)
+        .build(),
+        //
+        UciOption::spin("ReverseFutilityPruneDepth", |options, _state, value| {
+            options.params.reverse_futility_prune_depth =
+                u8::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.reverse_futility_prune_depth)
+        .with_bounds(0, 10)
+        .build(),
+        //
+        UciOption::spin("ReverseFutilityPruneMarginPerPly", |options, _state, value| {
+            options.params.reverse_futility_prune_margin_per_ply =
+                Eval(i32::try_from(value).expect("Checked min/max bounds"));
+        })
+        .default(p.reverse_futility_prune_margin_per_ply)
+        .with_bounds(0, 1000)
+        .build(),
+        //
+        UciOption::spin("LmrDepth", |options, _state, value| {
+            options.params.lmr_depth = u8::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.lmr_depth)
+        .with_bounds(0, 1000)
+        .build(),
+        //
+        UciOption::spin("LmrMoveThreshold", |options, _state, value| {
+            options.params.lmr_move_threshold =
+                usize::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.lmr_move_threshold)
+        .with_bounds(0, 50)
+        .build(),
+        //
+        UciOption::spin("IIR_Depth", |options, _state, value| {
+            options.params.iir_depth = u8::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.iir_depth)
+        .with_bounds(0, 1000)
+        .build(),
+        //
+        UciOption::spin("SingularExtensionDepth", |options, _state, value| {
+            options.params.singular_extension_depth =
+                u8::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.singular_extension_depth)
+        .with_bounds(0, 1000)
+        .build(),
+        //
+        UciOption::spin("SingularExtensionEntryDepthDelta", |options, _state, value| {
+            options.params.singular_extension_entry_depth_delta =
+                u8::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.singular_extension_entry_depth_delta)
+        .with_bounds(0, 1000)
+        .build(),
+        //
+        UciOption::spin("SingularExtensionMargin", |options, _state, value| {
+            options.params.singular_extension_margin =
+                Eval(i32::try_from(value).expect("Checked min/max bounds"));
+        })
+        .default(p.singular_extension_margin)
+        .with_bounds(0, 1000)
+        .build(),
+        //
+        UciOption::spin("DoubleExtensionMargin", |options, _state, value| {
+            options.params.double_extension_margin =
+                Eval(i32::try_from(value).expect("Checked min/max bounds"));
+        })
+        .default(p.double_extension_margin)
+        .with_bounds(0, 1000)
+        .build(),
+        //
+        UciOption::spin("DoubleExtensionMax", |options, _state, value| {
+            options.params.double_extension_max =
+                usize::try_from(value).expect("Checked min/max bounds");
+        })
+        .default(p.double_extension_max)
+        .with_bounds(0, 1000)
+        .build(),
+        //
+    ];
+
+    let mut o = vec![];
+    o.extend(options);
+    #[cfg(feature = "spsa")]
+    o.extend(spsa_options);
+    o
 }
 
 pub fn uci(uci_input_mode: UciInputMode) -> Result<(), String> {

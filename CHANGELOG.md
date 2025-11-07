@@ -27,6 +27,7 @@
 ## Misc
 
 * All reported evaluations are now normalised using a model derived from Stockfish's WDL\_model tool
+* Add scaffolding for SPSA
 
 ## [9.0]
 

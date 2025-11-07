@@ -35,50 +35,95 @@ use crate::{
 pub const MAX_SEARCH_DEPTH: u8 = u8::MAX;
 pub const MAX_SEARCH_DEPTH_SIZE: usize = MAX_SEARCH_DEPTH as usize;
 
-mod params {
-    use crate::engine::eval::Eval;
+#[derive(Debug, Clone)]
+pub struct Params {
+    pub aspiration_min_depth: u8,
+    pub aspiration_window_size: Eval,
 
-    pub const ASPIRATION_MIN_DEPTH: u8 = 5;
-    pub const ASPIRATION_WINDOW_SIZE: Eval = Eval::new(25);
+    pub null_move_pruning_base_reduction: u8,
+    pub null_move_pruning_reduction_factor: u8,
 
-    pub const NULL_MOVE_PRUNING_BASE_REDUCTION: u8 = 4;
-    pub const NULL_MOVE_PRUNING_REDUCTION_FACTOR: u8 = 4;
+    pub futility_prune_depth: u8,
+    pub futility_prune_max_move_value: Eval,
 
-    pub const FUTILITY_PRUNE_DEPTH: u8 = 1;
-    pub const FUTILITY_PRUNE_MAX_MOVE_VALUE: Eval = Eval::new(135);
+    pub see_prune_depth: u8,
+    pub see_quiet_margin: Eval,
+    pub see_capture_margin: Eval,
 
-    pub const SEE_PRUNE_DEPTH: u8 = 10;
-    pub const SEE_QUIET_MARGIN: Eval = Eval::new(-30);
-    pub const SEE_CAPTURE_MARGIN: Eval = Eval::new(-100);
+    pub reverse_futility_prune_depth: u8,
+    pub reverse_futility_prune_margin_per_ply: Eval,
 
-    pub const REVERSE_FUTILITY_PRUNE_DEPTH: u8 = 4;
-    pub const REVERSE_FUTILITY_PRUNE_MARGIN_PER_PLY: Eval = Eval::new(150);
+    pub lmr_base: f32,
+    pub lmr_factor: f32,
+    pub lmr_depth: u8,
+    pub lmr_move_threshold: usize,
 
-    pub const LMR_BASE: f32 = 0.75;
-    pub const LMR_FACTOR: f32 = 2.25;
-    pub const LMR_DEPTH: u8 = 3;
-    pub const LMR_MOVE_THRESHOLD: usize = 3;
+    pub lmp_depth: u8,
+    pub lmp_move_threshold: u8,
 
-    pub const LMP_DEPTH: u8 = 2;
-    pub const LMP_MOVE_THRESHOLD: u8 = 5;
+    pub iir_depth: u8,
 
-    pub const IIR_DEPTH: u8 = 4;
+    pub singular_extension_depth: u8,
+    pub singular_extension_entry_depth_delta: u8,
+    pub singular_extension_margin: Eval,
+    pub double_extension_margin: Eval,
+    pub double_extension_max: usize,
 
-    pub const SINGULAR_EXTENSION_DEPTH: u8 = 5;
-    pub const SINGULAR_EXTENSION_ENTRY_DEPTH_DELTA: u8 = 3;
-    pub const SINGULAR_EXTENSION_MARGIN: Eval = Eval(2);
-    pub const DOUBLE_EXTENSION_MARGIN: Eval = Eval(17);
-    pub const DOUBLE_EXTENSION_MAX: usize = 4;
+    pub max_time_per_move: f32,
+    pub increment_to_use: f32,
+    pub base_time_per_move: f32,
 
-    pub const MAX_TIME_PER_MOVE: f32 = 0.5;
-    pub const INCREMENT_TO_USE: f32 = 0.5;
-    pub const BASE_TIME_PER_MOVE: f32 = 0.033;
+    pub soft_time_multiplier: f32,
+    pub hard_time_multiplier: f32,
 
-    pub const SOFT_TIME_MULTIPLIER: f32 = 0.75;
-    pub const HARD_TIME_MULTIPLIER: f32 = 3.00;
+    pub best_move_stability_initial_depth: u8,
+    pub best_move_stability_time_multipliers: [f32; 5],
+}
 
-    pub const BEST_MOVE_STABILITY_INITIAL_DEPTH: u8 = 5;
-    pub const BEST_MOVE_STABILITY_TIME_MULTIPLIERS: [f32; 5] = [2.50, 1.20, 1.00, 0.80, 0.75];
+impl Params {
+    pub const fn default() -> Self {
+        Self {
+            aspiration_min_depth: 5,
+            aspiration_window_size: Eval::new(25),
+
+            null_move_pruning_base_reduction: 4,
+            null_move_pruning_reduction_factor: 4,
+
+            futility_prune_depth: 1,
+            futility_prune_max_move_value: Eval::new(135),
+
+            see_prune_depth: 10,
+            see_quiet_margin: Eval::new(-30),
+            see_capture_margin: Eval::new(-100),
+
+            reverse_futility_prune_depth: 4,
+            reverse_futility_prune_margin_per_ply: Eval::new(150),
+
+            lmr_base: 0.75,
+            lmr_factor: 2.25,
+            lmr_depth: 3,
+            lmr_move_threshold: 3,
+
+            lmp_depth: 2,
+            lmp_move_threshold: 5,
+
+            iir_depth: 4,
+
+            singular_extension_depth: 5,
+            singular_extension_entry_depth_delta: 3,
+            singular_extension_margin: Eval(2),
+            double_extension_margin: Eval(17),
+            double_extension_max: 4,
+
+            max_time_per_move: 0.5,
+            increment_to_use: 0.5,
+            base_time_per_move: 0.033,
+            soft_time_multiplier: 0.75,
+            hard_time_multiplier: 3.00,
+            best_move_stability_initial_depth: 5,
+            best_move_stability_time_multipliers: [2.50, 1.20, 1.00, 0.80, 0.75],
+        }
+    }
 }
 
 pub struct PersistentState {
@@ -168,7 +213,7 @@ pub struct SearchContext<'s> {
 
     pub time_control: TimeStrategy,
 
-    pub options: &'s EngineOptions,
+    pub params: Params,
 
     max_depth_reached: u8,
     nodes_visited: BufferedAtomicU64<'s>,
@@ -198,7 +243,7 @@ impl<'s> SearchContext<'s> {
             nnue,
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
 
-            options,
+            params: options.params.clone(),
 
             max_depth_reached: 0,
             nodes_visited: BufferedAtomicU64::new(node_counter),

@@ -5,6 +5,7 @@
 * Network #7, upping the size to 384 hidden layer nodes with a fresh dataset generated using network #6 (62.36 +- 16.50)
 * Improve null move pruning reduction formula (29.37 +- 10.50)
 * Network #8, upping the size to 512 hidden layer nodes and trained with a larger 1B (unfiltered) FEN dataset (27.07 +- 9.95)
+* Add SEE pruning (25.45 +- 9.40)
 * Do SEE when picking moves instead of when scoring moves (11.32 +- 6.27)
 * Compute checkers in make_move (8.03 +- 5.01)
 * Overwrite TT entries from old searches with static eval cache entries (7.85 +- 4.83)

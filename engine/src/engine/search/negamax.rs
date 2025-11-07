@@ -7,9 +7,12 @@ use crate::{
         eval,
         eval::Eval,
         search::{
-            move_picker::MovePicker, principal_variation::PrincipalVariation,
-            quiescence::quiescence, tables::lmr_table::lmr_reduction,
+            move_picker::{GenStage, MovePicker},
+            principal_variation::PrincipalVariation,
+            quiescence::quiescence,
+            tables::lmr_table::lmr_reduction,
         },
+        see::see,
         tablebases::Wdl,
         transposition_table::NodeBound,
     },
@@ -205,6 +208,27 @@ pub fn negamax(
             && eval + params::FUTILITY_PRUNE_MAX_MOVE_VALUE < alpha
         {
             continue;
+        }
+
+        if depth < params::SEE_PRUNE_DEPTH
+            && moves.stage > GenStage::GoodTacticals
+            && number_of_legal_moves > 0
+            && !is_root
+            && !is_pv
+            && !best_eval.being_mated()
+        {
+            let lmr_depth =
+                i32::from(depth.saturating_sub(lmr_reduction(depth, number_of_legal_moves)));
+
+            let margin = if mv.is_quiet() {
+                params::SEE_QUIET_MARGIN * lmr_depth * lmr_depth
+            } else {
+                params::SEE_CAPTURE_MARGIN * lmr_depth
+            };
+
+            if !see(game, mv, margin) {
+                continue;
+            }
         }
 
         game.make_move(mv);

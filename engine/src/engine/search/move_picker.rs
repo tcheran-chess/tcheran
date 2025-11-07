@@ -14,8 +14,8 @@ use crate::{
     },
 };
 
-#[derive(Eq, PartialEq)]
-enum GenStage {
+#[derive(Eq, PartialEq, PartialOrd, Ord)]
+pub enum GenStage {
     BestMove,
     GenTacticals,
     GoodTacticals,
@@ -77,7 +77,7 @@ pub struct MovePicker {
     previous_best_move: Option<Move>,
     only_tacticals: bool,
 
-    stage: GenStage,
+    pub stage: GenStage,
 
     bad_tacticals: ArrayVec<MoveEntry, MAX_LEGAL_MOVES>,
 }

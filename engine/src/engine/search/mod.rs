@@ -44,6 +44,10 @@ mod params {
     pub const FUTILITY_PRUNE_DEPTH: u8 = 1;
     pub const FUTILITY_PRUNE_MAX_MOVE_VALUE: Eval = Eval::new(135);
 
+    pub const SEE_PRUNE_DEPTH: u8 = 10;
+    pub const SEE_QUIET_MARGIN: Eval = Eval::new(-30);
+    pub const SEE_CAPTURE_MARGIN: Eval = Eval::new(-100);
+
     pub const REVERSE_FUTILITY_PRUNE_DEPTH: u8 = 4;
     pub const REVERSE_FUTILITY_PRUNE_MARGIN_PER_PLY: Eval = Eval::new(150);
 

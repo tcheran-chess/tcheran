@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [7.0]
+
 * Network #2, trained with bullet's `main` branch with the same parameters as before (48.88 +- 14.81)
 * Network #3, retrained in the same way (and with the same data) as #2, but after re-shuffling the dataset (17.29 +- 8.50)
 * Network #4, keeping the exact same architecture and training params as #3, but trained on ~450k FENs (89.86 +- 20.11)
@@ -276,7 +278,8 @@ Initial release with the following major features:
     * Tapered midgame vs. endgame evaluation
     * Incremental updates
 
-[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v6.0...HEAD
+[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v7.0...HEAD
+[7.0]: https://github.com/jgilchrist/chess-engine/compare/v6.0..v7.0
 [6.0]: https://github.com/jgilchrist/chess-engine/compare/v5.1..v6.0
 [5.1]: https://github.com/jgilchrist/chess-engine/compare/v5.0..v5.1
 [5.0]: https://github.com/jgilchrist/chess-engine/compare/v4.1..v5.0

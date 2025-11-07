@@ -14,6 +14,7 @@ Parameters in the following table are noted only where they differ from Bullet's
 | 3       | Dataset #1 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 17.29 +- 8.50   | Re-shuffled data before training |
 | 4       | Dataset #2 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 89.86 +- 20.11  | Same network architecture, trained with a dataset of ~450k FENs |
 | 5       | Dataset #3 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 108.74 +- 20.12 | No changes in network architecture or training method, but a fresh dataset with a crucial fix for accidentally inverted WDL scores |
+| 6       | Dataset #3 | (768->256)x2->1    | WDL 0.3, LR 0.001, 40 batches   | 53.33 +- 15.20 | Same as #5, but increasing WDL proportion and lowering LR |
 
 ## Experiments
 

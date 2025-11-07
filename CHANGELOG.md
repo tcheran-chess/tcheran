@@ -6,6 +6,7 @@
 * Network #3, retrained in the same way (and with the same data) as #2, but after re-shuffling the dataset (17.29 +- 8.50)
 * Network #4, keeping the exact same architecture and training params as #3, but trained on ~450k FENs (89.86 +- 20.11)
 * Network #5, with no changes to architecture or training, but trained using a fresh ~120k FEN dataset after fixing a crucial datagen bug re. accidentally inverted WDL scores (108.74 +- 20.12)
+* Network #6, same as #5 but trained using increased (0.3) WDL proportion and reduced (0.001) learning rate (53.33 +- 15.20)
 * Skip bad captures in quiescence search (43.07 +- 13.42)
 * Use less time if the best move is stable (9.34 +- 5.77)
 * Do tranposition table cutoff comparison on the mate-adjusted score (1.72 +- 3.81)

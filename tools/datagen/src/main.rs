@@ -1,5 +1,4 @@
 use std::{
-    io,
     io::{BufWriter, Write},
     path::{Path, PathBuf},
     process::ExitCode,
@@ -8,7 +7,15 @@ use std::{
 
 use clap::Parser;
 use engine::{
-    chess::{game::Game, moves::Move, player::Player},
+    chess::{
+        game::Game,
+        moves::Move,
+        piece::PromotionPieceKind,
+        player::Player,
+        square::{
+            Square, squares,
+        },
+    },
     engine::{
         eval::{Eval, WhiteEval},
         options::EngineOptions,
@@ -34,7 +41,7 @@ mod stats {
     use std::sync::atomic::AtomicU64;
 
     pub static GAMES: AtomicU64 = AtomicU64::new(0);
-    pub static FENS: AtomicU64 = AtomicU64::new(0);
+    pub static POSITIONS: AtomicU64 = AtomicU64::new(0);
     pub static WHITE_WINS: AtomicU64 = AtomicU64::new(0);
     pub static BLACK_WINS: AtomicU64 = AtomicU64::new(0);
     pub static DRAWS: AtomicU64 = AtomicU64::new(0);
@@ -122,19 +129,6 @@ fn datagen(config: &DatagenConfig) {
 
         s.spawn(move || progress_thread(config.games));
     });
-
-    merge_files(&dir, &run_id);
-}
-
-fn merge_files(dir: &str, run_id: &str) {
-    let files = std::fs::read_dir(dir).unwrap();
-    let mut output_file = std::fs::File::create(format!("{DATA_DIR}/{run_id}.txt")).unwrap();
-
-    for file in files.filter_map(Result::ok) {
-        let file_name = file.path();
-        let mut file = std::fs::File::open(file_name).unwrap();
-        io::copy(&mut file, &mut output_file).unwrap();
-    }
 }
 
 #[expect(
@@ -165,11 +159,11 @@ fn progress_thread(ngames: usize) {
             STOP.store(true, Ordering::SeqCst);
         }
 
-        let fens_generated = stats::FENS.load(Ordering::SeqCst);
+        let positions_generated = stats::POSITIONS.load(Ordering::SeqCst);
         let elapsed_time = jiff::Timestamp::now() - start_time;
         let elapsed_seconds = elapsed_time.total(Unit::Second).unwrap();
-        let fens_per_second = f64::from(u32::try_from(fens_generated).unwrap()) / elapsed_seconds;
-        let fens_per_game = fens_generated as f64 / games_played as f64;
+        let positions_per_second = f64::from(u32::try_from(positions_generated).unwrap()) / elapsed_seconds;
+        let positions_per_game = positions_generated as f64 / games_played as f64;
 
         let approx_time_per_game = elapsed_seconds / games_played as f64;
         let number_of_games_remaining = ngames as u64 - games_played;
@@ -194,11 +188,11 @@ fn progress_thread(ngames: usize) {
         let total_draws = draws + adjudicated_draws + tb_draws;
 
         println!(
-            "{fens_generated} FENs generated [{fens_per_second:.2}/s] in {elapsed_time:#} from {games_played} games (out of {ngames}) | {approx_time_remaining:#} remaining"
+            "{positions_generated} positions generated [{positions_per_second:.2}/s] in {elapsed_time:#} from {games_played} games (out of {ngames}) | {approx_time_remaining:#} remaining"
         );
 
         println!(
-            "Avg time per game: {approx_time_per_game:.2}s | Avg positions per game: {fens_per_game:.2} | W: {total_white_wins} B: {total_black_wins} D: {total_draws}"
+            "Avg time per game: {approx_time_per_game:.2}s | Avg positions per game: {positions_per_game:.2} | W: {total_white_wins} B: {total_black_wins} D: {total_draws}"
         );
 
         println!(
@@ -210,144 +204,86 @@ fn progress_thread(ngames: usize) {
     }
 }
 
-fn update_stats(result: &GameResult) {
+fn update_stats(
+    game: &viriformat::dataformat::Game,
+    outcome: viriformat::chess::board::GameOutcome,
+) {
+    use viriformat::chess::board::GameOutcome::*;
+    use viriformat::chess::board::WinType;
+    use viriformat::chess::board::DrawType;
+
     stats::GAMES.fetch_add(1, Ordering::SeqCst);
-    stats::FENS.fetch_add(result.positions.len() as u64, Ordering::SeqCst);
+    stats::POSITIONS.fetch_add(game.moves.len() as u64, Ordering::SeqCst);
 
-    match (&result.outcome, &result.source) {
-        (Outcome::WinForWhite, ResultSource::Actual) => {
-            stats::WHITE_WINS.fetch_add(1, Ordering::Relaxed)
+    match outcome {
+        WhiteWin(ty) => match ty {
+            WinType::Mate => {
+                stats::WHITE_WINS.fetch_add(1, Ordering::Relaxed);
+            }
+            WinType::TB => {
+                stats::TB_WHITE_WINS.fetch_add(1, Ordering::Relaxed);
+            }
+            WinType::Adjudication => {
+                stats::ADJUDICATED_WHITE_WINS.fetch_add(1, Ordering::Relaxed);
+            }
+        },
+        BlackWin(ty) => match ty {
+            WinType::Mate => {
+                stats::BLACK_WINS.fetch_add(1, Ordering::Relaxed);
+            }
+            WinType::TB => {
+                stats::TB_BLACK_WINS.fetch_add(1, Ordering::Relaxed);
+            }
+            WinType::Adjudication => {
+                stats::ADJUDICATED_BLACK_WINS.fetch_add(1, Ordering::Relaxed);
+            }
+        },
+        Draw(ty) => match ty {
+            DrawType::TB => {
+                stats::TB_DRAWS.fetch_add(1, Ordering::Relaxed);
+            }
+            DrawType::FiftyMoves
+            | DrawType::Repetition
+            | DrawType::Stalemate
+            | DrawType::InsufficientMaterial => {
+                stats::DRAWS.fetch_add(1, Ordering::Relaxed);
+            }
+            DrawType::Adjudication => {
+                stats::ADJUDICATED_DRAWS.fetch_add(1, Ordering::Relaxed);
+            }
+        },
+        Ongoing => {
+            unreachable!("ongoing is not used in datagen");
         }
-        (Outcome::Draw, ResultSource::Actual) => stats::DRAWS.fetch_add(1, Ordering::Relaxed),
-        (Outcome::LossForWhite, ResultSource::Actual) => {
-            stats::BLACK_WINS.fetch_add(1, Ordering::Relaxed)
-        }
-
-        (Outcome::WinForWhite, ResultSource::Adjudicated) => {
-            stats::ADJUDICATED_WHITE_WINS.fetch_add(1, Ordering::Relaxed)
-        }
-        (Outcome::Draw, ResultSource::Adjudicated) => {
-            stats::ADJUDICATED_DRAWS.fetch_add(1, Ordering::Relaxed)
-        }
-        (Outcome::LossForWhite, ResultSource::Adjudicated) => {
-            stats::ADJUDICATED_BLACK_WINS.fetch_add(1, Ordering::Relaxed)
-        }
-
-        (Outcome::WinForWhite, ResultSource::Tablebase) => {
-            stats::TB_WHITE_WINS.fetch_add(1, Ordering::Relaxed)
-        }
-        (Outcome::Draw, ResultSource::Tablebase) => stats::TB_DRAWS.fetch_add(1, Ordering::Relaxed),
-        (Outcome::LossForWhite, ResultSource::Tablebase) => {
-            stats::TB_BLACK_WINS.fetch_add(1, Ordering::Relaxed)
-        }
-    };
-}
-
-struct RotatingDataFile {
-    thread_id: usize,
-    dir: String,
-    file_name: String,
-    file: Option<std::fs::File>,
-    file_writer: Option<BufWriter<std::fs::File>>,
-}
-
-impl RotatingDataFile {
-    fn new(thread_id: usize, dir: &str) -> Self {
-        Self {
-            thread_id,
-            dir: dir.to_string(),
-            file_name: String::new(),
-            file: None,
-            file_writer: None,
-        }
-    }
-
-    fn current_file_name(&self) -> String {
-        let current_day = jiff::Zoned::now().strftime("%y%m%d");
-        format!("{}/data-{}-{}.txt", self.dir, self.thread_id, current_day)
-    }
-
-    fn rotate(&mut self) {
-        let current_file_name = self.current_file_name();
-        if self.file_name != current_file_name {
-            self.file = Some(std::fs::File::create(&current_file_name).unwrap());
-            self.file_writer = Some(BufWriter::new(
-                std::fs::File::create(&current_file_name).unwrap(),
-            ));
-            self.file_name = current_file_name;
-        }
-    }
-
-    fn writer(&mut self) -> &mut BufWriter<std::fs::File> {
-        self.file_writer.as_mut().unwrap()
     }
 }
 
 fn datagen_thread(id: usize, games: usize, dir: &str, config: &DatagenConfig) {
     let mut rand = rand::rng();
-    let mut data_file = RotatingDataFile::new(id, dir);
+    let data_file_name = format!("{dir}/data-{id}.bin");
+    let data_file = std::fs::File::create(&data_file_name).unwrap();
+    let mut buffer = BufWriter::new(&data_file);
+
     let mut player_states = PlayerStates::new(16, config);
 
     for _ in 0..games {
-        data_file.rotate();
-
         if STOP.load(Ordering::SeqCst) {
-            data_file
-                .writer()
+            buffer
                 .flush()
                 .expect("Should be able to flush data file buffer");
 
             break;
         }
 
-        let r = play_game(&mut rand, config, &mut player_states);
-        update_stats(&r);
-
-        for position in r.positions {
-            let fen = position.0;
-            let eval = position.1;
-
-            writeln!(
-                data_file.writer(),
-                "{} | {} | {}",
-                fen,
-                eval.0,
-                match r.outcome {
-                    Outcome::WinForWhite => "1",
-                    Outcome::Draw => "0.5",
-                    Outcome::LossForWhite => "0",
-                }
-            )
-            .expect("Failed to write to file");
-        }
+        let (game, result_source) = play_game(&mut rand, config, &mut player_states);
+        update_stats(&game, result_source);
+        game.serialise_into(&mut buffer)
+            .expect("Should serialize into data file");
     }
 
-    data_file
-        .writer()
+    buffer
         .flush()
         .expect("Should be able to flush data file buffer");
-}
-
-struct GamePosition(pub String, pub WhiteEval);
-
-#[derive(Eq, PartialEq, Clone, Copy, Debug)]
-enum Outcome {
-    WinForWhite,
-    Draw,
-    LossForWhite,
-}
-
-#[derive(Eq, PartialEq)]
-enum ResultSource {
-    Actual,
-    Adjudicated,
-    Tablebase,
-}
-
-struct GameResult {
-    positions: Vec<GamePosition>,
-    outcome: Outcome,
-    source: ResultSource,
 }
 
 fn random_starting_position(rand: &mut impl Rng) -> Result<Game, ()> {
@@ -420,46 +356,52 @@ fn search_position(
     (best_move, reporter.eval.unwrap())
 }
 
-fn game_result(game: &Game, config: &DatagenConfig) -> Option<(Outcome, ResultSource)> {
+fn game_result(
+    game: &Game,
+    config: &DatagenConfig,
+) -> Option<viriformat::chess::board::GameOutcome> {
+    use viriformat::chess::board::{DrawType, GameOutcome::*, WinType};
+
     if let Some(tb) = &config.tb {
         if let Some(r) = tb.wdl(game) {
-            return Some((
-                match game.player {
-                    Player::White => match r {
-                        Wdl::Win => Outcome::WinForWhite,
-                        Wdl::Draw => Outcome::Draw,
-                        Wdl::Loss => Outcome::LossForWhite,
-                    },
-                    Player::Black => match r {
-                        Wdl::Win => Outcome::LossForWhite,
-                        Wdl::Draw => Outcome::Draw,
-                        Wdl::Loss => Outcome::WinForWhite,
-                    },
+            return Some(match game.player {
+                Player::White => match r {
+                    Wdl::Win => WhiteWin(WinType::TB),
+                    Wdl::Draw => Draw(DrawType::TB),
+                    Wdl::Loss => BlackWin(WinType::TB),
                 },
-                ResultSource::Tablebase,
-            ));
+                Player::Black => match r {
+                    Wdl::Win => BlackWin(WinType::TB),
+                    Wdl::Draw => Draw(DrawType::TB),
+                    Wdl::Loss => WhiteWin(WinType::TB),
+                },
+            });
         }
     }
 
     let nmoves = game.moves().len();
 
     if nmoves == 0 {
-        return Some((
-            if game.is_king_in_check() {
-                match game.player {
-                    Player::White => Outcome::LossForWhite,
-                    Player::Black => Outcome::WinForWhite,
-                }
-            } else {
-                Outcome::Draw
-            },
-            ResultSource::Actual,
-        ));
+        return Some(if game.is_king_in_check() {
+            match game.player {
+                Player::White => BlackWin(WinType::Mate),
+                Player::Black => WhiteWin(WinType::Mate),
+            }
+        } else {
+            Draw(DrawType::Stalemate)
+        });
     }
 
-    // ?: Is this a problem if we're using 2-repetition?
-    if game.is_draw() {
-        return Some((Outcome::Draw, ResultSource::Actual));
+    if game.is_repeated_position() {
+        return Some(Draw(DrawType::Repetition));
+    }
+
+    if game.is_stalemate_by_fifty_move_rule() {
+        return Some(Draw(DrawType::FiftyMoves));
+    }
+
+    if game.is_stalemate_by_insufficient_material() {
+        return Some(Draw(DrawType::InsufficientMaterial));
     }
 
     None
@@ -481,15 +423,17 @@ impl AdjudicationStats {
     }
 }
 
-fn adjudicate_forced_mate(eval: WhiteEval) -> Option<Outcome> {
+fn adjudicate_forced_mate(eval: WhiteEval) -> Option<viriformat::chess::board::GameOutcome> {
+    use viriformat::chess::board::{GameOutcome::*, WinType};
+
     let eval_for_white = eval.for_player(Player::White);
 
     if eval_for_white.mating() {
-        return Some(Outcome::WinForWhite);
+        return Some(WhiteWin(WinType::Mate));
     }
 
     if eval_for_white.being_mated() {
-        return Some(Outcome::LossForWhite);
+        return Some(BlackWin(WinType::Mate));
     }
 
     None
@@ -498,7 +442,9 @@ fn adjudicate_forced_mate(eval: WhiteEval) -> Option<Outcome> {
 fn adjudicate_result(
     eval: WhiteEval,
     adjudication_stats: &mut AdjudicationStats,
-) -> Option<Outcome> {
+) -> Option<viriformat::chess::board::GameOutcome> {
+    use viriformat::chess::board::{DrawType, GameOutcome::*, WinType};
+
     const WHITE_ADJUDICATION_SCORE: WhiteEval = WhiteEval(ADJUDICATION_THRESHOLD);
     const BLACK_ADJUDICATION_SCORE: WhiteEval = WhiteEval(-ADJUDICATION_THRESHOLD);
 
@@ -521,47 +467,91 @@ fn adjudicate_result(
     }
 
     if adjudication_stats.white_winning > ADJUDICATE_WINS_AFTER {
-        return Some(Outcome::WinForWhite);
+        return Some(WhiteWin(WinType::Adjudication));
     }
 
     if adjudication_stats.black_winning > ADJUDICATE_WINS_AFTER {
-        return Some(Outcome::LossForWhite);
+        return Some(BlackWin(WinType::Adjudication));
     }
 
     if adjudication_stats.drawing > ADJUDICATE_DRAWS_AFTER {
-        return Some(Outcome::Draw);
+        return Some(Draw(DrawType::Adjudication));
     }
 
     None
 }
 
-fn should_include_position(game: &Game, mv: Move, eval: Eval) -> bool {
-    if game.is_king_in_check() {
-        return false;
-    }
-
-    if eval.mating() || eval.being_mated() {
-        return false;
-    }
-
-    // ?: Should we exclude promotions too?
-    if mv.is_capture() {
-        return false;
-    }
-
-    // ?: Should we wait until we're in a more stable position?
-
-    true
+fn game_to_viri(game: &Game) -> viriformat::dataformat::Game {
+    let mut board = viriformat::chess::board::Board::new();
+    board
+        .set_from_fen(&game.to_fen())
+        .expect("Should be able to construct game from FEN");
+    viriformat::dataformat::Game::new(&board)
 }
 
-fn play_game(rand: &mut impl Rng, config: &DatagenConfig, states: &mut PlayerStates) -> GameResult {
+fn move_to_viri(mv: Move) -> viriformat::chess::chessmove::Move {
+    use squares::all::*;
+    use viriformat::chess::chessmove::MoveFlags;
+
+    if let Some(promo_piece) = mv.promotion() {
+        viriformat::chess::chessmove::Move::new_with_promo(
+            square_to_viri(mv.src()),
+            square_to_viri(mv.dst()),
+            piece_to_viri(promo_piece),
+        )
+    } else if mv.is_castling() {
+        let to_sq = match mv.dst() {
+            G1 => H1,
+            G8 => H8,
+            C1 => A1,
+            C8 => A8,
+            _ => unreachable!("invalid castle square"),
+        };
+
+        viriformat::chess::chessmove::Move::new_with_flags(
+            square_to_viri(mv.src()),
+            square_to_viri(to_sq),
+            MoveFlags::Castle,
+        )
+    } else if mv.is_en_passant() {
+        viriformat::chess::chessmove::Move::new_with_flags(
+            square_to_viri(mv.src()),
+            square_to_viri(mv.dst()),
+            MoveFlags::EnPassant,
+        )
+    } else {
+        viriformat::chess::chessmove::Move::new(square_to_viri(mv.src()), square_to_viri(mv.dst()))
+    }
+}
+
+fn square_to_viri(sq: Square) -> viriformat::chess::types::Square {
+    viriformat::chess::types::Square::new(sq.idx()).expect("Should be a valid square")
+}
+
+fn piece_to_viri(piece: PromotionPieceKind) -> viriformat::chess::piece::PieceType {
+    use viriformat::chess::piece::PieceType::*;
+
+    match piece {
+        PromotionPieceKind::Knight => Knight,
+        PromotionPieceKind::Bishop => Bishop,
+        PromotionPieceKind::Rook => Rook,
+        PromotionPieceKind::Queen => Queen,
+    }
+}
+
+fn play_game(
+    rand: &mut impl Rng,
+    config: &DatagenConfig,
+    states: &mut PlayerStates,
+) -> (
+    viriformat::dataformat::Game,
+    viriformat::chess::board::GameOutcome,
+) {
     states.reset();
     let mut game = acceptable_starting_position(rand, states);
+    let mut virigame = game_to_viri(&game);
 
-    let mut positions: Vec<GamePosition> = Vec::new();
     let mut adjudication_stats = AdjudicationStats::new();
-    let outcome: Option<Outcome>;
-    let source: Option<ResultSource>;
 
     let time_control = match config.mode {
         DatagenMode::Depth(d) => TimeControl::Depth(d),
@@ -569,44 +559,32 @@ fn play_game(rand: &mut impl Rng, config: &DatagenConfig, states: &mut PlayerSta
 
     states.reset();
 
-    loop {
-        if let Some((r, s)) = game_result(&game, config) {
-            outcome = Some(r);
-            source = Some(s);
-            break;
+    let outcome = loop {
+        if let Some(outcome) = game_result(&game, config) {
+            virigame.set_outcome(outcome);
+            break outcome;
         }
 
         let state = states.for_player(game.player);
         let (next_move, eval) = search_position(&game, &time_control, state);
         let white_eval = eval.to_white_eval(game.player);
 
-        if should_include_position(&game, next_move, eval) {
-            positions.push(GamePosition(game.to_fen(), white_eval));
-        }
-
-        if let Some(r) = adjudicate_forced_mate(white_eval) {
-            outcome = Some(r);
-            source = Some(ResultSource::Actual);
-            break;
-        }
-
-        if let Some(r) = adjudicate_result(white_eval, &mut adjudication_stats) {
-            outcome = Some(r);
-            source = Some(ResultSource::Adjudicated);
-            break;
-        }
-
+        virigame.add_move(
+            move_to_viri(next_move),
+            i16::try_from(white_eval.0).unwrap(),
+        );
         game.make_move(next_move);
-    }
 
-    let outcome = outcome.expect("Game ended without a result");
-    let source = source.expect("Unknown result source");
+        if let Some(outcome) = adjudicate_forced_mate(white_eval) {
+            break outcome;
+        }
 
-    GameResult {
-        positions,
-        outcome,
-        source,
-    }
+        if let Some(outcome) = adjudicate_result(white_eval, &mut adjudication_stats) {
+            break outcome;
+        }
+    };
+
+    (virigame, outcome)
 }
 
 pub fn main() -> ExitCode {

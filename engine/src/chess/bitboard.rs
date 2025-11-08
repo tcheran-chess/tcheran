@@ -163,8 +163,6 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    #[allow(clippy::allow_attributes, reason = "Only used in non-release mode")]
-    #[allow(unused, reason = "Only used in non-release mode")]
     pub const fn flip_vertically(self) -> Self {
         Self(u64::swap_bytes(self.0))
     }

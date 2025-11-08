@@ -80,7 +80,7 @@ fn format_current_player(game: &Game) -> String {
 }
 
 fn format_castle_rights(game: &Game) -> String {
-    let [white_castle_rights, black_castle_rights] = game.castle_rights.inner();
+    let [white_castle_rights, black_castle_rights] = game.castle_rights;
 
     match (
         white_castle_rights.king_side,

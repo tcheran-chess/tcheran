@@ -2,7 +2,7 @@ use crate::chess::{
     board::Board,
     game::{CastleRights, Game},
     piece::Piece,
-    player::{ByPlayer, Player},
+    player::Player,
     square::{File, Rank, Square},
 };
 
@@ -117,9 +117,9 @@ fn fen_castle_right(input: char) -> Result<FenCastleRight, ()> {
     })
 }
 
-fn fen_castling(input: &str) -> Result<ByPlayer<CastleRights>, ()> {
+fn fen_castling(input: &str) -> Result<[CastleRights; Player::N], ()> {
     if input == "-" {
-        return Ok(ByPlayer::new(CastleRights::none(), CastleRights::none()));
+        return Ok([CastleRights::none(), CastleRights::none()]);
     }
 
     let mut white_castle_rights = CastleRights::none();
@@ -134,7 +134,7 @@ fn fen_castling(input: &str) -> Result<ByPlayer<CastleRights>, ()> {
         }
     }
 
-    Ok(ByPlayer::new(white_castle_rights, black_castle_rights))
+    Ok([white_castle_rights, black_castle_rights])
 }
 
 fn fen_square(input: &str) -> Result<Square, ()> {

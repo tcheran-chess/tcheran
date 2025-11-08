@@ -2,14 +2,14 @@ use crate::chess::{
     bitboard::Bitboard,
     movegen,
     piece::{Piece, PieceKind},
-    player::{ByPlayer, Player},
+    player::Player,
     square::Square,
 };
 
 #[derive(Clone)]
 pub struct Board {
     pieces: [Bitboard; PieceKind::N],
-    colors: ByPlayer<Bitboard>,
+    colors: [Bitboard; Player::N],
     squares: [Option<Piece>; Square::N],
 }
 
@@ -21,7 +21,7 @@ impl Board {
 
     #[inline(always)]
     pub fn occupancy_for(&self, player: Player) -> Bitboard {
-        *self.colors.for_player(player)
+        self.colors[player]
     }
 
     #[inline(always)]
@@ -107,16 +107,14 @@ impl Board {
     pub fn remove_at(&mut self, square: Square) {
         let piece = self.piece_guaranteed_at(square);
         self.pieces[piece.kind] ^= square.bb();
-        self.colors
-            .for_player_mut(piece.player)
-            .unset_inplace(square);
+        self.colors[piece.player].unset_inplace(square);
         self.squares[square] = None;
     }
 
     #[inline(always)]
     pub fn set_at(&mut self, square: Square, piece: Piece) {
         self.pieces[piece.kind] |= square.bb();
-        self.colors.for_player_mut(piece.player).set_inplace(square);
+        self.colors[piece.player].set_inplace(square);
         self.squares[square] = Some(piece);
     }
 
@@ -229,7 +227,7 @@ impl TryFrom<[Option<Piece>; Square::N]> for Board {
 
         Ok(Self {
             pieces: [pawns, knights, bishops, rooks, queens, kings],
-            colors: ByPlayer::new(white_occupancy, black_occupancy),
+            colors: [white_occupancy, black_occupancy],
             squares,
         })
     }

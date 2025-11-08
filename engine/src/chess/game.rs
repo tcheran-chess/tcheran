@@ -6,7 +6,7 @@ use crate::{
         movegen::generate_legal_moves,
         moves::{Move, MoveList},
         piece::{Piece, PieceKind},
-        player::{ByPlayer, Player},
+        player::Player,
         square::{Square, squares},
         zobrist,
         zobrist::ZobristHash,
@@ -80,7 +80,7 @@ impl<T> std::ops::IndexMut<CastleRightsSide> for [T; CastleRightsSide::N] {
 pub struct History {
     pub mv: Option<Move>,
     pub captured: Option<Piece>,
-    pub castle_rights: ByPlayer<CastleRights>,
+    pub castle_rights: [CastleRights; Player::N],
     pub en_passant_target: Option<Square>,
     pub halfmove_clock: u32,
     pub zobrist: ZobristHash,
@@ -91,7 +91,7 @@ pub struct History {
 pub struct Game {
     pub player: Player,
     pub board: Board,
-    pub castle_rights: ByPlayer<CastleRights>,
+    pub castle_rights: [CastleRights; Player::N],
     pub en_passant_target: Option<Square>,
     pub halfmove_clock: u32,
     pub plies: u32,
@@ -109,7 +109,7 @@ impl Game {
     pub fn from_state(
         board: Board,
         player: Player,
-        castle_rights: ByPlayer<CastleRights>,
+        castle_rights: [CastleRights; Player::N],
         en_passant_target: Option<Square>,
         halfmove_clock: u32,
         plies: u32,
@@ -223,7 +223,7 @@ impl Game {
     }
 
     fn try_remove_castle_rights(&mut self, player: Player, castle_rights_side: CastleRightsSide) {
-        let castle_rights = self.castle_rights.for_player_mut(player);
+        let castle_rights = &mut self.castle_rights[player];
 
         // We don't want to modify anything if the castle rights on this side were already lost
         if !castle_rights.can_castle_to_side(castle_rights_side) {
@@ -257,7 +257,7 @@ impl Game {
         let history = History {
             mv: Some(mv),
             captured: maybe_captured_piece,
-            castle_rights: self.castle_rights.clone(),
+            castle_rights: self.castle_rights,
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
             zobrist: self.zobrist.clone(),
@@ -369,7 +369,7 @@ impl Game {
         let history = History {
             mv: None,
             captured: None,
-            castle_rights: self.castle_rights.clone(),
+            castle_rights: self.castle_rights,
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
             zobrist: self.zobrist.clone(),

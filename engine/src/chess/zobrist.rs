@@ -88,7 +88,7 @@ pub fn hash(game: &Game) -> ZobristHash {
     }
 
     // Castle rights
-    let [white_castle_rights, black_castle_rights] = game.castle_rights.inner();
+    let [white_castle_rights, black_castle_rights] = game.castle_rights;
 
     // White
     if white_castle_rights.king_side {

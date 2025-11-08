@@ -2,7 +2,7 @@ use std::num::NonZeroU16;
 
 use crate::chess::{arrayvec::ArrayVec, piece::PromotionPieceKind, square::Square};
 
-const MAX_LEGAL_MOVES: usize = 218;
+pub const MAX_LEGAL_MOVES: usize = 218;
 
 pub type MoveList = ArrayVec<Move, MAX_LEGAL_MOVES>;
 
@@ -15,7 +15,7 @@ pub trait MoveListExt {
     ) -> Move;
 }
 
-impl MoveListExt for MoveList {
+impl MoveListExt for ArrayVec<Move, MAX_LEGAL_MOVES> {
     fn expect_matching(
         &self,
         src: Square,

@@ -155,7 +155,7 @@ impl Game {
     pub fn is_stalemate_by_fifty_move_rule(&self) -> bool {
         if self.halfmove_clock >= 100 {
             let mut movelist = MoveList::new();
-            generate_legal_moves(self, &mut movelist);
+            generate_legal_moves(self, |m| movelist.push(m));
             return !movelist.is_empty();
         }
 
@@ -240,7 +240,7 @@ impl Game {
     // movelist and allow them to iterate easily over the resulting list of moves
     pub fn moves(&self) -> MoveList {
         let mut movelist = MoveList::new();
-        generate_legal_moves(self, &mut movelist);
+        generate_legal_moves(self, |m| movelist.push(m));
         movelist
     }
 

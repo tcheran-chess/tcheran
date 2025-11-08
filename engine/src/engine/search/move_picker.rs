@@ -1,17 +1,16 @@
 use crate::{
     chess::{
+        arrayvec::ArrayVec,
         game::Game,
         movegen,
         movegen::MovegenCache,
-        moves::{Move, MoveList},
+        moves::{MAX_LEGAL_MOVES, Move},
     },
     engine::search::{
         SearchContext, move_ordering,
         move_ordering::{score_quiet, score_tactical},
     },
 };
-
-const MAX_MOVES: usize = u8::MAX as usize;
 
 #[derive(Eq, PartialEq)]
 enum GenStage {
@@ -28,50 +27,81 @@ enum GenStage {
     Done,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct MoveEntry {
+    mv: Move,
+    score: i32,
+}
+
+trait MoveListExt {
+    fn next_best(&mut self) -> Option<MoveEntry>;
+    fn remove(&mut self, mv: Move) -> bool;
+}
+
+impl MoveListExt for ArrayVec<MoveEntry, MAX_LEGAL_MOVES> {
+    fn next_best(&mut self) -> Option<MoveEntry> {
+        if self.is_empty() {
+            return None;
+        }
+
+        let idx = self
+            .iter()
+            .enumerate()
+            .max_by_key(|&(_, entry)| entry.score)
+            .map_or(0, |(i, _)| i);
+
+        Some(self.swap_remove(idx))
+    }
+
+    fn remove(&mut self, mv: Move) -> bool {
+        let idx = self
+            .iter()
+            .enumerate()
+            .find(|&(_, entry)| entry.mv == mv)
+            .map(|(i, _)| i);
+
+        let Some(idx) = idx else {
+            return false;
+        };
+
+        self.swap_remove(idx);
+        true
+    }
+}
+
 pub struct MovePicker {
-    moves: MoveList,
+    moves: ArrayVec<MoveEntry, MAX_LEGAL_MOVES>,
     movegencache: MovegenCache,
-    scores: [i32; MAX_MOVES],
     previous_best_move: Option<Move>,
     only_captures: bool,
 
     stage: GenStage,
-    idx: usize,
-    captures_end: usize,
-    first_bad_capture: Option<usize>,
-    first_quiet: usize,
+
+    bad_tacticals: ArrayVec<MoveEntry, MAX_LEGAL_MOVES>,
 }
 
 impl MovePicker {
     pub fn new(previous_best_move: Option<Move>) -> Self {
         Self {
-            moves: MoveList::new(),
+            moves: ArrayVec::new(),
             movegencache: MovegenCache::new(),
-            scores: [0; MAX_MOVES],
             previous_best_move,
             only_captures: false,
 
             stage: GenStage::BestMove,
-            idx: 0,
-            captures_end: 0,
-            first_bad_capture: None,
-            first_quiet: 0,
+            bad_tacticals: ArrayVec::new(),
         }
     }
 
     pub fn new_loud() -> Self {
         Self {
-            moves: MoveList::new(),
+            moves: ArrayVec::new(),
             movegencache: MovegenCache::new(),
-            scores: [0; MAX_MOVES],
             previous_best_move: None,
             only_captures: true,
 
             stage: GenStage::BestMove,
-            idx: 0,
-            captures_end: 0,
-            first_bad_capture: None,
-            first_quiet: 0,
+            bad_tacticals: ArrayVec::new(),
         }
     }
 
@@ -89,106 +119,81 @@ impl MovePicker {
         if self.stage == GenCaptures {
             self.stage = GoodCaptures;
 
-            movegen::generate_captures(game, &mut self.moves, &mut self.movegencache);
+            movegen::generate_captures(game, &mut self.movegencache, &mut |mv| {
+                self.moves.push(MoveEntry { mv, score: 0 });
+            });
 
-            self.captures_end = self.moves.len();
-            self.first_quiet = self.moves.len();
-
-            for i in 0..self.moves.len() {
-                self.scores[i] = score_tactical(game, *self.moves.get(i));
+            for entry in self.moves.iter_mut() {
+                entry.score = score_tactical(game, entry.mv);
             }
         }
 
         if self.stage == GoodCaptures {
-            if let Some((mv, score)) = self.next_best_move(self.captures_end) {
-                // If the move we just picked was a losing capture, we're going to skip the rest of the captures.
-                // Record that, and skip the remainder of the captures since we'll be trying quiet moves next.
-                if score < move_ordering::GOOD_CAPTURE_SCORE {
-                    self.first_bad_capture = Some(self.idx - 1);
-                    self.idx = self.captures_end;
-                } else {
-                    return Some(mv);
+            while let Some(entry) = self.moves.next_best() {
+                if Some(entry.mv) == self.previous_best_move {
+                    continue;
                 }
+
+                if entry.score < move_ordering::GOOD_CAPTURE_SCORE {
+                    self.bad_tacticals.push(entry);
+                    continue;
+                }
+
+                return Some(entry.mv);
             }
 
-            if self.only_captures {
-                self.stage = Done;
-            } else {
-                self.stage = GenQuiets;
-            }
+            self.stage = if self.only_captures { Done } else { GenQuiets };
         }
 
         if self.stage == GenQuiets {
             self.stage = Killer1;
 
-            movegen::generate_quiets(game, &mut self.moves, &self.movegencache);
+            movegen::generate_quiets(game, &self.movegencache, &mut |mv| {
+                self.moves.push(MoveEntry { mv, score: 0 });
+            });
         }
 
         if self.stage == Killer1 {
             self.stage = Killer2;
 
-            if let Some(killer1) = ctx.killer_moves.get_0(plies) {
-                for i in self.first_quiet..self.moves.len() {
-                    if *self.moves.get(i) == killer1 {
-                        self.moves.swap(self.first_quiet, i);
-                        self.first_quiet += 1;
-
-                        if Some(killer1) != self.previous_best_move {
-                            return Some(killer1);
-                        }
-                    }
-                }
+            if let Some(killer) = ctx.killer_moves.get_0(plies)
+                && self.moves.remove(killer)
+                && Some(killer) != self.previous_best_move
+            {
+                return Some(killer);
             }
         }
 
         if self.stage == Killer2 {
             self.stage = CounterMove;
 
-            if let Some(killer2) = ctx.killer_moves.get_1(plies) {
-                for i in self.first_quiet..self.moves.len() {
-                    if *self.moves.get(i) == killer2 {
-                        self.moves.swap(self.first_quiet, i);
-                        self.first_quiet += 1;
-
-                        if Some(killer2) != self.previous_best_move {
-                            return Some(killer2);
-                        }
-                    }
-                }
+            if let Some(killer) = ctx.killer_moves.get_1(plies)
+                && self.moves.remove(killer)
+                && Some(killer) != self.previous_best_move
+            {
+                return Some(killer);
             }
         }
 
         if self.stage == CounterMove {
-            match self.first_bad_capture {
-                // If we didn't see any bad captures before, we can skip straight to the end
-                None => self.stage = ScoreQuiets,
+            self.stage = BadCaptures;
 
-                // If we saw any bad captures, go back and try those too
-                Some(first_bad_capture_idx) => {
-                    self.idx = first_bad_capture_idx;
-                    self.stage = BadCaptures;
-                }
-            }
-
-            if let Some(previous_move) = game.history.last().and_then(|h| h.mv) {
-                if let Some(counter_move) = ctx.countermove_table.get(game.player, previous_move) {
-                    for i in self.first_quiet..self.moves.len() {
-                        if *self.moves.get(i) == counter_move {
-                            self.moves.swap(self.first_quiet, i);
-                            self.first_quiet += 1;
-
-                            if Some(counter_move) != self.previous_best_move {
-                                return Some(counter_move);
-                            }
-                        }
-                    }
-                }
+            if let Some(previous_move) = game.history.last().and_then(|h| h.mv)
+                && let Some(counter_move) = ctx.countermove_table.get(game.player, previous_move)
+                && self.moves.remove(counter_move)
+                && Some(counter_move) != self.previous_best_move
+            {
+                return Some(counter_move);
             }
         }
 
         if self.stage == BadCaptures {
-            if let Some((mv, _)) = self.next_best_move(self.captures_end) {
-                return Some(mv);
+            while let Some(entry) = self.bad_tacticals.next_best() {
+                if Some(entry.mv) == self.previous_best_move {
+                    continue;
+                }
+
+                return Some(entry.mv);
             }
 
             self.stage = if self.only_captures {
@@ -200,16 +205,19 @@ impl MovePicker {
 
         if self.stage == ScoreQuiets {
             self.stage = Quiets;
-            self.idx = self.first_quiet;
 
-            for i in self.idx..self.moves.len() {
-                self.scores[i] = score_quiet(game, *self.moves.get(i), ctx.history_table);
+            for entry in self.moves.iter_mut() {
+                entry.score = score_quiet(game, entry.mv, ctx.history_table);
             }
         }
 
         if self.stage == Quiets {
-            if let Some((mv, _)) = self.next_best_move(self.moves.len()) {
-                return Some(mv);
+            while let Some(entry) = self.moves.next_best() {
+                if Some(entry.mv) == self.previous_best_move {
+                    continue;
+                }
+
+                return Some(entry.mv);
             }
 
             self.stage = Done;
@@ -220,44 +228,6 @@ impl MovePicker {
         }
 
         unreachable!()
-    }
-
-    fn next_best_move(&mut self, limit: usize) -> Option<(Move, i32)> {
-        loop {
-            if self.idx == limit {
-                return None;
-            }
-
-            // Start with the next move that we haven't tried yet
-            let mut best_move_idx = self.idx;
-            let mut best_move_score = self.scores[self.idx];
-
-            // Check if there's a better move later on in the list
-            for i in self.idx + 1..limit {
-                let move_score = self.scores[i];
-
-                if move_score > best_move_score {
-                    best_move_score = move_score;
-                    best_move_idx = i;
-                }
-            }
-
-            let best_move = *self.moves.get(best_move_idx);
-
-            // Move our best move to the start of the moves we haven't tried
-            self.moves.swap(self.idx, best_move_idx);
-            self.scores.swap(self.idx, best_move_idx);
-
-            self.idx += 1;
-
-            // We always return the best move first, before doing move generation.
-            // We don't want to return it again from the movelist, so skip it.
-            if Some(best_move) == self.previous_best_move {
-                continue;
-            }
-
-            return Some((best_move, best_move_score));
-        }
     }
 }
 

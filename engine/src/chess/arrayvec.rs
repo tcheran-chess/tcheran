@@ -55,8 +55,24 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         }
     }
 
+    pub fn swap_remove(&mut self, idx: usize) -> T {
+        unsafe {
+            let value = std::ptr::read(self.data[idx].as_ptr());
+
+            self.len -= 1;
+            std::ptr::copy(self.data[self.len].as_ptr(), self.data[idx].as_mut_ptr(), 1);
+
+            value
+        }
+    }
+
     pub fn iter(&self) -> std::slice::Iter<'_, T> {
         unsafe { std::slice::from_raw_parts(self.data.as_ptr().cast(), self.len) }.iter()
+    }
+
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
+        unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr().cast(), self.len) }
+            .iter_mut()
     }
 }
 
@@ -66,6 +82,15 @@ impl<'a, T: Copy, const N: usize> IntoIterator for &'a ArrayVec<T, N> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.iter()
+    }
+}
+
+impl<'a, T: Copy, const N: usize> IntoIterator for &'a mut ArrayVec<T, N> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
     }
 }
 

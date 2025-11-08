@@ -44,8 +44,10 @@ fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> 
 
     let mut best_move = None;
     if test_individual_node_move_counts {
-        movegen::generate_captures(game, &mut captures_movelist, &mut movegen_cache);
-        movegen::generate_quiets(game, &mut quiets_movelist, &movegen_cache);
+        movegen::generate_captures(game, &mut movegen_cache, &mut |mv| {
+            captures_movelist.push(mv)
+        });
+        movegen::generate_quiets(game, &movegen_cache, &mut |mv| quiets_movelist.push(mv));
 
         // We want to make sure that we don't generate the best_move more than once, or any of the
         // killer moves more than once.

@@ -63,12 +63,12 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    pub fn set_inplace(&mut self, square: Square) {
+    pub fn set(&mut self, square: Square) {
         self.0 |= square.bb().0;
     }
 
     #[inline(always)]
-    pub fn unset_inplace(&mut self, square: Square) {
+    pub fn unset(&mut self, square: Square) {
         self.0 &= square.bb().invert().0;
     }
 

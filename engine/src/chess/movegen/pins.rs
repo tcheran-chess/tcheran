@@ -27,12 +27,12 @@ pub fn get_pins(board: &Board, player: Player, king_square: Square) -> (Bitboard
         & board.diagonal_sliders(them);
 
     for pinner in orthogonal_pinners {
-        orthogonal_pins |= pinner.bb();
+        orthogonal_pins.set(pinner);
         orthogonal_pins |= tables::between(king_square, pinner);
     }
 
     for pinner in diagonal_pinners {
-        diagonal_pins |= pinner.bb();
+        diagonal_pins.set(pinner);
         diagonal_pins |= tables::between(king_square, pinner);
     }
 

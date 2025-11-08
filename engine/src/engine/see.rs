@@ -53,11 +53,11 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
     };
 
     let mut occupied = board.occupancy();
-    occupied ^= from.bb();
-    occupied |= to.bb();
+    occupied.unset(from);
+    occupied.set(to);
 
     if mv.is_en_passant() {
-        occupied ^= game.en_passant_target.unwrap().bb();
+        occupied.unset(game.en_passant_target.unwrap());
     }
 
     let mut diagonal_sliders = board.all_diagonal_sliders() & occupied;

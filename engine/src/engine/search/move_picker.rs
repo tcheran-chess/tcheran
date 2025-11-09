@@ -20,10 +20,9 @@ pub enum GenStage {
     GoodTacticals,
     GenQuiets,
     Killer,
-    CounterMove,
-    BadTacticals,
     ScoreQuiets,
     Quiets,
+    BadTacticals,
     Done,
 }
 
@@ -159,7 +158,7 @@ impl MovePicker {
         }
 
         if self.stage == Killer {
-            self.stage = CounterMove;
+            self.stage = ScoreQuiets;
 
             if !self.only_tacticals
                 && let Some(killer) = tables.killer_moves.get(plies)
@@ -168,31 +167,6 @@ impl MovePicker {
             {
                 return Some(killer);
             }
-        }
-
-        if self.stage == CounterMove {
-            self.stage = BadTacticals;
-
-            if !self.only_tacticals
-                && let Some(previous_move) = game.history.last().and_then(|h| h.mv)
-                && let Some(counter_move) = tables.countermoves.get(game.player, previous_move)
-                && self.moves.remove(counter_move)
-                && Some(counter_move) != self.previous_best_move
-            {
-                return Some(counter_move);
-            }
-        }
-
-        if self.stage == BadTacticals {
-            while let Some(entry) = self.bad_tacticals.next_best() {
-                if Some(entry.mv) == self.previous_best_move {
-                    continue;
-                }
-
-                return Some(entry.mv);
-            }
-
-            self.stage = ScoreQuiets;
         }
 
         if self.stage == ScoreQuiets {
@@ -214,6 +188,18 @@ impl MovePicker {
 
                     return Some(entry.mv);
                 }
+            }
+
+            self.stage = BadTacticals;
+        }
+
+        if self.stage == BadTacticals {
+            while let Some(entry) = self.bad_tacticals.next_best() {
+                if Some(entry.mv) == self.previous_best_move {
+                    continue;
+                }
+
+                return Some(entry.mv);
             }
 
             self.stage = Done;

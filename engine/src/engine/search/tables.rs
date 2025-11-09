@@ -21,7 +21,6 @@ pub struct Tables {
     pub quiet_history: Box<HistoryTable>,
     pub capture_history: Box<CaptureHistoryTable>,
     pub killer_moves: KillersTable,
-    pub countermoves: Box<CountermoveTable>,
     pub conthist: Box<ContHistTable>,
 }
 
@@ -31,7 +30,6 @@ impl Tables {
             quiet_history: HistoryTable::new(),
             capture_history: CaptureHistoryTable::new(),
             killer_moves: KillersTable::new(),
-            countermoves: CountermoveTable::new(),
             conthist: ContHistTable::new(),
         }
     }
@@ -150,22 +148,6 @@ impl CaptureHistoryTable {
         for other_capture in other_captures_tried {
             self.update_for_move(*other_capture, game, -bonus);
         }
-    }
-}
-
-pub struct CountermoveTable([[[Option<Move>; Square::N]; Square::N]; Player::N]);
-
-impl CountermoveTable {
-    pub fn new() -> Box<Self> {
-        alloc_boxed()
-    }
-
-    pub fn set(&mut self, player: Player, previous_move: Move, counter_move: Move) {
-        self.0[player][previous_move.src()][previous_move.dst()] = Some(counter_move);
-    }
-
-    pub fn get(&self, player: Player, previous_move: Move) -> Option<Move> {
-        self.0[player][previous_move.src()][previous_move.dst()]
     }
 }
 

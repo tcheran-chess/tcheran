@@ -316,7 +316,7 @@ pub fn negamax(
             && !is_pv
             && !in_check
             && number_of_legal_moves >= lmp_moves
-            && moves.stage >= GenStage::CounterMove
+            && moves.stage > GenStage::Killer
             && !best_eval.is_mate()
         {
             moves.yield_only_tacticals();
@@ -450,8 +450,6 @@ pub fn negamax(
                 if let Some(last_ply) = ctx.stack.get_prev(plies, 1)
                     && let Some((last_move, last_moved)) = last_ply.mv
                 {
-                    ctx.tables.countermoves.set(game.player, last_move, mv);
-
                     ctx.tables.conthist.update(
                         game,
                         last_moved,

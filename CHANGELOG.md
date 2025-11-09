@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+* Do SEE when picking moves instead of when scoring moves (11.32 +- 6.27)
+
 ### Misc
 
 * Update the minimum Rust version to 1.91

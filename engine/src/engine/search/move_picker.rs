@@ -136,7 +136,7 @@ impl MovePicker {
                     continue;
                 }
 
-                if entry.score < GOOD_CAPTURE_SCORE {
+                if !see(game, entry.mv, Eval(0)) {
                     self.bad_tacticals.push(entry);
                     continue;
                 }
@@ -237,7 +237,6 @@ impl MovePicker {
 pub const GOOD_CAPTURE_SCORE: i32 = 1_000_000_000;
 pub const HISTORY_MAX_SCORE: i32 = GOOD_CAPTURE_SCORE - 1;
 pub const QUIET_SCORE: i32 = 100_000_000;
-pub const BAD_CAPTURE_SCORE: i32 = 0;
 
 #[expect(
     clippy::cast_possible_truncation,
@@ -262,16 +261,11 @@ pub fn score_tactical(game: &Game, mv: Move) -> i32 {
 
     if mv.is_capture() {
         if mv.is_en_passant() {
-            return GOOD_CAPTURE_SCORE + mvv_lva(PieceKind::Pawn, PieceKind::Pawn);
+            return mvv_lva(PieceKind::Pawn, PieceKind::Pawn);
         }
 
         let captured_piece = game.board.piece_guaranteed_at(mv.dst());
-
-        return if see(game, mv, Eval(0)) {
-            GOOD_CAPTURE_SCORE
-        } else {
-            BAD_CAPTURE_SCORE
-        } + mvv_lva(captured_piece.kind, moved_piece.kind);
+        return mvv_lva(captured_piece.kind, moved_piece.kind);
     }
 
     // Score promotions just below good captures, and prioritise them by piece value

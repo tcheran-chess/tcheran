@@ -19,7 +19,6 @@ use crate::{
 
 mod aspiration;
 mod iterative_deepening;
-mod move_ordering;
 pub mod move_picker;
 mod negamax;
 mod principal_variation;

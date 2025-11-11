@@ -23,6 +23,31 @@ jobs:
           echo "Rust version: $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+  check-bench:
+    runs-on: ubuntu-latest
+    needs: [metadata]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup toolchain
+        run: |
+          rustup override set ${{ needs.metadata.outputs.rust-version }}
+
+      - name: Check bench
+        run: |
+          existing_bench=$(cat .bench)
+          new_bench=$(cargo run --release --package engine -- benchnodes)
+
+          if [ "${existing_bench}" != "${new_bench}" ]; then
+            echo "Bench mismatch"
+            echo "Old: ${existing_bench}"
+            echo "New: ${new_bench}"
+            exit 1
+          else
+            echo "Benches match: ${new_bench}"
+          fi
+
   build-and-test:
     runs-on: ubuntu-latest
     needs: [metadata]

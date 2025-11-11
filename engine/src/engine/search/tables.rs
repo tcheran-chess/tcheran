@@ -6,7 +6,7 @@ pub fn init() {
 
 use crate::{
     chess::{moves::Move, player::Player, square::Square},
-    engine::search::{MAX_SEARCH_DEPTH_SIZE, move_picker::HISTORY_MAX_SCORE},
+    engine::search::{MAX_SEARCH_DEPTH_SIZE},
 };
 
 pub struct KillersTable([[Option<Move>; 2]; MAX_SEARCH_DEPTH_SIZE]);
@@ -71,7 +71,7 @@ impl HistoryTable {
     pub fn add_bonus_for(&mut self, player: Player, mv: Move, depth: u8) {
         let bonus = Self::bonus(depth);
         let existing_score = self.get(player, mv);
-        let new_score = std::cmp::min(existing_score + bonus, HISTORY_MAX_SCORE);
+        let new_score = existing_score.saturating_add(bonus);
 
         self.0[player][mv.src()][mv.dst()] = new_score;
     }

@@ -233,11 +233,6 @@ impl MovePicker {
     }
 }
 
-// Sentinel values
-pub const GOOD_CAPTURE_SCORE: i32 = 1_000_000_000;
-pub const HISTORY_MAX_SCORE: i32 = GOOD_CAPTURE_SCORE - 1;
-pub const QUIET_SCORE: i32 = 100_000_000;
-
 #[expect(
     clippy::cast_possible_truncation,
     clippy::cast_possible_wrap,
@@ -268,12 +263,12 @@ pub fn score_tactical(game: &Game, mv: Move) -> i32 {
         return mvv_lva(captured_piece.kind, moved_piece.kind);
     }
 
-    // Score promotions just below good captures, and prioritise them by piece value
-    HISTORY_MAX_SCORE - LVA_ORDER[moved_piece.kind]
+    // For other tactials (i.e. promotions, explore highest value pieces first)
+    i32::MAX - LVA_ORDER[moved_piece.kind]
 }
 
 pub fn score_quiet(game: &Game, mv: Move, history: &HistoryTable) -> i32 {
-    QUIET_SCORE + history.get(game.player, mv)
+    history.get(game.player, mv)
 }
 
 #[cfg(test)]

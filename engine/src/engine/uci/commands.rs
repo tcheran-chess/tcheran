@@ -51,5 +51,6 @@ pub enum UciCommand {
     Stop,
     PonderHit,
     Bench,
+    BenchNodes,
     Quit,
 }

@@ -21,7 +21,27 @@ run:
 	@cargo run --release
 
 bench:
-	@cargo run --release -- bench
+	#!/usr/bin/env bash
+	set -euo pipefail
+	existing_bench=$(cat .bench)
+	new_bench=$(cargo run --release -- benchnodes)
+
+	if [ "$new_bench" = "$existing_bench" ]; then
+		echo "Bench: {{BLUE}}${new_bench}{{NORMAL}}"
+	else
+		echo "Old: {{RED}}${existing_bench}{{NORMAL}}"
+		echo "New: {{GREEN}}${new_bench}{{NORMAL}}"
+
+		diff=$((new_bench-existing_bench))
+
+		if [ ${diff} -gt 0 ]; then
+		    echo "Diff: {{RED}}+${diff}{{NORMAL}}"
+		else
+		    echo "Diff: {{GREEN}}${diff}{{NORMAL}}"
+		fi
+
+		echo "$new_bench" > .bench
+	fi
 
 ################################## Tests ######################################
 

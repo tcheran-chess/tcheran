@@ -8,6 +8,7 @@
 * Remove paste dev dependency
 * Remove arrayvec dependency
 * Simplify the move picker implementation
+* Started tracking the bench in a '.bench' file which can be updated via 'just bench'
 
 ## [7.0]
 

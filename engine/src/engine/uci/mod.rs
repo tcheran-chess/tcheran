@@ -448,6 +448,10 @@ impl Uci {
 
                 println!("{nodes} nodes {nps} nps");
             }
+            UciCommand::BenchNodes => {
+                let (nodes, _) = bench(10);
+                println!("{nodes}");
+            }
             UciCommand::Quit => return Ok(ExecuteResult::Exit),
         }
 

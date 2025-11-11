@@ -321,6 +321,7 @@ pub fn parse(input: &str) -> Result<UciCommand, ()> {
         "stop" => no_args_command(UciCommand::Stop, args),
         "ponderhit" => no_args_command(UciCommand::PonderHit, args),
         "bench" => no_args_command(UciCommand::Bench, args),
+        "benchnodes" => no_args_command(UciCommand::BenchNodes, args),
         "d" => cmd_d(args),
         "quit" => no_args_command(UciCommand::Quit, args),
         _ => Err(()),

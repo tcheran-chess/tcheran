@@ -4,6 +4,7 @@
 
 ### Misc
 
+* Update the minimum Rust version to 1.91
 * Remove paste dev dependency
 * Remove arrayvec dependency
 

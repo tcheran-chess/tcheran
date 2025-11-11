@@ -95,42 +95,42 @@ pub fn negamax(
     if !is_root && tb_cardinality > 0 {
         let piece_count = game.board.occupancy().count();
 
-        if piece_count < tb_cardinality || (piece_count <= tb_cardinality && depth >= 1) {
-            if let Some(wdl) = ctx.tablebase.wdl(game) {
-                ctx.tbhits += 1;
+        if (piece_count < tb_cardinality || (piece_count <= tb_cardinality && depth >= 1))
+            && let Some(wdl) = ctx.tablebase.wdl(game)
+        {
+            ctx.tbhits += 1;
 
-                let score = match wdl {
-                    Wdl::Win => Eval::mate_in(plies),
-                    Wdl::Draw => Eval::DRAW,
-                    Wdl::Loss => Eval::mated_in(plies),
-                };
+            let score = match wdl {
+                Wdl::Win => Eval::mate_in(plies),
+                Wdl::Draw => Eval::DRAW,
+                Wdl::Loss => Eval::mated_in(plies),
+            };
 
-                let tb_bound = match wdl {
-                    Wdl::Win => NodeBound::Lower,
-                    Wdl::Loss => NodeBound::Upper,
-                    Wdl::Draw => NodeBound::Exact,
-                };
+            let tb_bound = match wdl {
+                Wdl::Win => NodeBound::Lower,
+                Wdl::Loss => NodeBound::Upper,
+                Wdl::Draw => NodeBound::Exact,
+            };
 
-                if tb_bound == NodeBound::Exact
-                    || (tb_bound == NodeBound::Lower && score >= beta)
-                    || (tb_bound == NodeBound::Upper && score <= alpha)
-                {
-                    ctx.tt.insert(
-                        &game.zobrist,
-                        tb_bound,
-                        score,
-                        depth,
-                        ctx.tt.generation,
-                        None,
-                        plies,
-                    );
+            if tb_bound == NodeBound::Exact
+                || (tb_bound == NodeBound::Lower && score >= beta)
+                || (tb_bound == NodeBound::Upper && score <= alpha)
+            {
+                ctx.tt.insert(
+                    &game.zobrist,
+                    tb_bound,
+                    score,
+                    depth,
+                    ctx.tt.generation,
+                    None,
+                    plies,
+                );
 
-                    return Ok(score);
-                }
+                return Ok(score);
+            }
 
-                if is_pv && tb_bound == NodeBound::Lower {
-                    alpha = alpha.max(score);
-                }
+            if is_pv && tb_bound == NodeBound::Lower {
+                alpha = alpha.max(score);
             }
         }
     }

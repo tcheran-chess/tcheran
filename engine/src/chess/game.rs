@@ -317,12 +317,12 @@ impl Game {
 
         self.en_passant_target = new_en_passant_target;
 
-        if mv.is_castling() {
-            if let Some((rook_from, rook_to)) = squares::castle_squares(player, to) {
-                let rook = self.remove_at(rook_from);
-                self.set_at(rook_to, rook);
-                self.nnue.move_piece_feature(rook, rook_from, rook_to);
-            }
+        if mv.is_castling()
+            && let Some((rook_from, rook_to)) = squares::castle_squares(player, to)
+        {
+            let rook = self.remove_at(rook_from);
+            self.set_at(rook_to, rook);
+            self.nnue.move_piece_feature(rook, rook_from, rook_to);
         }
 
         // Check if we lost castle rights.
@@ -410,12 +410,12 @@ impl Game {
         self.nnue = history.nnue;
 
         // Undo castling, if we castled
-        if mv.is_castling() {
-            if let Some((rook_from, rook_to)) = squares::castle_squares(player, to) {
-                self.board.remove_at(rook_to);
-                self.board
-                    .set_at(rook_from, Piece::new(player, PieceKind::Rook));
-            }
+        if mv.is_castling()
+            && let Some((rook_from, rook_to)) = squares::castle_squares(player, to)
+        {
+            self.board.remove_at(rook_to);
+            self.board
+                .set_at(rook_from, Piece::new(player, PieceKind::Rook));
         }
 
         // Replace the pawn taken by en-passant capture

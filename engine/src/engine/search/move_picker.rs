@@ -125,7 +125,7 @@ impl MovePicker {
                 self.moves.push(MoveEntry { mv, score: 0 });
             });
 
-            for entry in self.moves.iter_mut() {
+            for entry in &mut self.moves {
                 entry.score = score_tactical(game, entry.mv);
             }
         }
@@ -208,7 +208,7 @@ impl MovePicker {
         if self.stage == ScoreQuiets {
             self.stage = Quiets;
 
-            for entry in self.moves.iter_mut() {
+            for entry in &mut self.moves {
                 entry.score = score_quiet(game, entry.mv, ctx.history_table);
             }
         }

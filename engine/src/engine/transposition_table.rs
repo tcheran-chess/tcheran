@@ -202,18 +202,15 @@ impl TranspositionTable {
 
         // !: We know the exact size of the table and will always access within the bounds.
         unsafe {
-            if let Some(entry) = self.data.get_unchecked(idx) {
-                if entry.key == *key {
-                    return Some(TranspositionTableHit {
-                        bound: entry.bound,
-                        eval: Self::with_mate_distance_from_root(
-                            Eval(i32::from(entry.eval)),
-                            plies,
-                        ),
-                        depth: entry.depth,
-                        best_move: entry.best_move,
-                    });
-                }
+            if let Some(entry) = self.data.get_unchecked(idx)
+                && entry.key == *key
+            {
+                return Some(TranspositionTableHit {
+                    bound: entry.bound,
+                    eval: Self::with_mate_distance_from_root(Eval(i32::from(entry.eval)), plies),
+                    depth: entry.depth,
+                    best_move: entry.best_move,
+                });
             }
         }
 

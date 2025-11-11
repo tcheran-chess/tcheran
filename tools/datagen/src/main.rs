@@ -359,21 +359,21 @@ fn game_result(
 ) -> Option<viriformat::chess::board::GameOutcome> {
     use viriformat::chess::board::{DrawType, GameOutcome::*, WinType};
 
-    if let Some(tb) = &config.tb {
-        if let Some(r) = tb.wdl(game) {
-            return Some(match game.player {
-                Player::White => match r {
-                    Wdl::Win => WhiteWin(WinType::TB),
-                    Wdl::Draw => Draw(DrawType::TB),
-                    Wdl::Loss => BlackWin(WinType::TB),
-                },
-                Player::Black => match r {
-                    Wdl::Win => BlackWin(WinType::TB),
-                    Wdl::Draw => Draw(DrawType::TB),
-                    Wdl::Loss => WhiteWin(WinType::TB),
-                },
-            });
-        }
+    if let Some(tb) = &config.tb
+        && let Some(r) = tb.wdl(game)
+    {
+        return Some(match game.player {
+            Player::White => match r {
+                Wdl::Win => WhiteWin(WinType::TB),
+                Wdl::Draw => Draw(DrawType::TB),
+                Wdl::Loss => BlackWin(WinType::TB),
+            },
+            Player::Black => match r {
+                Wdl::Win => BlackWin(WinType::TB),
+                Wdl::Draw => Draw(DrawType::TB),
+                Wdl::Loss => WhiteWin(WinType::TB),
+            },
+        });
     }
 
     let nmoves = game.moves().len();

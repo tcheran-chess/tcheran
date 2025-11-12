@@ -176,59 +176,21 @@ impl TryFrom<[Option<Piece>; Square::N]> for Board {
     type Error = ();
 
     fn try_from(squares: [Option<Piece>; Square::N]) -> Result<Self, ()> {
-        let mut white_pawns = Bitboard::EMPTY;
-        let mut white_knights = Bitboard::EMPTY;
-        let mut white_bishops = Bitboard::EMPTY;
-        let mut white_rooks = Bitboard::EMPTY;
-        let mut white_queens = Bitboard::EMPTY;
-        let mut white_king = Bitboard::EMPTY;
+        let mut board = Self {
+            pieces: [Bitboard::EMPTY; PieceKind::N],
+            colors: [Bitboard::EMPTY; Player::N],
+            squares: [None; Square::N],
+        };
 
-        let mut black_pawns = Bitboard::EMPTY;
-        let mut black_knights = Bitboard::EMPTY;
-        let mut black_bishops = Bitboard::EMPTY;
-        let mut black_rooks = Bitboard::EMPTY;
-        let mut black_queens = Bitboard::EMPTY;
-        let mut black_king = Bitboard::EMPTY;
+        for (i, maybe_piece) in squares.into_iter().enumerate() {
+            let Some(piece) = maybe_piece else {
+                continue;
+            };
 
-        for (i, maybe_piece) in squares.iter().enumerate() {
-            if let Some(p) = maybe_piece {
-                let square = Square::from_index(i.try_into().unwrap()).bb();
-
-                match *p {
-                    Piece::WHITE_PAWN => white_pawns |= square,
-                    Piece::WHITE_KNIGHT => white_knights |= square,
-                    Piece::WHITE_BISHOP => white_bishops |= square,
-                    Piece::WHITE_ROOK => white_rooks |= square,
-                    Piece::WHITE_QUEEN => white_queens |= square,
-                    Piece::WHITE_KING => white_king |= square,
-
-                    Piece::BLACK_PAWN => black_pawns |= square,
-                    Piece::BLACK_KNIGHT => black_knights |= square,
-                    Piece::BLACK_BISHOP => black_bishops |= square,
-                    Piece::BLACK_ROOK => black_rooks |= square,
-                    Piece::BLACK_QUEEN => black_queens |= square,
-                    Piece::BLACK_KING => black_king |= square,
-                }
-            }
+            let square = Square::from_index(i.try_into().unwrap());
+            board.set_at(square, piece);
         }
 
-        let pawns = white_pawns | black_pawns;
-        let knights = white_knights | black_knights;
-        let bishops = white_bishops | black_bishops;
-        let rooks = white_rooks | black_rooks;
-        let queens = white_queens | black_queens;
-        let kings = white_king | black_king;
-
-        let white_occupancy =
-            white_pawns | white_knights | white_bishops | white_rooks | white_queens | white_king;
-
-        let black_occupancy =
-            black_pawns | black_knights | black_bishops | black_rooks | black_queens | black_king;
-
-        Ok(Self {
-            pieces: [pawns, knights, bishops, rooks, queens, kings],
-            colors: [white_occupancy, black_occupancy],
-            squares,
-        })
+        Ok(board)
     }
 }

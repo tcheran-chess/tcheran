@@ -558,7 +558,6 @@ fn play_game(
 
     let outcome = loop {
         if let Some(outcome) = game_result(&game, config) {
-            virigame.set_outcome(outcome);
             break outcome;
         }
 
@@ -581,6 +580,7 @@ fn play_game(
         }
     };
 
+    virigame.set_outcome(outcome);
     (virigame, outcome)
 }
 

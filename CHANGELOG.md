@@ -12,6 +12,7 @@
 * Simplify the move picker implementation
 * Simplify move scoring by removing sentinel values
 * Started tracking the bench in a '.bench' file which can be updated via 'just bench'
+* Fixed a datagen bug which caused non-decisive games to always be stored with an outcome of a loss for white
 
 ## [7.0]
 

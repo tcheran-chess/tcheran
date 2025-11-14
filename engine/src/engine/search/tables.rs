@@ -6,7 +6,7 @@ pub fn init() {
 
 use crate::{
     chess::{moves::Move, player::Player, square::Square},
-    engine::search::{MAX_SEARCH_DEPTH_SIZE},
+    engine::search::MAX_SEARCH_DEPTH_SIZE,
 };
 
 pub struct KillersTable([[Option<Move>; 2]; MAX_SEARCH_DEPTH_SIZE]);

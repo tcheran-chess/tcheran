@@ -54,8 +54,6 @@ mod params {
     pub const LMR_DEPTH: u8 = 3;
     pub const LMR_MOVE_THRESHOLD: usize = 3;
 
-    pub const HISTORY_DECAY_FACTOR: i32 = 8;
-
     pub const MAX_TIME_PER_MOVE: f32 = 0.5;
     pub const INCREMENT_TO_USE: f32 = 0.5;
     pub const BASE_TIME_PER_MOVE: f32 = 0.033;
@@ -92,7 +90,7 @@ impl PersistentState {
 
     pub fn reset(&mut self) {
         self.tt.reset();
-        self.history_table.reset();
+        self.history_table = HistoryTable::new();
     }
 }
 
@@ -230,7 +228,6 @@ pub fn search(
     let mut ctx = SearchContext::new(persistent_state, &mut time_strategy, options);
 
     ctx.tt.new_generation();
-    ctx.history_table.decay(params::HISTORY_DECAY_FACTOR);
 
     let mut pv = PrincipalVariation::new();
 

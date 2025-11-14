@@ -2,7 +2,10 @@ use std::cmp::max;
 
 use super::{MAX_SEARCH_DEPTH, SearchContext, params};
 use crate::{
-    chess::{game::Game, moves::Move},
+    chess::{
+        game::Game,
+        moves::{Move, MoveList},
+    },
     engine::{
         eval,
         eval::Eval,
@@ -196,6 +199,8 @@ pub fn negamax(
     let mut number_of_legal_moves = 0;
     let mut node_pv = PrincipalVariation::new();
 
+    let mut quiets_tried = MoveList::new();
+
     while let Some(mv) = moves.next(game, ctx, plies) {
         node_pv.clear();
 
@@ -289,6 +294,11 @@ pub fn negamax(
             tt_node_bound = NodeBound::Exact;
             pv.push(mv, &node_pv);
         }
+
+        // Only add to the quiets list if the move didn't cause a cutoff
+        if mv.is_quiet() {
+            quiets_tried.push(mv);
+        }
     }
 
     if number_of_legal_moves == 0 {
@@ -313,6 +323,11 @@ pub fn negamax(
             }
 
             ctx.history_table.add_bonus_for(game.player, mv, depth);
+
+            for non_cutoff_quiet in &quiets_tried {
+                ctx.history_table
+                    .add_malus_for(game.player, *non_cutoff_quiet, depth);
+            }
         }
     }
 

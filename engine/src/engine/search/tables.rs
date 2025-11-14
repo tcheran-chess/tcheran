@@ -4,6 +4,8 @@ pub fn init() {
     lmr_table::init();
 }
 
+use std::cmp::min;
+
 use crate::{
     chess::{moves::Move, player::Player, square::Square},
     engine::search::MAX_SEARCH_DEPTH_SIZE,
@@ -41,49 +43,54 @@ impl KillersTable {
     }
 }
 
-pub struct HistoryTable([[[i32; Square::N]; Square::N]; Player::N]);
+pub const HISTORY_MAX_BONUS: i16 = 1600;
+pub const HISTORY_FACTOR: i16 = 350;
+pub const HISTORY_OFFSET: i16 = 350;
+
+pub fn history_bonus(depth: u8) -> i16 {
+    min(
+        HISTORY_FACTOR * i16::from(depth) - HISTORY_OFFSET,
+        HISTORY_MAX_BONUS,
+    )
+}
+
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "Dipped into i32 to avoid overflows"
+)]
+const fn taper_bonus(bonus: i16, old: i16, max: i32) -> i16 {
+    let old = old as i32;
+    let bonus = bonus as i32;
+
+    (old + bonus - (old * bonus.abs()) / max) as i16
+}
+
+pub struct HistoryTable([[[i16; Square::N]; Square::N]; Player::N]);
 
 impl HistoryTable {
+    const MAX: i32 = 8192;
+
     pub const fn new() -> Self {
         Self([[[0; Square::N]; Square::N]; Player::N])
     }
 
-    pub fn reset(&mut self) {
-        for from_square in 0..Square::N {
-            for to_square in 0..Square::N {
-                for player in 0..Player::N {
-                    self.0[player][from_square][to_square] = 0;
-                }
-            }
-        }
-    }
-
-    fn bonus(depth: u8) -> i32 {
-        let depthi32 = i32::from(depth);
-
-        depthi32 * depthi32
-    }
-
     pub fn get(&self, player: Player, mv: Move) -> i32 {
-        self.0[player][mv.src()][mv.dst()]
+        i32::from(self.0[player][mv.src()][mv.dst()])
+    }
+
+    fn update(&mut self, player: Player, mv: Move, bonus: i16) {
+        let old = &mut self.0[player][mv.src()][mv.dst()];
+        *old = taper_bonus(bonus, *old, Self::MAX);
     }
 
     pub fn add_bonus_for(&mut self, player: Player, mv: Move, depth: u8) {
-        let bonus = Self::bonus(depth);
-        let existing_score = self.get(player, mv);
-        let new_score = existing_score.saturating_add(bonus);
-
-        self.0[player][mv.src()][mv.dst()] = new_score;
+        let bonus = history_bonus(depth);
+        self.update(player, mv, bonus);
     }
 
-    pub fn decay(&mut self, decay_factor: i32) {
-        for from_square in 0..Square::N {
-            for to_square in 0..Square::N {
-                for player in 0..Player::N {
-                    self.0[player][from_square][to_square] /= decay_factor;
-                }
-            }
-        }
+    pub fn add_malus_for(&mut self, player: Player, mv: Move, depth: u8) {
+        let malus = -history_bonus(depth);
+        self.update(player, mv, malus);
     }
 }
 

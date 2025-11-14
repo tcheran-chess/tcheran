@@ -17,13 +17,13 @@ use crate::{
 #[derive(Eq, PartialEq)]
 enum GenStage {
     BestMove,
-    GenCaptures,
-    GoodCaptures,
+    GenTacticals,
+    GoodTacticals,
     GenQuiets,
     Killer1,
     Killer2,
     CounterMove,
-    BadCaptures,
+    BadTacticals,
     ScoreQuiets,
     Quiets,
     Done,
@@ -75,7 +75,7 @@ pub struct MovePicker {
     moves: ArrayVec<MoveEntry, MAX_LEGAL_MOVES>,
     movegencache: MovegenCache,
     previous_best_move: Option<Move>,
-    only_captures: bool,
+    only_tacticals: bool,
 
     stage: GenStage,
 
@@ -88,7 +88,7 @@ impl MovePicker {
             moves: ArrayVec::new(),
             movegencache: MovegenCache::new(),
             previous_best_move,
-            only_captures: false,
+            only_tacticals: false,
 
             stage: GenStage::BestMove,
             bad_tacticals: ArrayVec::new(),
@@ -100,7 +100,7 @@ impl MovePicker {
             moves: ArrayVec::new(),
             movegencache: MovegenCache::new(),
             previous_best_move: None,
-            only_captures: true,
+            only_tacticals: true,
 
             stage: GenStage::BestMove,
             bad_tacticals: ArrayVec::new(),
@@ -111,17 +111,17 @@ impl MovePicker {
         use GenStage::*;
 
         if self.stage == BestMove {
-            self.stage = GenCaptures;
+            self.stage = GenTacticals;
 
             if let Some(previous_best_move) = self.previous_best_move {
                 return Some(previous_best_move);
             }
         }
 
-        if self.stage == GenCaptures {
-            self.stage = GoodCaptures;
+        if self.stage == GenTacticals {
+            self.stage = GoodTacticals;
 
-            movegen::generate_captures(game, &mut self.movegencache, &mut |mv| {
+            movegen::generate_tacticals(game, &mut self.movegencache, &mut |mv| {
                 self.moves.push(MoveEntry { mv, score: 0 });
             });
 
@@ -130,7 +130,7 @@ impl MovePicker {
             }
         }
 
-        if self.stage == GoodCaptures {
+        if self.stage == GoodTacticals {
             while let Some(entry) = self.moves.next_best() {
                 if Some(entry.mv) == self.previous_best_move {
                     continue;
@@ -144,7 +144,7 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
-            self.stage = if self.only_captures { Done } else { GenQuiets };
+            self.stage = if self.only_tacticals { Done } else { GenQuiets };
         }
 
         if self.stage == GenQuiets {
@@ -178,7 +178,7 @@ impl MovePicker {
         }
 
         if self.stage == CounterMove {
-            self.stage = BadCaptures;
+            self.stage = BadTacticals;
 
             if let Some(previous_move) = game.history.last().and_then(|h| h.mv)
                 && let Some(counter_move) = ctx.countermove_table.get(game.player, previous_move)
@@ -189,7 +189,7 @@ impl MovePicker {
             }
         }
 
-        if self.stage == BadCaptures {
+        if self.stage == BadTacticals {
             while let Some(entry) = self.bad_tacticals.next_best() {
                 if Some(entry.mv) == self.previous_best_move {
                     continue;
@@ -198,7 +198,7 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
-            self.stage = if self.only_captures {
+            self.stage = if self.only_tacticals {
                 Done
             } else {
                 ScoreQuiets
@@ -304,7 +304,7 @@ mod tests {
     }
 
     #[test]
-    fn test_movepicker_does_not_skip_bad_captures_when_no_good_captures() {
+    fn test_movepicker_does_not_skip_bad_tacticals_when_no_good_tacticals() {
         crate::init();
 
         let game = Game::from_fen("rnbqkbnr/pp1ppppp/8/2p5/3P4/5N2/PPP1PPPP/RNBQKB1R b KQkq - 0 2")
@@ -326,7 +326,7 @@ mod tests {
     }
 
     #[test]
-    fn test_movepicker_does_not_return_to_start_if_no_bad_captures() {
+    fn test_movepicker_does_not_return_to_start_if_no_bad_tacticals() {
         crate::init();
 
         let game =

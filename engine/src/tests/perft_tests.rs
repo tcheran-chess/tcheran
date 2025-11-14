@@ -39,13 +39,13 @@ fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> 
 
     let test_individual_node_move_counts = true;
     let mut movegen_cache = MovegenCache::new();
-    let mut captures_movelist = MoveList::new();
+    let mut tacticals_movelist = MoveList::new();
     let mut quiets_movelist = MoveList::new();
 
     let mut best_move = None;
     if test_individual_node_move_counts {
-        movegen::generate_captures(game, &mut movegen_cache, &mut |mv| {
-            captures_movelist.push(mv)
+        movegen::generate_tacticals(game, &mut movegen_cache, &mut |mv| {
+            tacticals_movelist.push(mv)
         });
         movegen::generate_quiets(game, &movegen_cache, &mut |mv| quiets_movelist.push(mv));
 
@@ -55,10 +55,10 @@ fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> 
         // There's no easy way to do that without specific scenarios to reproduce (which if found are
         // unit tests). But for refactoring there may be new scenarios which aren't captured in unit tests.
         //
-        // To get good coverage, we use the length of the move list to determine whether to try captures/quiets
+        // To get good coverage, we use the length of the move list to determine whether to try tacticals/quiets
         // in best move/killers.
-        if captures_movelist.len() >= 3 {
-            best_move = Some(*captures_movelist.iter().next().unwrap());
+        if tacticals_movelist.len() >= 3 {
+            best_move = Some(*tacticals_movelist.iter().next().unwrap());
         } else if quiets_movelist.len() >= 3 {
             best_move = Some(*quiets_movelist.iter().next().unwrap());
         }

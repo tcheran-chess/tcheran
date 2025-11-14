@@ -27,11 +27,11 @@ impl MovegenCache {
 
 pub fn generate_legal_moves(game: &Game, mut f: impl FnMut(Move)) {
     let mut movegen_cache = MovegenCache::new();
-    generate_captures(game, &mut movegen_cache, &mut f);
+    generate_tacticals(game, &mut movegen_cache, &mut f);
     generate_quiets(game, &movegen_cache, &mut f);
 }
 
-pub fn generate_captures(game: &Game, movegencache: &mut MovegenCache, f: &mut impl FnMut(Move)) {
+pub fn generate_tacticals(game: &Game, movegencache: &mut MovegenCache, f: &mut impl FnMut(Move)) {
     let all_pieces = game.board.occupancy();
     let their_pieces = game.board.occupancy_for(game.player.other());
     let king = game.board.king(game.player).single();
@@ -58,7 +58,7 @@ pub fn generate_captures(game: &Game, movegencache: &mut MovegenCache, f: &mut i
     movegencache.orthogonal_pins = orthogonal_pins;
     movegencache.diagonal_pins = diagonal_pins;
 
-    generate_pawn_captures(
+    generate_pawn_tacticals(
         game,
         game.board.pawns(game.player),
         king,
@@ -157,7 +157,7 @@ pub fn generate_quiets(game: &Game, movegencache: &MovegenCache, f: &mut impl Fn
     }
 }
 
-fn generate_pawn_captures(
+fn generate_pawn_tacticals(
     game: &Game,
     pawns: Bitboard,
     king: Square,

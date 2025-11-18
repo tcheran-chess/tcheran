@@ -15,7 +15,7 @@ Parameters in the following table are noted only where they differ from Bullet's
 | 4       | Dataset #2 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 89.86 +- 20.11  | Same network architecture, trained with a dataset of ~450k FENs |
 | 5       | Dataset #3 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 108.74 +- 20.12 | No changes in network architecture or training method, but a fresh dataset with a crucial fix for accidentally inverted WDL scores |
 | 6       | Dataset #3 | (768->256)x2->1    | WDL 0.3, LR 0.001, 40 batches   | 53.33 +- 15.20 | Same as #5, but increasing WDL proportion and lowering LR |
-| 7       | Dataset #3 | (768->384)x2->1    | WDL 0.3, LR 0.001, 40 batches   | 62.36 +- 16.50 | Moved to 384 nodes in the hidden layer, and used a fresh dataset generated using net #6 |
+| 7       | Dataset #4 | (768->384)x2->1    | WDL 0.3, LR 0.001, 40 batches   | 62.36 +- 16.50 | Moved to 384 nodes in the hidden layer, and used a fresh dataset generated using net #6 |
 
 ## Experiments
 

@@ -32,7 +32,7 @@ use crate::{
         square::{File, Rank, Square},
     },
     engine::{
-        eval::WhiteEval,
+        eval::{WhiteEval, nnue::NNUE},
         options::EngineOptions,
         search,
         search::{Clocks, PersistentState, Reporter, TimeControl, time_control::StopControl},
@@ -417,11 +417,7 @@ impl Uci {
                     println!();
                 }
                 DebugCommand::Eval => {
-                    let eval = self
-                        .game
-                        .nnue
-                        .evaluate(Player::White)
-                        .to_white_eval(Player::White);
+                    let mut nnue = NNUE::from_board(&self.game.board);
 
                     let mut piece_contributions: [WhiteEval; Square::N] = [WhiteEval(0); Square::N];
                     for sq in Bitboard::FULL {
@@ -432,14 +428,9 @@ impl Uci {
                             continue;
                         }
 
-                        self.game.nnue.remove_feature(piece, sq);
-                        piece_contributions[sq] = eval
-                            - self
-                                .game
-                                .nnue
-                                .evaluate(Player::White)
-                                .to_white_eval(Player::White);
-                        self.game.nnue.add_feature(piece, sq);
+                        piece_contributions[sq] = nnue
+                            .approx_contribution(&self.game.clone(), sq, Player::White)
+                            .to_white_eval(Player::White);
                     }
 
                     println!("┌───────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┐");
@@ -493,7 +484,7 @@ impl Uci {
                     println!();
                     println!(
                         "Evaluation: {}",
-                        self.game.evaluate().to_white_eval(self.game.player)
+                        nnue.evaluate(Player::White).to_white_eval(Player::White)
                     );
                     println!();
                 }

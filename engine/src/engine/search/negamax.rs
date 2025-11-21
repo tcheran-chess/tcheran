@@ -145,7 +145,7 @@ pub fn negamax(
     let eval = match tt_entry {
         Some(ref e) if e.eval != Eval::NONE => e.eval,
         _ => {
-            let e = eval::eval(game);
+            let e = eval::eval(ctx.nnue, game.player);
 
             ctx.tt
                 .insert(game.zobrist, NodeBound::None, None, Eval::NONE, e, 0, plies);
@@ -239,6 +239,7 @@ pub fn negamax(
             }
         }
 
+        ctx.nnue.push(&game.board, mv);
         game.make_move(mv);
         number_of_legal_moves += 1;
 
@@ -294,6 +295,7 @@ pub fn negamax(
         };
 
         game.undo_move();
+        ctx.nnue.pop();
 
         if ctx.time_control.stopped() {
             return Eval::MIN;

@@ -5,8 +5,8 @@ mod white_eval;
 pub use player_eval::Eval;
 pub use white_eval::WhiteEval;
 
-use crate::chess::game::Game;
+use crate::{chess::player::Player, engine::eval::nnue::NetworkStack};
 
-pub fn eval(game: &Game) -> Eval {
-    game.nnue.evaluate(game.player)
+pub fn eval(nnue: &mut NetworkStack, player: Player) -> Eval {
+    nnue.evaluate(player)
 }

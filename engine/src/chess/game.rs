@@ -1,17 +1,14 @@
-use crate::{
-    chess::{
-        bitboard::{Bitboard, bitboards},
-        board::Board,
-        fen, movegen,
-        movegen::generate_legal_moves,
-        moves::{Move, MoveList},
-        piece::{Piece, PieceKind},
-        player::Player,
-        square::{Square, squares},
-        zobrist,
-        zobrist::ZobristHash,
-    },
-    engine::eval::{Eval, nnue::NNUE},
+use crate::chess::{
+    bitboard::{Bitboard, bitboards},
+    board::Board,
+    fen, movegen,
+    movegen::generate_legal_moves,
+    moves::{Move, MoveList},
+    piece::{Piece, PieceKind},
+    player::Player,
+    square::{Square, squares},
+    zobrist,
+    zobrist::ZobristHash,
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -84,7 +81,6 @@ pub struct History {
     pub en_passant_target: Option<Square>,
     pub halfmove_clock: u32,
     pub zobrist: ZobristHash,
-    pub nnue: NNUE,
 
     pub checkers: Bitboard,
 }
@@ -99,7 +95,6 @@ pub struct Game {
     pub plies: u32,
 
     pub zobrist: ZobristHash,
-    pub nnue: NNUE,
     pub history: Vec<History>,
 
     pub checkers: Bitboard,
@@ -118,7 +113,6 @@ impl Game {
         halfmove_clock: u32,
         plies: u32,
     ) -> Self {
-        let nnue = NNUE::from_board(&board);
         let checkers = movegen::generate_attackers_of(&board, player, board.king_square(player));
 
         let mut game = Self {
@@ -132,7 +126,6 @@ impl Game {
             checkers,
 
             zobrist: ZobristHash::uninit(),
-            nnue,
             history: Vec::new(),
         };
 
@@ -268,7 +261,6 @@ impl Game {
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
             zobrist: self.zobrist,
-            nnue: self.nnue.clone(),
 
             checkers: self.checkers,
         };
@@ -277,18 +269,14 @@ impl Game {
 
         let moved_piece = self.remove_at(from);
 
-        if let Some(captured_piece) = maybe_captured_piece {
+        if maybe_captured_piece.is_some() {
             self.remove_at(to);
-            self.nnue.remove_feature(captured_piece, to);
         }
 
         if let Some(promoted_to) = mv.promotion() {
             let promoted_piece = Piece::new(player, promoted_to.piece());
             self.set_at(to, promoted_piece);
-            self.nnue.remove_feature(moved_piece, from);
-            self.nnue.add_feature(promoted_piece, to);
         } else {
-            self.nnue.move_piece_feature(moved_piece, from, to);
             self.set_at(to, moved_piece);
         }
 
@@ -297,8 +285,7 @@ impl Game {
         if mv.is_en_passant() {
             // Remove the piece behind the square the pawn just moved to
             let capture_square = to.backward(player);
-            let captured_pawn = self.remove_at(capture_square);
-            self.nnue.remove_feature(captured_pawn, capture_square);
+            self.remove_at(capture_square);
         }
 
         let new_en_passant_target = if mv.is_double_push() {
@@ -331,7 +318,6 @@ impl Game {
         {
             let rook = self.remove_at(rook_from);
             self.set_at(rook_to, rook);
-            self.nnue.move_piece_feature(rook, rook_from, rook_to);
         }
 
         // Check if we lost castle rights.
@@ -388,7 +374,6 @@ impl Game {
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
             zobrist: self.zobrist,
-            nnue: self.nnue.clone(),
 
             checkers: self.checkers,
         };
@@ -430,7 +415,6 @@ impl Game {
         self.halfmove_clock = history.halfmove_clock;
         self.castle_rights = history.castle_rights;
         self.en_passant_target = history.en_passant_target;
-        self.nnue = history.nnue;
         self.checkers = history.checkers;
 
         // Undo castling, if we castled
@@ -474,10 +458,6 @@ impl Game {
         self.en_passant_target = history.en_passant_target;
         self.halfmove_clock = history.halfmove_clock;
         self.checkers = history.checkers;
-    }
-
-    pub fn evaluate(&self) -> Eval {
-        self.nnue.evaluate(self.player)
     }
 }
 

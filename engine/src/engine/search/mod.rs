@@ -12,7 +12,7 @@ use std::time::Duration;
 use crate::{
     chess::{game::Game, moves::Move},
     engine::{
-        eval::Eval,
+        eval::{Eval, nnue::NetworkStack},
         options::EngineOptions,
         search::{
             move_picker::MovePicker,
@@ -26,8 +26,8 @@ use crate::{
     },
 };
 
-const MAX_SEARCH_DEPTH: u8 = u8::MAX;
-const MAX_SEARCH_DEPTH_SIZE: usize = MAX_SEARCH_DEPTH as usize;
+pub const MAX_SEARCH_DEPTH: u8 = u8::MAX;
+pub const MAX_SEARCH_DEPTH_SIZE: usize = MAX_SEARCH_DEPTH as usize;
 
 mod params {
     use crate::engine::eval::Eval;
@@ -99,6 +99,8 @@ pub(crate) struct SearchContext<'s> {
 
     pub history_table: &'s mut HistoryTable,
 
+    pub nnue: &'s mut NetworkStack,
+
     pub time_control: &'s mut TimeStrategy,
 
     #[expect(unused, reason = "Not used yet")]
@@ -115,6 +117,7 @@ pub(crate) struct SearchContext<'s> {
 impl<'s> SearchContext<'s> {
     pub(crate) const fn new(
         persistent_state: &'s mut PersistentState,
+        nnue: &'s mut NetworkStack,
         time_strategy: &'s mut TimeStrategy,
         options: &'s EngineOptions,
     ) -> Self {
@@ -123,6 +126,8 @@ impl<'s> SearchContext<'s> {
             tablebase: &mut persistent_state.tablebase,
 
             history_table: &mut persistent_state.history_table,
+
+            nnue,
 
             time_control: time_strategy,
 
@@ -224,7 +229,9 @@ pub fn search(
     reporter: &mut impl Reporter,
 ) -> Move {
     let mut time_strategy = TimeStrategy::new(game, time_control, stop_control, options);
-    let mut ctx = SearchContext::new(persistent_state, &mut time_strategy, options);
+    let mut nnue = NetworkStack::from_board(&game.board);
+
+    let mut ctx = SearchContext::new(persistent_state, &mut nnue, &mut time_strategy, options);
 
     ctx.tt.new_generation();
 

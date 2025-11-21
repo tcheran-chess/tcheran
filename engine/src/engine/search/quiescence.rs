@@ -21,14 +21,14 @@ pub fn quiescence(
     ctx.nodes_visited += 1;
 
     if plies == MAX_SEARCH_DEPTH {
-        return eval::eval(game);
+        return eval::eval(ctx.nnue, game.player);
     }
 
     if game.is_draw() {
         return Eval::DRAW;
     }
 
-    let eval = eval::eval(game);
+    let eval = eval::eval(ctx.nnue, game.player);
 
     if eval >= beta {
         return eval;
@@ -42,11 +42,13 @@ pub fn quiescence(
 
     let mut moves = MovePicker::new_loud();
     while let Some(mv) = moves.next(game, ctx, plies) {
+        ctx.nnue.push(&game.board, mv);
         game.make_move(mv);
 
         let move_score = -quiescence(game, -beta, -alpha, plies + 1, ctx);
 
         game.undo_move();
+        ctx.nnue.pop();
 
         if ctx.time_control.stopped() {
             return Eval::MIN;

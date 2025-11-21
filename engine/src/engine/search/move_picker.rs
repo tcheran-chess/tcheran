@@ -265,6 +265,7 @@ mod tests {
     use crate::{
         chess::{game::Game, square::squares::all::*},
         engine::{
+            eval::nnue::NetworkStack,
             options::EngineOptions,
             search::{PersistentState, TimeControl, time_control::TimeStrategy},
         },
@@ -280,9 +281,15 @@ mod tests {
         let mut move_picker = MovePicker::new(Some(Move::quiet(G1, F3)));
 
         let mut persistent_state = PersistentState::new(16);
+        let mut nnue = NetworkStack::from_board(&game.board);
         let options = EngineOptions::default();
         let mut time_strategy = TimeStrategy::new(&game, &TimeControl::Infinite, None, &options);
-        let ctx = SearchContext::new(&mut persistent_state, &mut time_strategy, &options);
+        let ctx = SearchContext::new(
+            &mut persistent_state,
+            &mut nnue,
+            &mut time_strategy,
+            &options,
+        );
 
         while let Some(m) = move_picker.next(&game, &ctx, 0) {
             moves.push(m);
@@ -302,9 +309,15 @@ mod tests {
         let mut move_provider = MovePicker::new(None);
 
         let mut persistent_state = PersistentState::new(16);
+        let mut nnue = NetworkStack::from_board(&game.board);
         let options = EngineOptions::default();
         let mut time_strategy = TimeStrategy::new(&game, &TimeControl::Infinite, None, &options);
-        let ctx = SearchContext::new(&mut persistent_state, &mut time_strategy, &options);
+        let ctx = SearchContext::new(
+            &mut persistent_state,
+            &mut nnue,
+            &mut time_strategy,
+            &options,
+        );
 
         while let Some(m) = move_provider.next(&game, &ctx, 0) {
             moves.push(m);
@@ -325,9 +338,15 @@ mod tests {
         let mut move_provider = MovePicker::new(None);
 
         let mut persistent_state = PersistentState::new(16);
+        let mut nnue = NetworkStack::from_board(&game.board);
         let options = EngineOptions::default();
         let mut time_strategy = TimeStrategy::new(&game, &TimeControl::Infinite, None, &options);
-        let ctx = SearchContext::new(&mut persistent_state, &mut time_strategy, &options);
+        let ctx = SearchContext::new(
+            &mut persistent_state,
+            &mut nnue,
+            &mut time_strategy,
+            &options,
+        );
 
         while let Some(m) = move_provider.next(&game, &ctx, 0) {
             moves.push(m);
@@ -348,9 +367,15 @@ mod tests {
         let mut move_provider = MovePicker::new(None);
 
         let mut persistent_state = PersistentState::new(16);
+        let mut nnue = NetworkStack::from_board(&game.board);
         let options = EngineOptions::default();
         let mut time_strategy = TimeStrategy::new(&game, &TimeControl::Infinite, None, &options);
-        let ctx = SearchContext::new(&mut persistent_state, &mut time_strategy, &options);
+        let ctx = SearchContext::new(
+            &mut persistent_state,
+            &mut nnue,
+            &mut time_strategy,
+            &options,
+        );
 
         while let Some(m) = move_provider.next(&game, &ctx, 0) {
             moves.push(m);
@@ -370,9 +395,15 @@ mod tests {
         let mut move_provider = MovePicker::new_loud();
 
         let mut persistent_state = PersistentState::new(16);
+        let mut nnue = NetworkStack::from_board(&game.board);
         let options = EngineOptions::default();
         let mut time_strategy = TimeStrategy::new(&game, &TimeControl::Infinite, None, &options);
-        let ctx = SearchContext::new(&mut persistent_state, &mut time_strategy, &options);
+        let ctx = SearchContext::new(
+            &mut persistent_state,
+            &mut nnue,
+            &mut time_strategy,
+            &options,
+        );
 
         while let Some(m) = move_provider.next(&game, &ctx, 0) {
             moves.push(m);
@@ -391,9 +422,15 @@ mod tests {
         let mut move_provider = MovePicker::new(Some(Move::quiet(D8, E7)));
 
         let mut persistent_state = PersistentState::new(16);
+        let mut nnue = NetworkStack::from_board(&game.board);
         let options = EngineOptions::default();
         let mut time_strategy = TimeStrategy::new(&game, &TimeControl::Infinite, None, &options);
-        let mut ctx = SearchContext::new(&mut persistent_state, &mut time_strategy, &options);
+        let mut ctx = SearchContext::new(
+            &mut persistent_state,
+            &mut nnue,
+            &mut time_strategy,
+            &options,
+        );
 
         ctx.killer_moves.set(0, Move::quiet(B7, D5));
 

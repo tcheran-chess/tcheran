@@ -3,6 +3,7 @@ use crate::{
         fen::START_POS, game::Game, movegen, movegen::MovegenCache, moves::MoveList, perft::perft,
     },
     engine::{
+        eval::nnue::NetworkStack,
         options::EngineOptions,
         search::{
             PersistentState, SearchContext, TimeControl, move_picker::MovePicker,
@@ -110,9 +111,15 @@ fn test_perft_with_movepicker(fen: &str, depth: u8, expected_positions: usize) {
     let mut game = Game::from_fen(fen).unwrap();
 
     let mut persistent_state = PersistentState::new(16);
+    let mut nnue = NetworkStack::from_board(&game.board);
     let options = EngineOptions::default();
     let mut time_strategy = TimeStrategy::new(&game, &TimeControl::Infinite, None, &options);
-    let mut ctx = SearchContext::new(&mut persistent_state, &mut time_strategy, &options);
+    let mut ctx = SearchContext::new(
+        &mut persistent_state,
+        &mut nnue,
+        &mut time_strategy,
+        &options,
+    );
 
     let actual_positions = movepicker_perft(depth, &mut game, &mut ctx);
 

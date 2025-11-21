@@ -10,7 +10,7 @@ use crate::{
 
 // Network parameters
 const FEATURES: usize = 768;
-const HIDDEN_SIZE: usize = 384;
+const HIDDEN_SIZE: usize = 512;
 
 // Quantization factors
 const QA: i32 = 255;
@@ -34,7 +34,7 @@ struct Network {
 }
 
 static NETWORK: Network =
-    unsafe { std::mem::transmute(*include_bytes!("../../../../data/network-d1088.bin")) };
+    unsafe { std::mem::transmute(*include_bytes!("../../../../data/network-9cfba.bin")) };
 
 #[derive(Clone, Debug)]
 pub struct NNUE {

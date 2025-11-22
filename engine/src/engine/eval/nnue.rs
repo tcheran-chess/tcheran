@@ -34,7 +34,7 @@ struct Network {
 }
 
 static NETWORK: Network =
-    unsafe { std::mem::transmute(*include_bytes!("../../../../data/network.bin")) };
+    unsafe { std::mem::transmute(*include_bytes!("../../../../data/network-d1088.bin")) };
 
 #[derive(Clone, Debug)]
 pub struct NNUE {

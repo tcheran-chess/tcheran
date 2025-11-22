@@ -16,6 +16,7 @@
 * Switched to using 'tacticals' terminology for non-quiet moves
 * Improved 'd eval' command by showing piece contributions similar to Stockfish
 * Implement 'go nodes' command
+* Start adding a hash suffix to network files
 
 ## [7.0]
 

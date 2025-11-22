@@ -76,7 +76,7 @@ pub fn negamax(
 
     let mut previous_best_move: Option<Move> = None;
 
-    if let Some(tt_entry) = ctx.tt.get(&game.zobrist, plies) {
+    if let Some(tt_entry) = ctx.tt.get(game.zobrist, plies) {
         if !is_root && !is_pv && tt_entry.depth >= depth {
             let tt_score = tt_entry.eval;
 
@@ -117,7 +117,7 @@ pub fn negamax(
                 || (tb_bound == NodeBound::Upper && score <= alpha)
             {
                 ctx.tt.insert(
-                    &game.zobrist,
+                    game.zobrist,
                     tb_bound,
                     score,
                     depth,
@@ -279,7 +279,7 @@ pub fn negamax(
     }
 
     ctx.tt.insert(
-        &game.zobrist,
+        game.zobrist,
         tt_node_bound,
         best_eval,
         depth,

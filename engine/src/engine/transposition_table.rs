@@ -90,7 +90,7 @@ impl TranspositionTable {
         clippy::cast_possible_truncation,
         reason = "The truncation is intended to get an index"
     )]
-    fn get_entry_idx(&self, key: &ZobristHash) -> usize {
+    fn get_entry_idx(&self, key: ZobristHash) -> usize {
         // PERF: There's likely a more performant way to do this
         key.0 as usize % self.data.len()
     }
@@ -165,7 +165,7 @@ impl TranspositionTable {
     )]
     pub fn insert(
         &mut self,
-        key: &ZobristHash,
+        key: ZobristHash,
         bound: NodeBound,
         eval: Eval,
         depth: u8,
@@ -176,7 +176,7 @@ impl TranspositionTable {
         let idx = self.get_entry_idx(key);
 
         let new_entry = TranspositionTableEntry {
-            key: key.clone(),
+            key,
             bound,
             eval: Self::with_mate_distance_from_position(eval, plies).0 as i16,
             depth,
@@ -197,13 +197,13 @@ impl TranspositionTable {
         }
     }
 
-    pub fn get(&self, key: &ZobristHash, plies: u8) -> Option<TranspositionTableHit> {
+    pub fn get(&self, key: ZobristHash, plies: u8) -> Option<TranspositionTableHit> {
         let idx = self.get_entry_idx(key);
 
         // !: We know the exact size of the table and will always access within the bounds.
         unsafe {
             if let Some(entry) = self.data.get_unchecked(idx)
-                && entry.key == *key
+                && entry.key == key
             {
                 return Some(TranspositionTableHit {
                     bound: entry.bound,

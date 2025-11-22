@@ -17,6 +17,7 @@
 * Improved 'd eval' command by showing piece contributions similar to Stockfish
 * Implement 'go nodes' command
 * Start adding a hash suffix to network files
+* Derive Copy for ZobristHash
 
 ## [7.0]
 

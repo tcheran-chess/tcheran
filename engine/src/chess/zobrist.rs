@@ -6,7 +6,7 @@ use crate::chess::{
     zobrist::components::ZobristComponent,
 };
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub struct ZobristHash(pub u64);
 
 impl ZobristHash {

@@ -260,7 +260,7 @@ impl Game {
             castle_rights: self.castle_rights,
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
-            zobrist: self.zobrist.clone(),
+            zobrist: self.zobrist,
             nnue: self.nnue.clone(),
         };
 
@@ -372,7 +372,7 @@ impl Game {
             castle_rights: self.castle_rights,
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
-            zobrist: self.zobrist.clone(),
+            zobrist: self.zobrist,
             nnue: self.nnue.clone(),
         };
 

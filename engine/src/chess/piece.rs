@@ -88,4 +88,33 @@ impl Piece {
     const fn black(kind: PieceKind) -> Self {
         Self::new(Player::Black, kind)
     }
+
+    pub fn char(&self) -> char {
+        match self.kind {
+            PieceKind::Pawn => match self.player {
+                Player::White => '♟',
+                Player::Black => '♙',
+            },
+            PieceKind::Knight => match self.player {
+                Player::White => '♞',
+                Player::Black => '♘',
+            },
+            PieceKind::Bishop => match self.player {
+                Player::White => '♝',
+                Player::Black => '♗',
+            },
+            PieceKind::Rook => match self.player {
+                Player::White => '♜',
+                Player::Black => '♖',
+            },
+            PieceKind::Queen => match self.player {
+                Player::White => '♛',
+                Player::Black => '♕',
+            },
+            PieceKind::King => match self.player {
+                Player::White => '♚',
+                Player::Black => '♔',
+            },
+        }
+    }
 }

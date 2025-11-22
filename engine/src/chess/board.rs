@@ -135,33 +135,8 @@ impl std::fmt::Debug for Board {
                 .map(|rank| {
                     (0..8)
                         .map(|file| match self.piece_at(Square::from_idxs(file, rank)) {
-                            Some(Piece { player, kind }) => match kind {
-                                PieceKind::Pawn => match player {
-                                    Player::White => "♟",
-                                    Player::Black => "♙",
-                                },
-                                PieceKind::Knight => match player {
-                                    Player::White => "♞",
-                                    Player::Black => "♘",
-                                },
-                                PieceKind::Bishop => match player {
-                                    Player::White => "♝",
-                                    Player::Black => "♗",
-                                },
-                                PieceKind::Rook => match player {
-                                    Player::White => "♜",
-                                    Player::Black => "♖",
-                                },
-                                PieceKind::Queen => match player {
-                                    Player::White => "♛",
-                                    Player::Black => "♕",
-                                },
-                                PieceKind::King => match player {
-                                    Player::White => "♚",
-                                    Player::Black => "♔",
-                                },
-                            },
-                            None => ".",
+                            Some(piece) => piece.char().to_string(),
+                            None => ".".to_string(),
                         })
                         .collect::<Vec<_>>()
                         .join(" ")

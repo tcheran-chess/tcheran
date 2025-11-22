@@ -29,8 +29,15 @@ pub mod responses;
 pub use r#move::UciMove;
 
 use crate::{
-    chess::{game::Game, player::Player},
+    chess::{
+        bitboard::Bitboard,
+        game::Game,
+        piece::PieceKind,
+        player::Player,
+        square::{File, Rank, Square},
+    },
     engine::{
+        eval::WhiteEval,
         search::{Clocks, PersistentState, Reporter, TimeControl, time_control::StopControl},
         uci::{bench::bench, commands::DebugCommand, options::UciOption},
         util::sync::LockLatch,
@@ -435,9 +442,86 @@ impl Uci {
                     println!("total: {total}");
                     println!();
                 }
-                #[rustfmt::skip]
                 DebugCommand::Eval => {
-                    println!("{:?}", self.game.evaluate());
+                    let eval = self
+                        .game
+                        .nnue
+                        .evaluate(Player::White)
+                        .to_white_eval(Player::White);
+
+                    let mut piece_contributions: [WhiteEval; Square::N] = [WhiteEval(0); Square::N];
+                    for sq in Bitboard::FULL {
+                        let Some(piece) = self.game.board.piece_at(sq) else {
+                            continue;
+                        };
+                        if piece.kind == PieceKind::King {
+                            continue;
+                        }
+
+                        self.game.nnue.remove_feature(piece, sq);
+                        piece_contributions[sq] = eval
+                            - self
+                                .game
+                                .nnue
+                                .evaluate(Player::White)
+                                .to_white_eval(Player::White);
+                        self.game.nnue.add_feature(piece, sq);
+                    }
+
+                    println!("┌───────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┐");
+
+                    for rank in Rank::ALL.iter().rev() {
+                        print!("│");
+
+                        for file in File::ALL {
+                            let sq = Square::from_file_and_rank(file, *rank);
+                            let piece = self.game.board.piece_at(sq);
+
+                            match piece {
+                                Some(piece) => print!("   {}   ", piece.char()),
+                                None => print!("       "),
+                            }
+
+                            print!("│");
+                        }
+
+                        println!();
+
+                        print!("│");
+
+                        for file in File::ALL {
+                            let sq = Square::from_file_and_rank(file, *rank);
+                            let piece = self.game.board.piece_at(sq);
+
+                            match piece {
+                                Some(piece) if piece.kind != PieceKind::King => {
+                                    print!("{: ^7}", piece_contributions[sq].to_string());
+                                }
+                                _ => print!("       "),
+                            }
+
+                            print!("│");
+                        }
+
+                        println!();
+
+                        if *rank == Rank::R1 {
+                            println!(
+                                "└───────┴───────┴───────┴───────┴───────┴───────┴───────┴───────┘"
+                            );
+                        } else {
+                            println!(
+                                "├───────┼───────┼───────┼───────┼───────┼───────┼───────┼───────┤"
+                            );
+                        }
+                    }
+
+                    println!();
+                    println!(
+                        "Evaluation: {}",
+                        self.game.evaluate().to_white_eval(self.game.player)
+                    );
+                    println!();
                 }
             },
             UciCommand::PonderHit => {}

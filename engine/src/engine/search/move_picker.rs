@@ -94,11 +94,11 @@ impl MovePicker {
         }
     }
 
-    pub fn new_loud() -> Self {
+    pub fn new_loud(previous_best_move: Option<Move>) -> Self {
         Self {
             moves: ArrayVec::new(),
             movegencache: MovegenCache::new(),
-            previous_best_move: None,
+            previous_best_move,
             only_tacticals: true,
 
             stage: GenStage::BestMove,

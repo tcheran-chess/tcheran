@@ -1,7 +1,7 @@
 use super::{MAX_SEARCH_DEPTH, SearchContext};
 use crate::{
     chess::game::Game,
-    engine::{eval, eval::Eval, search::move_picker::MovePicker},
+    engine::{eval, eval::Eval, search::move_picker::MovePicker, transposition_table::NodeBound},
 };
 
 pub fn quiescence(
@@ -11,6 +11,8 @@ pub fn quiescence(
     plies: u8,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
+    let is_pv = alpha != beta - Eval(1);
+
     ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
     ctx.nodes_visited.incr();
 
@@ -34,7 +36,40 @@ pub fn quiescence(
         };
     }
 
-    let eval = eval::eval(&mut ctx.nnue, game.player);
+    let tt_entry = ctx.tt.get(game.zobrist, plies);
+    let mut previous_best_move = None;
+
+    if let Some(ref tt_entry) = tt_entry {
+        if !is_pv {
+            let tt_score = tt_entry.score;
+
+            match tt_entry.bound {
+                NodeBound::Exact => return tt_score,
+                NodeBound::Upper if tt_score <= alpha => return tt_score,
+                NodeBound::Lower if tt_score >= beta => return tt_score,
+                _ => {}
+            }
+        }
+
+        previous_best_move = tt_entry.best_move;
+    }
+
+    let mut node_bound = NodeBound::Upper;
+
+    let eval = if let Some(tt_entry) = tt_entry {
+        if tt_entry.eval == Eval::NONE {
+            eval::eval(&mut ctx.nnue, game.player)
+        } else {
+            tt_entry.eval
+        }
+    } else {
+        let e = eval::eval(&mut ctx.nnue, game.player);
+
+        ctx.tt
+            .insert(game.zobrist, NodeBound::None, None, Eval::NONE, e, 0, plies);
+
+        e
+    };
 
     if eval >= beta {
         return eval;
@@ -42,11 +77,13 @@ pub fn quiescence(
 
     if eval > alpha {
         alpha = eval;
+        node_bound = NodeBound::Exact;
     }
 
     let mut best_eval = eval;
+    let mut best_move = None;
 
-    let mut moves = MovePicker::new_loud();
+    let mut moves = MovePicker::new_loud(previous_best_move);
     while let Some(mv) = moves.next(game, ctx.tables, plies) {
         ctx.nnue.push(&game.board, mv);
         game.make_move(mv);
@@ -65,14 +102,20 @@ pub fn quiescence(
 
             // Cutoff: This move is so good that our opponent won't let it be played.
             if move_score >= beta {
+                node_bound = NodeBound::Lower;
                 break;
             }
 
             if move_score > alpha {
+                best_move = Some(mv);
+                node_bound = NodeBound::Exact;
                 alpha = move_score;
             }
         }
     }
+
+    ctx.tt
+        .insert(game.zobrist, node_bound, best_move, best_eval, eval, 0, plies);
 
     best_eval
 }

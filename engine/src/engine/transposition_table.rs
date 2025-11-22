@@ -244,6 +244,10 @@ impl TranspositionTable {
     // relative to the root (by accounting for the difference between the
     // root and the current depth).
     pub fn with_mate_distance_from_position(eval: Eval, plies: u8) -> Eval {
+        if eval == Eval::NONE {
+            return eval;
+        }
+
         if eval.mating() {
             return Eval(eval.0 + i32::from(plies));
         }
@@ -256,6 +260,10 @@ impl TranspositionTable {
     }
 
     pub fn with_mate_distance_from_root(eval: Eval, plies: u8) -> Eval {
+        if eval == Eval::NONE {
+            return eval;
+        }
+
         if eval.mating() {
             return Eval(eval.0 - i32::from(plies));
         }

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+* Start using the transposition table in quiescence (40.16 +- 11.74)
+
 ## [9.0]
 
 * Implement support for Threads via Lazy SMP (39.62 +- 11.20 2v1, 105.71 +- 15.83 4v1)

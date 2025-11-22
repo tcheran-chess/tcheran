@@ -322,7 +322,7 @@ impl Uci {
                 binc,
                 movestogo,
                 depth,
-                nodes: _,
+                nodes,
                 movetime,
                 infinite: _,
             }) => {
@@ -350,6 +350,10 @@ impl Uci {
 
                 if let Some(d) = depth {
                     time_control = TimeControl::Depth(*d);
+                }
+
+                if let Some(n) = nodes {
+                    time_control = TimeControl::Nodes(*n);
                 }
 
                 self.control = Some(StopControl::new());

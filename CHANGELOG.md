@@ -15,6 +15,7 @@
 * Fixed a datagen bug which caused non-decisive games to always be stored with an outcome of a loss for white
 * Switched to using 'tacticals' terminology for non-quiet moves
 * Improved 'd eval' command by showing piece contributions similar to Stockfish
+* Implement 'go nodes' command
 
 ## [7.0]
 

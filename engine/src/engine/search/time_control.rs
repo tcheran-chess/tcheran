@@ -62,6 +62,7 @@ impl TimeStrategy {
 
         let mut soft_stop = Duration::default();
         let mut hard_stop = Duration::default();
+        let mut next_check_at = params::CHECK_TERMINATION_NODE_FREQUENCY;
 
         match time_control {
             TimeControl::Infinite | TimeControl::Depth(_) => {}
@@ -101,6 +102,7 @@ impl TimeStrategy {
                     max_time_per_move,
                 );
             }
+            TimeControl::Nodes(n) => next_check_at = u64::from(*n),
         }
 
         Self {
@@ -113,7 +115,7 @@ impl TimeStrategy {
             last_best_move: None,
             best_move_stability: 0,
 
-            next_check_at: params::CHECK_TERMINATION_NODE_FREQUENCY,
+            next_check_at,
 
             control,
         }
@@ -133,6 +135,7 @@ impl TimeStrategy {
         }
 
         match self.time_control {
+            TimeControl::Infinite | TimeControl::Nodes(_) => true,
             TimeControl::Clocks(_) => {
                 let soft_stop = if depth > params::BEST_MOVE_STABILITY_INITIAL_DEPTH {
                     self.soft_stop.mul_f32(
@@ -145,7 +148,6 @@ impl TimeStrategy {
                 self.elapsed() < soft_stop
             }
             TimeControl::ExactTime(time) => self.elapsed() < time,
-            TimeControl::Infinite => true,
             TimeControl::Depth(d) => d >= depth,
         }
     }
@@ -164,6 +166,7 @@ impl TimeStrategy {
         match self.time_control {
             TimeControl::Clocks(_) => self.elapsed() > self.hard_stop,
             TimeControl::ExactTime(time) => self.elapsed() > time,
+            TimeControl::Nodes(_) => true,
             TimeControl::Infinite | TimeControl::Depth(_) => false,
         }
     }

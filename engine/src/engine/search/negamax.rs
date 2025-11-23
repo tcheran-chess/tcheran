@@ -78,7 +78,7 @@ pub fn negamax(
 
     if let Some(tt_entry) = ctx.tt.get(game.zobrist, plies) {
         if !is_root && !is_pv && tt_entry.depth >= depth {
-            let tt_score = tt_entry.eval;
+            let tt_score = tt_entry.score;
 
             match tt_entry.bound {
                 NodeBound::Exact => return Ok(tt_score),

@@ -14,7 +14,7 @@ pub struct TranspositionTable {
 struct TranspositionTableEntry {
     pub key: ZobristHash,
     pub bound: NodeBound,
-    pub eval: i16,
+    pub score: i16,
     pub depth: u8,
     pub age: u8,
     pub best_move: Option<Move>,
@@ -22,7 +22,7 @@ struct TranspositionTableEntry {
 
 pub struct TranspositionTableHit {
     pub bound: NodeBound,
-    pub eval: Eval,
+    pub score: Eval,
     pub depth: u8,
     pub best_move: Option<Move>,
 }
@@ -167,7 +167,7 @@ impl TranspositionTable {
         &mut self,
         key: ZobristHash,
         bound: NodeBound,
-        eval: Eval,
+        score: Eval,
         depth: u8,
         age: u8,
         best_move: Option<Move>,
@@ -178,7 +178,7 @@ impl TranspositionTable {
         let new_entry = TranspositionTableEntry {
             key,
             bound,
-            eval: Self::with_mate_distance_from_position(eval, plies).0 as i16,
+            score: Self::with_mate_distance_from_position(score, plies).0 as i16,
             depth,
             age,
             best_move,
@@ -207,7 +207,7 @@ impl TranspositionTable {
             {
                 return Some(TranspositionTableHit {
                     bound: entry.bound,
-                    eval: Self::with_mate_distance_from_root(Eval(i32::from(entry.eval)), plies),
+                    score: Self::with_mate_distance_from_root(Eval(i32::from(entry.score)), plies),
                     depth: entry.depth,
                     best_move: entry.best_move,
                 });

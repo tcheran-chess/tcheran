@@ -144,19 +144,19 @@ impl TranspositionTable {
     }
 
     fn should_overwrite(old: &TranspositionTableEntry, new: &TranspositionTableEntry) -> bool {
+        // Always prioritise results from new searches
+        if new.age() != old.age() {
+            return true;
+        }
+
         // Always overwrite entries with no bound
         if old.bound() == NodeBound::None {
             return true;
         }
 
-        // Never overwriten entries if the new entry has a None bound
+        // Never overwrite entries if the new entry has a None bound
         if new.bound() == NodeBound::None {
             return false;
-        }
-
-        // Always prioritise results from new searches
-        if new.age() != old.age() {
-            return true;
         }
 
         // Always prefer results that have been searched to a higher depth,

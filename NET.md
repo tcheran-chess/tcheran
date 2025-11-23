@@ -2,37 +2,21 @@
 
 This file contains information about the engine's networks and the data used to train them.
 
-## Networks
+## Networks and experiments
 
 Parameters in the following table are noted only where they differ from Bullet's defaults, which [can be found here](https://github.com/jgilchrist/bullet/blob/e1d5ced0916dbbc0c1e603e67542cbe99d2e05b7/src/main.rs).
 
-| Network | Dataset    | Architecture       | Parameters                     | SPRT            | Notes                |
-| ------- | ---------- | ------------------ | ------------------------------ | --------------- | -------------------- |
-| 0       | Dataset #0 | (768->16)x2->1     | WDL 0.1, LR 0.01, 20 batches   | 38.11 +- 13.69  | Hello world! Trained with 'legacy' bullet         |
-| 1       | Dataset #1 | (768->256)x2->1    | WDL 0.1, LR 0.01, 20 batches   | 223.69 +- 33.98 | First proper dataset, also trained with 'legacy' bullet |
-| 2       | Dataset #1 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 48.88 +- 14.81  | Trained with bullet@main |
-| 3       | Dataset #1 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 17.29 +- 8.50   | Re-shuffled data before training |
-| 4       | Dataset #2 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 89.86 +- 20.11  | Same network architecture, trained with a dataset of ~450k FENs |
-| 5       | Dataset #3 | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 108.74 +- 20.12 | No changes in network architecture or training method, but a fresh dataset with a crucial fix for accidentally inverted WDL scores |
-| 6       | Dataset #3 | (768->256)x2->1    | WDL 0.3, LR 0.001, 40 batches   | 53.33 +- 15.20 | Same as #5, but increasing WDL proportion and lowering LR |
-| 7       | Dataset #4 | (768->384)x2->1    | WDL 0.3, LR 0.001, 40 batches   | 62.36 +- 16.50 | Moved to 384 nodes in the hidden layer, and used a fresh dataset generated using net #6 |
-
-## Experiments
-
-| Dataset    | Architecture       | Parameters          | Tested against | SPRT            | Notes                |
-| ---------- | ------------------ | ------------------  | -------------- | --------------- | -------------------- |
-| Dataset #0 | (768->128)x2->1    | WDL 0.1, LR 0.01    | net0           | -17.77 +- 9.74  | Hello world!         |
-| Dataset #0 | (768->256)x2->1    | WDL 0.3, LR 0.001   | net0           | -83.64 +- 20.98 |                      |
-| Dataset #2 | (768->384)x2->1    | WDL 0.3, LR 0.001   | net4           | -29.02 +- 26.87 | Trying some different training params. Realised that WDL is broken because of a bug in adjudication. |
-
-## Training datasets
-
 All data used for training is self-play data generated using the datagen code from this repository.
 
-| Dataset | # Fens      | Notes |
-| ------- | ----------- | ----- |
-|       0 |   3,847,979 | Depth 8, no persistent TT, no TBs |
-|       1 | 101,588,007 | Depth 8, added TTs and TBs |
-|       2 | 459,495,083 | Same setup as dataset #1, just adding more FENs. Incorporates datasets #0 and #1 |
-|       3 | 125,337,687 | Generated from scratch using net #4. Same setup as previous datasets, but fixing a critical bug that inverted WDL scores |
-|       4 | 406,586,686 | Generated from scratch using net #6. Had to re-label after generation due to a bug with only setting game outcomes for decisive games. First stored and filtered with viriformat. |
+| Network | Architecture       | Parameters                     | SPRT              | Notes                |
+| ------- | ------------------ | ------------------------------ | ----------------- | -------------------- |
+| -       | (768->128)x2->1    | WDL 0.1, LR 0.01               | -17.77 +- 9.74    | Hello world! First attempt, trained with 'legacy' bullet with an initial self-gen dataset of only ~4M FENs at depth 8. These FENs were also generated without persistent TT and with no TBs. Clearly much too large a network for such a small dataset |
+| 0       | (768->16)x2->1     | WDL 0.1, LR 0.01, 20 batches   | 38.11 +- 13.69    | Same setup as above, but reducing the hidden layer nodes to only 16 to account for the tiny dataset. Already a big improvement! |
+| 1       | (768->256)x2->1    | WDL 0.1, LR 0.01, 20 batches   | 223.69 +- 33.98   | First proper dataset of ~100M FENs. Added TTs and used 5-man TBs. Also trained with 'legacy' bullet |
+| 2       | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 48.88 +- 14.81    | Trained with bullet@main |
+| 3       | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 17.29 +- 8.50     | Re-shuffled data before training |
+| 4       | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 89.86 +- 20.11    | New dataset of ~460M FENs (including previous data) |
+| -       | (768->384)x2->1    | WDL 0.3, LR 0.001, 40 batches  | -29.02 +- 26.87   | Trying some different training params. Realised that WDL is broken because of a bug in adjudication. |
+| 5       | (768->256)x2->1    | WDL 0.1, LR 0.01, 40 batches   | 108.74 +- 20.12   | Fresh dataset of ~125M FENs generated from scratch using net #4. Same setup as previous datasets, but fixing a critical bug that inverted WDL scores |
+| 6       | (768->256)x2->1    | WDL 0.3, LR 0.001, 40 batches  | 53.33 +- 15.20    | Same data as net #5, but increasing WDL proportion and lowering LR |
+| 7       | (768->384)x2->1    | WDL 0.3, LR 0.001, 40 batches  | 62.36 +- 16.50    | Moved to 384 nodes in the hidden layer, and used a fresh dataset generated using net #6. Had to re-label this dataset after generation due to a bug that caused all adjudicated games to be registered as a win for black. First dataset stored and filtered using viriformat |

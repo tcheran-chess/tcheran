@@ -38,6 +38,11 @@ impl Eval {
     }
 
     #[inline]
+    pub fn is_mate(self) -> bool {
+        self.mating() || self.being_mated()
+    }
+
+    #[inline]
     pub fn mating(self) -> bool {
         self.0 >= Self::MATE_THRESHOLD
     }

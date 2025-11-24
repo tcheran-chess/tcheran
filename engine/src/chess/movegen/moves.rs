@@ -1,35 +1,18 @@
 use crate::chess::{
     bitboard::{Bitboard, bitboards},
     game::Game,
-    movegen::{attackers, pins, tables},
+    movegen::{attackers, tables},
     moves::Move,
     piece::{Piece, PieceKind, PromotionPieceKind},
     square::{Square, squares},
 };
 
-pub struct MovegenCache {
-    check_mask: Bitboard,
-    orthogonal_pins: Bitboard,
-    diagonal_pins: Bitboard,
-}
-
-impl MovegenCache {
-    pub fn new() -> Self {
-        Self {
-            check_mask: Bitboard::EMPTY,
-            orthogonal_pins: Bitboard::EMPTY,
-            diagonal_pins: Bitboard::EMPTY,
-        }
-    }
-}
-
 pub fn generate_legal_moves(game: &Game, mut f: impl FnMut(Move)) {
-    let mut movegen_cache = MovegenCache::new();
-    generate_tacticals(game, &mut movegen_cache, &mut f);
-    generate_quiets(game, &movegen_cache, &mut f);
+    generate_tacticals(game, &mut f);
+    generate_quiets(game, &mut f);
 }
 
-pub fn generate_tacticals(game: &Game, movegencache: &mut MovegenCache, f: &mut impl FnMut(Move)) {
+pub fn generate_tacticals(game: &Game, f: &mut impl FnMut(Move)) {
     let all_pieces = game.board.occupancy();
     let their_pieces = game.board.occupancy_for(game.player.other());
     let king = game.board.king_square(game.player);
@@ -48,11 +31,8 @@ pub fn generate_tacticals(game: &Game, movegencache: &mut MovegenCache, f: &mut 
     } else {
         Bitboard::FULL
     };
-    movegencache.check_mask = check_mask;
 
-    let (orthogonal_pins, diagonal_pins) = pins::get_pins(&game.board, game.player, king);
-    movegencache.orthogonal_pins = orthogonal_pins;
-    movegencache.diagonal_pins = diagonal_pins;
+    let (orthogonal_pins, diagonal_pins) = (game.orthogonal_pins, game.diagonal_pins);
 
     generate_pawn_tacticals(
         game,
@@ -95,7 +75,7 @@ pub fn generate_tacticals(game: &Game, movegencache: &mut MovegenCache, f: &mut 
     generate_king_captures(game, king, their_pieces, f);
 }
 
-pub fn generate_quiets(game: &Game, movegencache: &MovegenCache, f: &mut impl FnMut(Move)) {
+pub fn generate_quiets(game: &Game, f: &mut impl FnMut(Move)) {
     let all_pieces = game.board.occupancy();
     let king = game.board.king_square(game.player);
 
@@ -107,10 +87,14 @@ pub fn generate_quiets(game: &Game, movegencache: &MovegenCache, f: &mut impl Fn
         return;
     }
 
-    let check_mask = movegencache.check_mask;
+    let check_mask = if number_of_checkers == 1 {
+        let checker_sq = game.checkers.single();
+        tables::between(checker_sq, king) | game.checkers
+    } else {
+        Bitboard::FULL
+    };
 
-    let (orthogonal_pins, diagonal_pins) =
-        (movegencache.orthogonal_pins, movegencache.diagonal_pins);
+    let (orthogonal_pins, diagonal_pins) = (game.orthogonal_pins, game.diagonal_pins);
 
     generate_pawn_quiets(
         game,

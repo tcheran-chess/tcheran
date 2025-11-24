@@ -1,9 +1,9 @@
 use crate::chess::{
     bitboard::{Bitboard, bitboards},
     board::Board,
-    fen, movegen,
+    fen,
     movegen::{
-        generate_legal_moves,
+        generate_legal_moves, tables,
         tables::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
     },
     moves::{Move, MoveList},
@@ -86,6 +86,8 @@ pub struct History {
     pub zobrist: ZobristHash,
 
     pub checkers: Bitboard,
+    pub orthogonal_pins: Bitboard,
+    pub diagonal_pins: Bitboard,
     pub threats: Bitboard,
 }
 
@@ -102,6 +104,8 @@ pub struct Game {
     pub history: Vec<History>,
 
     pub checkers: Bitboard,
+    pub orthogonal_pins: Bitboard,
+    pub diagonal_pins: Bitboard,
     pub threats: Bitboard,
 }
 
@@ -118,8 +122,6 @@ impl Game {
         halfmove_clock: u32,
         plies: u32,
     ) -> Self {
-        let checkers = movegen::generate_attackers_of(&board, player, board.king_square(player));
-
         let mut game = Self {
             board,
             player,
@@ -128,7 +130,9 @@ impl Game {
             halfmove_clock,
             plies,
 
-            checkers,
+            checkers: Bitboard::EMPTY,
+            orthogonal_pins: Bitboard::EMPTY,
+            diagonal_pins: Bitboard::EMPTY,
             threats: Bitboard::EMPTY,
 
             zobrist: ZobristHash::uninit(),
@@ -137,6 +141,7 @@ impl Game {
 
         game.zobrist = zobrist::hash(&game);
         game.update_threats();
+        game.update_checks_and_pins();
 
         game
     }
@@ -287,6 +292,51 @@ impl Game {
         self.threats = threats;
     }
 
+    fn update_checks_and_pins(&mut self) {
+        self.checkers = Bitboard::EMPTY;
+        self.orthogonal_pins = Bitboard::EMPTY;
+        self.diagonal_pins = Bitboard::EMPTY;
+
+        let our_king = self.board.king_square(self.player);
+        let them = self.player.other();
+
+        let our_pieces = self.board.occupancy_for(self.player);
+        let their_pieces = self.board.occupancy_for(them);
+
+        self.checkers |= pawn_attacks(our_king, self.player) & self.board.pawns(them);
+        self.checkers |= knight_attacks(our_king) & self.board.knights(them);
+
+        let their_orthogonal_sliders = self.board.orthogonal_sliders(them);
+        let their_diagonal_sliders = self.board.diagonal_sliders(them);
+
+        let potential_orthogonal_pinners =
+            rook_attacks(our_king, their_pieces) & their_orthogonal_sliders;
+        let potential_diagonal_pinners =
+            bishop_attacks(our_king, their_pieces) & their_diagonal_sliders;
+
+        for pinner in potential_orthogonal_pinners {
+            let between_ray = tables::between(our_king, pinner);
+            let blockers = between_ray & our_pieces;
+
+            match blockers.count() {
+                0 => self.checkers.set(pinner),
+                1 => self.orthogonal_pins |= pinner.bb() | between_ray,
+                _ => {}
+            }
+        }
+
+        for pinner in potential_diagonal_pinners {
+            let between_ray = tables::between(our_king, pinner);
+            let blockers = between_ray & our_pieces;
+
+            match blockers.count() {
+                0 => self.checkers.set(pinner),
+                1 => self.diagonal_pins |= pinner.bb() | between_ray,
+                _ => {}
+            }
+        }
+    }
+
     pub fn make_move(&mut self, mv: Move) {
         let from = mv.src();
         let to = mv.dst();
@@ -306,6 +356,8 @@ impl Game {
             zobrist: self.zobrist,
 
             checkers: self.checkers,
+            orthogonal_pins: self.orthogonal_pins,
+            diagonal_pins: self.diagonal_pins,
             threats: self.threats,
         };
 
@@ -401,11 +453,7 @@ impl Game {
         self.player = other_player;
         self.zobrist.toggle_side_to_play();
 
-        self.checkers = movegen::generate_attackers_of(
-            &self.board,
-            self.player,
-            self.board.king_square(self.player),
-        );
+        self.update_checks_and_pins();
         self.update_threats();
     }
 
@@ -421,6 +469,8 @@ impl Game {
             zobrist: self.zobrist,
 
             checkers: self.checkers,
+            orthogonal_pins: self.orthogonal_pins,
+            diagonal_pins: self.diagonal_pins,
             threats: self.threats,
         };
 
@@ -437,8 +487,8 @@ impl Game {
         self.player = self.player.other();
         self.zobrist.toggle_side_to_play();
 
+        self.update_checks_and_pins();
         self.update_threats();
-        self.checkers = Bitboard::EMPTY;
     }
 
     pub fn undo_move(&mut self) {
@@ -459,6 +509,8 @@ impl Game {
         self.castle_rights = history.castle_rights;
         self.en_passant_target = history.en_passant_target;
         self.checkers = history.checkers;
+        self.orthogonal_pins = history.orthogonal_pins;
+        self.diagonal_pins = history.diagonal_pins;
         self.threats = history.threats;
 
         // Undo castling, if we castled
@@ -502,6 +554,8 @@ impl Game {
         self.en_passant_target = history.en_passant_target;
         self.halfmove_clock = history.halfmove_clock;
         self.checkers = history.checkers;
+        self.orthogonal_pins = history.orthogonal_pins;
+        self.diagonal_pins = history.diagonal_pins;
         self.threats = history.threats;
     }
 }
@@ -515,6 +569,7 @@ impl Default for Game {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::chess::bitboard::bitboards::*;
 
     #[test]
     fn test_draw_by_insufficient_material() {
@@ -540,5 +595,16 @@ mod tests {
                 .unwrap()
                 .is_stalemate_by_insufficient_material()
         );
+    }
+
+    #[test]
+    fn test_pin_in_gist_8_depth_3() {
+        crate::init();
+
+        let game =
+            Game::from_fen("rnbq1k1r/pp1P1ppp/2p5/8/1bB5/8/PPPNNnPP/R1BQK2R w KQ - 3 9").unwrap();
+
+        assert_eq!(game.orthogonal_pins, Bitboard::EMPTY);
+        assert_eq!(game.diagonal_pins, B4_BB | C3_BB | D2_BB);
     }
 }

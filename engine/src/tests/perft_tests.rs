@@ -1,7 +1,5 @@
 use crate::{
-    chess::{
-        fen::START_POS, game::Game, movegen, movegen::MovegenCache, moves::MoveList, perft::perft,
-    },
+    chess::{fen::START_POS, game::Game, movegen, moves::MoveList, perft::perft},
     engine::search::{move_picker::MovePicker, tables::Tables},
 };
 
@@ -32,16 +30,13 @@ fn movepicker_perft(depth: u8, game: &mut Game, tables: &mut Tables) -> usize {
     let mut moves = 0;
 
     let test_individual_node_move_counts = true;
-    let mut movegen_cache = MovegenCache::new();
     let mut tacticals_movelist = MoveList::new();
     let mut quiets_movelist = MoveList::new();
 
     let mut best_move = None;
     if test_individual_node_move_counts {
-        movegen::generate_tacticals(game, &mut movegen_cache, &mut |mv| {
-            tacticals_movelist.push(mv)
-        });
-        movegen::generate_quiets(game, &movegen_cache, &mut |mv| quiets_movelist.push(mv));
+        movegen::generate_tacticals(game, &mut |mv| tacticals_movelist.push(mv));
+        movegen::generate_quiets(game, &mut |mv| quiets_movelist.push(mv));
 
         // We want to make sure that we don't generate the best_move more than once, or any of the
         // killer moves more than once.

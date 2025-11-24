@@ -3,7 +3,6 @@ use crate::{
         arrayvec::ArrayVec,
         game::Game,
         movegen,
-        movegen::MovegenCache,
         moves::{MAX_LEGAL_MOVES, Move},
         piece::PieceKind,
     },
@@ -72,7 +71,6 @@ impl MoveListExt for ArrayVec<MoveEntry, MAX_LEGAL_MOVES> {
 
 pub struct MovePicker {
     moves: ArrayVec<MoveEntry, MAX_LEGAL_MOVES>,
-    movegencache: MovegenCache,
     previous_best_move: Option<Move>,
     only_tacticals: bool,
 
@@ -85,7 +83,6 @@ impl MovePicker {
     pub fn new(previous_best_move: Option<Move>) -> Self {
         Self {
             moves: ArrayVec::new(),
-            movegencache: MovegenCache::new(),
             previous_best_move,
             only_tacticals: false,
 
@@ -97,7 +94,6 @@ impl MovePicker {
     pub fn new_loud(previous_best_move: Option<Move>) -> Self {
         Self {
             moves: ArrayVec::new(),
-            movegencache: MovegenCache::new(),
             previous_best_move,
             only_tacticals: true,
 
@@ -120,7 +116,7 @@ impl MovePicker {
         if self.stage == GenTacticals {
             self.stage = GoodTacticals;
 
-            movegen::generate_tacticals(game, &mut self.movegencache, &mut |mv| {
+            movegen::generate_tacticals(game, &mut |mv| {
                 self.moves.push(MoveEntry { mv, score: 0 });
             });
 
@@ -150,7 +146,7 @@ impl MovePicker {
             self.stage = Killer;
 
             if !self.only_tacticals {
-                movegen::generate_quiets(game, &self.movegencache, &mut |mv| {
+                movegen::generate_quiets(game, &mut |mv| {
                     self.moves.push(MoveEntry { mv, score: 0 });
                 });
             }

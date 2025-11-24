@@ -72,6 +72,10 @@ impl Board {
         self.all_kings() & self.occupancy_for(player)
     }
 
+    pub fn king_square(&self, player: Player) -> Square {
+        self.king(player).single()
+    }
+
     pub fn all_kings(&self) -> Bitboard {
         self.pieces[PieceKind::King]
     }

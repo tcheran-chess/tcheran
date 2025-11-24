@@ -32,7 +32,7 @@ pub fn generate_legal_moves(game: &Game, mut f: impl FnMut(Move)) {
 pub fn generate_tacticals(game: &Game, movegencache: &mut MovegenCache, f: &mut impl FnMut(Move)) {
     let all_pieces = game.board.occupancy();
     let their_pieces = game.board.occupancy_for(game.player.other());
-    let king = game.board.king(game.player).single();
+    let king = game.board.king_square(game.player);
 
     let number_of_checkers = game.checkers.count();
 
@@ -97,7 +97,7 @@ pub fn generate_tacticals(game: &Game, movegencache: &mut MovegenCache, f: &mut 
 
 pub fn generate_quiets(game: &Game, movegencache: &MovegenCache, f: &mut impl FnMut(Move)) {
     let all_pieces = game.board.occupancy();
-    let king = game.board.king(game.player).single();
+    let king = game.board.king_square(game.player);
 
     let number_of_checkers = game.checkers.count();
 

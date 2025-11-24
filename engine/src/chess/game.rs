@@ -119,7 +119,7 @@ impl Game {
         plies: u32,
     ) -> Self {
         let nnue = NNUE::from_board(&board);
-        let checkers = movegen::generate_attackers_of(&board, player, board.king(player).single());
+        let checkers = movegen::generate_attackers_of(&board, player, board.king_square(player));
 
         let mut game = Self {
             board,
@@ -374,7 +374,7 @@ impl Game {
         self.checkers = movegen::generate_attackers_of(
             &self.board,
             self.player,
-            self.board.king(self.player).single(),
+            self.board.king_square(self.player),
         );
     }
 
@@ -409,7 +409,7 @@ impl Game {
         self.checkers = movegen::generate_attackers_of(
             &self.board,
             self.player,
-            self.board.king(self.player).single(),
+            self.board.king_square(self.player),
         );
     }
 

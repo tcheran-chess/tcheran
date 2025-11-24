@@ -213,11 +213,10 @@ impl TranspositionTable {
         &mut self,
         key: ZobristHash,
         bound: NodeBound,
+        best_move: Option<Move>,
         score: Eval,
         eval: Eval,
         depth: u8,
-        age: u8,
-        best_move: Option<Move>,
         plies: u8,
     ) {
         let idx = self.get_entry_idx(key);
@@ -228,7 +227,7 @@ impl TranspositionTable {
             eval: eval.0 as i16,
             depth,
             best_move,
-            bound_and_age: BoundAndAge::new(bound, age),
+            bound_and_age: BoundAndAge::new(bound, self.generation),
         };
 
         // !: We know the exact size of the table and will always access within the bounds.

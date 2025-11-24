@@ -120,11 +120,10 @@ pub fn negamax(
                 ctx.tt.insert(
                     game.zobrist,
                     tb_bound,
+                    None,
                     score,
                     Eval::NONE,
                     depth,
-                    ctx.tt.generation,
-                    None,
                     plies,
                 );
 
@@ -142,16 +141,8 @@ pub fn negamax(
         _ => {
             let e = eval::eval(game);
 
-            ctx.tt.insert(
-                game.zobrist,
-                NodeBound::None,
-                Eval::NONE,
-                e,
-                0,
-                ctx.tt.generation,
-                None,
-                plies,
-            );
+            ctx.tt
+                .insert(game.zobrist, NodeBound::None, None, Eval::NONE, e, 0, plies);
 
             e
         }
@@ -301,11 +292,10 @@ pub fn negamax(
     ctx.tt.insert(
         game.zobrist,
         tt_node_bound,
+        best_move,
         best_eval,
         eval,
         depth,
-        ctx.tt.generation,
-        best_move,
         plies,
     );
 

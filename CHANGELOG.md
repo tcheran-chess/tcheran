@@ -4,6 +4,7 @@
 
 * Network #8, upping the size to 512 hidden layer nodes and trained with a larger 1B (unfiltered) FEN dataset (27.07 +- 9.95)
 * Do SEE when picking moves instead of when scoring moves (11.32 +- 6.27)
+* Compute checkers in make_move (8.03 +- 5.01)
 * Overwrite TT entries from old searches with static eval cache entries (7.85 +- 4.83)
 * Cache static eval of positions in the transposition table (5.05 +- 3.69)
 

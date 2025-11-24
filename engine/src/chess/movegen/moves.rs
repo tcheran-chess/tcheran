@@ -8,7 +8,6 @@ use crate::chess::{
 };
 
 pub struct MovegenCache {
-    checkers: Bitboard,
     check_mask: Bitboard,
     orthogonal_pins: Bitboard,
     diagonal_pins: Bitboard,
@@ -17,7 +16,6 @@ pub struct MovegenCache {
 impl MovegenCache {
     pub fn new() -> Self {
         Self {
-            checkers: Bitboard::EMPTY,
             check_mask: Bitboard::EMPTY,
             orthogonal_pins: Bitboard::EMPTY,
             diagonal_pins: Bitboard::EMPTY,
@@ -36,9 +34,7 @@ pub fn generate_tacticals(game: &Game, movegencache: &mut MovegenCache, f: &mut 
     let their_pieces = game.board.occupancy_for(game.player.other());
     let king = game.board.king(game.player).single();
 
-    let checkers = attackers::generate_attackers_of(&game.board, game.player, king);
-    movegencache.checkers = checkers;
-    let number_of_checkers = checkers.count();
+    let number_of_checkers = game.checkers.count();
 
     // If we're in check by more than one attacker, we can only get out of check via a king move
     if number_of_checkers > 1 {
@@ -47,8 +43,8 @@ pub fn generate_tacticals(game: &Game, movegencache: &mut MovegenCache, f: &mut 
     }
 
     let check_mask = if number_of_checkers == 1 {
-        let checker_sq = checkers.single();
-        tables::between(checker_sq, king) | checkers
+        let checker_sq = game.checkers.single();
+        tables::between(checker_sq, king) | game.checkers
     } else {
         Bitboard::FULL
     };
@@ -103,8 +99,7 @@ pub fn generate_quiets(game: &Game, movegencache: &MovegenCache, f: &mut impl Fn
     let all_pieces = game.board.occupancy();
     let king = game.board.king(game.player).single();
 
-    let checkers = movegencache.checkers;
-    let number_of_checkers = checkers.count();
+    let number_of_checkers = game.checkers.count();
 
     // If we're in check by more than one attacker, we can only get out of check via a king move
     if number_of_checkers > 1 {
@@ -152,7 +147,7 @@ pub fn generate_quiets(game: &Game, movegencache: &MovegenCache, f: &mut impl Fn
     );
     generate_king_quiets(game, king, all_pieces, f);
 
-    if !checkers.any() {
+    if !game.checkers.any() {
         generate_castles(game, all_pieces, f);
     }
 }

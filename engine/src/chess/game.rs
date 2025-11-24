@@ -1,8 +1,8 @@
 use crate::{
     chess::{
-        bitboard::bitboards,
+        bitboard::{Bitboard, bitboards},
         board::Board,
-        fen,
+        fen, movegen,
         movegen::generate_legal_moves,
         moves::{Move, MoveList},
         piece::{Piece, PieceKind},
@@ -85,6 +85,8 @@ pub struct History {
     pub halfmove_clock: u32,
     pub zobrist: ZobristHash,
     pub nnue: NNUE,
+
+    pub checkers: Bitboard,
 }
 
 #[derive(Debug, Clone)]
@@ -99,6 +101,8 @@ pub struct Game {
     pub zobrist: ZobristHash,
     pub nnue: NNUE,
     pub history: Vec<History>,
+
+    pub checkers: Bitboard,
 }
 
 impl Game {
@@ -115,6 +119,7 @@ impl Game {
         plies: u32,
     ) -> Self {
         let nnue = NNUE::from_board(&board);
+        let checkers = movegen::generate_attackers_of(&board, player, board.king(player).single());
 
         let mut game = Self {
             board,
@@ -123,6 +128,8 @@ impl Game {
             en_passant_target,
             halfmove_clock,
             plies,
+
+            checkers,
 
             zobrist: ZobristHash::uninit(),
             nnue,
@@ -207,7 +214,7 @@ impl Game {
 
     #[inline(always)]
     pub fn is_king_in_check(&self) -> bool {
-        self.board.king_in_check(self.player)
+        self.checkers.any()
     }
 
     fn set_at(&mut self, sq: Square, piece: Piece) {
@@ -262,6 +269,8 @@ impl Game {
             halfmove_clock: self.halfmove_clock,
             zobrist: self.zobrist,
             nnue: self.nnue.clone(),
+
+            checkers: self.checkers,
         };
 
         self.history.push(history);
@@ -361,6 +370,12 @@ impl Game {
 
         self.player = other_player;
         self.zobrist.toggle_side_to_play();
+
+        self.checkers = movegen::generate_attackers_of(
+            &self.board,
+            self.player,
+            self.board.king(self.player).single(),
+        );
     }
 
     pub fn make_null_move(&mut self) {
@@ -374,6 +389,8 @@ impl Game {
             halfmove_clock: self.halfmove_clock,
             zobrist: self.zobrist,
             nnue: self.nnue.clone(),
+
+            checkers: self.checkers,
         };
 
         self.history.push(history);
@@ -388,6 +405,12 @@ impl Game {
 
         self.player = self.player.other();
         self.zobrist.toggle_side_to_play();
+
+        self.checkers = movegen::generate_attackers_of(
+            &self.board,
+            self.player,
+            self.board.king(self.player).single(),
+        );
     }
 
     pub fn undo_move(&mut self) {
@@ -408,6 +431,7 @@ impl Game {
         self.castle_rights = history.castle_rights;
         self.en_passant_target = history.en_passant_target;
         self.nnue = history.nnue;
+        self.checkers = history.checkers;
 
         // Undo castling, if we castled
         if mv.is_castling()
@@ -449,6 +473,7 @@ impl Game {
         self.zobrist = history.zobrist;
         self.en_passant_target = history.en_passant_target;
         self.halfmove_clock = history.halfmove_clock;
+        self.checkers = history.checkers;
     }
 
     pub fn evaluate(&self) -> Eval {

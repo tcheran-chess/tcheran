@@ -1,6 +1,5 @@
 use crate::chess::{
     bitboard::Bitboard,
-    movegen,
     piece::{Piece, PieceKind},
     player::Player,
     square::Square,
@@ -116,12 +115,6 @@ impl Board {
         self.pieces[piece.kind].set(square);
         self.colors[piece.player].set(square);
         self.squares[square] = Some(piece);
-    }
-
-    pub fn king_in_check(&self, player: Player) -> bool {
-        let king = self.king(player).single();
-        let enemy_attackers = movegen::generate_attackers_of(self, player, king);
-        enemy_attackers.any()
     }
 }
 

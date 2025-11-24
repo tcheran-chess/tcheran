@@ -1,107 +1,107 @@
-use crate::engine::options::EngineOptions;
-
-#[derive(Debug)]
-#[expect(unused, reason = "Not all UCI option types are used by this engine")]
-pub enum UciOptionType {
-    Check {
-        default: bool,
-    },
-    Spin {
-        default: usize,
-        min: usize,
-        max: usize,
-    },
-    Combo {
-        default: &'static str,
-        values: Vec<&'static str>,
-    },
-    String {
-        default: &'static str,
-    },
-    Button,
-}
+use crate::engine::{options::EngineOptions, search::PersistentState};
 
 pub trait UciOption {
-    const NAME: &'static str;
-    const DEF: UciOptionType;
+    fn name(&self) -> &'static str;
+    fn uci_option_line(&self) -> String;
+    fn set(
+        &self,
+        value: &str,
+        options: &mut EngineOptions,
+        state: &mut PersistentState,
+    ) -> Result<(), String>;
 }
 
-pub struct HashOption;
-
-impl UciOption for HashOption {
-    const NAME: &'static str = "Hash";
-    const DEF: UciOptionType = UciOptionType::Spin {
-        default: crate::engine::options::defaults::HASH_SIZE,
-        min: 0,
-        max: 1024,
-    };
+#[expect(unused, reason = "No check options yet")]
+pub struct UciCheckOption {
+    pub name: &'static str,
+    pub default: bool,
+    pub set_fn: Box<dyn Fn(&mut EngineOptions, &mut PersistentState, bool)>,
 }
 
-impl HashOption {
-    pub fn set(options: &mut EngineOptions, value: &str) -> Result<usize, String> {
-        let hash_size = value.parse::<usize>().map_err(|_| "Invalid value")?;
+pub struct UciSpinOption {
+    pub name: &'static str,
+    pub default: isize,
+    pub min: isize,
+    pub max: isize,
+    pub set_fn: Box<dyn Fn(&mut EngineOptions, &mut PersistentState, isize)>,
+}
 
-        options.hash_size = hash_size;
-        Ok(hash_size)
+impl UciOption for UciSpinOption {
+    fn name(&self) -> &'static str {
+        self.name
     }
-}
 
-pub struct ThreadsOption;
+    fn uci_option_line(&self) -> String {
+        let name = self.name;
+        let default = self.default;
+        let min = self.min;
+        let max = self.max;
 
-impl UciOption for ThreadsOption {
-    const NAME: &'static str = "Threads";
-    const DEF: UciOptionType = UciOptionType::Spin {
-        default: crate::engine::options::defaults::THREADS,
-        min: 1,
-        max: 1,
-    };
-}
-
-impl ThreadsOption {
-    pub fn set(options: &mut EngineOptions, value: &str) -> Result<(), String> {
-        let threads = value.parse::<usize>().map_err(|_| "Invalid value")?;
-
-        options.threads = threads;
-        Ok(())
+        format!("option name {name} type spin default {default} min {min} max {max}")
     }
-}
 
-pub struct MoveOverheadOption;
+    fn set(
+        &self,
+        value: &str,
+        options: &mut EngineOptions,
+        state: &mut PersistentState,
+    ) -> Result<(), String> {
+        let value = value.parse::<isize>().map_err(|_| "Invalid value")?;
 
-impl UciOption for MoveOverheadOption {
-    const NAME: &'static str = "Move Overhead";
-    const DEF: UciOptionType = UciOptionType::Spin {
-        default: crate::engine::options::defaults::MOVE_OVERHEAD,
-        min: 0,
-        max: 1000,
-    };
-}
-
-impl MoveOverheadOption {
-    pub fn set(options: &mut EngineOptions, value: &str) -> Result<(), String> {
-        let move_overhead = value.parse::<usize>().map_err(|_| "Invalid value")?;
-
-        options.move_overhead = move_overhead;
-        Ok(())
-    }
-}
-
-pub struct SyzygyPath;
-
-impl UciOption for SyzygyPath {
-    const NAME: &'static str = "SyzygyPath";
-    const DEF: UciOptionType = UciOptionType::String { default: "" };
-}
-
-impl SyzygyPath {
-    pub fn set(options: &mut EngineOptions, value: &str) -> Result<String, String> {
-        let path = value.to_string();
-
-        if path.trim().is_empty() {
-            return Err("No SyzygyPath specified".to_string());
+        if value > self.max {
+            return Err("Value larger than max".to_string());
         }
 
-        options.syzygy_path = Some(path.clone());
-        Ok(path)
+        if value < self.min {
+            return Err("Value smaller than min".to_string());
+        }
+
+        (self.set_fn)(options, state, value);
+        Ok(())
     }
+}
+
+#[expect(unused, reason = "No combo options yet")]
+pub struct UciComboOption {
+    pub name: &'static str,
+    pub default: &'static str,
+    pub values: Vec<&'static str>,
+    pub set_fn: Box<dyn Fn(&mut EngineOptions, &mut PersistentState, &str)>,
+}
+
+pub struct UciStringOption {
+    pub name: &'static str,
+    pub default: &'static str,
+    pub set_fn: Box<dyn Fn(&mut EngineOptions, &mut PersistentState, &str)>,
+}
+
+impl UciOption for UciStringOption {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn uci_option_line(&self) -> String {
+        let name = self.name;
+        let default = self.default;
+
+        format!("option name {name} type string default {default}")
+    }
+
+    fn set(
+        &self,
+        value: &str,
+        options: &mut EngineOptions,
+        state: &mut PersistentState,
+    ) -> Result<(), String> {
+        let value = value.parse::<String>().map_err(|_| "Invalid value")?;
+
+        (self.set_fn)(options, state, &value);
+        Ok(())
+    }
+}
+
+#[expect(unused, reason = "No button options yet")]
+pub struct UciButtonOption {
+    pub name: &'static str,
+    pub set_fn: Box<dyn Fn(&mut EngineOptions, &mut PersistentState)>,
 }

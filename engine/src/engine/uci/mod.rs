@@ -16,7 +16,7 @@ use crate::{
         moves::{Move, MoveListExt},
         perft, san,
     },
-    engine::{options::EngineOptions, search, uci, util},
+    engine::{options::EngineOptions, search, util},
 };
 
 mod bench;
@@ -39,7 +39,11 @@ use crate::{
     engine::{
         eval::WhiteEval,
         search::{Clocks, PersistentState, Reporter, TimeControl, time_control::StopControl},
-        uci::{bench::bench, commands::DebugCommand, options::UciOption},
+        uci::{
+            bench::bench,
+            commands::DebugCommand,
+            options::{UciOption, UciSpinOption, UciStringOption},
+        },
         util::sync::LockLatch,
     },
 };
@@ -216,7 +220,9 @@ pub struct Uci {
     reporter: UciReporter,
     debug: bool,
     game: Game,
-    options: EngineOptions,
+    engine_options: EngineOptions,
+
+    options: Vec<Box<dyn UciOption>>,
 
     persistent_state: Arc<Mutex<PersistentState>>,
 
@@ -239,10 +245,11 @@ impl Uci {
                 send_response(&UciResponse::Id(IdParam::Author("Jonathan Gilchrist")));
 
                 // Options
-                send_response(&UciResponse::option::<uci::options::HashOption>());
-                send_response(&UciResponse::option::<uci::options::ThreadsOption>());
-                send_response(&UciResponse::option::<uci::options::MoveOverheadOption>());
-                send_response(&UciResponse::option::<uci::options::SyzygyPath>());
+                for option in &self.options {
+                    send_response(&UciResponse::Option {
+                        line: option.uci_option_line(),
+                    });
+                }
 
                 send_response(&UciResponse::UciOk);
             }
@@ -251,46 +258,17 @@ impl Uci {
             }
             UciCommand::IsReady => send_response(&UciResponse::ReadyOk),
             UciCommand::SetOption { name, value } => {
-                match name.as_str() {
-                    options::HashOption::NAME => {
-                        let new_size = options::HashOption::set(&mut self.options, value)?;
+                let Some(option) = self.options.iter().find(|o| o.name() == name) else {
+                    return Err("Invalid option".into());
+                };
 
-                        if let Ok(mut tt_handle) = self.persistent_state.try_lock() {
-                            tt_handle.tt.resize(new_size);
-                        } else {
-                            self.reporter
-                                .generic_report("error: Unable to change TT size during search");
-                        }
+                let Ok(mut state_handle) = self.persistent_state.try_lock() else {
+                    self.reporter
+                        .generic_report("Unable to set options during search");
+                    return Ok(ExecuteResult::KeepGoing);
+                };
 
-                        Ok(())
-                    }
-                    options::ThreadsOption::NAME => {
-                        options::ThreadsOption::set(&mut self.options, value)
-                    }
-                    options::MoveOverheadOption::NAME => {
-                        options::MoveOverheadOption::set(&mut self.options, value)
-                    }
-                    options::SyzygyPath::NAME => {
-                        let syzygy_path_result = options::SyzygyPath::set(&mut self.options, value);
-
-                        let Ok(syzygy_path) = syzygy_path_result else {
-                            let error = syzygy_path_result.unwrap_err();
-                            self.reporter.generic_report(&format!("warning: {error}"));
-                            return Ok(ExecuteResult::KeepGoing);
-                        };
-
-                        if let Ok(mut state_handle) = self.persistent_state.try_lock() {
-                            state_handle.tablebase.set_paths(&syzygy_path);
-                        } else {
-                            self.reporter
-                                .generic_report("error: Unable to change SyzygyPath during search");
-                        }
-
-                        Ok(())
-                    }
-                    _ => return Err(format!("Unknown option: {name}")),
-                }
-                .map_err(|e| format!("Unable to set {name}: {e:?}"))?;
+                option.set(value, &mut self.engine_options, &mut state_handle)?;
             }
             UciCommand::UciNewGame => {
                 self.game = Game::new();
@@ -327,7 +305,7 @@ impl Uci {
                 infinite: _,
             }) => {
                 let game = self.game.clone();
-                let options = self.options.clone();
+                let options = self.engine_options.clone();
                 let mut reporter = self.reporter.clone();
 
                 let clocks = Clocks {
@@ -623,6 +601,60 @@ pub enum UciInputMode {
     Stdin,
 }
 
+pub fn uci_options() -> Vec<Box<dyn UciOption>> {
+    vec![
+        Box::new(UciSpinOption {
+            name: "Hash",
+            default: isize::try_from(crate::engine::options::defaults::HASH_SIZE)
+                .expect("Value will fit in isize"),
+            min: 0,
+            max: 1024,
+            set_fn: Box::new(
+                |options: &mut EngineOptions, state: &mut PersistentState, value: isize| {
+                    options.hash_size = usize::try_from(value)
+                        .expect("min: 0 should prevent us getting negative values");
+
+                    state.tt.resize(options.hash_size);
+                },
+            ),
+        }),
+        Box::new(UciSpinOption {
+            name: "Threads",
+            default: isize::try_from(crate::engine::options::defaults::THREADS)
+                .expect("Value will fit in isize"),
+            min: 1,
+            max: 1,
+            set_fn: Box::new(
+                |_options: &mut EngineOptions, _state: &mut PersistentState, _value: isize| {
+                    // Intentionally left empty
+                },
+            ),
+        }),
+        Box::new(UciSpinOption {
+            name: "Move Overhead",
+            default: isize::try_from(crate::engine::options::defaults::MOVE_OVERHEAD)
+                .expect("Value will fit in isize"),
+            min: 0,
+            max: 1000,
+            set_fn: Box::new(
+                |options: &mut EngineOptions, _state: &mut PersistentState, value: isize| {
+                    options.move_overhead = usize::try_from(value)
+                        .expect("min: 0 should prevent us getting negative values");
+                },
+            ),
+        }),
+        Box::new(UciStringOption {
+            name: "SyzygyPath",
+            default: "",
+            set_fn: Box::new(
+                |_options: &mut EngineOptions, state: &mut PersistentState, value: &str| {
+                    state.tablebase.set_paths(value);
+                },
+            ),
+        }),
+    ]
+}
+
 pub fn uci(uci_input_mode: UciInputMode) -> Result<(), String> {
     let options = EngineOptions::default();
 
@@ -636,7 +668,9 @@ pub fn uci(uci_input_mode: UciInputMode) -> Result<(), String> {
         persistent_state: Arc::new(Mutex::new(PersistentState::new(options.hash_size))),
 
         game: Game::new(),
-        options,
+        engine_options: options,
+
+        options: uci_options(),
 
         block_on_threads: match uci_input_mode {
             UciInputMode::Stdin => false,

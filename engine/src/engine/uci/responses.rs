@@ -1,9 +1,6 @@
 use std::{fmt::Formatter, time::Duration};
 
-use crate::engine::uci::{
-    UciMove,
-    options::{UciOption, UciOptionType},
-};
+use crate::engine::uci::UciMove;
 
 #[derive(Debug)]
 pub(super) enum InfoScore {
@@ -42,18 +39,8 @@ pub(super) enum UciResponse {
     },
     Info(InfoFields),
     Option {
-        name: &'static str,
-        def: UciOptionType,
+        line: String,
     },
-}
-
-impl UciResponse {
-    pub(super) fn option<T: UciOption>() -> Self {
-        Self::Option {
-            name: T::NAME,
-            def: T::DEF,
-        }
-    }
 }
 
 impl std::fmt::Display for UciResponse {
@@ -137,41 +124,8 @@ impl std::fmt::Display for UciResponse {
                     write!(f, " string {s}")?;
                 }
             }
-            Self::Option { name, def } => {
-                write!(f, "option name {name}")?;
-
-                write!(
-                    f,
-                    " type {}",
-                    match def {
-                        UciOptionType::Check { .. } => "check",
-                        UciOptionType::Spin { .. } => "spin",
-                        UciOptionType::Combo { .. } => "combo",
-                        UciOptionType::String { .. } => "string",
-                        UciOptionType::Button => "button",
-                    }
-                )?;
-
-                match def {
-                    UciOptionType::Check { default } => write!(f, " default {default}")?,
-                    UciOptionType::Spin { default, .. } => write!(f, " default {default}")?,
-                    UciOptionType::Combo { default, .. } | UciOptionType::String { default } => {
-                        write!(f, " default {default}")?;
-                    }
-                    UciOptionType::Button => {}
-                }
-
-                match def {
-                    UciOptionType::Spin { min, max, .. } => write!(f, " min {min} max {max}")?,
-                    UciOptionType::Combo { values, .. } => {
-                        for v in values {
-                            write!(f, " var {v}")?;
-                        }
-                    }
-                    UciOptionType::Check { .. }
-                    | UciOptionType::String { .. }
-                    | UciOptionType::Button => {}
-                }
+            Self::Option { line } => {
+                write!(f, "{line}")?;
             }
         }
 

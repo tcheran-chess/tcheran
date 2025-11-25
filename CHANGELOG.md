@@ -8,6 +8,7 @@
 * Network #10, upping the size to 1024 hidden layer nodes by training for double the number of batches (9.37 +- 5.40)
 * Don't do null move pruning in positions with zugzwang potential (5.70 +- 3.94)
 * Remove the depth limit for null move pruning (5.26 +- 3.83)
+* Add capture history (4.99 +- 3.69)
 * Stop using Result to indicate stopped searches (1.80 +- 3.53)
 * Simplify down to one killer move (1.75 +- 2.69)
 * Fixed a bug that caused en-passant moves to not be generated when

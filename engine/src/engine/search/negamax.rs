@@ -205,6 +205,7 @@ pub fn negamax(
     let mut number_of_legal_moves = 0;
     let mut node_pv = PrincipalVariation::new();
 
+    let mut captures_tried = MoveList::new();
     let mut quiets_tried = MoveList::new();
 
     while let Some(mv) = moves.next(game, ctx.tables, plies) {
@@ -321,7 +322,11 @@ pub fn negamax(
             pv.push(mv, &node_pv);
         }
 
-        // Only add to the quiets list if the move didn't cause a cutoff
+        // Only add to the tried lists if the move didn't cause a cutoff
+        if mv.is_capture() {
+            captures_tried.push(mv);
+        }
+
         if mv.is_quiet() {
             quiets_tried.push(mv);
         }
@@ -337,6 +342,10 @@ pub fn negamax(
 
     if tt_node_bound == NodeBound::Lower {
         let mv = best_move.unwrap();
+
+        ctx.tables
+            .capture_history
+            .update(mv, game, depth, &captures_tried);
 
         // 'Killers': if a move was so good that it caused a beta cutoff,
         // but it wasn't a capture, we remember it so that we can try it

@@ -8,7 +8,9 @@ use std::cmp::min;
 
 use crate::{
     chess::{
+        game::Game,
         moves::{Move, MoveList},
+        piece::PieceKind,
         player::Player,
         square::Square,
     },
@@ -18,6 +20,7 @@ use crate::{
 #[derive(Clone)]
 pub struct Tables {
     pub quiet_history: HistoryTable,
+    pub capture_history: CaptureHistoryTable,
     pub killer_moves: KillersTable,
     pub countermoves: CountermoveTable,
 }
@@ -26,6 +29,7 @@ impl Tables {
     pub fn new() -> Self {
         Self {
             quiet_history: HistoryTable::new(),
+            capture_history: CaptureHistoryTable::new(),
             killer_moves: KillersTable::new(),
             countermoves: CountermoveTable::new(),
         }
@@ -95,6 +99,52 @@ impl HistoryTable {
 
         for other_quiet in other_quiets_tried {
             self.update_for_move(player, *other_quiet, -bonus);
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct CaptureHistoryTable([[[[i16; PieceKind::N]; Square::N]; PieceKind::N]; Player::N]);
+
+impl CaptureHistoryTable {
+    const MAX: i32 = 8192;
+
+    pub const fn new() -> Self {
+        Self([[[[0; PieceKind::N]; Square::N]; PieceKind::N]; Player::N])
+    }
+
+    pub fn get(
+        &self,
+        player: Player,
+        capturing_piece: PieceKind,
+        capture_square: Square,
+        captured_piece: PieceKind,
+    ) -> i32 {
+        i32::from(self.0[player][capturing_piece][capture_square][captured_piece])
+    }
+
+    fn update_for_move(&mut self, mv: Move, game: &Game, bonus: i16) {
+        let capturing_piece = game.board.piece_guaranteed_at(mv.src()).kind;
+        let capture_square = mv.dst();
+        let captured_piece = if mv.is_en_passant() {
+            PieceKind::Pawn
+        } else {
+            game.board.piece_guaranteed_at(mv.dst()).kind
+        };
+
+        let old = &mut self.0[game.player][capturing_piece][capture_square][captured_piece];
+        *old = taper_bonus(bonus, *old, Self::MAX);
+    }
+
+    pub fn update(&mut self, mv: Move, game: &Game, depth: u8, other_captures_tried: &MoveList) {
+        let bonus = history_bonus(depth);
+
+        if mv.is_capture() {
+            self.update_for_move(mv, game, bonus);
+        }
+
+        for other_capture in other_captures_tried {
+            self.update_for_move(*other_capture, game, -bonus);
         }
     }
 }

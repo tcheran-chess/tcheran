@@ -11,6 +11,7 @@
 * Compute checkers in make_move (8.03 +- 5.01)
 * Overwrite TT entries from old searches with static eval cache entries (7.85 +- 4.83)
 * Cache static eval of positions in the transposition table (5.05 +- 3.69)
+* Re-search with zero-window but full depth after raising alpha in a reduced-depth PVS search (2.83 +- 2.22)
 
 ### Misc
 

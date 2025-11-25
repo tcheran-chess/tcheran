@@ -257,7 +257,7 @@ pub fn negamax(
             // We already found a good move (i.e. we raised alpha).
             // Now, we just need to prove that the other moves are worse.
             // We search them with a reduced window to prove that they are at least worse.
-            let pvs_score = -negamax(
+            let mut pvs_score = -negamax(
                 game,
                 -alpha - Eval(1),
                 -alpha,
@@ -267,8 +267,22 @@ pub fn negamax(
                 ctx,
             )?;
 
-            // Turns out the move we just searched could be better than our current PV, so we re-search
-            // with the normal alpha/beta bounds.
+            // If we raised alpha, but we were searching with reduced depth, we probably want to double
+            // check we didn't miss something, so search without the reduction.
+            if pvs_score > alpha && reduction > 1 {
+                pvs_score = -negamax(
+                    game,
+                    -alpha - Eval(1),
+                    -alpha,
+                    depth - 1,
+                    plies + 1,
+                    &mut node_pv,
+                    ctx,
+                )?;
+            }
+
+            // If searching at full depth STILL raised alpha, re-search with normal alpha/beta
+            // bounds.
             if pvs_score > alpha && pvs_score < beta {
                 -negamax(game, -beta, -alpha, depth - 1, plies + 1, &mut node_pv, ctx)?
             } else {

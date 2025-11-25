@@ -1,6 +1,9 @@
 use std::{fmt::Formatter, time::Duration};
 
-use crate::engine::uci::UciMove;
+use crate::engine::uci::{
+    UciMove,
+    options::{UciOption, UciOptionType},
+};
 
 #[derive(Debug)]
 pub(super) enum InfoScore {
@@ -28,8 +31,7 @@ pub struct InfoFields {
     pub(super) string: Option<String>,
 }
 
-#[derive(Debug)]
-pub(super) enum UciResponse {
+pub(super) enum UciResponse<'uci> {
     Id(IdParam),
     UciOk,
     ReadyOk,
@@ -38,12 +40,10 @@ pub(super) enum UciResponse {
         ponder: Option<UciMove>,
     },
     Info(InfoFields),
-    Option {
-        line: String,
-    },
+    Option(&'uci UciOption),
 }
 
-impl std::fmt::Display for UciResponse {
+impl std::fmt::Display for UciResponse<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Id(i) => match i {
@@ -124,8 +124,28 @@ impl std::fmt::Display for UciResponse {
                     write!(f, " string {s}")?;
                 }
             }
-            Self::Option { line } => {
-                write!(f, "{line}")?;
+            Self::Option(option) => {
+                write!(f, "option name {}", option.name)?;
+
+                match &option.t {
+                    UciOptionType::Check { default, .. } => {
+                        write!(f, " type check default {default}")?;
+                    }
+                    UciOptionType::Spin {
+                        default, min, max, ..
+                    } => {
+                        write!(f, " type spin default {default} min {min} max {max}")?;
+                    }
+                    UciOptionType::Combo { default, .. } => {
+                        write!(f, " type combo default {default}")?;
+                    }
+                    UciOptionType::String { default, .. } => {
+                        write!(f, " type string default {default}")?;
+                    }
+                    UciOptionType::Button { .. } => {
+                        write!(f, " type button")?;
+                    }
+                }
             }
         }
 

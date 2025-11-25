@@ -42,7 +42,7 @@ use crate::{
         uci::{
             bench::bench,
             commands::DebugCommand,
-            options::{UciOption, UciSpinOption, UciStringOption},
+            options::{UciOption, UciOptionType},
         },
         util::sync::LockLatch,
     },
@@ -222,7 +222,7 @@ pub struct Uci {
     game: Game,
     engine_options: EngineOptions,
 
-    options: Vec<Box<dyn UciOption>>,
+    options: Vec<UciOption>,
 
     persistent_state: Arc<Mutex<PersistentState>>,
 
@@ -246,9 +246,7 @@ impl Uci {
 
                 // Options
                 for option in &self.options {
-                    send_response(&UciResponse::Option {
-                        line: option.uci_option_line(),
-                    });
+                    send_response(&UciResponse::Option(option));
                 }
 
                 send_response(&UciResponse::UciOk);
@@ -258,7 +256,7 @@ impl Uci {
             }
             UciCommand::IsReady => send_response(&UciResponse::ReadyOk),
             UciCommand::SetOption { name, value } => {
-                let Some(option) = self.options.iter().find(|o| o.name() == name) else {
+                let Some(option) = self.options.iter().find(|o| o.name == name) else {
                     return Err("Invalid option".into());
                 };
 
@@ -584,7 +582,7 @@ enum ExecuteResult {
     Exit,
 }
 
-fn send_response(response: &UciResponse) {
+fn send_response(response: &UciResponse<'_>) {
     println!("{response}");
 }
 
@@ -601,57 +599,65 @@ pub enum UciInputMode {
     Stdin,
 }
 
-pub fn uci_options() -> Vec<Box<dyn UciOption>> {
+pub fn uci_options() -> Vec<UciOption> {
     vec![
-        Box::new(UciSpinOption {
+        UciOption {
             name: "Hash",
-            default: isize::try_from(crate::engine::options::defaults::HASH_SIZE)
-                .expect("Value will fit in isize"),
-            min: 0,
-            max: 1024,
-            set_fn: Box::new(
-                |options: &mut EngineOptions, state: &mut PersistentState, value: isize| {
-                    options.hash_size = usize::try_from(value)
-                        .expect("min: 0 should prevent us getting negative values");
+            t: UciOptionType::Spin {
+                default: isize::try_from(crate::engine::options::defaults::HASH_SIZE)
+                    .expect("Value will fit in isize"),
+                min: 0,
+                max: 1024,
+                set_fn: Box::new(
+                    |options: &mut EngineOptions, state: &mut PersistentState, value: isize| {
+                        options.hash_size = usize::try_from(value)
+                            .expect("min: 0 should prevent us getting negative values");
 
-                    state.tt.resize(options.hash_size);
-                },
-            ),
-        }),
-        Box::new(UciSpinOption {
+                        state.tt.resize(options.hash_size);
+                    },
+                ),
+            },
+        },
+        UciOption {
             name: "Threads",
-            default: isize::try_from(crate::engine::options::defaults::THREADS)
-                .expect("Value will fit in isize"),
-            min: 1,
-            max: 1,
-            set_fn: Box::new(
-                |_options: &mut EngineOptions, _state: &mut PersistentState, _value: isize| {
-                    // Intentionally left empty
-                },
-            ),
-        }),
-        Box::new(UciSpinOption {
+            t: UciOptionType::Spin {
+                default: isize::try_from(crate::engine::options::defaults::THREADS)
+                    .expect("Value will fit in isize"),
+                min: 1,
+                max: 1,
+                set_fn: Box::new(
+                    |_options: &mut EngineOptions, _state: &mut PersistentState, _value: isize| {
+                        // Intentionally left empty
+                    },
+                ),
+            },
+        },
+        UciOption {
             name: "Move Overhead",
-            default: isize::try_from(crate::engine::options::defaults::MOVE_OVERHEAD)
-                .expect("Value will fit in isize"),
-            min: 0,
-            max: 1000,
-            set_fn: Box::new(
-                |options: &mut EngineOptions, _state: &mut PersistentState, value: isize| {
-                    options.move_overhead = usize::try_from(value)
-                        .expect("min: 0 should prevent us getting negative values");
-                },
-            ),
-        }),
-        Box::new(UciStringOption {
+            t: UciOptionType::Spin {
+                default: isize::try_from(crate::engine::options::defaults::MOVE_OVERHEAD)
+                    .expect("Value will fit in isize"),
+                min: 0,
+                max: 1000,
+                set_fn: Box::new(
+                    |options: &mut EngineOptions, _state: &mut PersistentState, value: isize| {
+                        options.move_overhead = usize::try_from(value)
+                            .expect("min: 0 should prevent us getting negative values");
+                    },
+                ),
+            },
+        },
+        UciOption {
             name: "SyzygyPath",
-            default: "",
-            set_fn: Box::new(
-                |_options: &mut EngineOptions, state: &mut PersistentState, value: &str| {
-                    state.tablebase.set_paths(value);
-                },
-            ),
-        }),
+            t: UciOptionType::String {
+                default: "",
+                set_fn: Box::new(
+                    |_options: &mut EngineOptions, state: &mut PersistentState, value: String| {
+                        state.tablebase.set_paths(&value);
+                    },
+                ),
+            },
+        },
     ]
 }
 

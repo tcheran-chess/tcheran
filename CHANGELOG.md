@@ -5,6 +5,7 @@
 * Network #7, upping the size to 384 hidden layer nodes with a fresh dataset generated using network #6 (62.36 +- 16.50)
 * Improve null move pruning reduction formula (29.37 +- 10.50)
 * Network #8, upping the size to 512 hidden layer nodes and trained with a larger 1B (unfiltered) FEN dataset (27.07 +- 9.95)
+* Network #9, upping the size to 768 hidden layer nodes and trained with an even larger 1B (after filtering) dataset and a WDL proportion of 0.4 (27.05 +- 9.85)
 * Add SEE pruning (25.45 +- 9.40)
 * Use history gravity and maluses (15.92 +- 7.40)
 * Do SEE when picking moves instead of when scoring moves (11.32 +- 6.27)

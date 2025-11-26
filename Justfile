@@ -10,7 +10,7 @@ build:
 	@cargo build --release
 
 fmt:
-    @cargo +nightly fmt
+	@cargo +nightly fmt
 
 generate-fathom-bindings:
 	bindgen engine/src/engine/tablebases/fathom/src/tbprobe.h \
@@ -24,6 +24,7 @@ bench:
 	#!/usr/bin/env bash
 	set -euo pipefail
 	existing_bench=$(cat .bench)
+	bench_lines=$(echo "$existing_bench" | wc -l)
 	new_bench=$(cargo run --release -- benchnodes)
 
 	if [ "$new_bench" = "$existing_bench" ]; then
@@ -32,12 +33,15 @@ bench:
 		echo "Old: {{RED}}${existing_bench}{{NORMAL}}"
 		echo "New: {{GREEN}}${new_bench}{{NORMAL}}"
 
-		diff=$((new_bench-existing_bench))
+		# If the file has conflicts, don't bother with a diff
+		if [ $bench_lines -eq 1 ]; then
+			diff=$((new_bench-existing_bench))
 
-		if [ ${diff} -gt 0 ]; then
-		    echo "Diff: {{RED}}+${diff}{{NORMAL}}"
-		else
-		    echo "Diff: {{GREEN}}${diff}{{NORMAL}}"
+			if [ ${diff} -gt 0 ]; then
+				echo "Diff: {{RED}}+${diff}{{NORMAL}}"
+			else
+				echo "Diff: {{GREEN}}${diff}{{NORMAL}}"
+			fi
 		fi
 
 		echo "$new_bench" > .bench

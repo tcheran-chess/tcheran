@@ -503,13 +503,13 @@ impl Uci {
             UciCommand::PonderHit => {}
             // For OpenBench to understand NPS values for different workers
             UciCommand::Bench => {
-                let (nodes, time_taken) = bench(10);
+                let (nodes, time_taken) = bench(None);
                 let nps = util::metrics::nodes_per_second(nodes, time_taken);
 
                 println!("{nodes} nodes {nps} nps");
             }
             UciCommand::BenchNodes => {
-                let (nodes, _) = bench(10);
+                let (nodes, _) = bench(None);
                 println!("{nodes}");
             }
             UciCommand::Quit => return Ok(ExecuteResult::Exit),

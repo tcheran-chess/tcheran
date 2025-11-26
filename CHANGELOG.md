@@ -28,6 +28,7 @@
 * Start adding a hash suffix to network files
 * Derive Copy for ZobristHash
 * Added a Rust implementation of OpenBench's SPRT algorithm
+* Bench depth was upped from 10 to 12
 
 ## [7.0]
 

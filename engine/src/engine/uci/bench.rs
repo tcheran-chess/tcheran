@@ -103,9 +103,13 @@ const POSITIONS: [&str; 87] = [
     "r3k2r/ppp2ppp/n7/1N1p4/Bb6/8/PPPP1PPP/RNBQ1RK1 w - - 2 1", // Double check B and N, no castling rights
 ];
 
-pub fn bench(depth: u8) -> (u64, Duration) {
+const DEFAULT_DEPTH: u8 = 12;
+
+pub fn bench(depth: Option<u8>) -> (u64, Duration) {
     let mut nodes = 0;
     let mut search_time = Duration::new(0, 0);
+
+    let depth = depth.unwrap_or(DEFAULT_DEPTH);
 
     for position in POSITIONS {
         let mut bench_reporter = CapturingReporter::new();

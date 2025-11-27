@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+* Remove the depth limit for null move pruning (5.26 +- 3.83)
+
 ## [8.0]
 
 * Network #7, upping the size to 384 hidden layer nodes with a fresh dataset generated using network #6 (62.36 +- 16.50)

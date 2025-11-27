@@ -163,8 +163,7 @@ pub fn negamax(
         }
 
         // Null move pruning
-        if depth >= params::NULL_MOVE_PRUNING_DEPTH_LIMIT
-            && eval >= beta
+        if eval >= beta
             // Don't let a player play a null move in response to a null move
             && game.history.last().is_none_or(|m| m.mv.is_some())
         {

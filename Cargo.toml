@@ -3,7 +3,7 @@ resolver = "3"
 members = ["engine", "tools/datagen", "tools/zobrist", "tools/sprt"]
 
 [workspace.package]
-version = "7.0.0"
+version = "8.0.0"
 edition = "2024"
 rust-version = "1.91"
 

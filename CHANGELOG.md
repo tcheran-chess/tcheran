@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [8.0]
+
 * Network #7, upping the size to 384 hidden layer nodes with a fresh dataset generated using network #6 (62.36 +- 16.50)
 * Improve null move pruning reduction formula (29.37 +- 10.50)
 * Network #8, upping the size to 512 hidden layer nodes and trained with a larger 1B (unfiltered) FEN dataset (27.07 +- 9.95)
@@ -307,7 +309,8 @@ Initial release with the following major features:
     * Tapered midgame vs. endgame evaluation
     * Incremental updates
 
-[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v7.0...HEAD
+[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v8.0...HEAD
+[8.0]: https://github.com/jgilchrist/chess-engine/compare/v7.0..v8.0
 [7.0]: https://github.com/jgilchrist/chess-engine/compare/v6.0..v7.0
 [6.0]: https://github.com/jgilchrist/chess-engine/compare/v5.1..v6.0
 [5.1]: https://github.com/jgilchrist/chess-engine/compare/v5.0..v5.1

@@ -21,3 +21,7 @@ All data used for training is self-play data generated using the datagen code fr
 | 6       | (768->256)x2->1    | WDL 0.3, LR 0.001, 40 batches  | 53.33 +- 15.20    | Same data as net #5, but increasing WDL proportion and lowering LR |
 | 7       | (768->384)x2->1    | WDL 0.3, LR 0.001, 40 batches  | 62.36 +- 16.50    | Moved to 384 nodes in the hidden layer, and used a fresh dataset generated using net #6. Had to re-label this dataset after generation due to a bug that caused all adjudicated games to be registered as a win for black. First dataset stored and filtered using viriformat |
 | 8       | (768->512)x2->1    | WDL 0.3, LR 0.001, 40 batches  | 27.07 +- 9.95     | Moved to 512 nodes in the hidden layer, using a dataset of ~1B unfiltered positions, including positions used for net #8 |
+| -       | (768->512)x2->1    | WDL 0.3, LR 0.001, 40 batches  | -3.88 +- 14.48    | Same setup as net #8, with a full ~1B dataset (after filtering) |
+| -       | (768->768)x2->1    | WDL 0.3, LR 0.001, 40 batches  | -6.57 +- 5.52     | Attempt to up to 768 HL nodes in case we're overfitting |
+| -       | (768->768)x2->1    | WDL 0.3, LR 0.001, 40 batches  | 20.83 +- 9.53 at 40k fixed nodes    | Test of the above at fixed nodes |
+| -       | (768->768)x2->1    | WDL 0.4, LR 0.001, 40 batches  | 42.50 +- 13.41 at 40k fixed nodes    | Increasing WDL to 0.4 with 768 HL nodes |

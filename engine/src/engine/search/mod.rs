@@ -1,3 +1,12 @@
+mod aspiration;
+mod iterative_deepening;
+pub mod move_picker;
+mod negamax;
+mod principal_variation;
+mod quiescence;
+mod tables;
+pub mod time_control;
+
 use std::time::Duration;
 
 use crate::{
@@ -16,15 +25,6 @@ use crate::{
         util,
     },
 };
-
-mod aspiration;
-mod iterative_deepening;
-pub mod move_picker;
-mod negamax;
-mod principal_variation;
-mod quiescence;
-mod tables;
-pub mod time_control;
 
 const MAX_SEARCH_DEPTH: u8 = u8::MAX;
 const MAX_SEARCH_DEPTH_SIZE: usize = MAX_SEARCH_DEPTH as usize;

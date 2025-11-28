@@ -1,10 +1,19 @@
 //! Implementation of the Universal Chess Interface (UCI) protocol
 
+mod bench;
+pub mod commands;
+mod r#move;
+mod options;
+pub mod parser;
+pub mod responses;
+
 use std::{
     io::{BufRead, IsTerminal},
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
+
+pub use r#move::UciMove;
 
 use self::{
     commands::{GoCmdArguments, UciCommand},
@@ -13,33 +22,22 @@ use self::{
 use crate::{
     ENGINE_NAME,
     chess::{
-        moves::{Move, MoveListExt},
-        perft, san,
-    },
-    engine::{options::EngineOptions, search, util},
-};
-
-mod bench;
-pub mod commands;
-mod r#move;
-mod options;
-pub mod parser;
-pub mod responses;
-
-pub use r#move::UciMove;
-
-use crate::{
-    chess::{
         bitboard::Bitboard,
         game::Game,
+        moves::{Move, MoveListExt},
+        perft,
         piece::PieceKind,
         player::Player,
+        san,
         square::{File, Rank, Square},
     },
     engine::{
         eval::WhiteEval,
+        options::EngineOptions,
+        search,
         search::{Clocks, PersistentState, Reporter, TimeControl, time_control::StopControl},
         uci::{bench::bench, commands::DebugCommand, options::UciOption},
+        util,
         util::sync::LockLatch,
     },
 };

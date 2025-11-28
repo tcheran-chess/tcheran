@@ -20,8 +20,7 @@ pub enum GenStage {
     GenTacticals,
     GoodTacticals,
     GenQuiets,
-    Killer1,
-    Killer2,
+    Killer,
     CounterMove,
     BadTacticals,
     ScoreQuiets,
@@ -148,28 +147,17 @@ impl MovePicker {
         }
 
         if self.stage == GenQuiets {
-            self.stage = Killer1;
+            self.stage = Killer;
 
             movegen::generate_quiets(game, &self.movegencache, &mut |mv| {
                 self.moves.push(MoveEntry { mv, score: 0 });
             });
         }
 
-        if self.stage == Killer1 {
-            self.stage = Killer2;
-
-            if let Some(killer) = ctx.killer_moves.get_0(plies)
-                && self.moves.remove(killer)
-                && Some(killer) != self.previous_best_move
-            {
-                return Some(killer);
-            }
-        }
-
-        if self.stage == Killer2 {
+        if self.stage == Killer {
             self.stage = CounterMove;
 
-            if let Some(killer) = ctx.killer_moves.get_1(plies)
+            if let Some(killer) = ctx.killer_moves.get(plies)
                 && self.moves.remove(killer)
                 && Some(killer) != self.previous_best_move
             {
@@ -407,8 +395,7 @@ mod tests {
         let mut time_strategy = TimeStrategy::new(&game, &TimeControl::Infinite, None, &options);
         let mut ctx = SearchContext::new(&mut persistent_state, &mut time_strategy, &options);
 
-        ctx.killer_moves.try_push(0, Move::quiet(B7, D5));
-        ctx.killer_moves.try_push(0, Move::quiet(D8, E8));
+        ctx.killer_moves.set(0, Move::quiet(B7, D5));
 
         while let Some(m) = move_provider.next(&game, &ctx, 0) {
             moves.push(m);

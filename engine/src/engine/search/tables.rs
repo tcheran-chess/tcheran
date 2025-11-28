@@ -11,35 +11,19 @@ use crate::{
     engine::search::MAX_SEARCH_DEPTH_SIZE,
 };
 
-pub struct KillersTable([[Option<Move>; 2]; MAX_SEARCH_DEPTH_SIZE]);
+pub struct KillersTable([Option<Move>; MAX_SEARCH_DEPTH_SIZE]);
 
 impl KillersTable {
     pub const fn new() -> Self {
-        Self([[None; 2]; MAX_SEARCH_DEPTH_SIZE])
+        Self([None; MAX_SEARCH_DEPTH_SIZE])
     }
 
-    pub fn get_0(&self, plies: u8) -> Option<Move> {
-        let plies = plies as usize;
-        self.0[plies][0]
+    pub fn get(&self, plies: u8) -> Option<Move> {
+        self.0[plies as usize]
     }
 
-    pub fn get_1(&self, plies: u8) -> Option<Move> {
-        let plies = plies as usize;
-        self.0[plies][1]
-    }
-
-    pub fn try_push(&mut self, plies: u8, mv: Move) {
-        let killer_0 = self.get_0(plies);
-
-        // If the first killer (which would become the second) is the same as the move we're trying
-        // to add, we'd end up with duplicate moves.
-        if Some(mv) == killer_0 {
-            return;
-        }
-
-        let plies = plies as usize;
-        self.0[plies][1] = killer_0;
-        self.0[plies][0] = Some(mv);
+    pub fn set(&mut self, plies: u8, mv: Move) {
+        self.0[plies as usize] = Some(mv);
     }
 }
 

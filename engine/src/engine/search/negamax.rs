@@ -337,7 +337,7 @@ pub fn negamax(
         // but it wasn't a capture, we remember it so that we can try it
         // before other quiet moves.
         if !mv.is_capture() {
-            ctx.killer_moves.try_push(plies, mv);
+            ctx.killer_moves.set(plies, mv);
 
             if let Some(previous_move) = game.history.last().and_then(|h| h.mv) {
                 ctx.countermove_table.set(game.player, previous_move, mv);

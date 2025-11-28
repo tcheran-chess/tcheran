@@ -4,6 +4,7 @@
 
 * Remove the depth limit for null move pruning (5.26 +- 3.83)
 * Stop using Result to indicate stopped searches (1.80 +- 3.53)
+* Simplify down to one killer move (1.75 +- 2.69)
 
 ## [8.0]
 

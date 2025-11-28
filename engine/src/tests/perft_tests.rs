@@ -64,11 +64,7 @@ fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> 
         }
 
         if quiets_movelist.len() >= 3 {
-            ctx.killer_moves.try_push(depth, *quiets_movelist.get(2));
-        }
-
-        if quiets_movelist.len() >= 4 {
-            ctx.killer_moves.try_push(depth, *quiets_movelist.get(3));
+            ctx.killer_moves.set(depth, *quiets_movelist.get(2));
         }
     }
 
@@ -92,15 +88,14 @@ fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> 
                 .collect::<Vec<_>>();
 
             panic!(
-                "At fen {}\n{} legal moves, but only picked {}\nLegal moves: {:?}\nPicked moves: {:?}\nTT move: {:?}\nKiller moves: {:?} {:?}\nMissing moves: {:?}",
+                "At fen {}\n{} legal moves, but only picked {}\nLegal moves: {:?}\nPicked moves: {:?}\nTT move: {:?}\nKiller moves: {:?}\nMissing moves: {:?}",
                 game.to_fen(),
                 legal_moves.len(),
                 moves_at_this_node.len(),
                 legal_moves.iter().cloned().collect::<Vec<_>>(),
                 moves_at_this_node,
                 best_move,
-                ctx.killer_moves.get_0(depth),
-                ctx.killer_moves.get_1(depth),
+                ctx.killer_moves.get(depth),
                 missing_moves
             );
         }

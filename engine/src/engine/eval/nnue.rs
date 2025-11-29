@@ -250,7 +250,7 @@ impl NetworkStack {
 }
 
 /// A column of the feature-weights matrix.
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 #[repr(C, align(64))]
 pub struct Accumulator([i16; HIDDEN_SIZE]);
 
@@ -275,8 +275,8 @@ pub struct NNUE {
 impl Default for NNUE {
     fn default() -> Self {
         Self {
-            white: NETWORK.feature_bias,
-            black: NETWORK.feature_bias,
+            white: NETWORK.feature_bias.clone(),
+            black: NETWORK.feature_bias.clone(),
         }
     }
 }
@@ -362,8 +362,8 @@ impl NNUE {
 
     pub fn evaluate(&self, side: Player) -> Eval {
         let (us, them) = match side {
-            Player::White => (self.white, self.black),
-            Player::Black => (self.black, self.white),
+            Player::White => (&self.white, &self.black),
+            Player::Black => (&self.black, &self.white),
         };
 
         let mut output = 0;

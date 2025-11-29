@@ -1,2 +1,2 @@
-engine/src/engine/tablebases/fathom/* linguist-vendored
+engine/src/engine/tablebases/fathom/** linguist-vendored
 engine/src/engine/tablebases/bindings.rs linguist-generated=true

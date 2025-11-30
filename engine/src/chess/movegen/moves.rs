@@ -3,7 +3,7 @@ use crate::chess::{
     game::Game,
     movegen::{attackers, pins, tables},
     moves::Move,
-    piece::PromotionPieceKind,
+    piece::{Piece, PieceKind, PromotionPieceKind},
     square::{Square, squares},
 };
 
@@ -257,6 +257,8 @@ fn generate_pawn_tacticals(
                     let mut board_without_en_passant_participants = game.board.clone();
                     board_without_en_passant_participants
                         .remove_at(potential_en_passant_capture_start);
+                    board_without_en_passant_participants
+                        .set_at(en_passant_target, Piece::new(game.player, PieceKind::Pawn));
                     board_without_en_passant_participants.remove_at(captured_pawn);
 
                     let king_in_check = attackers::generate_attackers_of(
@@ -638,6 +640,15 @@ mod tests {
         should_allow_move(
             "rnbqkbnr/2pppppp/p7/Pp6/8/8/1PPPPPPP/RNBQKBNR w KQkq b6 0 3",
             (A5, B6),
+        );
+    }
+
+    #[test]
+    fn test_en_passant_bug_20251130() {
+        // Thanks to Werner for reporting: https://talkchess.com/viewtopic.php?p=986038
+        should_allow_move(
+            "5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28",
+            (G4, F3),
         );
     }
 }

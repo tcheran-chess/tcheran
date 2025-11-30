@@ -13,6 +13,10 @@
   the engine to crash when other engines made these moves. (-0.09 +- 2.24)
   While neutral, this occurred once in every ~1543 games in the SPRT test.
 
+# Misc
+
+* Ported the transposition table to an implementation that can be shared between threads
+
 ## [8.0]
 
 * Network #7, upping the size to 384 hidden layer nodes with a fresh dataset generated using network #6 (62.36 +- 16.50)

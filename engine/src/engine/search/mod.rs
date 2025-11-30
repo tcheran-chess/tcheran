@@ -94,8 +94,8 @@ impl PersistentState {
 }
 
 pub(crate) struct SearchContext<'s> {
-    pub tt: &'s mut TranspositionTable,
-    pub tablebase: &'s mut Tablebase,
+    pub tt: &'s TranspositionTable,
+    pub tablebase: &'s Tablebase,
 
     pub history_table: &'s mut HistoryTable,
 

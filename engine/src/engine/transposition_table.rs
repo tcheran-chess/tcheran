@@ -1,12 +1,16 @@
+use std::{
+    mem::transmute,
+    sync::atomic::{AtomicU64, Ordering},
+};
+
 use crate::{
     chess::{moves::Move, zobrist::ZobristHash},
     engine::eval::Eval,
 };
 
 pub struct TranspositionTable {
-    data: Vec<Option<TranspositionTableEntry>>,
-    pub generation: u8,
-    pub occupied: usize,
+    data: Vec<AtomicTranspositionTableEntry>,
+    generation: u8,
     size: usize,
 }
 
@@ -15,8 +19,10 @@ pub struct TranspositionTable {
 struct BoundAndAge(u8);
 
 impl BoundAndAge {
+    const AGE_MASK: u8 = 0b0011_1111;
+
     fn new(bound: NodeBound, age: u8) -> Self {
-        Self(age << 3 | bound as u8)
+        Self(age << 2 | bound as u8)
     }
 
     fn bound(&self) -> NodeBound {
@@ -30,7 +36,7 @@ impl BoundAndAge {
     }
 
     fn age(&self) -> u8 {
-        self.0 >> 3
+        self.0 >> 2
     }
 }
 
@@ -75,6 +81,59 @@ pub enum NodeBound {
     None,
 }
 
+struct TranspositionTableEntryBits {
+    key: u64,
+    data: u64,
+}
+
+struct AtomicTranspositionTableEntry {
+    key: AtomicU64,
+    data: AtomicU64,
+}
+
+impl AtomicTranspositionTableEntry {
+    const fn empty() -> Self {
+        Self {
+            key: AtomicU64::new(0),
+            data: AtomicU64::new(0),
+        }
+    }
+
+    #[expect(
+        clippy::transmute_undefined_repr,
+        reason = "Confirmed that this transmute works"
+    )]
+    fn write(&self, entry: TranspositionTableEntry) {
+        let bits =
+            unsafe { transmute::<TranspositionTableEntry, TranspositionTableEntryBits>(entry) };
+
+        // XOR the key with the data. This means we can only retrieve the same key
+        // here if our .read() retrieves the matching data.
+        // If it retrieves non-matching data due to a race, the key will XOR back
+        // to a different value and won't match the key for the position, so it won't be used.
+        self.key.store(bits.key ^ bits.data, Ordering::Relaxed);
+        self.data.store(bits.data, Ordering::Relaxed);
+    }
+
+    #[expect(
+        clippy::transmute_undefined_repr,
+        reason = "Confirmed that this transmute works"
+    )]
+    fn read(&self) -> Option<TranspositionTableEntry> {
+        let key = self.key.load(Ordering::Relaxed);
+        let data = self.data.load(Ordering::Relaxed);
+
+        let key = key ^ data;
+
+        if key == 0 && data == 0 {
+            return None;
+        }
+
+        let bits = TranspositionTableEntryBits { key, data };
+        Some(unsafe { transmute::<TranspositionTableEntryBits, TranspositionTableEntry>(bits) })
+    }
+}
+
 pub const fn calculate_number_of_entries(size_mb: usize) -> usize {
     let size_of_entry = size_of::<TranspositionTableEntry>();
     let total_size_in_bytes = size_mb * 1024 * 1024;
@@ -86,7 +145,6 @@ impl TranspositionTable {
         let mut tt = Self {
             data: Vec::new(),
             size: 0,
-            occupied: 0,
             generation: 0,
         };
 
@@ -96,11 +154,10 @@ impl TranspositionTable {
 
     pub fn reset(&mut self) {
         for i in 0..self.data.len() {
-            self.data[i] = None;
+            self.data[i] = AtomicTranspositionTableEntry::empty();
         }
 
         self.generation = 0;
-        self.occupied = 0;
     }
 
     pub fn resize(&mut self, size_mb: usize) {
@@ -111,15 +168,16 @@ impl TranspositionTable {
         let number_of_entries = calculate_number_of_entries(size_mb);
 
         self.data.clear();
-        self.data.resize(number_of_entries, None);
+        self.data
+            .resize_with(number_of_entries, AtomicTranspositionTableEntry::empty);
         self.data.shrink_to_fit();
         self.size = size_mb;
-        self.occupied = 0;
         self.generation = 0;
     }
 
     pub fn new_generation(&mut self) {
         self.generation += 1;
+        self.generation &= BoundAndAge::AGE_MASK;
     }
 
     #[expect(
@@ -138,7 +196,19 @@ impl TranspositionTable {
         reason = "This is just an approximation, so a loss of precision is fine"
     )]
     pub fn occupancy(&self) -> usize {
-        let decimal = self.occupied as f32 / self.data.len() as f32;
+        let mut occupied = 0;
+        let estimate_n = 1000;
+
+        for entry in self.data.iter().take(estimate_n) {
+            if entry
+                .read()
+                .is_some_and(|e| e.bound_and_age.age() == self.generation)
+            {
+                occupied += 1;
+            }
+        }
+
+        let decimal = occupied as f32 / estimate_n as f32;
         let permille = decimal * 1000.0;
         permille as usize
     }
@@ -210,7 +280,7 @@ impl TranspositionTable {
         reason = "Eval truncated to i16 but is guaranteed to be within those bounds"
     )]
     pub fn insert(
-        &mut self,
+        &self,
         key: ZobristHash,
         bound: NodeBound,
         best_move: Option<Move>,
@@ -232,13 +302,12 @@ impl TranspositionTable {
 
         // !: We know the exact size of the table and will always access within the bounds.
         unsafe {
-            if let Some(existing_entry) = self.data.get_unchecked(idx) {
-                if Self::should_overwrite(existing_entry, &new_entry) {
-                    self.data[idx] = Some(new_entry);
+            if let Some(existing_entry) = self.data.get_unchecked(idx).read() {
+                if Self::should_overwrite(&existing_entry, &new_entry) {
+                    self.data[idx].write(new_entry);
                 }
             } else {
-                self.occupied += 1;
-                self.data[idx] = Some(new_entry);
+                self.data[idx].write(new_entry);
             }
         }
     }
@@ -248,7 +317,7 @@ impl TranspositionTable {
 
         // !: We know the exact size of the table and will always access within the bounds.
         unsafe {
-            if let Some(entry) = self.data.get_unchecked(idx)
+            if let Some(entry) = self.data.get_unchecked(idx).read()
                 && entry.key == key
             {
                 return Some(TranspositionTableHit {

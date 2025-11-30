@@ -273,7 +273,9 @@ mod tests {
     fn get_ctx<'s>(game: &Game, persistent_state: &'s mut PersistentState) -> SearchContext<'s> {
         SearchContext::new(
             game,
-            persistent_state,
+            &persistent_state.tt,
+            &persistent_state.tablebase,
+            &mut persistent_state.history_table,
             TimeControl::Infinite,
             None,
             &EngineOptions::DEFAULT,

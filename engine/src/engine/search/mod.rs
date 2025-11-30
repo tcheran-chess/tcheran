@@ -7,7 +7,10 @@ mod quiescence;
 mod tables;
 pub mod time_control;
 
-use std::{cell::RefCell, time::Duration};
+use std::{
+    cell::RefCell,
+    time::{Duration, Instant},
+};
 
 use crate::{
     chess::{game::Game, moves::Move},
@@ -117,16 +120,18 @@ pub(crate) struct SearchContext<'s> {
 impl<'s> SearchContext<'s> {
     pub fn new(
         game: &Game,
-        persistent_state: &'s mut PersistentState,
+        tt: &'s TranspositionTable,
+        tablebase: &'s Tablebase,
+        history_table: &'s mut HistoryTable,
         time_control: TimeControl,
         stop_control: Option<StopControl>,
         options: &'s EngineOptions,
     ) -> Self {
         Self {
-            tt: &mut persistent_state.tt,
-            tablebase: &mut persistent_state.tablebase,
+            tt,
+            tablebase,
 
-            history_table: &mut persistent_state.history_table,
+            history_table,
 
             nnue: NetworkStack::from_board(&game.board),
 
@@ -239,12 +244,11 @@ pub fn search(
 ) -> Move {
     persistent_state.tt.new_generation();
 
-    let mut ctx = SearchContext::new(game, persistent_state, time_control, stop_control, options);
-    let mut pv = PrincipalVariation::new();
-
-    let tablebase_result = ctx.tablebase.best_move(game);
+    let tablebase_result = persistent_state.tablebase.best_move(game);
     if let Some(mv) = tablebase_result {
-        let (pv, eval) = get_tablebase_pv(game, &ctx);
+        let start_time = Instant::now();
+        let (pv, eval) = get_tablebase_pv(game, &persistent_state.tablebase);
+        let elapsed = start_time.elapsed();
 
         let depth = pv.len();
 
@@ -255,14 +259,11 @@ pub fn search(
                 seldepth: depth,
                 eval,
                 pv,
-                hashfull: ctx.tt.occupancy(),
+                hashfull: 0,
                 stats: SearchStats {
-                    time: ctx.time_control.elapsed(),
+                    time: elapsed,
                     nodes: u64::from(depth),
-                    nodes_per_second: util::metrics::nodes_per_second(
-                        u64::from(depth),
-                        ctx.time_control.elapsed(),
-                    ),
+                    nodes_per_second: util::metrics::nodes_per_second(u64::from(depth), elapsed),
                     tbhits: 1,
                 },
             },
@@ -270,6 +271,18 @@ pub fn search(
 
         return mv;
     }
+
+    let mut ctx = SearchContext::new(
+        game,
+        &persistent_state.tt,
+        &persistent_state.tablebase,
+        &mut persistent_state.history_table,
+        time_control,
+        stop_control,
+        options,
+    );
+
+    let mut pv = PrincipalVariation::new();
 
     iterative_deepening::search(
         // Give the search its own copy of the game so we don't get one returned in a dirty state
@@ -300,22 +313,20 @@ fn panic_move(game: &Game, ctx: &SearchContext<'_>) -> Move {
         .unwrap_or_else(|| panic!("No valid moves in position {}", game.to_fen()))
 }
 
-fn get_tablebase_pv(game: &Game, ctx: &SearchContext<'_>) -> (PrincipalVariation, Eval) {
+fn get_tablebase_pv(game: &Game, tb: &Tablebase) -> (PrincipalVariation, Eval) {
     let mut game = game.clone();
     let player = game.player;
 
     let mut pv = PrincipalVariation::new();
 
-    let tb_score = ctx
-        .tablebase
+    let tb_score = tb
         .wdl(&game)
         .expect("In tablebase position, but unable to get tablebase score");
 
     let mut eval = None;
 
     for _ in 0..MAX_SEARCH_DEPTH {
-        let tablebase_move = ctx
-            .tablebase
+        let tablebase_move = tb
             .best_move(&game)
             .expect("In tablebase position, but unable to get tablebase move");
 

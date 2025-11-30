@@ -109,7 +109,9 @@ fn test_perft_with_movepicker(fen: &str, depth: u8, expected_positions: usize) {
     let mut persistent_state = PersistentState::new(16);
     let mut ctx = SearchContext::new(
         &game,
-        &mut persistent_state,
+        &persistent_state.tt,
+        &persistent_state.tablebase,
+        &mut persistent_state.history_table,
         TimeControl::Infinite,
         None,
         &EngineOptions::DEFAULT,

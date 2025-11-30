@@ -10,7 +10,7 @@ use crate::{
     chess::{game::Game, moves::Move, player::Player},
     engine::{
         options::EngineOptions,
-        search::{TimeControl, params},
+        search::{ABORT_THREADS, TimeControl, params},
     },
 };
 
@@ -194,6 +194,10 @@ impl TimeStrategy {
     }
 
     fn is_force_stopped(&self) -> bool {
+        if ABORT_THREADS.load(Ordering::Relaxed) {
+            return true;
+        }
+
         let Some(control) = &self.control else {
             return false;
         };

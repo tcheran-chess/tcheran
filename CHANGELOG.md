@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+* Implement support for Threads via Lazy SMP (39.62 +- 11.20 2v1, 105.71 +- 15.83 4v1)
 * Do NNUE updates lazily (33.13 +- 10.96)
 * Prevent accidental accumulator copies (12.95 +- 6.59)
 * Remove the depth limit for null move pruning (5.26 +- 3.83)

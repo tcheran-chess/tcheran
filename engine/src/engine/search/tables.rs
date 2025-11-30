@@ -49,6 +49,7 @@ const fn taper_bonus(bonus: i16, old: i16, max: i32) -> i16 {
     (old + bonus - (old * bonus.abs()) / max) as i16
 }
 
+#[derive(Clone)]
 pub struct HistoryTable([[[i16; Square::N]; Square::N]; Player::N]);
 
 impl HistoryTable {

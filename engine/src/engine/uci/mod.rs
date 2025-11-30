@@ -9,6 +9,7 @@ pub mod responses;
 
 use std::{
     io::{BufRead, IsTerminal},
+    num::NonZero,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
@@ -595,11 +596,17 @@ pub fn uci_options() -> Vec<UciOption> {
         .with_bounds(0, 1024)
         .build(),
         //
-        UciOption::spin("Threads", |_options, _state, _value| {
-            // Intentionally left empty
+        UciOption::spin("Threads", |options, _state, value| {
+            options.threads =
+                usize::try_from(value).expect("min: 0 should prevent us getting negative values");
         })
         .default(crate::engine::options::defaults::THREADS)
-        .with_bounds(1, 1)
+        .with_bounds(
+            1,
+            std::thread::available_parallelism()
+                .unwrap_or(NonZero::new(1).unwrap())
+                .get(),
+        )
         .build(),
         //
         UciOption::spin("Move Overhead", |options, _state, value| {

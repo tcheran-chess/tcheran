@@ -9,6 +9,8 @@ pub mod time_control;
 
 use std::{
     cell::RefCell,
+    sync::atomic::{AtomicBool, AtomicU64, Ordering},
+    thread,
     time::{Duration, Instant},
 };
 
@@ -234,6 +236,9 @@ impl Reporter for CapturingReporter {
     fn best_move(&self, _: &Game, _: Move) {}
 }
 
+pub static ABORT_THREADS: AtomicBool = AtomicBool::new(false);
+pub static ALL_NODE_COUNT: AtomicU64 = AtomicU64::new(0);
+
 pub fn search(
     game: &Game,
     persistent_state: &mut PersistentState,
@@ -272,30 +277,71 @@ pub fn search(
         return mv;
     }
 
-    let mut ctx = SearchContext::new(
-        game,
-        &persistent_state.tt,
-        &persistent_state.tablebase,
-        &mut persistent_state.history_table,
-        time_control,
-        stop_control,
-        options,
-    );
+    ABORT_THREADS.store(false, Ordering::Relaxed);
+    ALL_NODE_COUNT.store(0, Ordering::Relaxed);
 
-    let mut pv = PrincipalVariation::new();
+    thread::scope(|scope| {
+        let mut threads = Vec::new();
 
-    iterative_deepening::search(
-        // Give the search its own copy of the game so we don't get one returned in a dirty state
-        // when the search aborts.
-        &mut game.clone(),
-        &mut ctx,
-        &mut pv,
-        reporter,
-    );
+        // If we want more than one thread, spawn our other threads, sharing the transposition
+        // table but with their own copy of everything else.
+        for _ in 1..options.threads {
+            let tt = &persistent_state.tt;
+            let tablebase = &persistent_state.tablebase;
+            let mut thread_history = persistent_state.history_table.clone();
 
-    let best_move = pv.first().copied();
+            let thread = scope.spawn(move || {
+                let mut ctx = SearchContext::new(
+                    game,
+                    tt,
+                    tablebase,
+                    &mut thread_history,
+                    TimeControl::Infinite,
+                    None,
+                    options,
+                );
 
-    best_move.unwrap_or_else(|| panic_move(game, &ctx))
+                iterative_deepening::search(
+                    &mut game.clone(),
+                    &mut ctx,
+                    &mut PrincipalVariation::new(),
+                    &NullReporter,
+                );
+            });
+
+            threads.push(thread);
+        }
+
+        let mut ctx = SearchContext::new(
+            game,
+            &persistent_state.tt,
+            &persistent_state.tablebase,
+            &mut persistent_state.history_table,
+            time_control,
+            stop_control,
+            options,
+        );
+
+        let mut pv = PrincipalVariation::new();
+
+        iterative_deepening::search(
+            // Give the search its own copy of the game so we don't get one returned in a dirty state
+            // when the search aborts.
+            &mut game.clone(),
+            &mut ctx,
+            &mut pv,
+            reporter,
+        );
+
+        let best_move = pv.first().copied();
+
+        ABORT_THREADS.store(true, Ordering::Relaxed);
+        for thread in threads {
+            thread.join().expect("Thread panicked");
+        }
+
+        best_move.unwrap_or_else(|| panic_move(game, &ctx))
+    })
 }
 
 pub fn init() {

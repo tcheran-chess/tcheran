@@ -177,8 +177,8 @@ impl TranspositionTable {
         reason = "The truncation is intended to get an index"
     )]
     fn get_entry_idx(&self, key: ZobristHash) -> usize {
-        // PERF: There's likely a more performant way to do this
-        key.0 as usize % self.data.len()
+        // (from Reckless: For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction)
+        ((u128::from(key.0) * (self.data.len() as u128)) >> 64) as usize
     }
 
     #[expect(

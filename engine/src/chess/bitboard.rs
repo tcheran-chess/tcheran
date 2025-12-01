@@ -73,10 +73,7 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "u64 can have at most 64 ones"
-    )]
+    #[expect(clippy::cast_possible_truncation, reason = "u64 can have at most 64 ones")]
     pub const fn count(self) -> u8 {
         self.0.count_ones() as u8
     }
@@ -177,9 +174,7 @@ impl Iterator for SquareIterator {
         if self.0.is_empty() {
             None
         } else {
-            Some(Square::from_array_index(
-                self.0.pop_lsb_inplace().trailing_zeros(),
-            ))
+            Some(Square::from_array_index(self.0.pop_lsb_inplace().trailing_zeros()))
         }
     }
 }

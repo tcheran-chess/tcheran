@@ -123,15 +123,8 @@ pub fn negamax(
                 || (tb_bound == NodeBound::Lower && score >= beta)
                 || (tb_bound == NodeBound::Upper && score <= alpha)
             {
-                ctx.tt.insert(
-                    game.zobrist,
-                    tb_bound,
-                    None,
-                    score,
-                    Eval::NONE,
-                    depth,
-                    plies,
-                );
+                ctx.tt
+                    .insert(game.zobrist, tb_bound, None, score, Eval::NONE, depth, plies);
 
                 return score;
             }
@@ -354,15 +347,8 @@ pub fn negamax(
         }
     }
 
-    ctx.tt.insert(
-        game.zobrist,
-        tt_node_bound,
-        best_move,
-        best_eval,
-        eval,
-        depth,
-        plies,
-    );
+    ctx.tt
+        .insert(game.zobrist, tt_node_bound, best_move, best_eval, eval, depth, plies);
 
     best_eval
 }

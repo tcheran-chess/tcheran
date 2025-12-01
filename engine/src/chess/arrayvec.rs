@@ -48,10 +48,7 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
 
     pub fn swap(&mut self, a: usize, b: usize) {
         unsafe {
-            std::ptr::swap(
-                self.data.get_unchecked_mut(a),
-                self.data.get_unchecked_mut(b),
-            );
+            std::ptr::swap(self.data.get_unchecked_mut(a), self.data.get_unchecked_mut(b));
         }
     }
 

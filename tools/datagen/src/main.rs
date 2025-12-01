@@ -129,10 +129,7 @@ fn datagen(config: &DatagenConfig) {
     });
 }
 
-#[expect(
-    clippy::cast_precision_loss,
-    reason = "We are doing approximate progress calculations"
-)]
+#[expect(clippy::cast_precision_loss, reason = "We are doing approximate progress calculations")]
 #[expect(
     clippy::cast_possible_truncation,
     reason = "We are doing approximate progress calculations"
@@ -341,14 +338,7 @@ fn search_position(
     let options = EngineOptions::DEFAULT;
     let reporter = CapturingReporter::new();
 
-    let best_move = search(
-        game,
-        persistent_state,
-        time_control,
-        None,
-        &options,
-        &reporter,
-    );
+    let best_move = search(game, persistent_state, time_control, None, &options, &reporter);
 
     (best_move, reporter.eval())
 }
@@ -540,10 +530,7 @@ fn play_game(
     rand: &mut impl Rng,
     config: &DatagenConfig,
     states: &mut PlayerStates,
-) -> (
-    viriformat::dataformat::Game,
-    viriformat::chess::board::GameOutcome,
-) {
+) -> (viriformat::dataformat::Game, viriformat::chess::board::GameOutcome) {
     states.reset();
     let mut game = acceptable_starting_position(rand, states);
     let mut virigame = game_to_viri(&game);
@@ -565,10 +552,7 @@ fn play_game(
         let (next_move, eval) = search_position(&game, time_control.clone(), state);
         let white_eval = eval.to_white_eval(game.player);
 
-        virigame.add_move(
-            move_to_viri(next_move),
-            i16::try_from(white_eval.0).unwrap(),
-        );
+        virigame.add_move(move_to_viri(next_move), i16::try_from(white_eval.0).unwrap());
         game.make_move(next_move);
 
         if let Some(outcome) = adjudicate_forced_mate(white_eval) {

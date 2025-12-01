@@ -32,16 +32,10 @@ pub const HISTORY_FACTOR: i16 = 350;
 pub const HISTORY_OFFSET: i16 = 350;
 
 pub fn history_bonus(depth: u8) -> i16 {
-    min(
-        HISTORY_FACTOR * i16::from(depth) - HISTORY_OFFSET,
-        HISTORY_MAX_BONUS,
-    )
+    min(HISTORY_FACTOR * i16::from(depth) - HISTORY_OFFSET, HISTORY_MAX_BONUS)
 }
 
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "Dipped into i32 to avoid overflows"
-)]
+#[expect(clippy::cast_possible_truncation, reason = "Dipped into i32 to avoid overflows")]
 const fn taper_bonus(bonus: i16, old: i16, max: i32) -> i16 {
     let old = old as i32;
     let bonus = bonus as i32;

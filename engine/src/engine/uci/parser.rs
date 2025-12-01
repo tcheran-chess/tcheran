@@ -297,10 +297,7 @@ fn cmd_d(args: &[&str]) -> Result<UciCommand, ()> {
     }
 }
 
-#[expect(
-    clippy::result_unit_err,
-    reason = "Improved error reporting is planned"
-)]
+#[expect(clippy::result_unit_err, reason = "Improved error reporting is planned")]
 pub fn parse(input: &str) -> Result<UciCommand, ()> {
     let tokens = input.split_whitespace().collect::<Vec<&str>>();
     if tokens.is_empty() {

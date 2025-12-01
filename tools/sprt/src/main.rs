@@ -1,8 +1,5 @@
 #![expect(clippy::similar_names, reason = "Maintaining naming from the original")]
-#![expect(
-    clippy::cast_precision_loss,
-    reason = "Imprecise calculations are fine"
-)]
+#![expect(clippy::cast_precision_loss, reason = "Imprecise calculations are fine")]
 
 use std::process::ExitCode;
 

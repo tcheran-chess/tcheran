@@ -270,38 +270,22 @@ fn perft_gist_2() {
 
 #[test]
 fn perft_gist_3() {
-    test_perft(
-        "r1bqkbnr/pppppppp/n7/8/8/P7/1PPPPPPP/RNBQKBNR w KQkq - 2 2",
-        1,
-        19,
-    );
+    test_perft("r1bqkbnr/pppppppp/n7/8/8/P7/1PPPPPPP/RNBQKBNR w KQkq - 2 2", 1, 19);
 }
 
 #[test]
 fn perft_gist_4() {
-    test_perft(
-        "r3k2r/p1pp1pb1/bn2Qnp1/2qPN3/1p2P3/2N5/PPPBBPPP/R3K2R b KQkq - 3 2",
-        1,
-        5,
-    );
+    test_perft("r3k2r/p1pp1pb1/bn2Qnp1/2qPN3/1p2P3/2N5/PPPBBPPP/R3K2R b KQkq - 3 2", 1, 5);
 }
 
 #[test]
 fn perft_gist_5() {
-    test_perft(
-        "2kr3r/p1ppqpb1/bn2Qnp1/3PN3/1p2P3/2N5/PPPBBPPP/R3K2R b KQ - 3 2",
-        1,
-        44,
-    );
+    test_perft("2kr3r/p1ppqpb1/bn2Qnp1/3PN3/1p2P3/2N5/PPPBBPPP/R3K2R b KQ - 3 2", 1, 44);
 }
 
 #[test]
 fn perft_gist_6() {
-    test_perft(
-        "rnb2k1r/pp1Pbppp/2p5/q7/2B5/8/PPPQNnPP/RNB1K2R w KQ - 3 9",
-        1,
-        39,
-    );
+    test_perft("rnb2k1r/pp1Pbppp/2p5/q7/2B5/8/PPPQNnPP/RNB1K2R w KQ - 3 9", 1, 39);
 }
 
 #[test]
@@ -311,11 +295,7 @@ fn perft_gist_7() {
 
 #[test]
 fn perft_gist_8() {
-    test_perft(
-        "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
-        3,
-        62379,
-    );
+    test_perft("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8", 3, 62379);
 }
 
 #[test]

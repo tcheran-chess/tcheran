@@ -50,10 +50,8 @@ struct TranspositionTableEntry {
     pub bound_and_age: BoundAndAge, // 1 byte
 }
 
-const _ASSERT_TT_DATA_SIZE: () = assert!(
-    size_of::<TranspositionTableEntry>() == 16,
-    "Transposition table entry size changed"
-);
+const _ASSERT_TT_DATA_SIZE: () =
+    assert!(size_of::<TranspositionTableEntry>() == 16, "Transposition table entry size changed");
 
 impl TranspositionTableEntry {
     fn bound(&self) -> NodeBound {
@@ -99,10 +97,7 @@ impl AtomicTranspositionTableEntry {
         }
     }
 
-    #[expect(
-        clippy::transmute_undefined_repr,
-        reason = "Confirmed that this transmute works"
-    )]
+    #[expect(clippy::transmute_undefined_repr, reason = "Confirmed that this transmute works")]
     fn write(&self, entry: TranspositionTableEntry) {
         let bits =
             unsafe { transmute::<TranspositionTableEntry, TranspositionTableEntryBits>(entry) };
@@ -115,10 +110,7 @@ impl AtomicTranspositionTableEntry {
         self.data.store(bits.data, Ordering::Relaxed);
     }
 
-    #[expect(
-        clippy::transmute_undefined_repr,
-        reason = "Confirmed that this transmute works"
-    )]
+    #[expect(clippy::transmute_undefined_repr, reason = "Confirmed that this transmute works")]
     fn read(&self) -> Option<TranspositionTableEntry> {
         let key = self.key.load(Ordering::Relaxed);
         let data = self.data.load(Ordering::Relaxed);

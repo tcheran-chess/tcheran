@@ -189,26 +189,10 @@ fn generate_pawn_tacticals(
         }
 
         for target in attacks & capture_targets {
-            f(Move::capture_promotion(
-                pawn,
-                target,
-                PromotionPieceKind::Queen,
-            ));
-            f(Move::capture_promotion(
-                pawn,
-                target,
-                PromotionPieceKind::Rook,
-            ));
-            f(Move::capture_promotion(
-                pawn,
-                target,
-                PromotionPieceKind::Knight,
-            ));
-            f(Move::capture_promotion(
-                pawn,
-                target,
-                PromotionPieceKind::Bishop,
-            ));
+            f(Move::capture_promotion(pawn, target, PromotionPieceKind::Queen));
+            f(Move::capture_promotion(pawn, target, PromotionPieceKind::Rook));
+            f(Move::capture_promotion(pawn, target, PromotionPieceKind::Knight));
+            f(Move::capture_promotion(pawn, target, PromotionPieceKind::Bishop));
         }
     }
 
@@ -219,11 +203,7 @@ fn generate_pawn_tacticals(
         // Pawns cannot push forward if they are pinned orthogonally
         // There's no 'moving along the pin ray' for these pieces, since the target square is empty
         if !orthogonal_pins.contains(pawn) {
-            f(Move::quiet_promotion(
-                pawn,
-                target,
-                PromotionPieceKind::Queen,
-            ));
+            f(Move::quiet_promotion(pawn, target, PromotionPieceKind::Queen));
         }
     }
 
@@ -269,10 +249,7 @@ fn generate_pawn_tacticals(
                     .any();
 
                     if !king_in_check {
-                        f(Move::en_passant(
-                            potential_en_passant_capture_start,
-                            en_passant_target,
-                        ));
+                        f(Move::en_passant(potential_en_passant_capture_start, en_passant_target));
                     }
                 }
             }
@@ -309,21 +286,9 @@ fn generate_pawn_quiets(
         // There's no 'moving along the pin ray' for these pieces, since the target square is empty
         if !orthogonal_pins.contains(pawn) {
             // Consider underpromoting pushes to be 'quiet' moves
-            f(Move::quiet_promotion(
-                pawn,
-                target,
-                PromotionPieceKind::Rook,
-            ));
-            f(Move::quiet_promotion(
-                pawn,
-                target,
-                PromotionPieceKind::Knight,
-            ));
-            f(Move::quiet_promotion(
-                pawn,
-                target,
-                PromotionPieceKind::Bishop,
-            ));
+            f(Move::quiet_promotion(pawn, target, PromotionPieceKind::Rook));
+            f(Move::quiet_promotion(pawn, target, PromotionPieceKind::Knight));
+            f(Move::quiet_promotion(pawn, target, PromotionPieceKind::Bishop));
         }
     }
 
@@ -585,10 +550,7 @@ mod tests {
 
     #[test]
     fn test_simple_rook_move() {
-        should_allow_move(
-            "rnbqkbnr/1ppppppp/p7/8/8/P7/1PPPPPPP/RNBQKBNR w KQkq - 0 2",
-            (A1, A2),
-        );
+        should_allow_move("rnbqkbnr/1ppppppp/p7/8/8/P7/1PPPPPPP/RNBQKBNR w KQkq - 0 2", (A1, A2));
     }
 
     #[test]
@@ -616,10 +578,7 @@ mod tests {
 
     #[test]
     fn test_pawn_push_along_pin_bug() {
-        should_allow_move(
-            "rnb1kbnr/pppp1ppp/4pq2/8/8/5P2/PPPPPKPP/RNBQ1BNR w kq - 2 3",
-            (F3, F4),
-        );
+        should_allow_move("rnb1kbnr/pppp1ppp/4pq2/8/8/5P2/PPPPPKPP/RNBQ1BNR w kq - 2 3", (F3, F4));
     }
 
     #[test]
@@ -637,10 +596,7 @@ mod tests {
 
     #[test]
     fn test_en_passant_bug_20230308() {
-        should_allow_move(
-            "rnbqkbnr/2pppppp/p7/Pp6/8/8/1PPPPPPP/RNBQKBNR w KQkq b6 0 3",
-            (A5, B6),
-        );
+        should_allow_move("rnbqkbnr/2pppppp/p7/Pp6/8/8/1PPPPPPP/RNBQKBNR w KQkq b6 0 3", (A5, B6));
     }
 
     #[test]

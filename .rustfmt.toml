@@ -1,2 +1,5 @@
 imports_granularity = "Crate"
 group_imports = "StdExternalCrate"
+
+fn_call_width = 100
+attr_fn_like_width = 100

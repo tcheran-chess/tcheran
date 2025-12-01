@@ -237,10 +237,7 @@ impl Square {
         Self(idx)
     }
 
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "idx is guaranteed to be 0-63"
-    )]
+    #[expect(clippy::cast_possible_truncation, reason = "idx is guaranteed to be 0-63")]
     pub const fn from_array_index(idx: usize) -> Self {
         debug_assert!(idx < 64);
         Self(idx as u8)
@@ -375,14 +372,12 @@ pub mod squares {
         let queenside_castle_dest = queenside_castle_dest(player);
 
         match king_moved_to {
-            s if s == kingside_castle_dest => Some((
-                kingside_rook_start(player),
-                kingside_rook_castle_end(player),
-            )),
-            s if s == queenside_castle_dest => Some((
-                queenside_rook_start(player),
-                queenside_rook_castle_end(player),
-            )),
+            s if s == kingside_castle_dest => {
+                Some((kingside_rook_start(player), kingside_rook_castle_end(player)))
+            }
+            s if s == queenside_castle_dest => {
+                Some((queenside_rook_start(player), queenside_rook_castle_end(player)))
+            }
             _ => None,
         }
     }

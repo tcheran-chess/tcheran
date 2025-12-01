@@ -36,11 +36,7 @@ pub fn search(
         }
 
         let new_best_move = *pv.first().unwrap_or_else(|| {
-            panic!(
-                "No PV move at depth {} for position {}",
-                depth,
-                game.to_fen()
-            )
+            panic!("No PV move at depth {} for position {}", depth, game.to_fen())
         });
 
         best_move = Some(new_best_move);

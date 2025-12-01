@@ -87,10 +87,7 @@ impl UciReporter {
     }
 
     // Inspired by Simbelmyne's lovely search output
-    #[expect(
-        clippy::cast_precision_loss,
-        reason = "Various approximate calculations"
-    )]
+    #[expect(clippy::cast_precision_loss, reason = "Various approximate calculations")]
     fn pretty_report_search_progress(game: &Game, progress: &search::SearchInfo) {
         use colors::*;
 
@@ -152,10 +149,7 @@ impl UciReporter {
             format!("{:.0}knps", progress.stats.nodes_per_second as f64 / 1000.0)
         );
 
-        print!(
-            "  {BRIGHT_BLACK}{:>4}{RESET}",
-            format!("{:.0}%", progress.hashfull as f64 / 10.0)
-        );
+        print!("  {BRIGHT_BLACK}{:>4}{RESET}", format!("{:.0}%", progress.hashfull as f64 / 10.0));
 
         print!("  ");
         for mv in progress.pv.iter() {
@@ -234,9 +228,7 @@ impl Uci {
                 self.game = Game::new();
 
                 let version = crate::engine_version();
-                send_response(&UciResponse::Id(IdParam::Name(format!(
-                    "{ENGINE_NAME} {version}"
-                ))));
+                send_response(&UciResponse::Id(IdParam::Name(format!("{ENGINE_NAME} {version}"))));
                 send_response(&UciResponse::Id(IdParam::Author("Jonathan Gilchrist")));
 
                 // Options
@@ -573,10 +565,7 @@ fn send_response(response: &UciResponse<'_>) {
 }
 
 pub enum UciInputMode {
-    #[allow(
-        clippy::allow_attributes,
-        reason = "Lint only present in non-release mode"
-    )]
+    #[allow(clippy::allow_attributes, reason = "Lint only present in non-release mode")]
     #[allow(
         unused,
         reason = "Passing a  list of UCI commands is not currently implemented for the CLI"

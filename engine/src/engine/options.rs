@@ -16,13 +16,11 @@ pub struct EngineOptions {
     pub syzygy_path: Option<String>,
 }
 
-impl Default for EngineOptions {
-    fn default() -> Self {
-        Self {
-            hash_size: defaults::HASH_SIZE,
-            threads: defaults::THREADS,
-            move_overhead: defaults::MOVE_OVERHEAD,
-            syzygy_path: defaults::SYZYGY_PATH,
-        }
-    }
+impl EngineOptions {
+    pub const DEFAULT: Self = Self {
+        hash_size: defaults::HASH_SIZE,
+        threads: defaults::THREADS,
+        move_overhead: defaults::MOVE_OVERHEAD,
+        syzygy_path: defaults::SYZYGY_PATH,
+    };
 }

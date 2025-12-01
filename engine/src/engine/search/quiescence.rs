@@ -21,14 +21,14 @@ pub fn quiescence(
     ctx.nodes_visited += 1;
 
     if plies == MAX_SEARCH_DEPTH {
-        return eval::eval(ctx.nnue, game.player);
+        return eval::eval(&mut ctx.nnue, game.player);
     }
 
     if game.is_draw() {
         return Eval::DRAW;
     }
 
-    let eval = eval::eval(ctx.nnue, game.player);
+    let eval = eval::eval(&mut ctx.nnue, game.player);
 
     if eval >= beta {
         return eval;

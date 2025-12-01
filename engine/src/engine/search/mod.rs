@@ -99,9 +99,9 @@ pub(crate) struct SearchContext<'s> {
 
     pub history_table: &'s mut HistoryTable,
 
-    pub nnue: &'s mut NetworkStack,
+    pub nnue: NetworkStack,
 
-    pub time_control: &'s mut TimeStrategy,
+    pub time_control: TimeStrategy,
 
     #[expect(unused, reason = "Not used yet")]
     pub options: &'s EngineOptions,
@@ -115,10 +115,11 @@ pub(crate) struct SearchContext<'s> {
 }
 
 impl<'s> SearchContext<'s> {
-    pub(crate) const fn new(
+    pub fn new(
+        game: &Game,
         persistent_state: &'s mut PersistentState,
-        nnue: &'s mut NetworkStack,
-        time_strategy: &'s mut TimeStrategy,
+        time_control: TimeControl,
+        stop_control: Option<StopControl>,
         options: &'s EngineOptions,
     ) -> Self {
         Self {
@@ -127,9 +128,9 @@ impl<'s> SearchContext<'s> {
 
             history_table: &mut persistent_state.history_table,
 
-            nnue,
+            nnue: NetworkStack::from_board(&game.board),
 
-            time_control: time_strategy,
+            time_control: TimeStrategy::new(game, time_control, stop_control, options),
 
             options,
 
@@ -231,18 +232,14 @@ impl Reporter for CapturingReporter {
 pub fn search(
     game: &Game,
     persistent_state: &mut PersistentState,
-    time_control: &TimeControl,
+    time_control: TimeControl,
     stop_control: Option<StopControl>,
     options: &EngineOptions,
     reporter: &impl Reporter,
 ) -> Move {
-    let mut time_strategy = TimeStrategy::new(game, time_control, stop_control, options);
-    let mut nnue = NetworkStack::from_board(&game.board);
+    persistent_state.tt.new_generation();
 
-    let mut ctx = SearchContext::new(persistent_state, &mut nnue, &mut time_strategy, options);
-
-    ctx.tt.new_generation();
-
+    let mut ctx = SearchContext::new(game, persistent_state, time_control, stop_control, options);
     let mut pv = PrincipalVariation::new();
 
     let tablebase_result = ctx.tablebase.best_move(game);
@@ -258,13 +255,13 @@ pub fn search(
                 seldepth: depth,
                 eval,
                 pv,
-                hashfull: persistent_state.tt.occupancy(),
+                hashfull: ctx.tt.occupancy(),
                 stats: SearchStats {
-                    time: time_strategy.elapsed(),
+                    time: ctx.time_control.elapsed(),
                     nodes: u64::from(depth),
                     nodes_per_second: util::metrics::nodes_per_second(
                         u64::from(depth),
-                        time_strategy.elapsed(),
+                        ctx.time_control.elapsed(),
                     ),
                     tbhits: 1,
                 },

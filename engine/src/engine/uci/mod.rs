@@ -338,7 +338,7 @@ impl Uci {
                     let best_move = search::search(
                         &game,
                         &mut persistent_state_handle,
-                        &time_control,
+                        time_control,
                         control,
                         &options,
                         &reporter,
@@ -619,8 +619,6 @@ pub fn uci_options() -> Vec<UciOption> {
 }
 
 pub fn uci(uci_input_mode: UciInputMode) -> Result<(), String> {
-    let options = EngineOptions::default();
-
     let mut uci = Uci {
         control: None,
         is_stopped: Arc::new(LockLatch::new()),
@@ -628,10 +626,12 @@ pub fn uci(uci_input_mode: UciInputMode) -> Result<(), String> {
             pretty_output: std::io::stdin().is_terminal(),
         },
         debug: false,
-        persistent_state: Arc::new(Mutex::new(PersistentState::new(options.hash_size))),
+        persistent_state: Arc::new(Mutex::new(PersistentState::new(
+            EngineOptions::DEFAULT.hash_size,
+        ))),
 
         game: Game::new(),
-        engine_options: options,
+        engine_options: EngineOptions::DEFAULT,
 
         options: uci_options(),
 

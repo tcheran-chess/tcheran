@@ -324,7 +324,7 @@ fn acceptable_starting_position(rand: &mut impl Rng, states: &mut PlayerStates) 
 
         let state = states.for_player(game.player);
 
-        let (_, eval) = search_position(&game, &TimeControl::Depth(DEFAULT_DEPTH), state);
+        let (_, eval) = search_position(&game, TimeControl::Depth(DEFAULT_DEPTH), state);
         if eval.0.abs() >= UNBALANCED_STARTING_EVAL {
             continue;
         }
@@ -335,10 +335,10 @@ fn acceptable_starting_position(rand: &mut impl Rng, states: &mut PlayerStates) 
 
 fn search_position(
     game: &Game,
-    time_control: &TimeControl,
+    time_control: TimeControl,
     persistent_state: &mut PersistentState,
 ) -> (Move, Eval) {
-    let options = EngineOptions::default();
+    let options = EngineOptions::DEFAULT;
     let reporter = CapturingReporter::new();
 
     let best_move = search(
@@ -562,7 +562,7 @@ fn play_game(
         }
 
         let state = states.for_player(game.player);
-        let (next_move, eval) = search_position(&game, &time_control, state);
+        let (next_move, eval) = search_position(&game, time_control.clone(), state);
         let white_eval = eval.to_white_eval(game.player);
 
         virigame.add_move(

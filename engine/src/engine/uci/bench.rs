@@ -117,16 +117,14 @@ pub fn bench(depth: Option<u8>) -> (u64, Duration) {
         let game = Game::from_fen(position).unwrap();
 
         let mut persistent_state = PersistentState::new(16);
-        let options = EngineOptions::default();
-
         let now = Instant::now();
 
         let _ = search::search(
             &game,
             &mut persistent_state,
-            &TimeControl::Depth(depth),
+            TimeControl::Depth(depth),
             None,
-            &options,
+            &EngineOptions::DEFAULT,
             &bench_reporter,
         );
 

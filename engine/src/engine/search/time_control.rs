@@ -54,7 +54,7 @@ impl StopControl {
 impl TimeStrategy {
     pub fn new(
         game: &Game,
-        time_control: &TimeControl,
+        time_control: TimeControl,
         control: Option<StopControl>,
         options: &EngineOptions,
     ) -> Self {
@@ -68,10 +68,10 @@ impl TimeStrategy {
         match time_control {
             TimeControl::Infinite | TimeControl::Depth(_) => {}
             TimeControl::ExactTime(move_time) => {
-                soft_stop = *move_time;
-                hard_stop = *move_time;
+                soft_stop = move_time;
+                hard_stop = move_time;
             }
-            TimeControl::Clocks(clocks) => {
+            TimeControl::Clocks(ref clocks) => {
                 let (time_remaining, increment) = match game.player {
                     Player::White => (clocks.white_clock, clocks.white_increment),
                     Player::Black => (clocks.black_clock, clocks.black_increment),
@@ -103,11 +103,11 @@ impl TimeStrategy {
                     max_time_per_move,
                 );
             }
-            TimeControl::Nodes(n) => next_check_at = u64::from(*n),
+            TimeControl::Nodes(n) => next_check_at = u64::from(n),
         }
 
         Self {
-            time_control: time_control.clone(),
+            time_control,
             started_at: now,
             stopped: false,
 

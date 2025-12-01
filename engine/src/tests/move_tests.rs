@@ -21,9 +21,9 @@ fn test_expected_move(fen: &str, depth: u8, mv: (Square, Square)) -> (Move, Eval
     let best_move = search(
         &game,
         &mut persistent_state,
-        &TimeControl::Depth(depth),
+        TimeControl::Depth(depth),
         None,
-        &EngineOptions::default(),
+        &EngineOptions::DEFAULT,
         &capturing_reporter,
     );
 

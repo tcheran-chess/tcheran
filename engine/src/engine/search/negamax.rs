@@ -145,7 +145,7 @@ pub fn negamax(
     let eval = match tt_entry {
         Some(ref e) if e.eval != Eval::NONE => e.eval,
         _ => {
-            let e = eval::eval(ctx.nnue, game.player);
+            let e = eval::eval(&mut ctx.nnue, game.player);
 
             ctx.tt
                 .insert(game.zobrist, NodeBound::None, None, Eval::NONE, e, 0, plies);

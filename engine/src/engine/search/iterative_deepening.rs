@@ -14,7 +14,7 @@ pub fn search(
     game: &mut Game,
     ctx: &mut SearchContext<'_>,
     pv: &mut PrincipalVariation,
-    reporter: &mut impl Reporter,
+    reporter: &impl Reporter,
 ) -> Option<Move> {
     let mut best_move: Option<Move> = None;
     let mut overall_eval: Option<Eval> = None;

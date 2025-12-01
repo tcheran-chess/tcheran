@@ -16,7 +16,7 @@ fn test_expected_move(fen: &str, depth: u8, mv: (Square, Square)) -> (Move, Eval
     let game = Game::from_fen(fen).unwrap();
     let mut persistent_state = PersistentState::new(16);
 
-    let mut capturing_reporter = CapturingReporter::new();
+    let capturing_reporter = CapturingReporter::new();
 
     let best_move = search(
         &game,
@@ -24,11 +24,11 @@ fn test_expected_move(fen: &str, depth: u8, mv: (Square, Square)) -> (Move, Eval
         &TimeControl::Depth(depth),
         None,
         &EngineOptions::default(),
-        &mut capturing_reporter,
+        &capturing_reporter,
     );
 
     assert_eq!((best_move.src(), best_move.dst()), mv);
-    (best_move, capturing_reporter.eval.unwrap())
+    (best_move, capturing_reporter.eval())
 }
 
 #[test]

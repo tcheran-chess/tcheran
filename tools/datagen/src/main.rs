@@ -339,7 +339,7 @@ fn search_position(
     persistent_state: &mut PersistentState,
 ) -> (Move, Eval) {
     let options = EngineOptions::default();
-    let mut reporter = CapturingReporter::new();
+    let reporter = CapturingReporter::new();
 
     let best_move = search(
         game,
@@ -347,10 +347,10 @@ fn search_position(
         time_control,
         None,
         &options,
-        &mut reporter,
+        &reporter,
     );
 
-    (best_move, reporter.eval.unwrap())
+    (best_move, reporter.eval())
 }
 
 fn game_result(

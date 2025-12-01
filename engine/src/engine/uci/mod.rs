@@ -191,7 +191,7 @@ impl Reporter for UciReporter {
         println!("{s}");
     }
 
-    fn report_search_progress(&mut self, game: &Game, progress: search::SearchInfo) {
+    fn report_search_progress(&self, game: &Game, progress: search::SearchInfo) {
         if self.pretty_output {
             Self::pretty_report_search_progress(game, &progress);
         } else {
@@ -298,7 +298,7 @@ impl Uci {
             }) => {
                 let game = self.game.clone();
                 let options = self.engine_options.clone();
-                let mut reporter = self.reporter.clone();
+                let reporter = self.reporter.clone();
 
                 let clocks = Clocks {
                     white_clock: *wtime,
@@ -341,7 +341,7 @@ impl Uci {
                         &time_control,
                         control,
                         &options,
-                        &mut reporter,
+                        &reporter,
                     );
 
                     reporter.best_move(&game, best_move);

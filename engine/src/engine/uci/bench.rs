@@ -113,7 +113,7 @@ pub fn bench(depth: Option<u8>) -> (u64, Duration) {
     let depth = depth.unwrap_or(DEFAULT_DEPTH);
 
     for position in POSITIONS {
-        let mut bench_reporter = CapturingReporter::new();
+        let bench_reporter = CapturingReporter::new();
         let game = Game::from_fen(position).unwrap();
 
         let mut persistent_state = PersistentState::new(16);
@@ -127,10 +127,10 @@ pub fn bench(depth: Option<u8>) -> (u64, Duration) {
             &TimeControl::Depth(depth),
             None,
             &options,
-            &mut bench_reporter,
+            &bench_reporter,
         );
 
-        nodes += bench_reporter.nodes;
+        nodes += bench_reporter.nodes();
         search_time += now.elapsed();
     }
 

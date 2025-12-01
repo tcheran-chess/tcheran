@@ -7,7 +7,7 @@ mod quiescence;
 mod tables;
 pub mod time_control;
 
-use std::time::Duration;
+use std::{cell::RefCell, time::Duration};
 
 use crate::{
     chess::{game::Game, moves::Move},
@@ -180,7 +180,7 @@ pub struct SearchStats {
 pub trait Reporter {
     fn generic_report(&self, s: &str);
 
-    fn report_search_progress(&mut self, game: &Game, progress: SearchInfo);
+    fn report_search_progress(&self, game: &Game, progress: SearchInfo);
 
     fn best_move(&self, game: &Game, mv: Move);
 }
@@ -190,31 +190,39 @@ pub struct NullReporter;
 impl Reporter for NullReporter {
     fn generic_report(&self, _: &str) {}
 
-    fn report_search_progress(&mut self, _: &Game, _: SearchInfo) {}
+    fn report_search_progress(&self, _: &Game, _: SearchInfo) {}
 
     fn best_move(&self, _: &Game, _: Move) {}
 }
 
 pub struct CapturingReporter {
-    pub eval: Option<Eval>,
-    pub nodes: u64,
+    eval: RefCell<Option<Eval>>,
+    nodes: RefCell<u64>,
 }
 
 impl CapturingReporter {
     pub fn new() -> Self {
         Self {
-            eval: None,
-            nodes: 0,
+            eval: RefCell::new(None),
+            nodes: RefCell::new(0),
         }
+    }
+
+    pub fn eval(&self) -> Eval {
+        self.eval.borrow().unwrap()
+    }
+
+    pub fn nodes(&self) -> u64 {
+        *self.nodes.borrow()
     }
 }
 
 impl Reporter for CapturingReporter {
     fn generic_report(&self, _: &str) {}
 
-    fn report_search_progress(&mut self, _: &Game, stats: SearchInfo) {
-        self.eval = Some(stats.eval);
-        self.nodes = stats.stats.nodes;
+    fn report_search_progress(&self, _: &Game, stats: SearchInfo) {
+        *self.eval.borrow_mut() = Some(stats.eval);
+        *self.nodes.borrow_mut() = stats.stats.nodes;
     }
 
     fn best_move(&self, _: &Game, _: Move) {}
@@ -226,7 +234,7 @@ pub fn search(
     time_control: &TimeControl,
     stop_control: Option<StopControl>,
     options: &EngineOptions,
-    reporter: &mut impl Reporter,
+    reporter: &impl Reporter,
 ) -> Move {
     let mut time_strategy = TimeStrategy::new(game, time_control, stop_control, options);
     let mut nnue = NetworkStack::from_board(&game.board);

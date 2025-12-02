@@ -9,7 +9,7 @@ pub mod time_control;
 
 use std::{
     cell::RefCell,
-    sync::atomic::{AtomicBool, AtomicU64, Ordering},
+    sync::atomic::{AtomicU64, Ordering},
     thread,
     time::{Duration, Instant},
 };
@@ -238,7 +238,6 @@ impl Reporter for CapturingReporter {
     fn best_move(&self, _: &Game, _: Move) {}
 }
 
-pub static ABORT_THREADS: AtomicBool = AtomicBool::new(false);
 pub static ALL_NODE_COUNT: AtomicU64 = AtomicU64::new(0);
 
 pub fn search(
@@ -279,7 +278,7 @@ pub fn search(
         return mv;
     }
 
-    ABORT_THREADS.store(false, Ordering::Relaxed);
+    let threads_stop_control = StopControl::new();
     ALL_NODE_COUNT.store(0, Ordering::Relaxed);
 
     thread::scope(|scope| {
@@ -290,6 +289,7 @@ pub fn search(
         for _ in 1..options.threads {
             let tt = &persistent_state.tt;
             let tablebase = &persistent_state.tablebase;
+            let this_thread_stop_control = threads_stop_control.clone();
             let mut thread_history = persistent_state.history_table.clone();
 
             let thread = scope.spawn(move || {
@@ -299,7 +299,7 @@ pub fn search(
                     tablebase,
                     &mut thread_history,
                     TimeControl::Infinite,
-                    None,
+                    Some(this_thread_stop_control),
                     options,
                 );
 
@@ -337,7 +337,7 @@ pub fn search(
 
         let best_move = pv.first().copied();
 
-        ABORT_THREADS.store(true, Ordering::Relaxed);
+        threads_stop_control.stop();
         for thread in threads {
             thread.join().expect("Thread panicked");
         }

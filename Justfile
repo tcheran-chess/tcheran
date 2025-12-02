@@ -96,11 +96,11 @@ playoff-sprt new baseline concurrency tc:
 	fastchess \
 		-engine name="$(basename {{new}})" cmd="{{new}}" \
 		-engine name="$(basename {{baseline}})" cmd="{{baseline}}" \
-		-openings file=./etc/openings/UHO_Lichess_4852_v1.epd format=epd order=random \
+		-openings file=./UHO_Lichess_4852_v1.epd format=epd order=random \
 		-ratinginterval {{concurrency}} \
 		-concurrency {{concurrency}} \
 		-rounds 100000 -repeat \
-		-pgnout "./bins/$(basename {{new}})-vs-$(basename {{baseline}})-{{tc}}.pgn" \
+		-pgnout file="./bins/$(basename {{new}})-vs-$(basename {{baseline}})-{{tc}}.pgn" \
 		-sprt elo0=0 elo1=5 alpha=0.05 beta=0.05 \
 		-each \
 			proto=uci \
@@ -111,13 +111,13 @@ playoff-sprt-with-adjudication new baseline concurrency tc:
 	fastchess \
 		-engine name="$(basename {{new}})" cmd="{{new}}" \
 		-engine name="$(basename {{baseline}})" cmd="{{baseline}}" \
-		-openings file=./etc/openings/UHO_Lichess_4852_v1.epd format=epd order=random \
+		-openings file=./UHO_Lichess_4852_v1.epd format=epd order=random \
 		-ratinginterval {{concurrency}} \
 		-concurrency {{concurrency}} \
 		-rounds 100000 -repeat \
 		-draw movenumber=40 movecount=8 score=10 \
 		-resign movecount=3 score=400 twosided=true \
-		-pgnout "./bins/$(basename {{new}})-vs-$(basename {{baseline}})-{{tc}}.pgn" \
+		-pgnout file="./bins/$(basename {{new}})-vs-$(basename {{baseline}})-{{tc}}.pgn" \
 		-sprt elo0=0 elo1=5 alpha=0.05 beta=0.05 \
 		-each \
 			proto=uci \

@@ -197,7 +197,7 @@ pub fn negamax(
 
     let mut quiets_tried = MoveList::new();
 
-    while let Some(mv) = moves.next(game, ctx, plies) {
+    while let Some(mv) = moves.next(game, &ctx.tables, plies) {
         node_pv.clear();
 
         // Futility pruning
@@ -332,16 +332,21 @@ pub fn negamax(
         // but it wasn't a capture, we remember it so that we can try it
         // before other quiet moves.
         if !mv.is_capture() {
-            ctx.killer_moves.set(plies, mv);
+            ctx.tables.killer_moves.set(plies, mv);
 
             if let Some(previous_move) = game.history.last().and_then(|h| h.mv) {
-                ctx.countermove_table.set(game.player, previous_move, mv);
+                ctx.tables
+                    .countermove_table
+                    .set(game.player, previous_move, mv);
             }
 
-            ctx.history_table.add_bonus_for(game.player, mv, depth);
+            ctx.tables
+                .history_table
+                .add_bonus_for(game.player, mv, depth);
 
             for non_cutoff_quiet in &quiets_tried {
-                ctx.history_table
+                ctx.tables
+                    .history_table
                     .add_malus_for(game.player, *non_cutoff_quiet, depth);
             }
         }

@@ -2,9 +2,9 @@ use crate::{
     chess::{
         fen::START_POS, game::Game, movegen, movegen::MovegenCache, moves::MoveList, perft::perft,
     },
-    engine::{
-        options::EngineOptions,
-        search::{PersistentState, SearchContext, TimeControl, move_picker::MovePicker},
+    engine::search::{
+        move_picker::MovePicker,
+        tables::{HistoryTable, Tables},
     },
 };
 
@@ -27,7 +27,7 @@ fn test_perft_default(fen: &str, depth: u8, expected_positions: usize) {
     assert_eq!(expected_positions, actual_positions);
 }
 
-fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> usize {
+fn movepicker_perft(depth: u8, game: &mut Game, tables: &mut Tables<'_>) -> usize {
     if depth == 0 {
         return 1;
     }
@@ -61,15 +61,15 @@ fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> 
         }
 
         if quiets_movelist.len() >= 3 {
-            ctx.killer_moves.set(depth, *quiets_movelist.get(2));
+            tables.killer_moves.set(depth, *quiets_movelist.get(2));
         }
     }
 
     let mut moves_at_this_node = Vec::new();
     let mut movepicker = MovePicker::new(best_move);
-    while let Some(mv) = movepicker.next(game, ctx, depth) {
+    while let Some(mv) = movepicker.next(game, tables, depth) {
         game.make_move(mv);
-        moves += movepicker_perft(depth - 1, game, ctx);
+        moves += movepicker_perft(depth - 1, game, tables);
         game.undo_move();
 
         moves_at_this_node.push(mv);
@@ -92,7 +92,7 @@ fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> 
                 legal_moves.iter().cloned().collect::<Vec<_>>(),
                 moves_at_this_node,
                 best_move,
-                ctx.killer_moves.get(depth),
+                tables.killer_moves.get(depth),
                 missing_moves
             );
         }
@@ -105,19 +105,10 @@ fn movepicker_perft(depth: u8, game: &mut Game, ctx: &mut SearchContext<'_>) -> 
 
 fn test_perft_with_movepicker(fen: &str, depth: u8, expected_positions: usize) {
     let mut game = Game::from_fen(fen).unwrap();
+    let mut history_table = HistoryTable::new();
+    let mut tables = Tables::new(&mut history_table);
 
-    let mut persistent_state = PersistentState::new(16);
-    let mut ctx = SearchContext::new(
-        &game,
-        &persistent_state.tt,
-        &persistent_state.tablebase,
-        &mut persistent_state.history_table,
-        TimeControl::Infinite,
-        None,
-        &EngineOptions::DEFAULT,
-    );
-
-    let actual_positions = movepicker_perft(depth, &mut game, &mut ctx);
+    let actual_positions = movepicker_perft(depth, &mut game, &mut tables);
 
     assert_eq!(expected_positions, actual_positions);
 }

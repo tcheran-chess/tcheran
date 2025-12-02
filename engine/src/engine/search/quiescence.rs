@@ -41,7 +41,7 @@ pub fn quiescence(
     let mut best_eval = eval;
 
     let mut moves = MovePicker::new_loud();
-    while let Some(mv) = moves.next(game, ctx, plies) {
+    while let Some(mv) = moves.next(game, &ctx.tables, plies) {
         ctx.nnue.push(&game.board, mv);
         game.make_move(mv);
 

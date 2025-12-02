@@ -9,7 +9,7 @@ use crate::{
     },
     engine::{
         eval::Eval,
-        search::{SearchContext, tables::HistoryTable},
+        search::tables::{HistoryTable, Tables},
         see::see,
     },
 };
@@ -106,7 +106,7 @@ impl MovePicker {
         }
     }
 
-    pub(crate) fn next(&mut self, game: &Game, ctx: &SearchContext<'_>, plies: u8) -> Option<Move> {
+    pub(crate) fn next(&mut self, game: &Game, tables: &Tables<'_>, plies: u8) -> Option<Move> {
         use GenStage::*;
 
         if self.stage == BestMove {
@@ -157,7 +157,7 @@ impl MovePicker {
         if self.stage == Killer {
             self.stage = CounterMove;
 
-            if let Some(killer) = ctx.killer_moves.get(plies)
+            if let Some(killer) = tables.killer_moves.get(plies)
                 && self.moves.remove(killer)
                 && Some(killer) != self.previous_best_move
             {
@@ -169,7 +169,7 @@ impl MovePicker {
             self.stage = BadTacticals;
 
             if let Some(previous_move) = game.history.last().and_then(|h| h.mv)
-                && let Some(counter_move) = ctx.countermove_table.get(game.player, previous_move)
+                && let Some(counter_move) = tables.countermove_table.get(game.player, previous_move)
                 && self.moves.remove(counter_move)
                 && Some(counter_move) != self.previous_best_move
             {
@@ -197,7 +197,7 @@ impl MovePicker {
             self.stage = Quiets;
 
             for entry in &mut self.moves {
-                entry.score = score_quiet(game, entry.mv, ctx.history_table);
+                entry.score = score_quiet(game, entry.mv, tables.history_table);
             }
         }
 
@@ -262,25 +262,7 @@ pub fn score_quiet(game: &Game, mv: Move, history: &HistoryTable) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        chess::{game::Game, square::squares::all::*},
-        engine::{
-            options::EngineOptions,
-            search::{PersistentState, TimeControl},
-        },
-    };
-
-    fn get_ctx<'s>(game: &Game, persistent_state: &'s mut PersistentState) -> SearchContext<'s> {
-        SearchContext::new(
-            game,
-            &persistent_state.tt,
-            &persistent_state.tablebase,
-            &mut persistent_state.history_table,
-            TimeControl::Infinite,
-            None,
-            &EngineOptions::DEFAULT,
-        )
-    }
+    use crate::chess::{game::Game, square::squares::all::*};
 
     #[test]
     fn test_movepicker_does_not_double_yield_best_move() {
@@ -290,11 +272,10 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_picker = MovePicker::new(Some(Move::quiet(G1, F3)));
+        let mut history_table = HistoryTable::new();
+        let tables = Tables::new(&mut history_table);
 
-        let mut persistent_state = PersistentState::new(16);
-        let ctx = get_ctx(&game, &mut persistent_state);
-
-        while let Some(m) = move_picker.next(&game, &ctx, 0) {
+        while let Some(m) = move_picker.next(&game, &tables, 0) {
             moves.push(m);
         }
 
@@ -310,11 +291,10 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
+        let mut history_table = HistoryTable::new();
+        let tables = Tables::new(&mut history_table);
 
-        let mut persistent_state = PersistentState::new(16);
-        let ctx = get_ctx(&game, &mut persistent_state);
-
-        while let Some(m) = move_provider.next(&game, &ctx, 0) {
+        while let Some(m) = move_provider.next(&game, &tables, 0) {
             moves.push(m);
         }
 
@@ -331,11 +311,10 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
+        let mut history_table = HistoryTable::new();
+        let tables = Tables::new(&mut history_table);
 
-        let mut persistent_state = PersistentState::new(16);
-        let ctx = get_ctx(&game, &mut persistent_state);
-
-        while let Some(m) = move_provider.next(&game, &ctx, 0) {
+        while let Some(m) = move_provider.next(&game, &tables, 0) {
             moves.push(m);
         }
 
@@ -352,11 +331,10 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
+        let mut history_table = HistoryTable::new();
+        let tables = Tables::new(&mut history_table);
 
-        let mut persistent_state = PersistentState::new(16);
-        let ctx = get_ctx(&game, &mut persistent_state);
-
-        while let Some(m) = move_provider.next(&game, &ctx, 0) {
+        while let Some(m) = move_provider.next(&game, &tables, 0) {
             moves.push(m);
         }
 
@@ -372,11 +350,10 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new_loud();
+        let mut history_table = HistoryTable::new();
+        let tables = Tables::new(&mut history_table);
 
-        let mut persistent_state = PersistentState::new(16);
-        let ctx = get_ctx(&game, &mut persistent_state);
-
-        while let Some(m) = move_provider.next(&game, &ctx, 0) {
+        while let Some(m) = move_provider.next(&game, &tables, 0) {
             moves.push(m);
         }
 
@@ -391,13 +368,12 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(Some(Move::quiet(D8, E7)));
+        let mut history_table = HistoryTable::new();
+        let mut tables = Tables::new(&mut history_table);
 
-        let mut persistent_state = PersistentState::new(16);
-        let mut ctx = get_ctx(&game, &mut persistent_state);
+        tables.killer_moves.set(0, Move::quiet(B7, D5));
 
-        ctx.killer_moves.set(0, Move::quiet(B7, D5));
-
-        while let Some(m) = move_provider.next(&game, &ctx, 0) {
+        while let Some(m) = move_provider.next(&game, &tables, 0) {
             moves.push(m);
         }
 

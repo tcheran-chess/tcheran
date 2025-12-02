@@ -4,7 +4,7 @@ pub mod move_picker;
 mod negamax;
 mod principal_variation;
 mod quiescence;
-mod tables;
+pub mod tables;
 pub mod time_control;
 
 use std::{
@@ -22,7 +22,7 @@ use crate::{
         search::{
             move_picker::MovePicker,
             principal_variation::PrincipalVariation,
-            tables::{CountermoveTable, HistoryTable, KillersTable},
+            tables::{HistoryTable, Tables},
             time_control::{StopControl, TimeStrategy},
         },
         tablebases::{Tablebase, Wdl},
@@ -104,7 +104,7 @@ pub(crate) struct SearchContext<'s> {
     pub tt: &'s TranspositionTable,
     pub tablebase: &'s Tablebase,
 
-    pub history_table: &'s mut HistoryTable,
+    pub tables: Tables<'s>,
 
     pub nnue: NetworkStack,
 
@@ -112,9 +112,6 @@ pub(crate) struct SearchContext<'s> {
 
     #[expect(unused, reason = "Not used yet")]
     pub options: &'s EngineOptions,
-
-    pub killer_moves: KillersTable,
-    pub countermove_table: CountermoveTable,
 
     nodes_visited: u64,
     max_depth_reached: u8,
@@ -135,16 +132,13 @@ impl<'s> SearchContext<'s> {
             tt,
             tablebase,
 
-            history_table,
+            tables: Tables::new(history_table),
 
             nnue: NetworkStack::from_board(&game.board),
 
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
 
             options,
-
-            killer_moves: KillersTable::new(),
-            countermove_table: CountermoveTable::new(),
 
             max_depth_reached: 0,
             nodes_visited: 0,
@@ -357,7 +351,7 @@ fn panic_move(game: &Game, ctx: &SearchContext<'_>) -> Move {
     let mut move_picker = MovePicker::new(None);
 
     move_picker
-        .next(game, ctx, 0)
+        .next(game, &ctx.tables, 0)
         .unwrap_or_else(|| panic!("No valid moves in position {}", game.to_fen()))
 }
 

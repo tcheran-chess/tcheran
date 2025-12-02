@@ -11,6 +11,23 @@ use crate::{
     engine::search::MAX_SEARCH_DEPTH_SIZE,
 };
 
+pub struct Tables<'s> {
+    pub history_table: &'s mut HistoryTable,
+
+    pub killer_moves: KillersTable,
+    pub countermove_table: CountermoveTable,
+}
+
+impl<'s> Tables<'s> {
+    pub fn new(history_table: &'s mut HistoryTable) -> Self {
+        Self {
+            history_table,
+            killer_moves: KillersTable::new(),
+            countermove_table: CountermoveTable::new(),
+        }
+    }
+}
+
 pub struct KillersTable([Option<Move>; MAX_SEARCH_DEPTH_SIZE]);
 
 impl KillersTable {

@@ -9,7 +9,7 @@ pub mod time_control;
 
 use std::{
     cell::RefCell,
-    sync::atomic::{AtomicU64, Ordering},
+    sync::atomic::AtomicU64,
     thread,
     time::{Duration, Instant},
 };
@@ -28,6 +28,7 @@ use crate::{
         tablebases::{Tablebase, Wdl},
         transposition_table::TranspositionTable,
         util,
+        util::buffered_atomic_counter::BufferedAtomicU64,
     },
 };
 
@@ -113,9 +114,9 @@ pub(crate) struct SearchContext<'s> {
     #[expect(unused, reason = "Not used yet")]
     pub options: &'s EngineOptions,
 
-    nodes_visited: u64,
     max_depth_reached: u8,
-    tbhits: u64,
+    nodes_visited: BufferedAtomicU64<'s>,
+    tbhits: BufferedAtomicU64<'s>,
 }
 
 impl<'s> SearchContext<'s> {
@@ -124,6 +125,8 @@ impl<'s> SearchContext<'s> {
         tt: &'s TranspositionTable,
         tablebase: &'s Tablebase,
         history_table: &'s mut HistoryTable,
+        node_counter: &'s AtomicU64,
+        tbhits_counter: &'s AtomicU64,
         time_control: TimeControl,
         stop_control: Option<StopControl>,
         options: &'s EngineOptions,
@@ -141,8 +144,8 @@ impl<'s> SearchContext<'s> {
             options,
 
             max_depth_reached: 0,
-            nodes_visited: 0,
-            tbhits: 0,
+            nodes_visited: BufferedAtomicU64::new(node_counter),
+            tbhits: BufferedAtomicU64::new(tbhits_counter),
         }
     }
 }
@@ -232,8 +235,6 @@ impl Reporter for CapturingReporter {
     fn best_move(&self, _: &Game, _: Move) {}
 }
 
-pub static ALL_NODE_COUNT: AtomicU64 = AtomicU64::new(0);
-
 pub fn search(
     game: &Game,
     persistent_state: &mut PersistentState,
@@ -273,7 +274,8 @@ pub fn search(
     }
 
     let threads_stop_control = StopControl::new();
-    ALL_NODE_COUNT.store(0, Ordering::Relaxed);
+    let global_node_count = AtomicU64::new(0);
+    let global_tbhits_count = AtomicU64::new(0);
 
     thread::scope(|scope| {
         let mut threads = Vec::new();
@@ -284,6 +286,8 @@ pub fn search(
             let tt = &persistent_state.tt;
             let tablebase = &persistent_state.tablebase;
             let this_thread_stop_control = threads_stop_control.clone();
+            let global_node_count = &global_node_count;
+            let global_tbhits_count = &global_tbhits_count;
             let mut thread_history = persistent_state.history_table.clone();
 
             let thread = scope.spawn(move || {
@@ -292,6 +296,8 @@ pub fn search(
                     tt,
                     tablebase,
                     &mut thread_history,
+                    global_node_count,
+                    global_tbhits_count,
                     TimeControl::Infinite,
                     Some(this_thread_stop_control),
                     options,
@@ -313,6 +319,8 @@ pub fn search(
             &persistent_state.tt,
             &persistent_state.tablebase,
             &mut persistent_state.history_table,
+            &global_node_count,
+            &global_tbhits_count,
             time_control,
             stop_control,
             options,

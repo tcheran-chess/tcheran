@@ -12,10 +12,10 @@ pub fn quiescence(
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
     ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
-    ctx.nodes_visited += 1;
+    ctx.nodes_visited.incr();
 
     // Check periodically to see if we're out of time.
-    ctx.time_control.update(ctx.nodes_visited);
+    ctx.time_control.update(ctx.nodes_visited.get());
     if ctx.time_control.stopped() {
         return Eval::MIN;
     }

@@ -262,7 +262,7 @@ pub fn score_quiet(game: &Game, mv: Move, history: &HistoryTable) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::{game::Game, square::squares::all::*};
+    use crate::chess::square::squares::all::*;
 
     #[test]
     fn test_movepicker_does_not_double_yield_best_move() {

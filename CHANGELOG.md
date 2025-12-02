@@ -17,6 +17,7 @@
 # Misc
 
 * Ported the transposition table to an implementation that can be shared between threads
+* The default transposition table size is now 16MB
 
 ## [8.0]
 

@@ -1,5 +1,5 @@
 pub mod defaults {
-    pub const HASH_SIZE: usize = 256;
+    pub const HASH_SIZE: usize = 16;
     pub const THREADS: usize = 1;
     pub const MOVE_OVERHEAD: usize = 0;
     pub const SYZYGY_PATH: Option<String> = None;

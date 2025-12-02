@@ -128,7 +128,7 @@ impl<'s> SearchContext<'s> {
         node_counter: &'s AtomicU64,
         tbhits_counter: &'s AtomicU64,
         time_control: TimeControl,
-        stop_control: Option<StopControl>,
+        stop_control: StopControl,
         options: &'s EngineOptions,
     ) -> Self {
         Self {
@@ -239,7 +239,7 @@ pub fn search(
     game: &Game,
     persistent_state: &mut PersistentState,
     time_control: TimeControl,
-    stop_control: Option<StopControl>,
+    stop_control: StopControl,
     options: &EngineOptions,
     reporter: &impl Reporter,
 ) -> Move {
@@ -299,7 +299,7 @@ pub fn search(
                     global_node_count,
                     global_tbhits_count,
                     TimeControl::Infinite,
-                    Some(this_thread_stop_control),
+                    this_thread_stop_control,
                     options,
                 );
 

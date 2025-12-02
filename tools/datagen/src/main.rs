@@ -17,7 +17,9 @@ use engine::{
     engine::{
         eval::{Eval, WhiteEval},
         options::EngineOptions,
-        search::{CapturingReporter, PersistentState, TimeControl, search},
+        search::{
+            CapturingReporter, PersistentState, TimeControl, search, time_control::StopControl,
+        },
         tablebases::{Tablebase, Wdl},
         util::log,
     },
@@ -344,7 +346,8 @@ fn search_position(
     let options = EngineOptions::DEFAULT;
     let reporter = CapturingReporter::new();
 
-    let best_move = search(game, persistent_state, time_control, None, &options, &reporter);
+    let best_move =
+        search(game, persistent_state, time_control, StopControl::new(), &options, &reporter);
 
     (best_move, reporter.eval())
 }

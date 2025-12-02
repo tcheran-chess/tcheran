@@ -7,7 +7,9 @@ use crate::{
     engine::{
         eval::Eval,
         options::EngineOptions,
-        search::{CapturingReporter, PersistentState, TimeControl, search},
+        search::{
+            CapturingReporter, PersistentState, TimeControl, search, time_control::StopControl,
+        },
     },
 };
 
@@ -22,7 +24,7 @@ fn test_expected_move(fen: &str, depth: u8, mv: (Square, Square)) -> (Move, Eval
         &game,
         &mut persistent_state,
         TimeControl::Depth(depth),
-        None,
+        StopControl::new(),
         &EngineOptions::DEFAULT,
         &capturing_reporter,
     );

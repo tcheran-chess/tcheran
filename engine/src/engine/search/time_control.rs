@@ -27,7 +27,7 @@ pub(crate) struct TimeStrategy {
 
     next_check_at: u64,
 
-    control: Option<StopControl>,
+    control: StopControl,
 }
 
 #[derive(Clone)]
@@ -55,7 +55,7 @@ impl TimeStrategy {
     pub fn new(
         game: &Game,
         time_control: TimeControl,
-        control: Option<StopControl>,
+        control: StopControl,
         options: &EngineOptions,
     ) -> Self {
         let now = Instant::now();
@@ -205,10 +205,6 @@ impl TimeStrategy {
     }
 
     fn is_force_stopped(&self) -> bool {
-        let Some(control) = &self.control else {
-            return false;
-        };
-
-        control.should_stop()
+        self.control.should_stop()
     }
 }

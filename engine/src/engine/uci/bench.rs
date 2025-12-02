@@ -9,7 +9,7 @@ use crate::{
     engine::{
         options::EngineOptions,
         search,
-        search::{CapturingReporter, PersistentState, TimeControl},
+        search::{CapturingReporter, PersistentState, TimeControl, time_control::StopControl},
     },
 };
 
@@ -123,7 +123,7 @@ pub fn bench(depth: Option<u8>) -> (u64, Duration) {
             &game,
             &mut persistent_state,
             TimeControl::Depth(depth),
-            None,
+            StopControl::new(),
             &EngineOptions::DEFAULT,
             &bench_reporter,
         );

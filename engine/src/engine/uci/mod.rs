@@ -319,10 +319,10 @@ impl Uci {
                     time_control = TimeControl::Nodes(*n);
                 }
 
-                self.control = Some(StopControl::new());
+                let stop_control = StopControl::new();
+                self.control = Some(stop_control.clone());
 
                 let persistent_state = self.persistent_state.clone();
-                let control = self.control.clone();
                 let is_stopped = self.is_stopped.clone();
 
                 let join_handle = std::thread::spawn(move || {
@@ -332,7 +332,7 @@ impl Uci {
                         &game,
                         &mut persistent_state_handle,
                         time_control,
-                        control,
+                        stop_control,
                         &options,
                         &reporter,
                     );

@@ -19,6 +19,7 @@
 * Ported the transposition table to an implementation that can be shared between threads
 * The default transposition table size is now 16MB
 * Networks are now stored outside of the repository and downloaded during build if needed
+* Fixed a bug that would cause datagen to occasionally generate drawn starting positions
 
 ## [8.0]
 

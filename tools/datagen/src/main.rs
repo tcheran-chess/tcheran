@@ -19,6 +19,7 @@ use engine::{
         options::EngineOptions,
         search::{CapturingReporter, PersistentState, TimeControl, search},
         tablebases::{Tablebase, Wdl},
+        util::log,
     },
 };
 use jiff::{SpanRound, ToSpan, Unit};
@@ -304,6 +305,11 @@ fn random_starting_position(rand: &mut impl Rng) -> Result<Game, ()> {
     // The last move we made may have ended the game.
     let moves = game.moves();
     if moves.is_empty() {
+        return Err(());
+    }
+
+    if game.is_draw() {
+        log::crashlog(format!("Datagen generated a drawn starting position: {}", game.to_fen()));
         return Err(());
     }
 

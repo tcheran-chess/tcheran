@@ -308,18 +308,18 @@ pub fn negamax(
         if move_score > best_eval {
             best_move = Some(mv);
             best_eval = move_score;
-        }
 
-        // Cutoff: This move is so good that our opponent won't let it be played.
-        if move_score >= beta {
-            tt_node_bound = NodeBound::Lower;
-            break;
-        }
+            // Cutoff: This move is so good that our opponent won't let it be played.
+            if move_score >= beta {
+                tt_node_bound = NodeBound::Lower;
+                break;
+            }
 
-        if move_score > alpha {
-            alpha = move_score;
-            tt_node_bound = NodeBound::Exact;
-            pv.push(mv, &node_pv);
+            if move_score > alpha {
+                alpha = move_score;
+                tt_node_bound = NodeBound::Exact;
+                pv.push(mv, &node_pv);
+            }
         }
 
         // Only add to the tried lists if the move didn't cause a cutoff

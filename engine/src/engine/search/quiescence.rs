@@ -62,15 +62,15 @@ pub fn quiescence(
 
         if move_score > best_eval {
             best_eval = move_score;
-        }
 
-        // Cutoff: This move is so good that our opponent won't let it be played.
-        if move_score >= beta {
-            break;
-        }
+            // Cutoff: This move is so good that our opponent won't let it be played.
+            if move_score >= beta {
+                break;
+            }
 
-        if move_score > alpha {
-            alpha = move_score;
+            if move_score > alpha {
+                alpha = move_score;
+            }
         }
     }
 

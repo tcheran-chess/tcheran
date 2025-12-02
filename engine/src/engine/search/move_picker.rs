@@ -270,6 +270,16 @@ mod tests {
         },
     };
 
+    fn get_ctx<'s>(game: &Game, persistent_state: &'s mut PersistentState) -> SearchContext<'s> {
+        SearchContext::new(
+            game,
+            persistent_state,
+            TimeControl::Infinite,
+            None,
+            &EngineOptions::DEFAULT,
+        )
+    }
+
     #[test]
     fn test_movepicker_does_not_double_yield_best_move() {
         crate::init();
@@ -280,13 +290,7 @@ mod tests {
         let mut move_picker = MovePicker::new(Some(Move::quiet(G1, F3)));
 
         let mut persistent_state = PersistentState::new(16);
-        let ctx = SearchContext::new(
-            &game,
-            &mut persistent_state,
-            TimeControl::Infinite,
-            None,
-            &EngineOptions::DEFAULT,
-        );
+        let ctx = get_ctx(&game, &mut persistent_state);
 
         while let Some(m) = move_picker.next(&game, &ctx, 0) {
             moves.push(m);
@@ -306,13 +310,7 @@ mod tests {
         let mut move_provider = MovePicker::new(None);
 
         let mut persistent_state = PersistentState::new(16);
-        let ctx = SearchContext::new(
-            &game,
-            &mut persistent_state,
-            TimeControl::Infinite,
-            None,
-            &EngineOptions::DEFAULT,
-        );
+        let ctx = get_ctx(&game, &mut persistent_state);
 
         while let Some(m) = move_provider.next(&game, &ctx, 0) {
             moves.push(m);
@@ -333,13 +331,7 @@ mod tests {
         let mut move_provider = MovePicker::new(None);
 
         let mut persistent_state = PersistentState::new(16);
-        let ctx = SearchContext::new(
-            &game,
-            &mut persistent_state,
-            TimeControl::Infinite,
-            None,
-            &EngineOptions::DEFAULT,
-        );
+        let ctx = get_ctx(&game, &mut persistent_state);
 
         while let Some(m) = move_provider.next(&game, &ctx, 0) {
             moves.push(m);
@@ -360,13 +352,7 @@ mod tests {
         let mut move_provider = MovePicker::new(None);
 
         let mut persistent_state = PersistentState::new(16);
-        let ctx = SearchContext::new(
-            &game,
-            &mut persistent_state,
-            TimeControl::Infinite,
-            None,
-            &EngineOptions::DEFAULT,
-        );
+        let ctx = get_ctx(&game, &mut persistent_state);
 
         while let Some(m) = move_provider.next(&game, &ctx, 0) {
             moves.push(m);
@@ -386,13 +372,7 @@ mod tests {
         let mut move_provider = MovePicker::new_loud();
 
         let mut persistent_state = PersistentState::new(16);
-        let ctx = SearchContext::new(
-            &game,
-            &mut persistent_state,
-            TimeControl::Infinite,
-            None,
-            &EngineOptions::DEFAULT,
-        );
+        let ctx = get_ctx(&game, &mut persistent_state);
 
         while let Some(m) = move_provider.next(&game, &ctx, 0) {
             moves.push(m);
@@ -411,13 +391,7 @@ mod tests {
         let mut move_provider = MovePicker::new(Some(Move::quiet(D8, E7)));
 
         let mut persistent_state = PersistentState::new(16);
-        let mut ctx = SearchContext::new(
-            &game,
-            &mut persistent_state,
-            TimeControl::Infinite,
-            None,
-            &EngineOptions::DEFAULT,
-        );
+        let mut ctx = get_ctx(&game, &mut persistent_state);
 
         ctx.killer_moves.set(0, Move::quiet(B7, D5));
 

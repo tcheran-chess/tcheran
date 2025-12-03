@@ -263,8 +263,7 @@ struct Network {
     output_bias: i16,
 }
 
-static NETWORK: Network =
-    unsafe { std::mem::transmute(*include_bytes!("../../../../data/network-108b5.bin")) };
+static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
 
 #[derive(Clone)]
 pub struct NNUE {

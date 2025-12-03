@@ -1,27 +1,63 @@
 use std::{
     env,
     path::{Path, PathBuf},
+    process::Command,
 };
 
-const NETWORK: &str = "network-108b5.bin";
+const NETWORK: &str = "v9-108b5024.nnue";
+const DOWNLOAD_URL: &str =
+    "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks/v9-108b5024.nnue";
 
 fn main() {
-    set_network_env_var();
+    let network_file = setup_network();
+    println!("cargo:rustc-env=NETWORK={}", network_file.display());
+
     build_fathom();
 }
 
-fn set_network_env_var() {
-    let mut path =
-        env::var("EVALFILE").map_or_else(|_| Path::new("data").join(NETWORK), PathBuf::from);
-
-    if path.is_relative() {
-        path = Path::new(env!("CARGO_MANIFEST_DIR"))
-            .parent()
-            .expect("Should be able to find engine/..")
-            .join(path);
+fn setup_network() -> PathBuf {
+    // OpenBench might provide us with a file (by setting EVALFILE)
+    // If so, check that it exists - but just use that.
+    if let Ok(eval_file) = env::var("EVALFILE") {
+        let path = relative_to_project_root(&eval_file);
+        assert!(path.exists(), "EVALFILE was {}, but not found at {}", &eval_file, path.display());
+        return path;
     }
 
-    println!("cargo:rustc-env=NETWORK={}", path.display());
+    let path = relative_to_project_root(Path::new("data").join(NETWORK));
+    if !path.exists() {
+        download_network(&path);
+    }
+
+    path
+}
+
+fn relative_to_project_root(path: impl Into<PathBuf>) -> PathBuf {
+    let path = path.into();
+
+    if !path.is_relative() {
+        return path;
+    }
+
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("Should be able to find engine/..")
+        .join(path)
+}
+
+fn download_network(download_to: &Path) {
+    let download_succeeded = Command::new("curl")
+        .args(vec![
+            "--location",
+            "--create-dirs",
+            "--output",
+            &download_to.display().to_string(),
+            DOWNLOAD_URL,
+        ])
+        .status()
+        .unwrap();
+
+    assert!(download_succeeded.success(), "Unable to download network");
 }
 
 fn build_fathom() {

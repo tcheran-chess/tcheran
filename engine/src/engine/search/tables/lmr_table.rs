@@ -1,7 +1,6 @@
-static mut LMR_TABLE: [[u8; 64]; 64] = [[0; 64]; 64];
+use crate::engine::search::params;
 
-const LMR_BASE: f32 = 0.75;
-const LMR_FACTOR: f32 = 2.25;
+static mut LMR_TABLE: [[u8; 64]; 64] = [[0; 64]; 64];
 
 pub fn lmr_reduction(depth: u8, move_count: usize) -> u8 {
     let depth = depth as usize;
@@ -18,8 +17,8 @@ pub fn init() {
     unsafe {
         for (depth, table) in LMR_TABLE.iter_mut().enumerate().skip(1) {
             for (move_count, reduction) in table.iter_mut().enumerate().skip(1) {
-                *reduction = (LMR_BASE
-                    + f32::ln(depth as f32) * f32::ln(move_count as f32) / LMR_FACTOR)
+                *reduction = (params::LMR_BASE
+                    + f32::ln(depth as f32) * f32::ln(move_count as f32) / params::LMR_FACTOR)
                     as u8;
             }
         }

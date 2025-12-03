@@ -29,7 +29,8 @@ use rand::{Rng, prelude::IndexedRandom};
 
 const DATA_DIR: &str = "datagen";
 
-const DEFAULT_DEPTH: u8 = 8;
+const DEFAULT_NODES: u64 = 20000;
+const DEFAULT_HARD_NODES_FACTOR: u64 = 8;
 const DEFAULT_STARTING_MOVES: usize = 8;
 const ADJUDICATION_THRESHOLD: i32 = 2000;
 const DRAW_THRESHOLD: i32 = 10;
@@ -58,14 +59,16 @@ mod stats {
 struct Cli {
     games: usize,
     threads: usize,
-    depth: Option<u8>,
+    nodes: Option<u64>,
 
     #[clap(long)]
     syzygy_path: Option<PathBuf>,
 }
 
 enum DatagenMode {
+    #[expect(unused, reason = "Not available through CLI")]
     Depth(u8),
+    Nodes(u64),
 }
 
 struct DatagenConfig {
@@ -329,7 +332,14 @@ fn acceptable_starting_position(rand: &mut impl Rng, states: &mut PlayerStates) 
 
         let state = states.for_player(game.player);
 
-        let (_, eval) = search_position(&game, TimeControl::Depth(DEFAULT_DEPTH), state);
+        let (_, eval) = search_position(
+            &game,
+            TimeControl::Nodes {
+                soft: DEFAULT_NODES,
+                hard: DEFAULT_NODES * DEFAULT_HARD_NODES_FACTOR,
+            },
+            state,
+        );
         if eval.0.abs() >= UNBALANCED_STARTING_EVAL {
             continue;
         }
@@ -548,6 +558,10 @@ fn play_game(
 
     let time_control = match config.mode {
         DatagenMode::Depth(d) => TimeControl::Depth(d),
+        DatagenMode::Nodes(nodes) => TimeControl::Nodes {
+            soft: nodes,
+            hard: nodes * DEFAULT_HARD_NODES_FACTOR,
+        },
     };
 
     states.reset();
@@ -595,7 +609,7 @@ pub fn main() -> ExitCode {
 }
 
 fn get_config_from_args(args: &Cli) -> DatagenConfig {
-    let mode = DatagenMode::Depth(args.depth.unwrap_or(DEFAULT_DEPTH));
+    let mode = DatagenMode::Nodes(args.nodes.unwrap_or(DEFAULT_NODES));
     let tb = args.syzygy_path.as_ref().map(|p| load_tablebases(p));
 
     DatagenConfig {

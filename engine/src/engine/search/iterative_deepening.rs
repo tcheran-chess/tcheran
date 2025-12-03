@@ -22,7 +22,7 @@ pub fn search(
     ctx.max_depth_reached = 0;
 
     for depth in 1..=MAX_SEARCH_DEPTH {
-        if !ctx.time_control.should_start_new_search(depth) {
+        if !ctx.time_control.should_start_new_search(depth, ctx) {
             break;
         }
 

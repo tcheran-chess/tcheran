@@ -151,7 +151,7 @@ pub enum TimeControl {
     Clocks(Clocks),
     ExactTime(Duration),
     Depth(u8),
-    Nodes(u32),
+    Nodes { soft: u64, hard: u64 },
     Infinite,
 }
 

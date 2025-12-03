@@ -10,7 +10,7 @@ use crate::{
     chess::{game::Game, moves::Move, player::Player},
     engine::{
         options::EngineOptions,
-        search::{TimeControl, params},
+        search::{SearchContext, TimeControl, params},
     },
 };
 
@@ -65,10 +65,8 @@ impl TimeStrategy {
 
         let mut soft_stop = Duration::default();
         let mut hard_stop = Duration::default();
-        let mut next_check_at = CHECK_TERMINATION_NODE_FREQUENCY;
 
         match time_control {
-            TimeControl::Infinite | TimeControl::Depth(_) => {}
             TimeControl::ExactTime(move_time) => {
                 soft_stop = move_time;
                 hard_stop = move_time;
@@ -105,7 +103,7 @@ impl TimeStrategy {
                     max_time_per_move,
                 );
             }
-            TimeControl::Nodes(n) => next_check_at = u64::from(n),
+            TimeControl::Infinite | TimeControl::Depth(_) | TimeControl::Nodes { .. } => {}
         }
 
         Self {
@@ -119,7 +117,7 @@ impl TimeStrategy {
             last_best_move: None,
             best_move_stability: 0,
 
-            next_check_at,
+            next_check_at: CHECK_TERMINATION_NODE_FREQUENCY,
 
             control,
         }
@@ -129,7 +127,7 @@ impl TimeStrategy {
         self.started_at.elapsed()
     }
 
-    pub fn should_start_new_search(&self, depth: u8) -> bool {
+    pub fn should_start_new_search(&self, depth: u8, ctx: &SearchContext<'_>) -> bool {
         if depth == 1 {
             return true;
         }
@@ -139,7 +137,7 @@ impl TimeStrategy {
         }
 
         match self.time_control {
-            TimeControl::Infinite | TimeControl::Nodes(_) => true,
+            TimeControl::Infinite => true,
             TimeControl::Clocks(_) => {
                 let soft_stop = if depth > params::BEST_MOVE_STABILITY_INITIAL_DEPTH {
                     self.soft_stop.mul_f32(
@@ -153,6 +151,7 @@ impl TimeStrategy {
             }
             TimeControl::ExactTime(time) => self.elapsed() < time,
             TimeControl::Depth(d) => d >= depth,
+            TimeControl::Nodes { soft, .. } => soft == 0 || ctx.nodes_visited.get() <= soft,
         }
     }
 
@@ -189,7 +188,11 @@ impl TimeStrategy {
                     self.stop();
                 }
             }
-            TimeControl::Nodes(_) => self.stop(),
+            TimeControl::Nodes { hard, .. } => {
+                if hard > 0 && nodes_visited > hard {
+                    self.stop();
+                }
+            }
             TimeControl::Infinite | TimeControl::Depth(_) => {}
         }
     }

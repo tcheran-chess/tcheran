@@ -316,7 +316,10 @@ impl Uci {
                 }
 
                 if let Some(n) = nodes {
-                    time_control = TimeControl::Nodes(*n);
+                    time_control = TimeControl::Nodes {
+                        hard: u64::from(*n),
+                        soft: 0,
+                    };
                 }
 
                 let stop_control = StopControl::new();

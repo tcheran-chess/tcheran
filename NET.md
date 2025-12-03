@@ -25,3 +25,4 @@ All data used for training is self-play data generated using the datagen code fr
 | -       | (768->768)x2->1    | WDL 0.3, LR 0.001, 40 batches  | -6.57 +- 5.52     | Attempt to up to 768 HL nodes in case we're overfitting |
 | -       | (768->768)x2->1    | WDL 0.3, LR 0.001, 40 batches  | 20.83 +- 9.53 at 40k fixed nodes    | Test of the above at fixed nodes |
 | 9       | (768->768)x2->1    | WDL 0.4, LR 0.001, 40 batches  | 27.05 +- 9.85     | Increasing WDL to 0.4 with 768 HL nodes  |
+| -       | (768->1024)x2->1   | WDL 0.4, LR 0.001, 40 batches  | -2.34 +- 3.81     | Attempted to increase HL to 1024 without changing any other training params |

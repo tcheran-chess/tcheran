@@ -10,7 +10,7 @@ use crate::{
     chess::{
         game::Game,
         moves::{Move, MoveList},
-        piece::PieceKind,
+        piece::{Piece, PieceKind},
         player::Player,
         square::Square,
     },
@@ -22,6 +22,7 @@ pub struct Tables {
     pub capture_history: Box<CaptureHistoryTable>,
     pub killer_moves: KillersTable,
     pub countermoves: Box<CountermoveTable>,
+    pub conthist: Box<ContHistTable>,
 }
 
 impl Tables {
@@ -31,6 +32,7 @@ impl Tables {
             capture_history: CaptureHistoryTable::new(),
             killer_moves: KillersTable::new(),
             countermoves: CountermoveTable::new(),
+            conthist: ContHistTable::new(),
         }
     }
 
@@ -164,5 +166,64 @@ impl CountermoveTable {
 
     pub fn get(&self, player: Player, previous_move: Move) -> Option<Move> {
         self.0[player][previous_move.src()][previous_move.dst()]
+    }
+}
+
+pub struct ContHistTable([[[[i16; Square::N]; Piece::N]; Square::N]; Piece::N]);
+
+impl ContHistTable {
+    const MAX: i32 = 16384;
+
+    pub fn new() -> Box<Self> {
+        alloc_boxed()
+    }
+
+    pub fn get(
+        &self,
+        game: &Game,
+        previous_piece_moved: Piece,
+        previous_moved_to: Square,
+        mv: Move,
+    ) -> i32 {
+        let moved = game.board.piece_guaranteed_at(mv.src());
+        i32::from(self.0[previous_piece_moved][previous_moved_to][moved][mv.dst()])
+    }
+
+    fn update_for_move(
+        &mut self,
+        previous_piece_moved: Piece,
+        previous_moved_to: Square,
+        moved: Piece,
+        moved_to: Square,
+        bonus: i16,
+    ) {
+        let old = &mut self.0[previous_piece_moved][previous_moved_to][moved][moved_to];
+        *old = taper_bonus(bonus, *old, Self::MAX);
+    }
+
+    pub fn update(
+        &mut self,
+        game: &Game,
+        previous_piece_moved: Piece,
+        previous_move: Move,
+        mv: Move,
+        depth: u8,
+        quiets_tried: &MoveList,
+    ) {
+        let bonus = history_bonus(depth);
+
+        let moved = game.board.piece_guaranteed_at(mv.src());
+        self.update_for_move(previous_piece_moved, previous_move.dst(), moved, mv.dst(), bonus);
+
+        for quiet_tried in quiets_tried {
+            let try_moved = game.board.piece_guaranteed_at(quiet_tried.src());
+            self.update_for_move(
+                previous_piece_moved,
+                previous_move.dst(),
+                try_moved,
+                quiet_tried.dst(),
+                -bonus,
+            );
+        }
     }
 }

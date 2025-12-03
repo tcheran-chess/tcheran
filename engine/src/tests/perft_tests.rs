@@ -1,6 +1,6 @@
 use crate::{
     chess::{fen::START_POS, game::Game, movegen, moves::MoveList, perft::perft},
-    engine::search::{move_picker::MovePicker, tables::Tables},
+    engine::search::{SearchStack, move_picker::MovePicker, tables::Tables},
 };
 
 const ENABLE_MOVEPICKER_PERFT: bool = false;
@@ -22,7 +22,12 @@ fn test_perft_default(fen: &str, depth: u8, expected_positions: usize) {
     assert_eq!(expected_positions, actual_positions);
 }
 
-fn movepicker_perft(depth: u8, game: &mut Game, tables: &mut Tables) -> usize {
+fn movepicker_perft(
+    depth: u8,
+    game: &mut Game,
+    tables: &mut Tables,
+    stack: &mut SearchStack,
+) -> usize {
     if depth == 0 {
         return 1;
     }
@@ -59,9 +64,9 @@ fn movepicker_perft(depth: u8, game: &mut Game, tables: &mut Tables) -> usize {
 
     let mut moves_at_this_node = Vec::new();
     let mut movepicker = MovePicker::new(best_move);
-    while let Some(mv) = movepicker.next(game, tables, depth) {
+    while let Some(mv) = movepicker.next(game, tables, stack, depth) {
         game.make_move(mv);
-        moves += movepicker_perft(depth - 1, game, tables);
+        moves += movepicker_perft(depth - 1, game, tables, stack);
         game.undo_move();
 
         moves_at_this_node.push(mv);
@@ -97,7 +102,8 @@ fn movepicker_perft(depth: u8, game: &mut Game, tables: &mut Tables) -> usize {
 
 fn test_perft_with_movepicker(fen: &str, depth: u8, expected_positions: usize) {
     let mut game = Game::from_fen(fen).unwrap();
-    let actual_positions = movepicker_perft(depth, &mut game, &mut Tables::new());
+    let actual_positions =
+        movepicker_perft(depth, &mut game, &mut Tables::new(), &mut SearchStack::new());
 
     assert_eq!(expected_positions, actual_positions);
 }

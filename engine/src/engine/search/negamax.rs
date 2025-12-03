@@ -197,8 +197,9 @@ pub fn negamax(
             let reduction = params::NULL_MOVE_PRUNING_BASE_REDUCTION
                 + depth / params::NULL_MOVE_PRUNING_REDUCTION_FACTOR;
 
-            game.make_null_move();
             ctx.stack.get(plies).mv = None;
+
+            game.make_null_move();
 
             let null_score = -negamax(
                 game,
@@ -268,7 +269,7 @@ pub fn negamax(
     let mut captures_tried = MoveList::new();
     let mut quiets_tried = MoveList::new();
 
-    while let Some(mv) = moves.next(game, ctx.tables, plies) {
+    while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
         if Some(mv) == excluded_mv {
             continue;
         }
@@ -321,10 +322,11 @@ pub fn negamax(
             moves.yield_only_tacticals();
         }
 
+        ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.src())));
         ctx.nnue.push(&game.board, mv);
+
         game.make_move(mv);
         number_of_legal_moves += 1;
-        ctx.stack.get(plies).mv = Some(mv);
 
         let extension = if Some(mv) == singular_extension_candidate {
             singular_extension
@@ -445,8 +447,19 @@ pub fn negamax(
             if !mv.is_capture() {
                 ctx.tables.killer_moves.set(plies, mv);
 
-                if let Some(previous_move) = game.history.last().and_then(|h| h.mv) {
-                    ctx.tables.countermoves.set(game.player, previous_move, mv);
+                if let Some(last_ply) = ctx.stack.get_prev(plies, 1)
+                    && let Some((last_move, last_moved)) = last_ply.mv
+                {
+                    ctx.tables.countermoves.set(game.player, last_move, mv);
+
+                    ctx.tables.conthist.update(
+                        game,
+                        last_moved,
+                        last_move,
+                        mv,
+                        depth,
+                        &quiets_tried,
+                    );
                 }
 
                 ctx.tables

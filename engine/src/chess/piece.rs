@@ -63,6 +63,8 @@ pub struct Piece {
 }
 
 impl Piece {
+    pub const N: usize = 12;
+
     pub const WHITE_PAWN: Self = Self::white(PieceKind::Pawn);
     pub const WHITE_KNIGHT: Self = Self::white(PieceKind::Knight);
     pub const WHITE_BISHOP: Self = Self::white(PieceKind::Bishop);
@@ -87,6 +89,10 @@ impl Piece {
 
     const fn black(kind: PieceKind) -> Self {
         Self::new(Player::Black, kind)
+    }
+
+    const fn idx(self) -> usize {
+        self.kind as usize + PieceKind::N * self.player as usize
     }
 
     pub fn char(&self) -> char {
@@ -116,5 +122,19 @@ impl Piece {
                 Player::Black => '♔',
             },
         }
+    }
+}
+
+impl<T> std::ops::Index<Piece> for [T; Piece::N] {
+    type Output = T;
+
+    fn index(&self, piece: Piece) -> &Self::Output {
+        unsafe { self.get_unchecked(piece.idx()) }
+    }
+}
+
+impl<T> std::ops::IndexMut<Piece> for [T; Piece::N] {
+    fn index_mut(&mut self, piece: Piece) -> &mut Self::Output {
+        unsafe { self.get_unchecked_mut(piece.idx()) }
     }
 }

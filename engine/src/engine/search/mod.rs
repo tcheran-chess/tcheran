@@ -15,7 +15,7 @@ use std::{
 };
 
 use crate::{
-    chess::{game::Game, moves::Move},
+    chess::{game::Game, moves::Move, piece::Piece},
     engine::{
         eval::{Eval, nnue::NetworkStack},
         options::EngineOptions,
@@ -233,7 +233,7 @@ impl SearchStack {
 
 #[derive(Clone)]
 pub struct SearchStackEntry {
-    mv: Option<Move>,
+    mv: Option<(Move, Piece)>,
     eval: Eval,
 
     excluded_mv: Option<Move>,
@@ -493,7 +493,7 @@ fn panic_move(game: &Game, ctx: &SearchContext<'_>) -> Move {
     let mut move_picker = MovePicker::new(None);
 
     move_picker
-        .next(game, ctx.tables, 0)
+        .next(game, ctx.tables, ctx.stack, 0)
         .unwrap_or_else(|| panic!("No valid moves in position {}", game.to_fen()))
 }
 

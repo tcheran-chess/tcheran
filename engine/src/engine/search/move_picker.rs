@@ -8,7 +8,10 @@ use crate::{
     },
     engine::{
         eval::Eval,
-        search::tables::{CaptureHistoryTable, Tables},
+        search::{
+            SearchStack,
+            tables::{CaptureHistoryTable, Tables},
+        },
         see::see,
     },
 };
@@ -102,7 +105,13 @@ impl MovePicker {
         }
     }
 
-    pub fn next(&mut self, game: &Game, tables: &Tables, plies: u8) -> Option<Move> {
+    pub fn next(
+        &mut self,
+        game: &Game,
+        tables: &Tables,
+        stack: &SearchStack,
+        plies: u8,
+    ) -> Option<Move> {
         use GenStage::*;
 
         if self.stage == BestMove {
@@ -198,7 +207,7 @@ impl MovePicker {
 
             if !self.only_tacticals {
                 for entry in &mut self.moves {
-                    entry.score = score_quiet(game, entry.mv, tables);
+                    entry.score = score_quiet(game, entry.mv, tables, stack, plies);
                 }
             }
         }
@@ -261,8 +270,15 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
     i32::MAX - 100 - moved_piece.kind as i32
 }
 
-pub fn score_quiet(game: &Game, mv: Move, tables: &Tables) -> i32 {
-    tables.quiet_history.get(game, mv)
+pub fn score_quiet(game: &Game, mv: Move, tables: &Tables, stack: &SearchStack, plies: u8) -> i32 {
+    let conthist1_bonus = stack
+        .get_prev(plies, 1)
+        .and_then(|s| s.mv)
+        .map_or(0, |(prev_move, prev_moved)| {
+            tables.conthist.get(game, prev_moved, prev_move.dst(), mv)
+        });
+
+    tables.quiet_history.get(game, mv) + conthist1_bonus
 }
 
 #[cfg(test)]
@@ -279,7 +295,7 @@ mod tests {
         let mut moves: Vec<Move> = Vec::new();
         let mut move_picker = MovePicker::new(Some(Move::quiet(G1, F3)));
 
-        while let Some(m) = move_picker.next(&game, &Tables::new(), 0) {
+        while let Some(m) = move_picker.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);
         }
 
@@ -296,7 +312,7 @@ mod tests {
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
 
-        while let Some(m) = move_provider.next(&game, &Tables::new(), 0) {
+        while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);
         }
 
@@ -314,7 +330,7 @@ mod tests {
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
 
-        while let Some(m) = move_provider.next(&game, &Tables::new(), 0) {
+        while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);
         }
 
@@ -332,7 +348,7 @@ mod tests {
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
 
-        while let Some(m) = move_provider.next(&game, &Tables::new(), 0) {
+        while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);
         }
 
@@ -349,7 +365,7 @@ mod tests {
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new_loud(None);
 
-        while let Some(m) = move_provider.next(&game, &Tables::new(), 0) {
+        while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);
         }
 
@@ -368,7 +384,7 @@ mod tests {
         let mut tables = Tables::new();
         tables.killer_moves.set(0, Move::quiet(B7, D5));
 
-        while let Some(m) = move_provider.next(&game, &tables, 0) {
+        while let Some(m) = move_provider.next(&game, &tables, &SearchStack::new(), 0) {
             moves.push(m);
         }
 

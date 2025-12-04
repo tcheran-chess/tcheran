@@ -238,15 +238,6 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
     Ok(UciCommand::Go(go_args))
 }
 
-fn cmd_d_position(args: &[&str]) -> Result<UciCommand, ()> {
-    if args.is_empty() {
-        return Err(());
-    }
-
-    let position = args.join(" ");
-    Ok(UciCommand::D(DebugCommand::SetPosition { position }))
-}
-
 fn cmd_d_move(args: &[&str]) -> Result<UciCommand, ()> {
     if args.is_empty() {
         return Err(());
@@ -288,7 +279,6 @@ fn cmd_d(args: &[&str]) -> Result<UciCommand, ()> {
 
     match subcommand {
         "fen" => no_args_command(UciCommand::D(DebugCommand::PrintPosition), subcommand_args),
-        "position" => cmd_d_position(subcommand_args),
         "move" => cmd_d_move(subcommand_args),
         "perft" => cmd_d_perft(subcommand_args),
         "perftdiv" => cmd_d_perft_div(subcommand_args),

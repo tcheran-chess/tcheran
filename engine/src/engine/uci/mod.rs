@@ -359,17 +359,6 @@ impl Uci {
                     println!("FEN: {}", self.game.to_fen());
                     println!();
                 }
-                DebugCommand::SetPosition { position } => match position.as_str() {
-                    "kiwipete" => {
-                        self.game = Game::from_fen(
-                            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -",
-                        )
-                        .unwrap();
-
-                        println!("{:?}", self.game.board);
-                    }
-                    _ => return Err("Unknown debug position".to_owned()),
-                },
                 DebugCommand::Move { moves } => {
                     for mv in moves {
                         let matching_move =

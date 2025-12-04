@@ -23,16 +23,8 @@ pub struct GoCmdArguments {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone)]
-pub enum DebugCommand {
-    PrintPosition,
-    Perft { depth: u8 },
-    PerftDiv { depth: u8 },
-    Move { moves: Vec<UciMove> },
-    Eval,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum UciCommand {
+    // Canon UCI commands
     Uci,
     Debug(bool),
     IsReady,
@@ -46,10 +38,25 @@ pub enum UciCommand {
         moves: Vec<UciMove>,
     },
     Go(GoCmdArguments),
-    D(DebugCommand),
     Stop,
     PonderHit,
+
+    // OpenBench UCI commands
     Bench,
     BenchNodes,
+
+    // Extra debug UCI commands
+    PrintPosition,
+    Perft {
+        depth: u8,
+    },
+    PerftDiv {
+        depth: u8,
+    },
+    Move {
+        moves: Vec<UciMove>,
+    },
+    Eval,
+
     Quit,
 }

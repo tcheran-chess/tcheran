@@ -37,7 +37,7 @@ use crate::{
         options::EngineOptions,
         search,
         search::{Clocks, PersistentState, Reporter, TimeControl, time_control::StopControl},
-        uci::{bench::bench, commands::DebugCommand, options::UciOption},
+        uci::{bench::bench, options::UciOption},
         util,
         util::sync::LockLatch,
     },
@@ -353,124 +353,122 @@ impl Uci {
 
                 self.control = None;
             }
-            UciCommand::D(debug_cmd) => match debug_cmd {
-                DebugCommand::PrintPosition => {
-                    println!("{:?}", self.game.board);
-                    println!("FEN: {}", self.game.to_fen());
-                    println!();
-                }
-                DebugCommand::Move { moves } => {
-                    for mv in moves {
-                        let matching_move =
-                            self.game
-                                .moves()
-                                .expect_matching(mv.src, mv.dst, mv.promotion);
+            UciCommand::PrintPosition => {
+                println!("{:?}", self.game.board);
+                println!("FEN: {}", self.game.to_fen());
+                println!();
+            }
+            UciCommand::Move { moves } => {
+                for mv in moves {
+                    let matching_move =
+                        self.game
+                            .moves()
+                            .expect_matching(mv.src, mv.dst, mv.promotion);
 
-                        self.game.make_move(matching_move);
+                    self.game.make_move(matching_move);
+                }
+
+                println!("{:?}", self.game.board);
+                println!("FEN: {}", crate::chess::fen::write(&self.game));
+                println!();
+            }
+            UciCommand::Perft { depth } => {
+                let started_at = Instant::now();
+                let result = perft::perft(*depth, &mut self.game);
+                let time_taken = started_at.elapsed();
+
+                let nodes_per_second =
+                    util::metrics::nodes_per_second(u64::try_from(result).unwrap(), time_taken);
+
+                println!("positions: {result}");
+                println!("time taken: {time_taken:?}");
+                println!("nps: {nodes_per_second:?}");
+                println!();
+            }
+            UciCommand::PerftDiv { depth } => {
+                let result = perft::perft_div(*depth, &mut self.game);
+                let mut total = 0;
+
+                for (mv, number_for_mv) in result {
+                    println!("{mv:?}: {number_for_mv}");
+                    total += number_for_mv;
+                }
+
+                println!("total: {total}");
+                println!();
+            }
+            UciCommand::Eval => {
+                let mut nnue = NNUE::from_board(&self.game.board);
+
+                let mut piece_contributions: [WhiteEval; Square::N] = [WhiteEval(0); Square::N];
+                for sq in Bitboard::FULL {
+                    let Some(piece) = self.game.board.piece_at(sq) else {
+                        continue;
+                    };
+                    if piece.kind == PieceKind::King {
+                        continue;
                     }
 
-                    println!("{:?}", self.game.board);
-                    println!("FEN: {}", crate::chess::fen::write(&self.game));
-                    println!();
+                    piece_contributions[sq] = nnue
+                        .approx_contribution(&self.game.clone(), sq, Player::White)
+                        .to_white_eval(Player::White);
                 }
-                DebugCommand::Perft { depth } => {
-                    let started_at = Instant::now();
-                    let result = perft::perft(*depth, &mut self.game);
-                    let time_taken = started_at.elapsed();
 
-                    let nodes_per_second =
-                        util::metrics::nodes_per_second(u64::try_from(result).unwrap(), time_taken);
+                println!("┌───────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┐");
 
-                    println!("positions: {result}");
-                    println!("time taken: {time_taken:?}");
-                    println!("nps: {nodes_per_second:?}");
-                    println!();
-                }
-                DebugCommand::PerftDiv { depth } => {
-                    let result = perft::perft_div(*depth, &mut self.game);
-                    let mut total = 0;
+                for rank in Rank::ALL.iter().rev() {
+                    print!("│");
 
-                    for (mv, number_for_mv) in result {
-                        println!("{mv:?}: {number_for_mv}");
-                        total += number_for_mv;
-                    }
+                    for file in File::ALL {
+                        let sq = Square::from_file_and_rank(file, *rank);
+                        let piece = self.game.board.piece_at(sq);
 
-                    println!("total: {total}");
-                    println!();
-                }
-                DebugCommand::Eval => {
-                    let mut nnue = NNUE::from_board(&self.game.board);
-
-                    let mut piece_contributions: [WhiteEval; Square::N] = [WhiteEval(0); Square::N];
-                    for sq in Bitboard::FULL {
-                        let Some(piece) = self.game.board.piece_at(sq) else {
-                            continue;
-                        };
-                        if piece.kind == PieceKind::King {
-                            continue;
+                        match piece {
+                            Some(piece) => print!("   {}   ", piece.char()),
+                            None => print!("       "),
                         }
-
-                        piece_contributions[sq] = nnue
-                            .approx_contribution(&self.game.clone(), sq, Player::White)
-                            .to_white_eval(Player::White);
-                    }
-
-                    println!("┌───────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┐");
-
-                    for rank in Rank::ALL.iter().rev() {
-                        print!("│");
-
-                        for file in File::ALL {
-                            let sq = Square::from_file_and_rank(file, *rank);
-                            let piece = self.game.board.piece_at(sq);
-
-                            match piece {
-                                Some(piece) => print!("   {}   ", piece.char()),
-                                None => print!("       "),
-                            }
-
-                            print!("│");
-                        }
-
-                        println!();
 
                         print!("│");
-
-                        for file in File::ALL {
-                            let sq = Square::from_file_and_rank(file, *rank);
-                            let piece = self.game.board.piece_at(sq);
-
-                            match piece {
-                                Some(piece) if piece.kind != PieceKind::King => {
-                                    print!("{: ^7}", piece_contributions[sq].to_string());
-                                }
-                                _ => print!("       "),
-                            }
-
-                            print!("│");
-                        }
-
-                        println!();
-
-                        if *rank == Rank::R1 {
-                            println!(
-                                "└───────┴───────┴───────┴───────┴───────┴───────┴───────┴───────┘"
-                            );
-                        } else {
-                            println!(
-                                "├───────┼───────┼───────┼───────┼───────┼───────┼───────┼───────┤"
-                            );
-                        }
                     }
 
                     println!();
-                    println!(
-                        "Evaluation: {}",
-                        nnue.evaluate(Player::White).to_white_eval(Player::White)
-                    );
+
+                    print!("│");
+
+                    for file in File::ALL {
+                        let sq = Square::from_file_and_rank(file, *rank);
+                        let piece = self.game.board.piece_at(sq);
+
+                        match piece {
+                            Some(piece) if piece.kind != PieceKind::King => {
+                                print!("{: ^7}", piece_contributions[sq].to_string());
+                            }
+                            _ => print!("       "),
+                        }
+
+                        print!("│");
+                    }
+
                     println!();
+
+                    if *rank == Rank::R1 {
+                        println!(
+                            "└───────┴───────┴───────┴───────┴───────┴───────┴───────┴───────┘"
+                        );
+                    } else {
+                        println!(
+                            "├───────┼───────┼───────┼───────┼───────┼───────┼───────┼───────┤"
+                        );
+                    }
                 }
-            },
+
+                println!();
+                println!(
+                    "Evaluation: {}",
+                    nnue.evaluate(Player::White).to_white_eval(Player::White)
+                );
+                println!();
+            }
             UciCommand::PonderHit => {}
             // For OpenBench to understand NPS values for different workers
             UciCommand::Bench => {

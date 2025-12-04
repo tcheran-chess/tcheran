@@ -6,10 +6,7 @@ use crate::{
         piece::PromotionPieceKind,
         square::{File, Rank, Square},
     },
-    engine::uci::{
-        UciMove,
-        commands::{DebugCommand, Position},
-    },
+    engine::uci::{UciMove, commands::Position},
 };
 
 fn boolean(input: &str) -> Result<bool, ()> {
@@ -238,7 +235,7 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
     Ok(UciCommand::Go(go_args))
 }
 
-fn cmd_d_move(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_move(args: &[&str]) -> Result<UciCommand, ()> {
     if args.is_empty() {
         return Err(());
     }
@@ -248,43 +245,25 @@ fn cmd_d_move(args: &[&str]) -> Result<UciCommand, ()> {
         .map(|m| uci_move(m))
         .collect::<Result<Vec<UciMove>, ()>>()?;
 
-    Ok(UciCommand::D(DebugCommand::Move { moves }))
+    Ok(UciCommand::Move { moves })
 }
 
-fn cmd_d_perft(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_perft(args: &[&str]) -> Result<UciCommand, ()> {
     if args.len() != 1 {
         return Err(());
     }
 
     let depth = args[0].parse::<u8>().map_err(|_| ())?;
-    Ok(UciCommand::D(DebugCommand::Perft { depth }))
+    Ok(UciCommand::Perft { depth })
 }
 
-fn cmd_d_perft_div(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_perft_div(args: &[&str]) -> Result<UciCommand, ()> {
     if args.len() != 1 {
         return Err(());
     }
 
     let depth = args[0].parse::<u8>().map_err(|_| ())?;
-    Ok(UciCommand::D(DebugCommand::PerftDiv { depth }))
-}
-
-fn cmd_d(args: &[&str]) -> Result<UciCommand, ()> {
-    if args.is_empty() {
-        return Err(());
-    }
-
-    let subcommand = args[0];
-    let subcommand_args = &args[1..];
-
-    match subcommand {
-        "fen" => no_args_command(UciCommand::D(DebugCommand::PrintPosition), subcommand_args),
-        "move" => cmd_d_move(subcommand_args),
-        "perft" => cmd_d_perft(subcommand_args),
-        "perftdiv" => cmd_d_perft_div(subcommand_args),
-        "eval" => no_args_command(UciCommand::D(DebugCommand::Eval), subcommand_args),
-        _ => Err(()),
-    }
+    Ok(UciCommand::PerftDiv { depth })
 }
 
 #[expect(clippy::result_unit_err, reason = "Improved error reporting is planned")]
@@ -307,9 +286,16 @@ pub fn parse(input: &str) -> Result<UciCommand, ()> {
         "go" => cmd_go(args),
         "stop" => no_args_command(UciCommand::Stop, args),
         "ponderhit" => no_args_command(UciCommand::PonderHit, args),
+
         "bench" => no_args_command(UciCommand::Bench, args),
         "benchnodes" => no_args_command(UciCommand::BenchNodes, args),
-        "d" => cmd_d(args),
+
+        "pos" => no_args_command(UciCommand::PrintPosition, args),
+        "move" => cmd_move(args),
+        "perft" => cmd_perft(args),
+        "perftdiv" => cmd_perft_div(args),
+        "eval" => no_args_command(UciCommand::Eval, args),
+
         "quit" => no_args_command(UciCommand::Quit, args),
         _ => Err(()),
     }

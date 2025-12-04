@@ -12,7 +12,7 @@ use crate::{
 
 // Network parameters
 const FEATURES: usize = 768;
-const HIDDEN_SIZE: usize = 768;
+const HIDDEN_SIZE: usize = 1024;
 
 // Quantization factors
 const QA: i32 = 255;

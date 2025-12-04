@@ -53,18 +53,6 @@ pub fn negamax(
     let is_root = plies == 0;
     let is_pv = alpha != beta - Eval(1);
 
-    // Check periodically to see if we're out of time.
-    ctx.time_control.update(ctx.nodes_visited);
-    if ctx.time_control.stopped() {
-        return Eval::MIN;
-    }
-
-    ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
-
-    if !is_root && game.is_draw() {
-        return Eval::DRAW;
-    }
-
     // Check extension: If we're about to finish searching, but we are in check, we
     // should keep going.
     let in_check = game.is_king_in_check();
@@ -72,12 +60,29 @@ pub fn negamax(
         depth += 1;
     }
 
-    if depth == 0 || plies == MAX_SEARCH_DEPTH {
+    if depth == 0 {
         return quiescence(game, alpha, beta, plies, ctx);
     }
 
+    ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
     if !is_root {
         ctx.nodes_visited += 1;
+    }
+
+    // Check periodically to see if we're out of time.
+    ctx.time_control.update(ctx.nodes_visited);
+    if ctx.time_control.stopped() {
+        return Eval::MIN;
+    }
+
+    if !is_root {
+        if game.is_draw() {
+            return Eval::DRAW;
+        }
+
+        if plies == MAX_SEARCH_DEPTH {
+            return eval::eval(&mut ctx.nnue, game.player);
+        }
     }
 
     let mut previous_best_move: Option<Move> = None;

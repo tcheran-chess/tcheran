@@ -154,30 +154,41 @@ impl TimeStrategy {
         }
     }
 
+    #[inline]
     pub fn stopped(&self) -> bool {
         self.stopped
     }
 
-    pub fn update(&mut self, nodes_visited: u64) {
-        self.stopped = self.should_stop(nodes_visited);
+    #[inline]
+    fn stop(&mut self) {
+        self.stopped = true;
     }
 
-    fn should_stop(&mut self, nodes_visited: u64) -> bool {
-        if nodes_visited < self.next_check_at {
-            return false;
+    pub fn update(&mut self, nodes_visited: u64) {
+        if nodes_visited < self.next_check_at || self.stopped {
+            return;
         }
 
         if self.is_force_stopped() {
-            return true;
+            self.stop();
+            return;
         }
 
         self.next_check_at = nodes_visited + params::CHECK_TERMINATION_NODE_FREQUENCY;
 
         match self.time_control {
-            TimeControl::Clocks(_) => self.elapsed() > self.hard_stop,
-            TimeControl::ExactTime(time) => self.elapsed() > time,
-            TimeControl::Nodes(_) => true,
-            TimeControl::Infinite | TimeControl::Depth(_) => false,
+            TimeControl::Clocks(_) => {
+                if self.elapsed() > self.hard_stop {
+                    self.stop();
+                }
+            }
+            TimeControl::ExactTime(time) => {
+                if self.elapsed() > time {
+                    self.stop();
+                }
+            }
+            TimeControl::Nodes(_) => self.stop(),
+            TimeControl::Infinite | TimeControl::Depth(_) => {}
         }
     }
 

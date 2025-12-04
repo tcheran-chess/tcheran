@@ -81,7 +81,11 @@ pub fn negamax(
         }
 
         if plies == MAX_SEARCH_DEPTH {
-            return eval::eval(&mut ctx.nnue, game.player);
+            return if in_check {
+                Eval::DRAW
+            } else {
+                eval::eval(&mut ctx.nnue, game.player)
+            };
         }
     }
 

@@ -24,8 +24,14 @@ pub fn quiescence(
         return Eval::DRAW;
     }
 
+    let in_check = game.is_king_in_check();
+
     if plies == MAX_SEARCH_DEPTH {
-        return eval::eval(&mut ctx.nnue, game.player);
+        return if in_check {
+            Eval::DRAW
+        } else {
+            eval::eval(&mut ctx.nnue, game.player)
+        };
     }
 
     let eval = eval::eval(&mut ctx.nnue, game.player);

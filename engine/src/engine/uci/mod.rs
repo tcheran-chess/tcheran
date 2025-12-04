@@ -359,13 +359,46 @@ impl Uci {
                 println!();
             }
             UciCommand::Move { moves } => {
-                for mv in moves {
-                    let matching_move =
-                        self.game
-                            .moves()
-                            .expect_matching(mv.src, mv.dst, mv.promotion);
+                let mut validated_moves = vec![];
 
-                    self.game.make_move(matching_move);
+                // Validate that the moves play out correctly
+                {
+                    let mut game = self.game.clone();
+
+                    for mv in moves {
+                        let mut parsed_move: Option<Move> = None;
+
+                        if let Ok(san_move) = san::parse_move(&game, mv) {
+                            parsed_move = Some(san_move);
+                        }
+
+                        if let Ok(uci_move) = parser::uci_move(mv) {
+                            let uci_move = game
+                                .moves()
+                                .into_iter()
+                                .find(|m| {
+                                    m.src() == uci_move.src
+                                        && m.dst() == uci_move.dst
+                                        && m.promotion() == uci_move.promotion
+                                })
+                                .copied();
+
+                            parsed_move = uci_move;
+                        }
+
+                        let Some(parsed_move) = parsed_move else {
+                            println!("Invalid or illegal move: {mv}");
+                            return Ok(ExecuteResult::KeepGoing);
+                        };
+
+                        game.make_move(parsed_move);
+                        validated_moves.push(parsed_move);
+                    }
+                }
+
+                // If we reach this point, we've got a valid list of moves we can make, so make them all
+                for mv in validated_moves {
+                    self.game.make_move(mv);
                 }
 
                 println!("{:?}", self.game.board);

@@ -63,7 +63,8 @@ fn uci_promotion(input: &str) -> Result<PromotionPieceKind, ()> {
     })
 }
 
-fn uci_move(input: &str) -> Result<UciMove, ()> {
+#[expect(clippy::result_unit_err, reason = "No need for a better error message when this fails")]
+pub fn uci_move(input: &str) -> Result<UciMove, ()> {
     Ok(match input.len() {
         len @ 4..=5 => {
             let src = input.get(0..=1).map_or(Err(()), uci_square)?;
@@ -240,12 +241,9 @@ fn cmd_move(args: &[&str]) -> Result<UciCommand, ()> {
         return Err(());
     }
 
-    let moves = args
-        .iter()
-        .map(|m| uci_move(m))
-        .collect::<Result<Vec<UciMove>, ()>>()?;
-
-    Ok(UciCommand::Move { moves })
+    Ok(UciCommand::Move {
+        moves: args.iter().map(ToString::to_string).collect(),
+    })
 }
 
 fn cmd_perft(args: &[&str]) -> Result<UciCommand, ()> {

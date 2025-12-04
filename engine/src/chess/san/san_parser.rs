@@ -32,6 +32,7 @@ pub enum ParseError {
     InvalidRank,
     InvalidPromotionPiece,
     InvalidAmbiguityResolution,
+    InvalidMove,
     NoXInCaptureMove,
 }
 
@@ -134,7 +135,10 @@ fn parse_source_square(game: &Game, src: &str, dst: Square) -> Result<Square, Pa
             .map(|(_, mv)| mv.src())
             .collect();
 
-        assert_eq!(matching_source_squares.len(), 1);
+        if matching_source_squares.len() != 1 {
+            return Err(ParseError::InvalidMove);
+        }
+
         return Ok(*matching_source_squares.iter().next().unwrap());
     }
 
@@ -152,7 +156,10 @@ fn parse_source_square(game: &Game, src: &str, dst: Square) -> Result<Square, Pa
             .map(|(_, mv)| mv.src())
             .collect();
 
-        assert_eq!(matching_source_squares.len(), 1);
+        if matching_source_squares.len() != 1 {
+            return Err(ParseError::InvalidMove);
+        }
+
         return Ok(*matching_source_squares.first().unwrap());
     }
 
@@ -164,7 +171,10 @@ fn parse_source_square(game: &Game, src: &str, dst: Square) -> Result<Square, Pa
         .map(|(_, mv)| mv.src())
         .collect();
 
-    assert_eq!(matching_source_squares.len(), 1);
+    if matching_source_squares.len() != 1 {
+        return Err(ParseError::InvalidMove);
+    }
+
     Ok(*matching_source_squares.first().unwrap())
 }
 

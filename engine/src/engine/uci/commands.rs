@@ -54,7 +54,7 @@ pub enum UciCommand {
         depth: u8,
     },
     Move {
-        moves: Vec<UciMove>,
+        moves: Vec<String>,
     },
     Eval,
 

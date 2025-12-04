@@ -20,6 +20,7 @@
 * The default transposition table size is now 16MB
 * Networks are now stored outside of the repository and downloaded during build if needed
 * Fixed a bug that would cause datagen to occasionally generate drawn starting positions
+* Fixed a bug that would cause datagen to attribute some games drawn by the 50-move rule as lost/won
 
 ## [8.0]
 

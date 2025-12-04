@@ -372,6 +372,18 @@ fn game_result(
         });
     }
 
+    if game.is_repeated_position() {
+        return Some(Draw(DrawType::Repetition));
+    }
+
+    if game.is_stalemate_by_fifty_move_rule() {
+        return Some(Draw(DrawType::FiftyMoves));
+    }
+
+    if game.is_stalemate_by_insufficient_material() {
+        return Some(Draw(DrawType::InsufficientMaterial));
+    }
+
     let nmoves = game.moves().len();
 
     if nmoves == 0 {
@@ -383,18 +395,6 @@ fn game_result(
         } else {
             Draw(DrawType::Stalemate)
         });
-    }
-
-    if game.is_repeated_position() {
-        return Some(Draw(DrawType::Repetition));
-    }
-
-    if game.is_stalemate_by_fifty_move_rule() {
-        return Some(Draw(DrawType::FiftyMoves));
-    }
-
-    if game.is_stalemate_by_insufficient_material() {
-        return Some(Draw(DrawType::InsufficientMaterial));
     }
 
     None

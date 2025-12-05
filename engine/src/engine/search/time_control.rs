@@ -51,6 +51,8 @@ impl StopControl {
     }
 }
 
+const CHECK_TERMINATION_NODE_FREQUENCY: u64 = 2048;
+
 impl TimeStrategy {
     pub fn new(
         game: &Game,
@@ -63,7 +65,7 @@ impl TimeStrategy {
 
         let mut soft_stop = Duration::default();
         let mut hard_stop = Duration::default();
-        let mut next_check_at = params::CHECK_TERMINATION_NODE_FREQUENCY;
+        let mut next_check_at = CHECK_TERMINATION_NODE_FREQUENCY;
 
         match time_control {
             TimeControl::Infinite | TimeControl::Depth(_) => {}
@@ -174,7 +176,7 @@ impl TimeStrategy {
             return;
         }
 
-        self.next_check_at = nodes_visited + params::CHECK_TERMINATION_NODE_FREQUENCY;
+        self.next_check_at = nodes_visited + CHECK_TERMINATION_NODE_FREQUENCY;
 
         match self.time_control {
             TimeControl::Clocks(_) => {

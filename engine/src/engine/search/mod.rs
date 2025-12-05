@@ -38,8 +38,6 @@ pub const MAX_SEARCH_DEPTH_SIZE: usize = MAX_SEARCH_DEPTH as usize;
 mod params {
     use crate::engine::eval::Eval;
 
-    pub const CHECK_TERMINATION_NODE_FREQUENCY: u64 = 10000;
-
     pub const ASPIRATION_MIN_DEPTH: u8 = 5;
     pub const ASPIRATION_WINDOW_SIZE: Eval = Eval::new(25);
 

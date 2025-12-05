@@ -19,7 +19,7 @@ const QA: i32 = 255;
 const QB: i32 = 64;
 
 // Eval scaling factor
-pub const SCALE: i32 = 400;
+pub const SCALE: i32 = 172;
 
 #[derive(Clone)]
 enum FeatureChanges {

@@ -17,6 +17,7 @@
   the engine to crash when other engines made these moves. (-0.09 +- 2.24)
   While neutral, this occurred once in every ~1543 games in the SPRT test.
 * Fixed a couple of bugs that could (very infrequently) cause time losses.
+* Adjust the network scaling factor so that reported scores are less inflated
 
 # Misc
 

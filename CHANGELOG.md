@@ -8,12 +8,10 @@
 * Remove the depth limit for null move pruning (5.26 +- 3.83)
 * Stop using Result to indicate stopped searches (1.80 +- 3.53)
 * Simplify down to one killer move (1.75 +- 2.69)
-
 * Fixed a bug that caused en-passant moves to not be generated when
   our king and an enemy rook or queen were on the en-passant file and
   the engine to crash when other engines made these moves. (-0.09 +- 2.24)
   While neutral, this occurred once in every ~1543 games in the SPRT test.
-
 * Fixed a couple of bugs that could (very infrequently) cause time losses.
 
 # Misc

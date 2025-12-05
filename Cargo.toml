@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["engine", "tools/datagen", "tools/zobrist", "tools/sprt"]
+members = ["engine", "tools/datagen", "tools/zobrist", "tools/sprt", "tools/nnue_scaling"]
 
 [workspace.package]
 version = "8.0.0"

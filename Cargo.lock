@@ -416,6 +416,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "nnue-scaling"
+version = "0.0.0"
+dependencies = [
+ "clap",
+ "engine",
+ "rand 0.9.2",
+]
+
+[[package]]
 name = "num-bigint"
 version = "0.4.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -11,6 +11,8 @@ const DOWNLOAD_URL: &str =
 fn main() {
     let network_file = setup_network();
     println!("cargo:rustc-env=NETWORK={}", network_file.display());
+    println!("cargo:rerun-if-env-changed=EVALFILE");
+    println!("cargo:rerun-if-changed=data/{NETWORK}");
 
     build_fathom();
 }

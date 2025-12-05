@@ -5,8 +5,8 @@ use std::{
 };
 
 const NETWORK: &str = "v9-108b5024.nnue";
-const DOWNLOAD_URL: &str =
-    "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks/v9-108b5024.nnue";
+const DOWNLOAD_BASE_URL: &str =
+    "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks";
 
 fn main() {
     let network_file = setup_network();
@@ -54,7 +54,7 @@ fn download_network(download_to: &Path) {
             "--create-dirs",
             "--output",
             &download_to.display().to_string(),
-            DOWNLOAD_URL,
+            &format!("{}/{}", DOWNLOAD_BASE_URL, NETWORK),
         ])
         .status()
         .unwrap();

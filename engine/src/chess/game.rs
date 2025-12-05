@@ -205,6 +205,14 @@ impl Game {
         }
     }
 
+    // Zugzwang is more likely to occur in King and Pawn endgames
+    pub fn zugzwang_likely(&self) -> bool {
+        let player = self.player;
+
+        self.board.occupancy_for(player)
+            == self.board.king_square(player).bb() | self.board.pawns(player)
+    }
+
     #[inline(always)]
     pub fn is_king_in_check(&self) -> bool {
         self.checkers.any()

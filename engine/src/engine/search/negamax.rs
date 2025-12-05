@@ -164,6 +164,7 @@ pub fn negamax(
         if eval >= beta
             // Don't let a player play a null move in response to a null move
             && game.history.last().is_none_or(|m| m.mv.is_some())
+            && !game.zugzwang_likely()
         {
             let reduction = params::NULL_MOVE_PRUNING_BASE_REDUCTION
                 + depth / params::NULL_MOVE_PRUNING_REDUCTION_FACTOR;

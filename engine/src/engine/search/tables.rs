@@ -7,7 +7,11 @@ pub fn init() {
 use std::cmp::min;
 
 use crate::{
-    chess::{moves::Move, player::Player, square::Square},
+    chess::{
+        moves::{Move, MoveList},
+        player::Player,
+        square::Square,
+    },
     engine::search::MAX_SEARCH_DEPTH_SIZE,
 };
 
@@ -74,19 +78,19 @@ impl HistoryTable {
         i32::from(self.0[player][mv.src()][mv.dst()])
     }
 
-    fn update(&mut self, player: Player, mv: Move, bonus: i16) {
+    fn update_for_move(&mut self, player: Player, mv: Move, bonus: i16) {
         let old = &mut self.0[player][mv.src()][mv.dst()];
         *old = taper_bonus(bonus, *old, Self::MAX);
     }
 
-    pub fn add_bonus_for(&mut self, player: Player, mv: Move, depth: u8) {
+    pub fn update(&mut self, player: Player, mv: Move, depth: u8, other_quiets_tried: &MoveList) {
         let bonus = history_bonus(depth);
-        self.update(player, mv, bonus);
-    }
 
-    pub fn add_malus_for(&mut self, player: Player, mv: Move, depth: u8) {
-        let malus = -history_bonus(depth);
-        self.update(player, mv, malus);
+        self.update_for_move(player, mv, bonus);
+
+        for other_quiet in other_quiets_tried {
+            self.update_for_move(player, *other_quiet, -bonus);
+        }
     }
 }
 

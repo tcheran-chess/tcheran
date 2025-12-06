@@ -352,13 +352,7 @@ pub fn negamax(
 
             ctx.tables
                 .history_table
-                .add_bonus_for(game.player, mv, depth);
-
-            for non_cutoff_quiet in &quiets_tried {
-                ctx.tables
-                    .history_table
-                    .add_malus_for(game.player, *non_cutoff_quiet, depth);
-            }
+                .update(game.player, mv, depth, &quiets_tried);
         }
     }
 

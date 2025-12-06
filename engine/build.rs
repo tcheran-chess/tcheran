@@ -54,7 +54,7 @@ fn download_network(download_to: &Path) {
             "--create-dirs",
             "--output",
             &download_to.display().to_string(),
-            &format!("{}/{}", DOWNLOAD_BASE_URL, NETWORK),
+            &format!("{DOWNLOAD_BASE_URL}/{NETWORK}"),
         ])
         .status()
         .unwrap();

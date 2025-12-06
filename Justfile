@@ -47,6 +47,10 @@ bench:
 		echo "$new_bench" > .bench
 	fi
 
+train:
+    cargo run --release --package trainer
+
+
 ################################## Tests ######################################
 
 test:

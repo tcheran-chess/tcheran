@@ -1,6 +1,13 @@
 [workspace]
 resolver = "3"
-members = ["engine", "tools/datagen", "tools/zobrist", "tools/sprt", "tools/nnue_scaling"]
+members = [
+    "engine",
+    "tools/datagen",
+    "tools/zobrist",
+    "tools/sprt",
+    "tools/nnue_scaling",
+    "tools/trainer"
+]
 
 [workspace.package]
 version = "8.0.0"

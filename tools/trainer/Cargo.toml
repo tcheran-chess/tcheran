@@ -1,0 +1,9 @@
+[package]
+name = "trainer"
+version = "0.0.0"
+rust-version = { workspace = true }
+edition = { workspace = true }
+
+[dependencies]
+bullet_lib = { git = "https://github.com/jw1912/bullet", package = "bullet_lib", features = ["cpu"], default-features = false }
+viriformat = "2.0.1"

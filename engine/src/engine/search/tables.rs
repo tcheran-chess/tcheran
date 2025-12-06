@@ -107,7 +107,7 @@ impl HistoryTable {
 pub struct CaptureHistoryTable([[[[i16; PieceKind::N]; Square::N]; PieceKind::N]; Player::N]);
 
 impl CaptureHistoryTable {
-    const MAX: i32 = 8192;
+    pub const MAX: i32 = 8192;
 
     pub const fn new() -> Self {
         Self([[[[0; PieceKind::N]; Square::N]; PieceKind::N]; Player::N])

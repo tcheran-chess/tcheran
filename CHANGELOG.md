@@ -9,6 +9,7 @@
 * Don't do null move pruning in positions with zugzwang potential (5.70 +- 3.94)
 * Remove the depth limit for null move pruning (5.26 +- 3.83)
 * Add capture history (4.99 +- 3.69)
+* Use strict MVV order before caphist (3.15 +- 2.54)
 * Stop using Result to indicate stopped searches (1.80 +- 3.53)
 * Simplify down to one killer move (1.75 +- 2.69)
 * Fixed a bug that caused en-passant moves to not be generated when

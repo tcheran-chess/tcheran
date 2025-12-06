@@ -7,7 +7,11 @@ use crate::{
         moves::{MAX_LEGAL_MOVES, Move},
         piece::PieceKind,
     },
-    engine::{eval::Eval, search::tables::Tables, see::see},
+    engine::{
+        eval::Eval,
+        search::tables::{CaptureHistoryTable, Tables},
+        see::see,
+    },
 };
 
 #[derive(Eq, PartialEq, PartialOrd, Ord)]
@@ -217,7 +221,14 @@ impl MovePicker {
     }
 }
 
-const PIECE_VALUES: [i32; PieceKind::N] = [100, 300, 300, 500, 900, 10000];
+const MVV_ORDER: [i32; PieceKind::N] = [
+    0,
+    CaptureHistoryTable::MAX,
+    CaptureHistoryTable::MAX * 2,
+    CaptureHistoryTable::MAX * 3,
+    CaptureHistoryTable::MAX * 4,
+    CaptureHistoryTable::MAX * 5,
+];
 
 pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
     let moved_piece = game.board.piece_guaranteed_at(mv.src());
@@ -229,7 +240,7 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
             game.board.piece_guaranteed_at(mv.dst()).kind
         };
 
-        return 32 * PIECE_VALUES[captured_piece_kind]
+        return MVV_ORDER[captured_piece_kind]
             + tables.capture_history.get(
                 game.player,
                 moved_piece.kind,

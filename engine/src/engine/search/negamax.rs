@@ -372,7 +372,7 @@ pub fn negamax(
 
             ctx.tables
                 .quiet_history
-                .update(game.player, mv, depth, &quiets_tried);
+                .update(game, mv, depth, &quiets_tried);
         }
     }
 

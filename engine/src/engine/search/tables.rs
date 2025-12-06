@@ -74,31 +74,37 @@ const fn taper_bonus(bonus: i16, old: i16, max: i32) -> i16 {
 }
 
 #[derive(Clone)]
-pub struct HistoryTable([[[i16; Square::N]; Square::N]; Player::N]);
+pub struct HistoryTable([[[[[i16; 2]; 2]; Square::N]; Square::N]; Player::N]);
 
 impl HistoryTable {
     const MAX: i32 = 8192;
 
     pub const fn new() -> Self {
-        Self([[[0; Square::N]; Square::N]; Player::N])
+        Self([[[[[0; 2]; 2]; Square::N]; Square::N]; Player::N])
     }
 
-    pub fn get(&self, player: Player, mv: Move) -> i32 {
-        i32::from(self.0[player][mv.src()][mv.dst()])
+    pub fn get(&self, game: &Game, mv: Move) -> i32 {
+        let from_threatened = usize::from(game.threats.contains(mv.src()));
+        let to_threatened = usize::from(game.threats.contains(mv.dst()));
+
+        i32::from(self.0[game.player][mv.src()][mv.dst()][from_threatened][to_threatened])
     }
 
-    fn update_for_move(&mut self, player: Player, mv: Move, bonus: i16) {
-        let old = &mut self.0[player][mv.src()][mv.dst()];
+    fn update_for_move(&mut self, game: &Game, mv: Move, bonus: i16) {
+        let from_threatened = usize::from(game.threats.contains(mv.src()));
+        let to_threatened = usize::from(game.threats.contains(mv.dst()));
+
+        let old = &mut self.0[game.player][mv.src()][mv.dst()][from_threatened][to_threatened];
         *old = taper_bonus(bonus, *old, Self::MAX);
     }
 
-    pub fn update(&mut self, player: Player, mv: Move, depth: u8, other_quiets_tried: &MoveList) {
+    pub fn update(&mut self, game: &Game, mv: Move, depth: u8, other_quiets_tried: &MoveList) {
         let bonus = history_bonus(depth);
 
-        self.update_for_move(player, mv, bonus);
+        self.update_for_move(game, mv, bonus);
 
         for other_quiet in other_quiets_tried {
-            self.update_for_move(player, *other_quiet, -bonus);
+            self.update_for_move(game, *other_quiet, -bonus);
         }
     }
 }

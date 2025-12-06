@@ -266,7 +266,7 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
 }
 
 pub fn score_quiet(game: &Game, mv: Move, tables: &Tables) -> i32 {
-    tables.quiet_history.get(game.player, mv)
+    tables.quiet_history.get(game, mv)
 }
 
 #[cfg(test)]

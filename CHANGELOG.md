@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 * Start using the transposition table in quiescence (40.16 +- 11.74)
+* Use threats in quiet move history (9.28 +- 5.28 at LTC with threat calculation, 18.34 +- 7.98 STC excluding threat calculation)
 * Add late move pruning (9.63 +- 5.59)
 
 ## [9.0]

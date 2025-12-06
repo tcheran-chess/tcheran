@@ -2,7 +2,10 @@ use crate::chess::{
     bitboard::{Bitboard, bitboards},
     board::Board,
     fen, movegen,
-    movegen::generate_legal_moves,
+    movegen::{
+        generate_legal_moves,
+        tables::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
+    },
     moves::{Move, MoveList},
     piece::{Piece, PieceKind},
     player::Player,
@@ -83,6 +86,7 @@ pub struct History {
     pub zobrist: ZobristHash,
 
     pub checkers: Bitboard,
+    pub threats: Bitboard,
 }
 
 #[derive(Debug, Clone)]
@@ -98,6 +102,7 @@ pub struct Game {
     pub history: Vec<History>,
 
     pub checkers: Bitboard,
+    pub threats: Bitboard,
 }
 
 impl Game {
@@ -124,12 +129,15 @@ impl Game {
             plies,
 
             checkers,
+            threats: Bitboard::EMPTY,
 
             zobrist: ZobristHash::uninit(),
             history: Vec::new(),
         };
 
         game.zobrist = zobrist::hash(&game);
+        game.update_threats();
+
         game
     }
 
@@ -252,6 +260,33 @@ impl Game {
         movelist
     }
 
+    fn update_threats(&mut self) {
+        let mut threats = Bitboard::EMPTY;
+
+        let blockers = self.board.occupancy();
+        let them = self.player.other();
+
+        for pawn in self.board.pawns(them) {
+            threats |= pawn_attacks(pawn, them);
+        }
+
+        for knight in self.board.knights(them) {
+            threats |= knight_attacks(knight);
+        }
+
+        for diagonal_slider in self.board.diagonal_sliders(them) {
+            threats |= bishop_attacks(diagonal_slider, blockers);
+        }
+
+        for orthogonal_slider in self.board.orthogonal_sliders(them) {
+            threats |= rook_attacks(orthogonal_slider, blockers);
+        }
+
+        threats |= king_attacks(self.board.king_square(them));
+
+        self.threats = threats;
+    }
+
     pub fn make_move(&mut self, mv: Move) {
         let from = mv.src();
         let to = mv.dst();
@@ -271,6 +306,7 @@ impl Game {
             zobrist: self.zobrist,
 
             checkers: self.checkers,
+            threats: self.threats,
         };
 
         self.history.push(history);
@@ -370,6 +406,7 @@ impl Game {
             self.player,
             self.board.king_square(self.player),
         );
+        self.update_threats();
     }
 
     pub fn make_null_move(&mut self) {
@@ -384,6 +421,7 @@ impl Game {
             zobrist: self.zobrist,
 
             checkers: self.checkers,
+            threats: self.threats,
         };
 
         self.history.push(history);
@@ -404,6 +442,7 @@ impl Game {
             self.player,
             self.board.king_square(self.player),
         );
+        self.update_threats();
     }
 
     pub fn undo_move(&mut self) {
@@ -424,6 +463,7 @@ impl Game {
         self.castle_rights = history.castle_rights;
         self.en_passant_target = history.en_passant_target;
         self.checkers = history.checkers;
+        self.threats = history.threats;
 
         // Undo castling, if we castled
         if mv.is_castling()
@@ -466,6 +506,7 @@ impl Game {
         self.en_passant_target = history.en_passant_target;
         self.halfmove_clock = history.halfmove_clock;
         self.checkers = history.checkers;
+        self.threats = history.threats;
     }
 }
 

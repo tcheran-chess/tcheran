@@ -22,7 +22,7 @@ use crate::{
         search::{
             move_picker::MovePicker,
             principal_variation::PrincipalVariation,
-            tables::{HistoryTable, Tables},
+            tables::Tables,
             time_control::{StopControl, TimeStrategy},
         },
         tablebases::{Tablebase, Wdl},
@@ -72,7 +72,7 @@ mod params {
 
 pub struct PersistentState {
     pub tt: TranspositionTable,
-    pub history_table: HistoryTable,
+    pub tables: Tables,
     pub tablebase: Tablebase,
 }
 
@@ -80,7 +80,7 @@ impl PersistentState {
     pub fn new(tt_size_mb: usize) -> Self {
         Self {
             tt: TranspositionTable::new(tt_size_mb),
-            history_table: HistoryTable::new(),
+            tables: Tables::new(),
             tablebase: Tablebase::new(),
         }
     }
@@ -88,22 +88,21 @@ impl PersistentState {
     pub fn with_tablebase(tt_size_mb: usize, tb: &Tablebase) -> Self {
         Self {
             tt: TranspositionTable::new(tt_size_mb),
-            history_table: HistoryTable::new(),
+            tables: Tables::new(),
             tablebase: tb.clone(),
         }
     }
 
     pub fn reset(&mut self) {
         self.tt.reset();
-        self.history_table = HistoryTable::new();
+        self.tables = Tables::new();
     }
 }
 
 pub(crate) struct SearchContext<'s> {
     pub tt: &'s TranspositionTable,
+    pub tables: &'s mut Tables,
     pub tablebase: &'s Tablebase,
-
-    pub tables: Tables<'s>,
 
     pub nnue: NetworkStack,
 
@@ -121,8 +120,8 @@ impl<'s> SearchContext<'s> {
     pub fn new(
         game: &Game,
         tt: &'s TranspositionTable,
+        tables: &'s mut Tables,
         tablebase: &'s Tablebase,
-        history_table: &'s mut HistoryTable,
         node_counter: &'s AtomicU64,
         tbhits_counter: &'s AtomicU64,
         time_control: TimeControl,
@@ -131,9 +130,8 @@ impl<'s> SearchContext<'s> {
     ) -> Self {
         Self {
             tt,
+            tables,
             tablebase,
-
-            tables: Tables::new(history_table),
 
             nnue: NetworkStack::from_board(&game.board),
 
@@ -242,6 +240,7 @@ pub fn search(
     reporter: &impl Reporter,
 ) -> Move {
     persistent_state.tt.new_generation();
+    persistent_state.tables.new_search();
 
     let tablebase_result = persistent_state.tablebase.best_move(game);
     if let Some(mv) = tablebase_result {
@@ -286,14 +285,14 @@ pub fn search(
             let this_thread_stop_control = threads_stop_control.clone();
             let global_node_count = &global_node_count;
             let global_tbhits_count = &global_tbhits_count;
-            let mut thread_history = persistent_state.history_table.clone();
+            let mut thread_tables = persistent_state.tables.clone();
 
             let thread = scope.spawn(move || {
                 let mut ctx = SearchContext::new(
                     game,
                     tt,
+                    &mut thread_tables,
                     tablebase,
-                    &mut thread_history,
                     global_node_count,
                     global_tbhits_count,
                     TimeControl::Infinite,
@@ -315,8 +314,8 @@ pub fn search(
         let mut ctx = SearchContext::new(
             game,
             &persistent_state.tt,
+            &mut persistent_state.tables,
             &persistent_state.tablebase,
-            &mut persistent_state.history_table,
             &global_node_count,
             &global_tbhits_count,
             time_control,
@@ -357,7 +356,7 @@ fn panic_move(game: &Game, ctx: &SearchContext<'_>) -> Move {
     let mut move_picker = MovePicker::new(None);
 
     move_picker
-        .next(game, &ctx.tables, 0)
+        .next(game, ctx.tables, 0)
         .unwrap_or_else(|| panic!("No valid moves in position {}", game.to_fen()))
 }
 

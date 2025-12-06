@@ -7,11 +7,7 @@ use crate::{
         moves::{MAX_LEGAL_MOVES, Move},
         piece::PieceKind,
     },
-    engine::{
-        eval::Eval,
-        search::tables::{HistoryTable, Tables},
-        see::see,
-    },
+    engine::{eval::Eval, search::tables::Tables, see::see},
 };
 
 #[derive(Eq, PartialEq, PartialOrd, Ord)]
@@ -106,7 +102,7 @@ impl MovePicker {
         }
     }
 
-    pub(crate) fn next(&mut self, game: &Game, tables: &Tables<'_>, plies: u8) -> Option<Move> {
+    pub(crate) fn next(&mut self, game: &Game, tables: &Tables, plies: u8) -> Option<Move> {
         use GenStage::*;
 
         if self.stage == BestMove {
@@ -169,7 +165,7 @@ impl MovePicker {
             self.stage = BadTacticals;
 
             if let Some(previous_move) = game.history.last().and_then(|h| h.mv)
-                && let Some(counter_move) = tables.countermove_table.get(game.player, previous_move)
+                && let Some(counter_move) = tables.countermoves.get(game.player, previous_move)
                 && self.moves.remove(counter_move)
                 && Some(counter_move) != self.previous_best_move
             {
@@ -197,7 +193,7 @@ impl MovePicker {
             self.stage = Quiets;
 
             for entry in &mut self.moves {
-                entry.score = score_quiet(game, entry.mv, tables.history_table);
+                entry.score = score_quiet(game, entry.mv, tables);
             }
         }
 
@@ -255,8 +251,8 @@ pub fn score_tactical(game: &Game, mv: Move) -> i32 {
     i32::MAX - LVA_ORDER[moved_piece.kind]
 }
 
-pub fn score_quiet(game: &Game, mv: Move, history: &HistoryTable) -> i32 {
-    history.get(game.player, mv)
+pub fn score_quiet(game: &Game, mv: Move, tables: &Tables) -> i32 {
+    tables.quiet_history.get(game.player, mv)
 }
 
 #[cfg(test)]
@@ -272,10 +268,8 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_picker = MovePicker::new(Some(Move::quiet(G1, F3)));
-        let mut history_table = HistoryTable::new();
-        let tables = Tables::new(&mut history_table);
 
-        while let Some(m) = move_picker.next(&game, &tables, 0) {
+        while let Some(m) = move_picker.next(&game, &Tables::new(), 0) {
             moves.push(m);
         }
 
@@ -291,10 +285,8 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
-        let mut history_table = HistoryTable::new();
-        let tables = Tables::new(&mut history_table);
 
-        while let Some(m) = move_provider.next(&game, &tables, 0) {
+        while let Some(m) = move_provider.next(&game, &Tables::new(), 0) {
             moves.push(m);
         }
 
@@ -311,10 +303,8 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
-        let mut history_table = HistoryTable::new();
-        let tables = Tables::new(&mut history_table);
 
-        while let Some(m) = move_provider.next(&game, &tables, 0) {
+        while let Some(m) = move_provider.next(&game, &Tables::new(), 0) {
             moves.push(m);
         }
 
@@ -331,10 +321,8 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
-        let mut history_table = HistoryTable::new();
-        let tables = Tables::new(&mut history_table);
 
-        while let Some(m) = move_provider.next(&game, &tables, 0) {
+        while let Some(m) = move_provider.next(&game, &Tables::new(), 0) {
             moves.push(m);
         }
 
@@ -350,10 +338,8 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new_loud();
-        let mut history_table = HistoryTable::new();
-        let tables = Tables::new(&mut history_table);
 
-        while let Some(m) = move_provider.next(&game, &tables, 0) {
+        while let Some(m) = move_provider.next(&game, &Tables::new(), 0) {
             moves.push(m);
         }
 
@@ -368,9 +354,8 @@ mod tests {
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(Some(Move::quiet(D8, E7)));
-        let mut history_table = HistoryTable::new();
-        let mut tables = Tables::new(&mut history_table);
 
+        let mut tables = Tables::new();
         tables.killer_moves.set(0, Move::quiet(B7, D5));
 
         while let Some(m) = move_provider.next(&game, &tables, 0) {

@@ -2,10 +2,7 @@ use crate::{
     chess::{
         fen::START_POS, game::Game, movegen, movegen::MovegenCache, moves::MoveList, perft::perft,
     },
-    engine::search::{
-        move_picker::MovePicker,
-        tables::{HistoryTable, Tables},
-    },
+    engine::search::{move_picker::MovePicker, tables::Tables},
 };
 
 const ENABLE_MOVEPICKER_PERFT: bool = false;
@@ -27,7 +24,7 @@ fn test_perft_default(fen: &str, depth: u8, expected_positions: usize) {
     assert_eq!(expected_positions, actual_positions);
 }
 
-fn movepicker_perft(depth: u8, game: &mut Game, tables: &mut Tables<'_>) -> usize {
+fn movepicker_perft(depth: u8, game: &mut Game, tables: &mut Tables) -> usize {
     if depth == 0 {
         return 1;
     }
@@ -105,10 +102,7 @@ fn movepicker_perft(depth: u8, game: &mut Game, tables: &mut Tables<'_>) -> usiz
 
 fn test_perft_with_movepicker(fen: &str, depth: u8, expected_positions: usize) {
     let mut game = Game::from_fen(fen).unwrap();
-    let mut history_table = HistoryTable::new();
-    let mut tables = Tables::new(&mut history_table);
-
-    let actual_positions = movepicker_perft(depth, &mut game, &mut tables);
+    let actual_positions = movepicker_perft(depth, &mut game, &mut Tables::new());
 
     assert_eq!(expected_positions, actual_positions);
 }

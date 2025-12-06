@@ -207,7 +207,7 @@ pub fn negamax(
 
     let mut quiets_tried = MoveList::new();
 
-    while let Some(mv) = moves.next(game, &ctx.tables, plies) {
+    while let Some(mv) = moves.next(game, ctx.tables, plies) {
         node_pv.clear();
 
         // Futility pruning
@@ -345,13 +345,11 @@ pub fn negamax(
             ctx.tables.killer_moves.set(plies, mv);
 
             if let Some(previous_move) = game.history.last().and_then(|h| h.mv) {
-                ctx.tables
-                    .countermove_table
-                    .set(game.player, previous_move, mv);
+                ctx.tables.countermoves.set(game.player, previous_move, mv);
             }
 
             ctx.tables
-                .history_table
+                .quiet_history
                 .update(game.player, mv, depth, &quiets_tried);
         }
     }

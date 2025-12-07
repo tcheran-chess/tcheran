@@ -261,7 +261,7 @@ fn datagen_thread(id: usize, games: usize, dir: &str, config: &DatagenConfig) {
     let data_file = std::fs::File::create(&data_file_name).unwrap();
     let mut buffer = BufWriter::new(&data_file);
 
-    let mut player_states = PlayerStates::new(16, config);
+    let mut player_states = PlayerStates::new(4, config);
 
     for _ in 0..games {
         if STOP.load(Ordering::SeqCst) {

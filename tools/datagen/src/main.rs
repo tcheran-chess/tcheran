@@ -29,7 +29,7 @@ use rand::{Rng, prelude::IndexedRandom};
 
 const DATA_DIR: &str = "datagen";
 
-const DEFAULT_NODES: u64 = 20000;
+const DEFAULT_NODES: u64 = 5_000;
 const DEFAULT_HARD_NODES_FACTOR: u64 = 8;
 const DEFAULT_STARTING_MOVES: usize = 8;
 const ADJUDICATION_THRESHOLD: i32 = 2000;

@@ -21,7 +21,7 @@
 * Fixed a couple of bugs that could (very infrequently) cause time losses.
 * Adjust the network scaling factor so that reported scores are less inflated
 
-# Misc
+### Misc
 
 * Ported the transposition table to an implementation that can be shared between threads
 * The default transposition table size is now 16MB

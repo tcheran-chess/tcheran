@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [9.0]
+
 * Implement support for Threads via Lazy SMP (39.62 +- 11.20 2v1, 105.71 +- 15.83 4v1)
 * Do NNUE updates lazily (33.13 +- 10.96)
 * Prevent accidental accumulator copies (12.95 +- 6.59)
@@ -334,7 +336,8 @@ Initial release with the following major features:
     * Tapered midgame vs. endgame evaluation
     * Incremental updates
 
-[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v8.0...HEAD
+[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v9.0...HEAD
+[9.0]: https://github.com/jgilchrist/chess-engine/compare/v8.0..v9.0
 [8.0]: https://github.com/jgilchrist/chess-engine/compare/v7.0..v8.0
 [7.0]: https://github.com/jgilchrist/chess-engine/compare/v6.0..v7.0
 [6.0]: https://github.com/jgilchrist/chess-engine/compare/v5.1..v6.0

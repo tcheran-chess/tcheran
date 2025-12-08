@@ -57,7 +57,7 @@ mod stats {
 
 #[derive(Parser)]
 struct Cli {
-    games: usize,
+    positions: usize,
     threads: usize,
     nodes: Option<u64>,
 
@@ -72,7 +72,7 @@ enum DatagenMode {
 }
 
 struct DatagenConfig {
-    games: usize,
+    positions: usize,
     threads: usize,
     mode: DatagenMode,
     tb: Option<Tablebase>,
@@ -118,12 +118,12 @@ fn datagen(config: &DatagenConfig) {
     std::fs::create_dir_all(&dir).unwrap();
 
     assert_eq!(
-        config.games % config.threads,
+        config.positions % config.threads,
         0,
         "Number of games must be divisible by number of threads"
     );
 
-    let games_per_thread = config.games / config.threads;
+    let games_per_thread = config.positions / config.threads;
 
     std::thread::scope(|s| {
         for id in 0..config.threads {
@@ -131,7 +131,7 @@ fn datagen(config: &DatagenConfig) {
             s.spawn(move || datagen_thread(id, games_per_thread, &dir, config));
         }
 
-        s.spawn(move || progress_thread(config.games));
+        s.spawn(move || progress_thread(config.positions));
     });
 }
 
@@ -140,7 +140,7 @@ fn datagen(config: &DatagenConfig) {
     clippy::cast_possible_truncation,
     reason = "We are doing approximate progress calculations"
 )]
-fn progress_thread(ngames: usize) {
+fn progress_thread(npositions: usize) {
     let start_time = jiff::Timestamp::now();
 
     loop {
@@ -148,31 +148,36 @@ fn progress_thread(ngames: usize) {
             break;
         }
 
-        let games_played = stats::GAMES.load(Ordering::SeqCst);
-        if games_played == 0 {
+        let positions_generated = stats::POSITIONS.load(Ordering::SeqCst);
+        if positions_generated == 0 {
             std::thread::sleep(std::time::Duration::from_secs(1));
             continue;
         }
 
-        if games_played == ngames as u64 {
+        if positions_generated == npositions as u64 {
             // Stop on the next run
             println!("All games generated!");
             STOP.store(true, Ordering::SeqCst);
         }
 
-        let positions_generated = stats::POSITIONS.load(Ordering::SeqCst);
+        let games_played = stats::GAMES.load(Ordering::SeqCst);
         let elapsed_time = jiff::Timestamp::now() - start_time;
         let elapsed_seconds = elapsed_time.total(Unit::Second).unwrap();
         let positions_per_second =
             f64::from(u32::try_from(positions_generated).unwrap()) / elapsed_seconds;
-        let positions_per_game = positions_generated as f64 / games_played as f64;
 
-        let approx_time_per_game = elapsed_seconds / games_played as f64;
-        let number_of_games_remaining = ngames as u64 - games_played;
-        let approx_seconds = (approx_time_per_game * number_of_games_remaining as f64) as i64;
+        let approx_time_per_position = elapsed_seconds / positions_generated as f64;
+        let number_of_positions_remaining = npositions as u64 - positions_generated;
+        let approx_seconds =
+            (approx_time_per_position * number_of_positions_remaining as f64) as i64;
         let approx_time_remaining = approx_seconds.seconds();
         let approx_time_remaining = approx_time_remaining
-            .round(SpanRound::new().largest(Unit::Day).days_are_24_hours())
+            .round(
+                SpanRound::new()
+                    .largest(Unit::Day)
+                    .smallest(Unit::Minute)
+                    .days_are_24_hours(),
+            )
             .unwrap();
 
         let white_wins = stats::WHITE_WINS.load(Ordering::SeqCst);
@@ -189,19 +194,18 @@ fn progress_thread(ngames: usize) {
         let total_black_wins = black_wins + adjudicated_black_wins + tb_black_wins;
         let total_draws = draws + adjudicated_draws + tb_draws;
 
-        println!(
-            "{positions_generated} positions generated [{positions_per_second:.2}/s] in {elapsed_time:#} from {games_played} games (out of {ngames}) | {approx_time_remaining:#} remaining"
-        );
+        let elapsed_time = elapsed_time
+            .round(
+                SpanRound::new()
+                    .largest(Unit::Day)
+                    .smallest(Unit::Minute)
+                    .days_are_24_hours(),
+            )
+            .unwrap();
 
         println!(
-            "Avg time per game: {approx_time_per_game:.2}s | Avg positions per game: {positions_per_game:.2} | W: {total_white_wins} B: {total_black_wins} D: {total_draws}"
+            "{positions_generated}pos in {elapsed_time:#} [{positions_per_second:.2}pos/s, {approx_time_remaining:#} left] - {games_played} games - W: {total_white_wins} B: {total_black_wins} D: {total_draws}"
         );
-
-        println!(
-            "White: ({white_wins}/{adjudicated_white_wins}/{tb_white_wins}) | Black: ({black_wins}/{adjudicated_black_wins}/{tb_black_wins}) | Draws: ({draws}/{adjudicated_draws}/{tb_draws})"
-        );
-        println!();
-
         std::thread::sleep(std::time::Duration::from_secs(10));
     }
 }
@@ -613,7 +617,7 @@ fn get_config_from_args(args: &Cli) -> DatagenConfig {
     let tb = args.syzygy_path.as_ref().map(|p| load_tablebases(p));
 
     DatagenConfig {
-        games: args.games,
+        positions: args.positions,
         threads: args.threads,
         mode,
         tb,

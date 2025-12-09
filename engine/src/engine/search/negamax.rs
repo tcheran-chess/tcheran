@@ -161,7 +161,7 @@ pub fn negamax(
         if depth <= params::REVERSE_FUTILITY_PRUNE_DEPTH
             && eval - params::REVERSE_FUTILITY_PRUNE_MARGIN_PER_PLY * i32::from(depth) > beta
         {
-            return beta;
+            return beta + (eval - beta) / 3;
         }
 
         // Null move pruning

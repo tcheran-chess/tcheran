@@ -6,6 +6,7 @@
 * Add internal iterative reductions (IIR) (9.66 +- 5.53)
 * Use threats in quiet move history (9.28 +- 5.28 at LTC with threat calculation, 18.34 +- 7.98 STC excluding threat calculation)
 * Add late move pruning (9.63 +- 5.59)
+* Use beta + (eval - beta) / 3 formula for RFP (7.22 +- 4.67)
 
 ## [9.0]
 

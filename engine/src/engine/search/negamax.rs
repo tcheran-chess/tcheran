@@ -167,13 +167,14 @@ pub fn negamax(
         // Null move pruning
         if eval >= beta
             // Don't let a player play a null move in response to a null move
-            && game.history.last().is_none_or(|m| m.mv.is_some())
+            && ctx.stack.last(plies).is_some_and(|s| s.mv.is_some())
             && !game.zugzwang_likely()
         {
             let reduction = params::NULL_MOVE_PRUNING_BASE_REDUCTION
                 + depth / params::NULL_MOVE_PRUNING_REDUCTION_FACTOR;
 
             game.make_null_move();
+            ctx.stack.get(plies).mv = None;
 
             let null_score = -negamax(
                 game,
@@ -263,6 +264,7 @@ pub fn negamax(
         ctx.nnue.push(&game.board, mv);
         game.make_move(mv);
         number_of_legal_moves += 1;
+        ctx.stack.get(plies).mv = Some(mv);
 
         let move_score = if number_of_legal_moves == 1 {
             -negamax(game, -beta, -alpha, depth - 1, plies + 1, &mut node_pv, ctx)

@@ -109,6 +109,7 @@ pub(crate) struct SearchContext<'s> {
     pub tables: &'s mut Tables,
     pub tablebase: &'s Tablebase,
 
+    pub stack: SearchStack,
     pub nnue: NetworkStack,
 
     pub time_control: TimeStrategy,
@@ -138,6 +139,7 @@ impl<'s> SearchContext<'s> {
             tables,
             tablebase,
 
+            stack: SearchStack::new(),
             nnue: NetworkStack::from_board(&game.board),
 
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
@@ -148,6 +150,43 @@ impl<'s> SearchContext<'s> {
             nodes_visited: BufferedAtomicU64::new(node_counter),
             tbhits: BufferedAtomicU64::new(tbhits_counter),
         }
+    }
+}
+
+pub struct SearchStack([SearchStackEntry; MAX_SEARCH_DEPTH_SIZE]);
+
+impl SearchStack {
+    pub const fn new() -> Self {
+        Self([const { SearchStackEntry::new() }; MAX_SEARCH_DEPTH_SIZE])
+    }
+
+    pub fn get(&mut self, plies: u8) -> &mut SearchStackEntry {
+        &mut self.0[plies as usize]
+    }
+
+    pub fn last(&self, plies: u8) -> Option<&SearchStackEntry> {
+        self.get_prev(plies, 1)
+    }
+
+    pub fn get_prev(&self, plies: u8, i: usize) -> Option<&SearchStackEntry> {
+        let plies = plies as usize;
+
+        if i > plies {
+            return None;
+        }
+
+        Some(&self.0[plies - i])
+    }
+}
+
+#[derive(Clone)]
+pub struct SearchStackEntry {
+    mv: Option<Move>,
+}
+
+impl SearchStackEntry {
+    pub const fn new() -> Self {
+        Self { mv: None }
     }
 }
 

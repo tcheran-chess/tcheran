@@ -437,12 +437,8 @@ impl Game {
         self.player = self.player.other();
         self.zobrist.toggle_side_to_play();
 
-        self.checkers = movegen::generate_attackers_of(
-            &self.board,
-            self.player,
-            self.board.king_square(self.player),
-        );
         self.update_threats();
+        self.checkers = Bitboard::EMPTY;
     }
 
     pub fn undo_move(&mut self) {

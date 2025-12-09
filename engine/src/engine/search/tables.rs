@@ -19,8 +19,8 @@ use crate::{
 
 #[derive(Clone)]
 pub struct Tables {
-    pub quiet_history: HistoryTable,
-    pub capture_history: CaptureHistoryTable,
+    pub quiet_history: Box<HistoryTable>,
+    pub capture_history: Box<CaptureHistoryTable>,
     pub killer_moves: KillersTable,
     pub countermoves: CountermoveTable,
 }
@@ -28,8 +28,8 @@ pub struct Tables {
 impl Tables {
     pub fn new() -> Self {
         Self {
-            quiet_history: HistoryTable::new(),
-            capture_history: CaptureHistoryTable::new(),
+            quiet_history: Box::new(HistoryTable::new()),
+            capture_history: Box::new(CaptureHistoryTable::new()),
             killer_moves: KillersTable::new(),
             countermoves: CountermoveTable::new(),
         }

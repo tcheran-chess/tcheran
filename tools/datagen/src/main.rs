@@ -84,10 +84,6 @@ struct PlayerStates {
 }
 
 impl PlayerStates {
-    #[expect(
-        clippy::large_stack_frames,
-        reason = "Currently allocating history tables on the stack"
-    )]
     pub fn new(tt_size: usize, datagen_config: &DatagenConfig) -> Self {
         match &datagen_config.tb {
             Some(tb) => Self {

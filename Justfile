@@ -80,7 +80,7 @@ sprt elo0 elo1 ll ld dd wd ww:
 	@cargo run --release --package sprt -- --elo0 {{elo0}} --elo1 {{elo1}} {{ll}} {{ld}} {{dd}} {{wd}} {{ww}}
 
 copy-bin name:
-	cargo build --release
+	cargo build --release --package engine
 	cp target/release/engine bins/{{name}}
 
 test-stc new baseline concurrency="2":

@@ -52,6 +52,7 @@ pub fn negamax(
 ) -> Eval {
     let is_root = plies == 0;
     let is_pv = alpha != beta - Eval(1);
+    let excluded_mv = ctx.stack.get(plies).excluded_mv;
 
     // Check extension: If we're about to finish searching, but we are in check, we
     // should keep going.
@@ -91,7 +92,11 @@ pub fn negamax(
 
     let mut previous_best_move: Option<Move> = None;
 
-    let tt_entry = ctx.tt.get(game.zobrist, plies);
+    let tt_entry = match excluded_mv {
+        Some(_) => None,
+        None => ctx.tt.get(game.zobrist, plies),
+    };
+
     if let Some(ref tt_entry) = tt_entry {
         if !is_root && !is_pv && tt_entry.depth >= depth {
             let tt_score = tt_entry.score;
@@ -108,7 +113,7 @@ pub fn negamax(
     }
 
     let tb_cardinality = ctx.tablebase.n_men();
-    if !is_root && tb_cardinality > 0 {
+    if !is_root && excluded_mv.is_none() && tb_cardinality > 0 {
         let piece_count = game.board.occupancy().count();
 
         if (piece_count < tb_cardinality || (piece_count <= tb_cardinality && depth >= 1))
@@ -144,19 +149,23 @@ pub fn negamax(
         }
     }
 
-    let eval = match tt_entry {
-        Some(ref e) if e.eval != Eval::NONE => e.eval,
-        _ => {
-            let e = eval::eval(&mut ctx.nnue, game.player);
+    let eval = if excluded_mv.is_some() {
+        Eval::MIN
+    } else {
+        match tt_entry {
+            Some(ref e) if e.eval != Eval::NONE => e.eval,
+            _ => {
+                let e = eval::eval(&mut ctx.nnue, game.player);
 
-            ctx.tt
-                .insert(game.zobrist, NodeBound::None, None, Eval::NONE, e, 0, plies);
+                ctx.tt
+                    .insert(game.zobrist, NodeBound::None, None, Eval::NONE, e, 0, plies);
 
-            e
+                e
+            }
         }
     };
 
-    if !is_root && !is_pv && !in_check {
+    if !is_root && !is_pv && !in_check && excluded_mv.is_none() {
         // Reverse futility pruning
         if depth <= params::REVERSE_FUTILITY_PRUNE_DEPTH
             && eval - params::REVERSE_FUTILITY_PRUNE_MARGIN_PER_PLY * i32::from(depth) > beta
@@ -202,6 +211,37 @@ pub fn negamax(
         depth -= 1;
     }
 
+    // Singular extension
+    let mut singular_extension = 0;
+
+    let singular_extension_candidate = tt_entry
+        .as_ref()
+        .filter(|entry| {
+            depth >= params::SINGULAR_EXTENSION_DEPTH
+                && !is_root
+                && excluded_mv.is_none()
+                && entry.bound != NodeBound::Upper
+                && entry.depth >= depth - params::SINGULAR_EXTENSION_ENTRY_DEPTH_DELTA
+                && !entry.score.is_mate()
+        })
+        .and_then(|entry| entry.best_move);
+
+    if let Some(mv) = singular_extension_candidate {
+        let mut se_pv = PrincipalVariation::new();
+        let tt_score = tt_entry.as_ref().unwrap().score;
+
+        let se_depth = (depth - 1) / 2;
+        let se_beta = tt_score - params::SINGULAR_EXTENSION_MARGIN * i32::from(depth);
+
+        ctx.stack.get(plies).excluded_mv = Some(mv);
+        let value = negamax(game, se_beta - Eval(1), se_beta, se_depth, plies, &mut se_pv, ctx);
+        ctx.stack.get(plies).excluded_mv = None;
+
+        if value < se_beta {
+            singular_extension = 1;
+        }
+    }
+
     let mut tt_node_bound = NodeBound::Upper;
     let mut best_move = None;
     let mut best_eval = Eval::MIN;
@@ -214,6 +254,10 @@ pub fn negamax(
     let mut quiets_tried = MoveList::new();
 
     while let Some(mv) = moves.next(game, ctx.tables, plies) {
+        if Some(mv) == excluded_mv {
+            continue;
+        }
+
         node_pv.clear();
 
         // Futility pruning
@@ -266,8 +310,14 @@ pub fn negamax(
         number_of_legal_moves += 1;
         ctx.stack.get(plies).mv = Some(mv);
 
+        let extension = if Some(mv) == singular_extension_candidate {
+            singular_extension
+        } else {
+            0
+        };
+
         let move_score = if number_of_legal_moves == 1 {
-            -negamax(game, -beta, -alpha, depth - 1, plies + 1, &mut node_pv, ctx)
+            -negamax(game, -beta, -alpha, depth + extension - 1, plies + 1, &mut node_pv, ctx)
         } else {
             let reduction = if depth >= params::LMR_DEPTH
                 && number_of_legal_moves >= params::LMR_MOVE_THRESHOLD
@@ -288,7 +338,7 @@ pub fn negamax(
                 game,
                 -alpha - Eval(1),
                 -alpha,
-                depth.saturating_sub(reduction),
+                (depth + extension).saturating_sub(reduction),
                 plies + 1,
                 &mut node_pv,
                 ctx,
@@ -301,7 +351,7 @@ pub fn negamax(
                     game,
                     -alpha - Eval(1),
                     -alpha,
-                    depth - 1,
+                    depth + extension - 1,
                     plies + 1,
                     &mut node_pv,
                     ctx,
@@ -311,7 +361,7 @@ pub fn negamax(
             // If searching at full depth STILL raised alpha, re-search with normal alpha/beta
             // bounds.
             if pvs_score > alpha && pvs_score < beta {
-                -negamax(game, -beta, -alpha, depth - 1, plies + 1, &mut node_pv, ctx)
+                -negamax(game, -beta, -alpha, depth + extension - 1, plies + 1, &mut node_pv, ctx)
             } else {
                 pvs_score
             }
@@ -352,6 +402,10 @@ pub fn negamax(
     }
 
     if number_of_legal_moves == 0 {
+        if excluded_mv.is_some() {
+            return alpha;
+        }
+
         return if game.is_king_in_check() {
             Eval::mated_in(plies)
         } else {
@@ -359,31 +413,33 @@ pub fn negamax(
         };
     }
 
-    if tt_node_bound == NodeBound::Lower {
-        let mv = best_move.unwrap();
-
-        ctx.tables
-            .capture_history
-            .update(mv, game, depth, &captures_tried);
-
-        // 'Killers': if a move was so good that it caused a beta cutoff,
-        // but it wasn't a capture, we remember it so that we can try it
-        // before other quiet moves.
-        if !mv.is_capture() {
-            ctx.tables.killer_moves.set(plies, mv);
-
-            if let Some(previous_move) = game.history.last().and_then(|h| h.mv) {
-                ctx.tables.countermoves.set(game.player, previous_move, mv);
-            }
+    if excluded_mv.is_none() {
+        if tt_node_bound == NodeBound::Lower {
+            let mv = best_move.unwrap();
 
             ctx.tables
-                .quiet_history
-                .update(game, mv, depth, &quiets_tried);
-        }
-    }
+                .capture_history
+                .update(mv, game, depth, &captures_tried);
 
-    ctx.tt
-        .insert(game.zobrist, tt_node_bound, best_move, best_eval, eval, depth, plies);
+            // 'Killers': if a move was so good that it caused a beta cutoff,
+            // but it wasn't a capture, we remember it so that we can try it
+            // before other quiet moves.
+            if !mv.is_capture() {
+                ctx.tables.killer_moves.set(plies, mv);
+
+                if let Some(previous_move) = game.history.last().and_then(|h| h.mv) {
+                    ctx.tables.countermoves.set(game.player, previous_move, mv);
+                }
+
+                ctx.tables
+                    .quiet_history
+                    .update(game, mv, depth, &quiets_tried);
+            }
+        }
+
+        ctx.tt
+            .insert(game.zobrist, tt_node_bound, best_move, best_eval, eval, depth, plies);
+    }
 
     best_eval
 }

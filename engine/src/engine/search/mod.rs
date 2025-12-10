@@ -64,6 +64,10 @@ mod params {
 
     pub const IIR_DEPTH: u8 = 4;
 
+    pub const SINGULAR_EXTENSION_DEPTH: u8 = 8;
+    pub const SINGULAR_EXTENSION_ENTRY_DEPTH_DELTA: u8 = 3;
+    pub const SINGULAR_EXTENSION_MARGIN: Eval = Eval(2);
+
     pub const MAX_TIME_PER_MOVE: f32 = 0.5;
     pub const INCREMENT_TO_USE: f32 = 0.5;
     pub const BASE_TIME_PER_MOVE: f32 = 0.033;
@@ -182,11 +186,17 @@ impl SearchStack {
 #[derive(Clone)]
 pub struct SearchStackEntry {
     mv: Option<Move>,
+
+    excluded_mv: Option<Move>,
 }
 
 impl SearchStackEntry {
     pub const fn new() -> Self {
-        Self { mv: None }
+        Self {
+            mv: None,
+
+            excluded_mv: None,
+        }
     }
 }
 

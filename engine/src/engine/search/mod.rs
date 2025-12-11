@@ -186,6 +186,7 @@ impl SearchStack {
 #[derive(Clone)]
 pub struct SearchStackEntry {
     mv: Option<Move>,
+    eval: Eval,
 
     excluded_mv: Option<Move>,
 }
@@ -194,6 +195,7 @@ impl SearchStackEntry {
     pub const fn new() -> Self {
         Self {
             mv: None,
+            eval: Eval::MIN,
 
             excluded_mv: None,
         }

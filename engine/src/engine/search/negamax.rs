@@ -165,6 +165,10 @@ pub fn negamax(
         }
     };
 
+    ctx.stack.get(plies).eval = eval;
+
+    let improving = !in_check && plies >= 2 && eval > ctx.stack.get_prev(plies, 2).unwrap().eval;
+
     if !is_root && !is_pv && !in_check && excluded_mv.is_none() {
         // Reverse futility pruning
         if depth <= params::REVERSE_FUTILITY_PRUNE_DEPTH
@@ -292,7 +296,8 @@ pub fn negamax(
             }
         }
 
-        let lmp_moves = params::LMP_MOVE_THRESHOLD as usize + (depth as usize * depth as usize);
+        let lmp_moves = (params::LMP_MOVE_THRESHOLD as usize + (depth as usize * depth as usize))
+            / (1 + usize::from(!improving));
 
         if depth <= params::LMP_DEPTH
             && !is_root

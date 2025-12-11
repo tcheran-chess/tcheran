@@ -64,7 +64,7 @@ mod params {
 
     pub const IIR_DEPTH: u8 = 4;
 
-    pub const SINGULAR_EXTENSION_DEPTH: u8 = 8;
+    pub const SINGULAR_EXTENSION_DEPTH: u8 = 5;
     pub const SINGULAR_EXTENSION_ENTRY_DEPTH_DELTA: u8 = 3;
     pub const SINGULAR_EXTENSION_MARGIN: Eval = Eval(2);
 

@@ -9,6 +9,7 @@
 * Add late move pruning (9.63 +- 5.59)
 * Avoid re-allocating thread data before each search (8.95 +- 5.20 with 2 threads vs 2 threads, +~20 Elo in 2v1 thread odds)
 * Use beta + (eval - beta) / 3 formula for RFP (7.22 +- 4.67)
+* Start singular extensions earlier (6.23 +- 4.08 LTC, 21.11 +- 8.32 STC)
 * Introduce the improving heuristic and do less LMP if not improving (5.75 +- 4.00)
 
 ## [9.0]

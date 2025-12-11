@@ -35,10 +35,7 @@ pub(super) enum UciResponse<'uci> {
     Id(IdParam),
     UciOk,
     ReadyOk,
-    BestMove {
-        mv: UciMove,
-        ponder: Option<UciMove>,
-    },
+    BestMove { mv: UciMove },
     Info(InfoFields),
     Option(&'uci UciOption),
 }
@@ -52,12 +49,8 @@ impl std::fmt::Display for UciResponse<'_> {
             },
             Self::UciOk => write!(f, "uciok")?,
             Self::ReadyOk => write!(f, "readyok")?,
-            Self::BestMove { mv, ponder } => {
+            Self::BestMove { mv } => {
                 write!(f, "bestmove {}", mv.notation())?;
-
-                if let Some(pondermv) = ponder {
-                    write!(f, " ponder {}", pondermv.notation())?;
-                }
             }
             Self::Info(InfoFields {
                 depth,

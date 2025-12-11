@@ -170,10 +170,7 @@ impl UciReporter {
     }
 
     fn uci_best_move(mv: Move) {
-        send_response(&UciResponse::BestMove {
-            mv: mv.into(),
-            ponder: None,
-        });
+        send_response(&UciResponse::BestMove { mv: mv.into() });
     }
 
     fn pretty_best_move(game: &Game, mv: Move) {
@@ -278,7 +275,6 @@ impl Uci {
                 self.game = game;
             }
             UciCommand::Go(GoCmdArguments {
-                ponder: _,
                 wtime,
                 btime,
                 winc,
@@ -505,7 +501,6 @@ impl Uci {
                 );
                 println!();
             }
-            UciCommand::PonderHit => {}
             // For OpenBench to understand NPS values for different workers
             UciCommand::Bench => {
                 let (nodes, time_taken) = bench(None);

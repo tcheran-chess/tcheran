@@ -202,7 +202,6 @@ fn parse_duration(n: &str) -> Result<Duration, ()> {
 
 fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
     let mut go_args = GoCmdArguments {
-        ponder: false,
         wtime: None,
         btime: None,
         winc: None,
@@ -217,7 +216,6 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
     let mut args = args.iter();
     while let Some(&arg) = args.next() {
         match arg {
-            "ponder" => go_args.ponder = true,
             "infinite" => go_args.infinite = true,
             "wtime" => go_args.wtime = Some(parse_duration(args.next().ok_or(())?)?),
             "btime" => go_args.btime = Some(parse_duration(args.next().ok_or(())?)?),
@@ -283,7 +281,6 @@ pub fn parse(input: &str) -> Result<UciCommand, ()> {
         "position" => cmd_position(args),
         "go" => cmd_go(args),
         "stop" => no_args_command(UciCommand::Stop, args),
-        "ponderhit" => no_args_command(UciCommand::PonderHit, args),
 
         "bench" => no_args_command(UciCommand::Bench, args),
         "benchnodes" => no_args_command(UciCommand::BenchNodes, args),

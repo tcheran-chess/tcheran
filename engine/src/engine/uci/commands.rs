@@ -10,7 +10,6 @@ pub enum Position {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct GoCmdArguments {
-    pub ponder: bool,
     pub wtime: Option<Duration>,
     pub btime: Option<Duration>,
     pub winc: Option<Duration>,
@@ -39,7 +38,6 @@ pub enum UciCommand {
     },
     Go(GoCmdArguments),
     Stop,
-    PonderHit,
 
     // OpenBench UCI commands
     Bench,

@@ -8,6 +8,7 @@ members = [
     "tools/nnue_scaling",
     "tools/trainer"
 ]
+default-members = ["engine"]
 
 [workspace.package]
 version = "9.0.0"

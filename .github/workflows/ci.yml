@@ -61,7 +61,7 @@ jobs:
 
       - name: Test
         run: |
-          cargo test --release --package engine
+          cargo test --release --workspace
 
   build-and-test-release-build:
     runs-on: ubuntu-latest

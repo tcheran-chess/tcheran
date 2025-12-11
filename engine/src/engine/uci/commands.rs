@@ -1,6 +1,4 @@
-use std::time::Duration;
-
-use crate::engine::uci::UciMove;
+use crate::engine::{search::TimeControl, uci::UciMove};
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Position {
@@ -8,20 +6,7 @@ pub enum Position {
     StartPos,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct GoCmdArguments {
-    pub wtime: Option<Duration>,
-    pub btime: Option<Duration>,
-    pub winc: Option<Duration>,
-    pub binc: Option<Duration>,
-    pub movestogo: Option<u32>,
-    pub depth: Option<u8>,
-    pub nodes: Option<u32>,
-    pub movetime: Option<Duration>,
-    pub infinite: bool,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub enum UciCommand {
     // Canon UCI commands
     Uci,
@@ -36,7 +21,9 @@ pub enum UciCommand {
         position: Position,
         moves: Vec<UciMove>,
     },
-    Go(GoCmdArguments),
+    Go {
+        time_control: TimeControl,
+    },
     Stop,
 
     // OpenBench UCI commands

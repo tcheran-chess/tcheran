@@ -17,7 +17,7 @@ use std::{
 pub use r#move::UciMove;
 
 use self::{
-    commands::{GoCmdArguments, UciCommand},
+    commands::UciCommand,
     responses::{IdParam, InfoFields, InfoScore, UciResponse},
 };
 use crate::{
@@ -36,7 +36,7 @@ use crate::{
         eval::{WhiteEval, nnue::NNUE},
         options::EngineOptions,
         search,
-        search::{Clocks, PersistentState, Reporter, TimeControl, time_control::StopControl},
+        search::{PersistentState, Reporter, time_control::StopControl},
         uci::{bench::bench, options::UciOption},
         util,
         util::sync::LockLatch,
@@ -274,49 +274,11 @@ impl Uci {
 
                 self.game = game;
             }
-            UciCommand::Go(GoCmdArguments {
-                wtime,
-                btime,
-                winc,
-                binc,
-                movestogo,
-                depth,
-                nodes,
-                movetime,
-                infinite: _,
-            }) => {
+            UciCommand::Go { time_control } => {
                 let game = self.game.clone();
                 let options = self.engine_options.clone();
                 let reporter = self.reporter.clone();
-
-                let clocks = Clocks {
-                    white_clock: *wtime,
-                    black_clock: *btime,
-                    white_increment: *winc,
-                    black_increment: *binc,
-                    moves_to_go: *movestogo,
-                };
-
-                let mut time_control = TimeControl::Infinite;
-
-                if let Some(move_time) = movetime {
-                    time_control = TimeControl::ExactTime(*move_time);
-                }
-
-                if wtime.is_some() || btime.is_some() {
-                    time_control = TimeControl::Clocks(clocks);
-                }
-
-                if let Some(d) = depth {
-                    time_control = TimeControl::Depth(*d);
-                }
-
-                if let Some(n) = nodes {
-                    time_control = TimeControl::Nodes {
-                        hard: u64::from(*n),
-                        soft: 0,
-                    };
-                }
+                let time_control = time_control.clone();
 
                 let stop_control = StopControl::new();
                 self.control = Some(stop_control.clone());

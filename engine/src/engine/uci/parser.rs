@@ -1,12 +1,15 @@
 use std::time::Duration;
 
-use super::commands::{GoCmdArguments, UciCommand};
+use super::commands::UciCommand;
 use crate::{
     chess::{
         piece::PromotionPieceKind,
         square::{File, Rank, Square},
     },
-    engine::uci::{UciMove, commands::Position},
+    engine::{
+        search::{Clocks, TimeControl},
+        uci::{UciMove, commands::Position},
+    },
 };
 
 fn boolean(input: &str) -> Result<bool, ()> {
@@ -201,37 +204,79 @@ fn parse_duration(n: &str) -> Result<Duration, ()> {
 }
 
 fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
-    let mut go_args = GoCmdArguments {
-        wtime: None,
-        btime: None,
-        winc: None,
-        binc: None,
-        movestogo: None,
-        depth: None,
-        nodes: None,
-        movetime: None,
-        infinite: false,
+    let mut infinite = false;
+
+    let mut clocks = Clocks {
+        white_clock: None,
+        black_clock: None,
+        white_increment: None,
+        black_increment: None,
+        moves_to_go: None,
     };
+
+    let mut movetime = None;
+    let mut depth = None;
+    let mut nodes = None;
 
     let mut args = args.iter();
     while let Some(&arg) = args.next() {
         match arg {
-            "infinite" => go_args.infinite = true,
-            "wtime" => go_args.wtime = Some(parse_duration(args.next().ok_or(())?)?),
-            "btime" => go_args.btime = Some(parse_duration(args.next().ok_or(())?)?),
-            "winc" => go_args.winc = Some(parse_duration(args.next().ok_or(())?)?),
-            "binc" => go_args.binc = Some(parse_duration(args.next().ok_or(())?)?),
-            "movetime" => go_args.movetime = Some(parse_duration(args.next().ok_or(())?)?),
+            "infinite" => infinite = true,
+            "wtime" => clocks.white_clock = Some(parse_duration(args.next().ok_or(())?)?),
+            "btime" => clocks.black_clock = Some(parse_duration(args.next().ok_or(())?)?),
+            "winc" => clocks.white_increment = Some(parse_duration(args.next().ok_or(())?)?),
+            "binc" => clocks.black_increment = Some(parse_duration(args.next().ok_or(())?)?),
             "movestogo" => {
-                go_args.movestogo = Some(args.next().ok_or(())?.parse().map_err(|_| ())?);
+                clocks.moves_to_go = Some(args.next().ok_or(())?.parse().map_err(|_| ())?);
             }
-            "depth" => go_args.depth = Some(args.next().ok_or(())?.parse().map_err(|_| ())?),
-            "nodes" => go_args.nodes = Some(args.next().ok_or(())?.parse().map_err(|_| ())?),
+            "movetime" => movetime = Some(parse_duration(args.next().ok_or(())?)?),
+            "depth" => depth = Some(args.next().ok_or(())?.parse().map_err(|_| ())?),
+            "nodes" => nodes = Some(args.next().ok_or(())?.parse().map_err(|_| ())?),
             _ => return Err(()),
         }
     }
 
-    Ok(UciCommand::Go(go_args))
+    let clocks_used = clocks.white_clock.is_some()
+        || clocks.black_clock.is_some()
+        || clocks.white_increment.is_some()
+        || clocks.black_increment.is_some()
+        || clocks.moves_to_go.is_some();
+
+    let time_control_types_used = [
+        clocks_used,
+        infinite,
+        movetime.is_some(),
+        depth.is_some(),
+        nodes.is_some(),
+    ]
+    .into_iter()
+    .filter(|t| *t)
+    .count();
+
+    let time_control = match time_control_types_used {
+        0 => TimeControl::Infinite,
+        1 => {
+            if clocks_used {
+                TimeControl::Clocks(clocks)
+            } else if let Some(movetime) = movetime {
+                TimeControl::ExactTime(movetime)
+            } else if let Some(depth) = depth {
+                TimeControl::Depth(depth)
+            } else if let Some(nodes) = nodes {
+                TimeControl::Nodes {
+                    soft: 0,
+                    hard: nodes,
+                }
+            } else if infinite {
+                TimeControl::Infinite
+            } else {
+                unreachable!()
+            }
+        }
+        _ => return Err(()),
+    };
+
+    Ok(UciCommand::Go { time_control })
 }
 
 fn cmd_move(args: &[&str]) -> Result<UciCommand, ()> {
@@ -308,19 +353,19 @@ mod tests {
     #[test]
     fn test_uci() {
         let ml = parse("uci").unwrap();
-        assert_eq!(ml, UciCommand::Uci);
+        assert!(matches!(ml, UciCommand::Uci));
     }
 
     #[test]
     fn test_debug_on() {
         let ml = parse("debug    on").unwrap();
-        assert_eq!(ml, UciCommand::Debug(true));
+        assert!(matches!(ml, UciCommand::Debug(true)));
     }
 
     #[test]
     fn test_debug_off() {
         let ml = parse("debug off").unwrap();
-        assert_eq!(ml, UciCommand::Debug(false));
+        assert!(matches!(ml, UciCommand::Debug(false)));
     }
 
     #[test]
@@ -342,7 +387,7 @@ mod tests {
     #[test]
     fn test_isready() {
         let ml = parse(" \tisready  ").unwrap();
-        assert_eq!(ml, UciCommand::IsReady);
+        assert!(matches!(ml, UciCommand::IsReady));
     }
 
     #[test]

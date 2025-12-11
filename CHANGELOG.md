@@ -7,6 +7,7 @@
 * Add internal iterative reductions (IIR) (9.66 +- 5.53)
 * Use threats in quiet move history (9.28 +- 5.28 at LTC with threat calculation, 18.34 +- 7.98 STC excluding threat calculation)
 * Add late move pruning (9.63 +- 5.59)
+* Avoid re-allocating thread data before each search (8.95 +- 5.20 with 2 threads vs 2 threads, +~20 Elo in 2v1 thread odds)
 * Use beta + (eval - beta) / 3 formula for RFP (7.22 +- 4.67)
 * Introduce the improving heuristic and do less LMP if not improving (5.75 +- 4.00)
 

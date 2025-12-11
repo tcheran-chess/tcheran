@@ -32,7 +32,8 @@ fn main() -> ExitCode {
 
     for (i, fen) in fens.iter().enumerate() {
         let game = Game::from_fen(fen).unwrap();
-        let mut nnue = NetworkStack::from_board(&game.board);
+        let mut nnue = NetworkStack::new();
+        nnue.setup(&game.board);
 
         let eval = nnue.evaluate(game.player).0;
 

@@ -9,7 +9,7 @@ pub mod time_control;
 
 use std::{
     cell::RefCell,
-    sync::atomic::AtomicU64,
+    sync::{Arc, Mutex, atomic::AtomicU64},
     thread,
     time::{Duration, Instant},
 };
@@ -22,7 +22,7 @@ use crate::{
         search::{
             move_picker::MovePicker,
             principal_variation::PrincipalVariation,
-            tables::Tables,
+            tables::{KillersTable, Tables},
             time_control::{StopControl, TimeStrategy},
         },
         tablebases::{Tablebase, Wdl},
@@ -81,40 +81,88 @@ mod params {
 
 pub struct PersistentState {
     pub tt: TranspositionTable,
-    pub tables: Tables,
     pub tablebase: Tablebase,
+
+    thread_data: Vec<Arc<Mutex<ThreadData>>>,
 }
 
 impl PersistentState {
     pub fn new(tt_size_mb: usize) -> Self {
-        Self {
-            tt: TranspositionTable::new(tt_size_mb),
-            tables: Tables::new(),
-            tablebase: Tablebase::new(),
-        }
+        Self::with_tablebase(tt_size_mb, &Tablebase::new())
     }
 
     pub fn with_tablebase(tt_size_mb: usize, tb: &Tablebase) -> Self {
         Self {
             tt: TranspositionTable::new(tt_size_mb),
-            tables: Tables::new(),
             tablebase: tb.clone(),
+
+            thread_data: vec![Arc::new(Mutex::new(ThreadData::new()))],
         }
     }
 
     pub fn reset(&mut self) {
         self.tt.reset();
+
+        for thread_data in &mut self.thread_data {
+            let mut thread_data = thread_data.lock().unwrap();
+            thread_data.reset();
+        }
+    }
+
+    pub fn get_thread_data(&self, thread_id: usize) -> Arc<Mutex<ThreadData>> {
+        self.thread_data[thread_id].clone()
+    }
+
+    pub fn scale_threads(&mut self, threads: usize) {
+        self.thread_data.clear();
+
+        for _ in 0..threads {
+            self.thread_data
+                .push(Arc::new(Mutex::new(ThreadData::new())));
+        }
+    }
+}
+
+pub struct ThreadData {
+    pub tables: Tables,
+    pub nnue: NetworkStack,
+    pub stack: SearchStack,
+}
+
+impl ThreadData {
+    pub fn new() -> Self {
+        Self {
+            tables: Tables::new(),
+            nnue: NetworkStack::new(),
+            stack: SearchStack::new(),
+        }
+    }
+
+    pub fn new_search(&mut self, game: &Game) {
+        self.tables.killer_moves = KillersTable::new();
+        // TODO: Do we need to reset the stack every time?
+        self.stack = SearchStack::new();
+        self.nnue.setup(&game.board);
+    }
+
+    pub fn reset(&mut self) {
         self.tables = Tables::new();
+        self.nnue = NetworkStack::new();
+        self.stack = SearchStack::new();
+    }
+
+    pub fn mut_refs(&mut self) -> (&mut Tables, &mut SearchStack, &mut NetworkStack) {
+        (&mut self.tables, &mut self.stack, &mut self.nnue)
     }
 }
 
 pub(crate) struct SearchContext<'s> {
     pub tt: &'s TranspositionTable,
-    pub tables: &'s mut Tables,
     pub tablebase: &'s Tablebase,
 
-    pub stack: SearchStack,
-    pub nnue: NetworkStack,
+    pub tables: &'s mut Tables,
+    pub nnue: &'s mut NetworkStack,
+    pub stack: &'s mut SearchStack,
 
     pub time_control: TimeStrategy,
 
@@ -130,22 +178,23 @@ impl<'s> SearchContext<'s> {
     pub fn new(
         game: &Game,
         tt: &'s TranspositionTable,
-        tables: &'s mut Tables,
         tablebase: &'s Tablebase,
         node_counter: &'s AtomicU64,
         tbhits_counter: &'s AtomicU64,
+        tables: &'s mut Tables,
+        search_stack: &'s mut SearchStack,
+        nnue: &'s mut NetworkStack,
         time_control: TimeControl,
         stop_control: StopControl,
         options: &'s EngineOptions,
     ) -> Self {
         Self {
             tt,
-            tables,
             tablebase,
 
-            stack: SearchStack::new(),
-            nnue: NetworkStack::from_board(&game.board),
-
+            tables,
+            stack: search_stack,
+            nnue,
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
 
             options,
@@ -304,7 +353,6 @@ pub fn search(
     reporter: &impl Reporter,
 ) {
     persistent_state.tt.new_generation();
-    persistent_state.tables.new_search();
 
     let tablebase_result = persistent_state.tablebase.best_move(game);
     if let Some(mv) = tablebase_result {
@@ -344,22 +392,32 @@ pub fn search(
 
         // If we want more than one thread, spawn our other threads, sharing the transposition
         // table but with their own copy of everything else.
-        for _ in 1..options.threads {
+        for thread_id in 1..options.threads {
+            let thread_data = persistent_state.get_thread_data(thread_id);
             let tt = &persistent_state.tt;
             let tablebase = &persistent_state.tablebase;
-            let this_thread_stop_control = threads_stop_control.clone();
             let global_node_count = &global_node_count;
             let global_tbhits_count = &global_tbhits_count;
-            let mut thread_tables = persistent_state.tables.clone();
+
+            let this_thread_stop_control = threads_stop_control.clone();
 
             let thread = scope.spawn(move || {
+                let mut thread_data_handle =
+                    thread_data.lock().expect("Unable to lock thread data");
+
+                thread_data_handle.new_search(game);
+
+                let (tables, stack, nnue) = thread_data_handle.mut_refs();
+
                 let mut ctx = SearchContext::new(
                     game,
                     tt,
-                    &mut thread_tables,
                     tablebase,
                     global_node_count,
                     global_tbhits_count,
+                    tables,
+                    stack,
+                    nnue,
                     TimeControl::Infinite,
                     this_thread_stop_control,
                     options,
@@ -376,13 +434,24 @@ pub fn search(
             threads.push(thread);
         }
 
+        let main_thread_data = persistent_state.get_thread_data(0);
+        let mut main_thread_data = main_thread_data
+            .lock()
+            .expect("Unable to lock main thread data");
+
+        main_thread_data.new_search(game);
+
+        let (tables, stack, nnue) = main_thread_data.mut_refs();
+
         let mut ctx = SearchContext::new(
             game,
             &persistent_state.tt,
-            &mut persistent_state.tables,
             &persistent_state.tablebase,
             &global_node_count,
             &global_tbhits_count,
+            tables,
+            stack,
+            nnue,
             time_control,
             stop_control,
             options,

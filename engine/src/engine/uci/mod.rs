@@ -564,9 +564,11 @@ pub fn uci_options() -> Vec<UciOption> {
         .with_bounds(0, 1024)
         .build(),
         //
-        UciOption::spin("Threads", |options, _state, value| {
+        UciOption::spin("Threads", |options, state, value| {
             options.threads =
                 usize::try_from(value).expect("min: 0 should prevent us getting negative values");
+
+            state.scale_threads(options.threads);
         })
         .default(crate::engine::options::defaults::THREADS)
         .with_bounds(

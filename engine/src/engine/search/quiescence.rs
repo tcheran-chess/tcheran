@@ -32,7 +32,7 @@ pub fn quiescence(
         return if in_check {
             Eval::DRAW
         } else {
-            eval::eval(&mut ctx.nnue, game.player)
+            eval::eval(ctx.nnue, game.player)
         };
     }
 
@@ -58,12 +58,12 @@ pub fn quiescence(
 
     let eval = if let Some(tt_entry) = tt_entry {
         if tt_entry.eval == Eval::NONE {
-            eval::eval(&mut ctx.nnue, game.player)
+            eval::eval(ctx.nnue, game.player)
         } else {
             tt_entry.eval
         }
     } else {
-        let e = eval::eval(&mut ctx.nnue, game.player);
+        let e = eval::eval(ctx.nnue, game.player);
 
         ctx.tt
             .insert(game.zobrist, NodeBound::None, None, Eval::NONE, e, 0, plies);

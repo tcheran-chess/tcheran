@@ -63,8 +63,8 @@ pub struct NetworkStackEntry {
 }
 
 impl NetworkStack {
-    pub fn from_board(board: &Board) -> Self {
-        let mut t = Self {
+    pub fn new() -> Self {
+        Self {
             stack: vec![
                 NetworkStackEntry {
                     network: NNUE::default(),
@@ -74,11 +74,13 @@ impl NetworkStack {
                 MAX_SEARCH_DEPTH_SIZE
             ],
             current_idx: 0,
-        };
+        }
+    }
 
-        t.stack[0].network = NNUE::from_board(board);
-        t.stack[0].correct = true;
-        t
+    pub fn setup(&mut self, board: &Board) {
+        self.stack[0].network = NNUE::from_board(board);
+        self.stack[0].correct = true;
+        self.current_idx = 0;
     }
 
     pub fn push(&mut self, board: &Board, mv: Move) {

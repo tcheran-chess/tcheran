@@ -119,7 +119,7 @@ pub fn bench(depth: Option<u8>) -> (u64, Duration) {
         let mut persistent_state = PersistentState::new(16);
         let now = Instant::now();
 
-        let _ = search::search(
+        search::search(
             &game,
             &mut persistent_state,
             TimeControl::Depth(depth),

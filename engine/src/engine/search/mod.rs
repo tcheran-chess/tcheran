@@ -255,6 +255,7 @@ impl Reporter for NullReporter {
 }
 
 pub struct CapturingReporter {
+    best_move: RefCell<Option<Move>>,
     eval: RefCell<Option<Eval>>,
     nodes: RefCell<u64>,
 }
@@ -262,9 +263,14 @@ pub struct CapturingReporter {
 impl CapturingReporter {
     pub fn new() -> Self {
         Self {
+            best_move: RefCell::new(None),
             eval: RefCell::new(None),
             nodes: RefCell::new(0),
         }
+    }
+
+    pub fn best_move(&self) -> Move {
+        self.best_move.borrow().unwrap()
     }
 
     pub fn eval(&self) -> Eval {
@@ -284,7 +290,9 @@ impl Reporter for CapturingReporter {
         *self.nodes.borrow_mut() = stats.stats.nodes;
     }
 
-    fn best_move(&self, _: &Game, _: Move) {}
+    fn best_move(&self, _: &Game, mv: Move) {
+        *self.best_move.borrow_mut() = Some(mv);
+    }
 }
 
 pub fn search(
@@ -294,7 +302,7 @@ pub fn search(
     stop_control: StopControl,
     options: &EngineOptions,
     reporter: &impl Reporter,
-) -> Move {
+) {
     persistent_state.tt.new_generation();
     persistent_state.tables.new_search();
 
@@ -323,14 +331,15 @@ pub fn search(
             },
         );
 
-        return mv;
+        reporter.best_move(game, mv);
+        return;
     }
 
     let threads_stop_control = StopControl::new();
     let global_node_count = AtomicU64::new(0);
     let global_tbhits_count = AtomicU64::new(0);
 
-    thread::scope(|scope| {
+    let best_move = thread::scope(|scope| {
         let mut threads = Vec::new();
 
         // If we want more than one thread, spawn our other threads, sharing the transposition
@@ -398,7 +407,9 @@ pub fn search(
         }
 
         best_move.unwrap_or_else(|| panic_move(game, &ctx))
-    })
+    });
+
+    reporter.best_move(game, best_move);
 }
 
 pub fn init() {

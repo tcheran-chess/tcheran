@@ -360,9 +360,9 @@ fn search_position(
     let options = EngineOptions::DEFAULT;
     let reporter = CapturingReporter::new();
 
-    let best_move =
-        search(game, persistent_state, time_control, StopControl::new(), &options, &reporter);
+    search(game, persistent_state, time_control, StopControl::new(), &options, &reporter);
 
+    let best_move = reporter.best_move();
     (best_move, reporter.eval())
 }
 

@@ -289,7 +289,7 @@ impl Uci {
                 let join_handle = std::thread::spawn(move || {
                     let mut persistent_state_handle = persistent_state.lock().unwrap();
 
-                    let best_move = search::search(
+                    search::search(
                         &game,
                         &mut persistent_state_handle,
                         time_control,
@@ -298,7 +298,6 @@ impl Uci {
                         &reporter,
                     );
 
-                    reporter.best_move(&game, best_move);
                     is_stopped.set();
                 });
 

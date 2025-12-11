@@ -20,7 +20,7 @@ fn test_expected_move(fen: &str, depth: u8, mv: (Square, Square)) -> (Move, Eval
 
     let capturing_reporter = CapturingReporter::new();
 
-    let best_move = search(
+    search(
         &game,
         &mut persistent_state,
         TimeControl::Depth(depth),
@@ -28,6 +28,8 @@ fn test_expected_move(fen: &str, depth: u8, mv: (Square, Square)) -> (Move, Eval
         &EngineOptions::DEFAULT,
         &capturing_reporter,
     );
+
+    let best_move = capturing_reporter.best_move();
 
     assert_eq!((best_move.src(), best_move.dst()), mv);
     (best_move, capturing_reporter.eval())

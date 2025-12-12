@@ -17,7 +17,6 @@ use crate::{
     engine::search::MAX_SEARCH_DEPTH_SIZE,
 };
 
-#[derive(Clone)]
 pub struct Tables {
     pub quiet_history: Box<HistoryTable>,
     pub capture_history: Box<CaptureHistoryTable>,
@@ -40,7 +39,6 @@ impl Tables {
     }
 }
 
-#[derive(Clone)]
 pub struct KillersTable([Option<Move>; MAX_SEARCH_DEPTH_SIZE]);
 
 impl KillersTable {
@@ -73,7 +71,6 @@ const fn taper_bonus(bonus: i16, old: i16, max: i32) -> i16 {
     (old + bonus - (old * bonus.abs()) / max) as i16
 }
 
-#[derive(Clone)]
 pub struct HistoryTable([[[[[i16; 2]; 2]; Square::N]; Square::N]; Player::N]);
 
 impl HistoryTable {
@@ -109,7 +106,6 @@ impl HistoryTable {
     }
 }
 
-#[derive(Clone)]
 pub struct CaptureHistoryTable([[[[i16; PieceKind::N]; Square::N]; PieceKind::N]; Player::N]);
 
 impl CaptureHistoryTable {
@@ -155,7 +151,6 @@ impl CaptureHistoryTable {
     }
 }
 
-#[derive(Clone)]
 pub struct CountermoveTable([[[Option<Move>; Square::N]; Square::N]; Player::N]);
 
 impl CountermoveTable {

@@ -149,8 +149,8 @@ pub fn negamax(
         }
     }
 
-    let eval = if excluded_mv.is_some() {
-        Eval::MIN
+    let eval = if excluded_mv.is_some() || in_check {
+        Eval::NONE
     } else {
         match tt_entry {
             Some(ref e) if e.eval != Eval::NONE => e.eval,
@@ -167,7 +167,19 @@ pub fn negamax(
 
     ctx.stack.get(plies).eval = eval;
 
-    let improving = !in_check && plies >= 2 && eval > ctx.stack.get_prev(plies, 2).unwrap().eval;
+    let improving = if in_check {
+        false
+    } else if let Some(prev2) = ctx.stack.get_prev(plies, 2)
+        && prev2.eval != Eval::NONE
+    {
+        eval > prev2.eval
+    } else if let Some(prev4) = ctx.stack.get_prev(plies, 4)
+        && prev4.eval != Eval::NONE
+    {
+        eval > prev4.eval
+    } else {
+        false
+    };
 
     if !is_root && !is_pv && !in_check && excluded_mv.is_none() {
         // Reverse futility pruning

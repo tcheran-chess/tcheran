@@ -11,6 +11,7 @@
 * Use beta + (eval - beta) / 3 formula for RFP (7.22 +- 4.67)
 * Start singular extensions earlier (6.23 +- 4.08 LTC, 21.11 +- 8.32 STC)
 * Introduce the improving heuristic and do less LMP if not improving (5.75 +- 4.00)
+* Look back four plies for improving heuristic (1.91 +- 1.86)
 
 ## [9.0]
 

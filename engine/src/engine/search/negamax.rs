@@ -25,7 +25,6 @@ pub struct DepthReduction(u8);
 
 impl DepthReduction {
     #[inline]
-    #[expect(unused, reason = "No LMR conditions yet")]
     pub fn reduce_more_if(&mut self, predicate: bool) {
         self.0 = self.0.saturating_add(u8::from(predicate));
     }
@@ -342,6 +341,8 @@ pub fn negamax(
                 let mut reduction = DepthReduction(lmr_reduction(depth, number_of_legal_moves));
 
                 reduction.reduce_less_if(in_check);
+
+                reduction.reduce_more_if(!is_pv);
 
                 reduction.value()
             } else {

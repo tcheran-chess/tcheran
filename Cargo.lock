@@ -245,6 +245,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "data"
+version = "0.0.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "viriformat",
+]
+
+[[package]]
 name = "datagen"
 version = "0.0.0"
 dependencies = [

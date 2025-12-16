@@ -30,6 +30,7 @@ pub fn run(options: &RelabelOptions) -> Result<()> {
 
     let mut relabelled_draw = 0;
     let mut relabelled_win = 0;
+    let mut relabelled_loss = 0;
     let mut empty_games = 0;
 
     let mut buffer = Vec::new();
@@ -52,13 +53,33 @@ pub fn run(options: &RelabelOptions) -> Result<()> {
         let (_, score) = game.moves.last().unwrap();
         let score = score.get();
 
-        if game.outcome() == WDL::Loss {
-            if score.abs() <= 10 {
-                relabelled_draw += 1;
-                game.set_outcome(GameOutcome::Draw(DrawType::Adjudication));
-            } else if score.is_positive() {
-                relabelled_win += 1;
-                game.set_outcome(GameOutcome::WhiteWin(WinType::Adjudication));
+        match game.outcome() {
+            WDL::Win => {
+                if score.abs() <= 10 {
+                    relabelled_draw += 1;
+                    game.set_outcome(GameOutcome::Draw(DrawType::Adjudication));
+                } else if score.is_negative() {
+                    relabelled_loss += 1;
+                    game.set_outcome(GameOutcome::BlackWin(WinType::Adjudication));
+                }
+            }
+            WDL::Loss => {
+                if score.abs() <= 10 {
+                    relabelled_draw += 1;
+                    game.set_outcome(GameOutcome::Draw(DrawType::Adjudication));
+                } else if score.is_positive() {
+                    relabelled_win += 1;
+                    game.set_outcome(GameOutcome::WhiteWin(WinType::Adjudication));
+                }
+            }
+            WDL::Draw => {
+                if score.is_positive() {
+                    game.set_outcome(GameOutcome::WhiteWin(WinType::Adjudication));
+                    relabelled_win += 1;
+                } else if score.is_negative() {
+                    game.set_outcome(GameOutcome::BlackWin(WinType::Adjudication));
+                    relabelled_loss += 1;
+                }
             }
         }
 
@@ -82,6 +103,7 @@ pub fn run(options: &RelabelOptions) -> Result<()> {
     println!("Wins = {wins} | Losses = {losses} | Draws = {draws}");
     println!("Relabelled to draw: {relabelled_draw}");
     println!("Relabelled to win: {relabelled_win}");
+    println!("Relabelled to loss: {relabelled_loss}");
     println!("Empty games: {empty_games}");
 
     Ok(())

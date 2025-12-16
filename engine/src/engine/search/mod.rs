@@ -156,7 +156,7 @@ impl ThreadData {
     }
 }
 
-pub(crate) struct SearchContext<'s> {
+pub struct SearchContext<'s> {
     pub tt: &'s TranspositionTable,
     pub tablebase: &'s Tablebase,
 
@@ -166,7 +166,6 @@ pub(crate) struct SearchContext<'s> {
 
     pub time_control: TimeStrategy,
 
-    #[expect(unused, reason = "Not used yet")]
     pub options: &'s EngineOptions,
 
     max_depth_reached: u8,

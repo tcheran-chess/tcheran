@@ -15,10 +15,10 @@ use crate::{chess::player::Player, engine::eval::WhiteEval};
 pub struct Eval(pub i32);
 
 impl Eval {
-    pub(crate) const MAX: Self = Self(i16::MAX as i32);
-    pub(crate) const MIN: Self = Self(i16::MIN as i32 + 1);
-    pub(crate) const NONE: Self = Self(i16::MIN as i32);
-    pub(crate) const DRAW: Self = Self(0);
+    pub const MAX: Self = Self(i16::MAX as i32);
+    pub const MIN: Self = Self(i16::MIN as i32 + 1);
+    pub const NONE: Self = Self(i16::MIN as i32);
+    pub const DRAW: Self = Self(0);
 
     const MATE: i32 = 32000;
     const MATED: i32 = -Self::MATE;

@@ -14,7 +14,7 @@ use crate::{
     },
 };
 
-pub(crate) struct TimeStrategy {
+pub struct TimeStrategy {
     time_control: TimeControl,
     started_at: Instant,
     stopped: bool,

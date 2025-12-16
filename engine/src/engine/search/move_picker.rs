@@ -102,7 +102,7 @@ impl MovePicker {
         }
     }
 
-    pub(crate) fn next(&mut self, game: &Game, tables: &Tables, plies: u8) -> Option<Move> {
+    pub fn next(&mut self, game: &Game, tables: &Tables, plies: u8) -> Option<Move> {
         use GenStage::*;
 
         if self.stage == BestMove {

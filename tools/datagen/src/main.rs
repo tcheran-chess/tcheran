@@ -27,7 +27,7 @@ use engine::{
 use jiff::{SpanRound, ToSpan, Unit};
 use rand::{Rng, prelude::IndexedRandom};
 
-const DATA_DIR: &str = "datagen";
+const DATA_DIR: &str = "etc/datagen";
 
 const DEFAULT_NODES: u64 = 5_000;
 const DEFAULT_HARD_NODES_FACTOR: u64 = 8;

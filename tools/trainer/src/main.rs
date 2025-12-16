@@ -65,12 +65,12 @@ fn main() {
     let settings = LocalSettings {
         threads: 8,
         test_set: None,
-        output_directory: "checkpoints",
+        output_directory: "etc/checkpoints",
         batch_queue_size: 32,
     };
 
     let data = ViriBinpackLoader::new(
-        "data/data.viri",
+        "etc/data/data.viri",
         1024 * 20,
         4,
         viriformat::dataformat::Filter::default(),

@@ -100,7 +100,7 @@ playoff-sprt new baseline concurrency tc:
 	fastchess \
 		-engine name="$(basename {{new}})" cmd="{{new}}" \
 		-engine name="$(basename {{baseline}})" cmd="{{baseline}}" \
-		-openings file=./UHO_Lichess_4852_v1.epd format=epd order=random \
+		-openings file=./etc/UHO_Lichess_4852_v1.epd format=epd order=random \
 		-ratinginterval {{concurrency}} \
 		-concurrency {{concurrency}} \
 		-rounds 100000 -repeat \
@@ -115,7 +115,7 @@ playoff-sprt-with-adjudication new baseline concurrency tc:
 	fastchess \
 		-engine name="$(basename {{new}})" cmd="{{new}}" \
 		-engine name="$(basename {{baseline}})" cmd="{{baseline}}" \
-		-openings file=./UHO_Lichess_4852_v1.epd format=epd order=random \
+		-openings file=./etc/UHO_Lichess_4852_v1.epd format=epd order=random \
 		-ratinginterval {{concurrency}} \
 		-concurrency {{concurrency}} \
 		-rounds 100000 -repeat \
@@ -138,7 +138,7 @@ playoff-elo new baseline rounds concurrency tc:
 	fastchess \
 		-engine name="$(basename {{new}})" cmd="{{new}}" \
 		-engine name="$(basename {{baseline}})" cmd="{{baseline}}" \
-		-openings file=./etc/openings/UHO_Lichess_4852_v1.epd format=epd order=random \
+		-openings file=./etc/UHO_Lichess_4852_v1.epd format=epd order=random \
 		-ratinginterval {{concurrency}} \
 		-concurrency {{concurrency}} \
 		-rounds {{rounds}} -repeat \

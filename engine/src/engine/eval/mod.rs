@@ -29,7 +29,7 @@ pub fn scale_eval(eval: Eval, game: &Game) -> Eval {
 }
 
 pub fn eval(nnue: &mut NetworkStack, game: &Game) -> Eval {
-    let eval = nnue.evaluate(game.player);
+    let eval = nnue.evaluate(game);
 
     #[cfg(not(feature = "datagen"))]
     let eval = scale_eval(eval, game);

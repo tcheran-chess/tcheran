@@ -35,7 +35,7 @@ fn main() -> ExitCode {
         let mut nnue = NetworkStack::new();
         nnue.setup(&game.board);
 
-        let eval = nnue.evaluate(game.player).0;
+        let eval = nnue.evaluate(&game).0;
 
         count += 1;
         total += i128::from(eval);

@@ -458,7 +458,7 @@ impl Uci {
                     }
                 }
 
-                let raw_eval = nnue.evaluate(Player::White);
+                let raw_eval = nnue.evaluate(Player::White, &self.game);
                 let normalised_eval =
                     wdl::normalize(raw_eval, &self.game.board).to_white_eval(Player::White);
 

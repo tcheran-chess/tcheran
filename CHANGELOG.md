@@ -4,6 +4,7 @@
 
 * Network #11, trained with an entirely new 5k soft node dataset (23.37 +- 8.61)
 * Use capture history as the SEE threshold during move picking (13.97 +- 6.76)
+* Network #12, adding 8 output buckets and using the same data as #11 (9.89 +- 5.56)
 * Clear killer moves for upcoming plies (5.77 +- 3.92)
 
 ## [10.0]

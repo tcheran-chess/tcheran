@@ -13,13 +13,14 @@ use crate::{
 // Network parameters
 const FEATURES: usize = 768;
 const HIDDEN_SIZE: usize = 1024;
+const OUTPUT_BUCKETS: usize = 8;
 
 // Quantization factors
 const QA: i32 = 255;
 const QB: i32 = 64;
 
 // Eval scaling factor
-pub const SCALE: i32 = 303;
+pub const SCALE: i32 = 313;
 
 #[derive(Clone)]
 enum FeatureChanges {
@@ -151,7 +152,7 @@ impl NetworkStack {
         &mut self.stack[self.current_idx]
     }
 
-    pub fn evaluate(&mut self, player: Player) -> Eval {
+    pub fn evaluate(&mut self, game: &Game) -> Eval {
         // First, we need to cycle through our stack and update any network accumulators that we
         // deferred updates for.
 
@@ -247,7 +248,7 @@ impl NetworkStack {
 
         // We should now have a full stack of materialised accumulators, all the way up to our current one
         // so we can evaluate that.
-        self.current_entry().network.evaluate(player)
+        self.current_entry().network.evaluate(game.player, game)
     }
 }
 
@@ -261,8 +262,8 @@ pub struct Accumulator([i16; HIDDEN_SIZE]);
 struct Network {
     feature_weights: [Accumulator; FEATURES],
     feature_bias: Accumulator,
-    output_weights: [i16; HIDDEN_SIZE * 2],
-    output_bias: i16,
+    output_weights: [[i16; HIDDEN_SIZE * 2]; OUTPUT_BUCKETS],
+    output_bias: [i16; OUTPUT_BUCKETS],
 }
 
 static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
@@ -361,19 +362,28 @@ impl NNUE {
         }
     }
 
-    pub fn evaluate(&self, side: Player) -> Eval {
-        let (us, them) = match side {
+    fn bucket(game: &Game) -> usize {
+        let divisor = 32usize.div_ceil(OUTPUT_BUCKETS);
+        (game.board.occupancy().count() as usize - 2) / divisor
+    }
+
+    pub fn evaluate(&self, player: Player, game: &Game) -> Eval {
+        let (us, them) = match player {
             Player::White => (&self.white, &self.black),
             Player::Black => (&self.black, &self.white),
         };
 
         let mut output = 0;
 
-        for (&value, &weight) in us.0.iter().zip(&NETWORK.output_weights[..HIDDEN_SIZE]) {
+        let output_bucket = Self::bucket(game);
+        let output_weights = &NETWORK.output_weights[output_bucket];
+        let output_bias = &NETWORK.output_bias[output_bucket];
+
+        for (&value, &weight) in us.0.iter().zip(&output_weights[..HIDDEN_SIZE]) {
             output += screlu(value) * i32::from(weight);
         }
 
-        for (&value, &weight) in them.0.iter().zip(&NETWORK.output_weights[HIDDEN_SIZE..]) {
+        for (&value, &weight) in them.0.iter().zip(&output_weights[HIDDEN_SIZE..]) {
             output += screlu(value) * i32::from(weight);
         }
 
@@ -381,7 +391,7 @@ impl NNUE {
         output /= QA;
 
         // Add bias.
-        output += i32::from(NETWORK.output_bias);
+        output += i32::from(*output_bias);
 
         // Apply eval scale.
         output *= SCALE;
@@ -393,7 +403,7 @@ impl NNUE {
     }
 
     pub fn approx_contribution(&mut self, game: &Game, square: Square, player: Player) -> Eval {
-        let eval = self.evaluate(player);
+        let eval = self.evaluate(player, game);
 
         let piece = game.board.piece_guaranteed_at(square);
 
@@ -403,7 +413,7 @@ impl NNUE {
         Self::sub1(&mut self.white, white_idx);
         Self::sub1(&mut self.black, black_idx);
 
-        let eval_without_feature = self.evaluate(player);
+        let eval_without_feature = self.evaluate(player, game);
 
         // Add the feature back again
         Self::add1(&mut self.white, white_idx);

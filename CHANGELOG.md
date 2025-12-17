@@ -15,6 +15,7 @@
 * Introduce the improving heuristic and do less LMP if not improving (5.75 +- 4.00)
 * LMR: Reduce non-PV nodes more (3.91 +- 3.03)
 * Look back four plies for improving heuristic (1.91 +- 1.86)
+* Add 2-ply continuation history (0.05 +- 2.20)
 
 ## Misc
 

@@ -462,6 +462,19 @@ pub fn negamax(
                     );
                 }
 
+                if let Some(ply_2) = ctx.stack.get_prev(plies, 2)
+                    && let Some((last_move, last_moved)) = ply_2.mv
+                {
+                    ctx.tables.conthist.update(
+                        game,
+                        last_moved,
+                        last_move,
+                        mv,
+                        depth,
+                        &quiets_tried,
+                    );
+                }
+
                 ctx.tables
                     .quiet_history
                     .update(game, mv, depth, &quiets_tried);

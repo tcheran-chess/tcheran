@@ -278,7 +278,14 @@ pub fn score_quiet(game: &Game, mv: Move, tables: &Tables, stack: &SearchStack, 
             tables.conthist.get(game, prev_moved, prev_move.dst(), mv)
         });
 
-    tables.quiet_history.get(game, mv) + conthist1_bonus
+    let conthist2_bonus = stack
+        .get_prev(plies, 2)
+        .and_then(|s| s.mv)
+        .map_or(0, |(prev_move, prev_moved)| {
+            tables.conthist.get(game, prev_moved, prev_move.dst(), mv)
+        });
+
+    tables.quiet_history.get(game, mv) + conthist1_bonus + conthist2_bonus
 }
 
 #[cfg(test)]

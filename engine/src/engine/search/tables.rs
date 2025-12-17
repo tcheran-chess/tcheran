@@ -14,21 +14,21 @@ use crate::{
         player::Player,
         square::Square,
     },
-    engine::search::MAX_SEARCH_DEPTH_SIZE,
+    engine::{search::MAX_SEARCH_DEPTH_SIZE, util::mem::alloc_boxed},
 };
 
 pub struct Tables {
     pub quiet_history: Box<HistoryTable>,
     pub capture_history: Box<CaptureHistoryTable>,
     pub killer_moves: KillersTable,
-    pub countermoves: CountermoveTable,
+    pub countermoves: Box<CountermoveTable>,
 }
 
 impl Tables {
     pub fn new() -> Self {
         Self {
-            quiet_history: Box::new(HistoryTable::new()),
-            capture_history: Box::new(CaptureHistoryTable::new()),
+            quiet_history: HistoryTable::new(),
+            capture_history: CaptureHistoryTable::new(),
             killer_moves: KillersTable::new(),
             countermoves: CountermoveTable::new(),
         }
@@ -76,8 +76,8 @@ pub struct HistoryTable([[[[[i16; 2]; 2]; Square::N]; Square::N]; Player::N]);
 impl HistoryTable {
     const MAX: i32 = 8192;
 
-    pub const fn new() -> Self {
-        Self([[[[[0; 2]; 2]; Square::N]; Square::N]; Player::N])
+    pub fn new() -> Box<Self> {
+        alloc_boxed()
     }
 
     pub fn get(&self, game: &Game, mv: Move) -> i32 {
@@ -111,8 +111,8 @@ pub struct CaptureHistoryTable([[[[i16; PieceKind::N]; Square::N]; PieceKind::N]
 impl CaptureHistoryTable {
     pub const MAX: i32 = 8192;
 
-    pub const fn new() -> Self {
-        Self([[[[0; PieceKind::N]; Square::N]; PieceKind::N]; Player::N])
+    pub fn new() -> Box<Self> {
+        alloc_boxed()
     }
 
     pub fn get(
@@ -154,8 +154,8 @@ impl CaptureHistoryTable {
 pub struct CountermoveTable([[[Option<Move>; Square::N]; Square::N]; Player::N]);
 
 impl CountermoveTable {
-    pub const fn new() -> Self {
-        Self([[[None; Square::N]; Square::N]; Player::N])
+    pub fn new() -> Box<Self> {
+        alloc_boxed()
     }
 
     pub fn set(&mut self, player: Player, previous_move: Move, counter_move: Move) {

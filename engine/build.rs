@@ -11,13 +11,13 @@ const DOWNLOAD_BASE_URL: &str =
 fn main() {
     let network_file = setup_network();
     println!("cargo:rustc-env=NETWORK={}", network_file.display());
-    println!("cargo:rerun-if-env-changed=EVALFILE");
-    println!("cargo:rerun-if-changed=data/{NETWORK}");
 
     build_fathom();
 }
 
 fn setup_network() -> PathBuf {
+    println!("cargo:rerun-if-env-changed=EVALFILE");
+
     // OpenBench might provide us with a file (by setting EVALFILE)
     // If so, check that it exists - but just use that.
     if let Ok(eval_file) = env::var("EVALFILE") {
@@ -31,6 +31,7 @@ fn setup_network() -> PathBuf {
         download_network(&path);
     }
 
+    println!("cargo:rerun-if-changed={}", path.display());
     path
 }
 

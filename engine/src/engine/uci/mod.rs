@@ -33,7 +33,7 @@ use crate::{
         square::{File, Rank, Square},
     },
     engine::{
-        eval::{WhiteEval, nnue::NNUE},
+        eval::{WhiteEval, nnue::NNUE, wdl},
         options::EngineOptions,
         search,
         search::{PersistentState, Reporter, time_control::StopControl},
@@ -59,16 +59,11 @@ mod colors {
 
 impl UciReporter {
     fn uci_report_search_progress(progress: &search::SearchInfo) {
-        let score = if let Some(nmoves) = progress.eval.is_mate_in_moves() {
-            InfoScore::Mate(nmoves)
-        } else {
-            InfoScore::Centipawns(progress.eval.0)
-        };
-
         send_response(&UciResponse::Info(InfoFields {
             depth: Some(progress.depth),
             seldepth: Some(progress.seldepth),
-            score: Some(score),
+            score: Some(InfoScore::from(progress.eval, &progress.game)),
+            wdl: Some(wdl::wdl(progress.eval, &progress.game.board)),
             pv: Some(
                 progress
                     .pv
@@ -82,7 +77,7 @@ impl UciReporter {
             nps: Some(progress.stats.nodes_per_second),
             tbhits: Some(progress.stats.tbhits),
             hashfull: Some(progress.hashfull),
-            ..Default::default()
+            string: None,
         }));
     }
 
@@ -91,18 +86,13 @@ impl UciReporter {
     fn pretty_report_search_progress(game: &Game, progress: &search::SearchInfo) {
         use colors::*;
 
-        let score = if let Some(nmoves) = progress.eval.is_mate_in_moves() {
-            InfoScore::Mate(nmoves)
-        } else {
-            InfoScore::Centipawns(progress.eval.0)
-        };
-
+        let score = InfoScore::from(progress.eval, &progress.game);
         let mut game = game.clone();
 
         print!(" {:>3}", progress.depth);
         print!("{BRIGHT_BLACK}/{:<3}{RESET}", progress.seldepth);
 
-        let (score, score_color) = match score {
+        let (formatted_score, score_color) = match score {
             InfoScore::Centipawns(cp) => {
                 let friendly_score = format!("{:+.2}", f64::from(cp) / 100.0);
 
@@ -126,7 +116,19 @@ impl UciReporter {
             }
         };
 
-        print!(" {score_color}{score:>7}{RESET}");
+        print!(" {score_color}{formatted_score:>7}{RESET}");
+
+        #[expect(clippy::cast_possible_truncation, reason = "Approximate calculation")]
+        let as_percentage = |n: f64| (100.0 * n).round() as i32;
+        let wdl = wdl::wdl(progress.eval, &progress.game.board);
+        let formatted_wdl = format!(
+            "({}/{}/{})",
+            as_percentage(wdl.win),
+            as_percentage(wdl.draw),
+            as_percentage(wdl.loss)
+        );
+
+        print!(" {BRIGHT_BLACK}{formatted_wdl:<10}{RESET}");
 
         let time = if progress.stats.time >= Duration::from_secs(1) {
             format!("{:.2}s", progress.stats.time.as_secs_f32())
@@ -455,11 +457,13 @@ impl Uci {
                     }
                 }
 
+                let raw_eval = nnue.evaluate(Player::White);
+                let normalised_eval =
+                    wdl::normalize(raw_eval, &self.game.board).to_white_eval(Player::White);
+
                 println!();
-                println!(
-                    "Evaluation: {}",
-                    nnue.evaluate(Player::White).to_white_eval(Player::White)
-                );
+                println!("Raw evaluation: {}", raw_eval.to_white_eval(Player::White));
+                println!("Normalised evaluation: {normalised_eval}");
                 println!();
             }
             // For OpenBench to understand NPS values for different workers

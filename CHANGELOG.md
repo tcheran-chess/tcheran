@@ -15,6 +15,10 @@
 * LMR: Reduce non-PV nodes more (3.91 +- 3.03)
 * Look back four plies for improving heuristic (1.91 +- 1.86)
 
+## Misc
+
+* All reported evaluations are now normalised using a model derived from Stockfish's WDL\_model tool
+
 ## [9.0]
 
 * Implement support for Threads via Lazy SMP (39.62 +- 11.20 2v1, 105.71 +- 15.83 4v1)

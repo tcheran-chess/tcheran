@@ -1,8 +1,14 @@
 use std::{fmt::Formatter, time::Duration};
 
-use crate::engine::uci::{
-    UciMove,
-    options::{UciOption, UciOptionType},
+use crate::{
+    chess::game::Game,
+    engine::{
+        eval::{Eval, wdl, wdl::WdlProbabilities},
+        uci::{
+            UciMove,
+            options::{UciOption, UciOptionType},
+        },
+    },
 };
 
 #[derive(Debug)]
@@ -11,13 +17,24 @@ pub(super) enum InfoScore {
     Mate(i32),
 }
 
+impl InfoScore {
+    pub fn from(eval: Eval, game: &Game) -> Self {
+        if let Some(nmoves) = eval.is_mate_in_moves() {
+            Self::Mate(nmoves)
+        } else {
+            let normalized_eval = wdl::normalize(eval, &game.board);
+            Self::Centipawns(normalized_eval.0)
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(super) enum IdParam {
     Name(String),
     Author(&'static str),
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct InfoFields {
     pub(super) depth: Option<u8>,
     pub(super) seldepth: Option<u8>,
@@ -25,6 +42,7 @@ pub struct InfoFields {
     pub(super) nodes: Option<u64>,
     pub(super) pv: Option<Vec<UciMove>>,
     pub(super) score: Option<InfoScore>,
+    pub(super) wdl: Option<WdlProbabilities>,
     pub(super) hashfull: Option<usize>,
     pub(super) nps: Option<u64>,
     pub(super) tbhits: Option<u64>,
@@ -59,6 +77,7 @@ impl std::fmt::Display for UciResponse<'_> {
                 nodes,
                 pv,
                 score,
+                wdl,
                 hashfull,
                 nps,
                 tbhits,
@@ -83,6 +102,18 @@ impl std::fmt::Display for UciResponse<'_> {
                             write!(f, " score mate {turns}")?;
                         }
                     }
+                }
+
+                if let Some(wdl) = wdl {
+                    #[expect(clippy::cast_possible_truncation, reason = "Approximate calculation")]
+                    let format_wdl = |n: f64| (1000.0 * n).round() as i32;
+                    write!(
+                        f,
+                        " wdl {} {} {}",
+                        format_wdl(wdl.win),
+                        format_wdl(wdl.draw),
+                        format_wdl(wdl.loss)
+                    )?;
                 }
 
                 if let Some(time) = time {

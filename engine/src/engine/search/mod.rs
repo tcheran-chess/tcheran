@@ -269,6 +269,7 @@ pub struct Clocks {
 }
 
 pub struct SearchInfo {
+    pub game: Game,
     pub depth: u8,
     pub seldepth: u8,
     pub eval: Eval,
@@ -364,6 +365,7 @@ pub fn search(
         reporter.report_search_progress(
             game,
             SearchInfo {
+                game: game.clone(),
                 depth,
                 seldepth: depth,
                 eval,

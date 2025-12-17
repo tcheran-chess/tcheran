@@ -43,6 +43,7 @@ pub fn search(
         reporter.report_search_progress(
             game,
             SearchInfo {
+                game: game.clone(),
                 depth,
                 seldepth: ctx.max_depth_reached,
                 eval,

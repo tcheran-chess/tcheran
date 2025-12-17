@@ -1,5 +1,6 @@
 pub mod nnue;
 mod player_eval;
+pub mod wdl;
 mod white_eval;
 
 pub use player_eval::Eval;

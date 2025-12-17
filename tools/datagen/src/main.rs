@@ -15,7 +15,7 @@ use engine::{
         square::{Square, squares},
     },
     engine::{
-        eval::{Eval, WhiteEval},
+        eval::{Eval, WhiteEval, wdl},
         options::EngineOptions,
         search::{
             CapturingReporter, PersistentState, TimeControl, search, time_control::StopControl,
@@ -336,7 +336,7 @@ fn acceptable_starting_position(rand: &mut impl Rng, states: &mut PlayerStates) 
 
         let state = states.for_player(game.player);
 
-        let (_, eval) = search_position(
+        let (_, _, normalised_eval) = search_position(
             &game,
             TimeControl::Nodes {
                 soft: DEFAULT_NODES,
@@ -344,7 +344,8 @@ fn acceptable_starting_position(rand: &mut impl Rng, states: &mut PlayerStates) 
             },
             state,
         );
-        if eval.0.abs() >= UNBALANCED_STARTING_EVAL {
+
+        if normalised_eval.0.abs() >= UNBALANCED_STARTING_EVAL {
             continue;
         }
 
@@ -356,14 +357,18 @@ fn search_position(
     game: &Game,
     time_control: TimeControl,
     persistent_state: &mut PersistentState,
-) -> (Move, Eval) {
+) -> (Move, Eval, Eval) {
     let options = EngineOptions::DEFAULT;
     let reporter = CapturingReporter::new();
 
     search(game, persistent_state, time_control, StopControl::new(), &options, &reporter);
 
     let best_move = reporter.best_move();
-    (best_move, reporter.eval())
+    let eval = reporter.eval();
+
+    let normalised_eval = wdl::normalize(eval, &game.board);
+
+    (best_move, eval, normalised_eval)
 }
 
 fn game_result(
@@ -576,8 +581,11 @@ fn play_game(
         }
 
         let state = states.for_player(game.player);
-        let (next_move, eval) = search_position(&game, time_control.clone(), state);
+        let (next_move, eval, normalised_eval) =
+            search_position(&game, time_control.clone(), state);
+
         let white_eval = eval.to_white_eval(game.player);
+        let normalised_white_eval = normalised_eval.to_white_eval(game.player);
 
         virigame.add_move(move_to_viri(next_move), i16::try_from(white_eval.0).unwrap());
         game.make_move(next_move);
@@ -586,7 +594,7 @@ fn play_game(
             break outcome;
         }
 
-        if let Some(outcome) = adjudicate_result(white_eval, &mut adjudication_stats) {
+        if let Some(outcome) = adjudicate_result(normalised_white_eval, &mut adjudication_stats) {
             break outcome;
         }
     };

@@ -66,11 +66,8 @@ fn main() -> ExitCode {
     println!("Min: {min}");
     println!("Max: {max}");
 
-    // My first NNUE network (256 HL, WDL 0.1) has the mean absolute eval 367.27
-    // The following calculates, for the network being evaluated, how we'd need to scale
-    // the network output to have the same absolute eval.
-
-    let original_avg = 367.27;
+    // Average from network v10 run against the Lichess Big3 dataset
+    let original_avg = 838.36;
     let scale = original_avg / abs_mean * f64::from(nnue::SCALE);
 
     println!("\nScale: {scale:.6}");

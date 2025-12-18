@@ -231,7 +231,6 @@ impl SearchStack {
     }
 }
 
-#[derive(Clone)]
 pub struct SearchStackEntry {
     mv: Option<(Move, Piece)>,
     eval: Eval,

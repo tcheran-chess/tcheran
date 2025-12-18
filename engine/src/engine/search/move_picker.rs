@@ -8,11 +8,8 @@ use crate::{
     },
     engine::{
         eval::Eval,
-        search::{
-            SearchStack,
-            tables::{CaptureHistoryTable, Tables},
-        },
-        see::see,
+        search::{SearchStack, tables::Tables},
+        see::{see, see_value},
     },
 };
 
@@ -238,17 +235,10 @@ impl MovePicker {
     }
 }
 
-const MVV_ORDER: [i32; PieceKind::N] = [
-    0,
-    CaptureHistoryTable::MAX,
-    CaptureHistoryTable::MAX * 2,
-    CaptureHistoryTable::MAX * 3,
-    CaptureHistoryTable::MAX * 4,
-    CaptureHistoryTable::MAX * 5,
-];
-
 pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
     let moved_piece = game.board.piece_guaranteed_at(mv.src());
+
+    let mut score = 0;
 
     if mv.is_capture() {
         let captured_piece_kind = if mv.is_en_passant() {
@@ -257,17 +247,23 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
             game.board.piece_guaranteed_at(mv.dst()).kind
         };
 
-        return MVV_ORDER[captured_piece_kind]
-            + tables.capture_history.get(
-                game.player,
-                moved_piece.kind,
-                mv.dst(),
-                captured_piece_kind,
-            );
+        score += see_value(captured_piece_kind).0;
+
+        // Capture history max is 8192, so divide by 8 so max is roughly
+        // equivalent to the see_value of a queen.
+        score += tables.capture_history.get(
+            game.player,
+            moved_piece.kind,
+            mv.dst(),
+            captured_piece_kind,
+        ) / 8;
     }
 
-    // For other tactials (i.e. promotions), explore highest value pieces first
-    i32::MAX - 100 - moved_piece.kind as i32
+    if mv.is_promotion() {
+        score += see_value(PieceKind::Queen).0 - see_value(PieceKind::Pawn).0;
+    }
+
+    score
 }
 
 pub fn score_quiet(game: &Game, mv: Move, tables: &Tables, stack: &SearchStack, plies: u8) -> i32 {

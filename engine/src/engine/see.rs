@@ -3,7 +3,7 @@ use crate::{
     engine::eval::Eval,
 };
 
-fn piece_value(kind: PieceKind) -> Eval {
+pub fn see_value(kind: PieceKind) -> Eval {
     use PieceKind::*;
 
     Eval(match kind {
@@ -30,10 +30,10 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
     //
     // If we captured a piece during the move, we score according to that piece's value
     score += match board.piece_at(to) {
-        Some(piece) => piece_value(piece.kind),
+        Some(piece) => see_value(piece.kind),
         None => {
             if mv.is_en_passant() {
-                piece_value(PieceKind::Pawn)
+                see_value(PieceKind::Pawn)
             } else {
                 Eval(0)
             }
@@ -42,8 +42,8 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
 
     // If we promoted a pawn, we lose the pawn and gain the value of the piece we promoted to
     if let Some(promotion_piece) = mv.promotion() {
-        score -= piece_value(PieceKind::Pawn);
-        score += piece_value(promotion_piece.piece());
+        score -= see_value(PieceKind::Pawn);
+        score += see_value(promotion_piece.piece());
     }
 
     // The piece we just moved will be the first victim of the exchange on the target square
@@ -121,9 +121,9 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
         }
 
         if color == game.player {
-            score += piece_value(victim);
+            score += see_value(victim);
         } else {
-            score -= piece_value(victim);
+            score -= see_value(victim);
         }
 
         // The attacker that just captured is the next piece to be captured

@@ -16,6 +16,7 @@
 * LMR: Reduce non-PV nodes more (3.91 +- 3.03)
 * Look back four plies for improving heuristic (1.91 +- 1.86)
 * Use a faster way of calculating the transposition table index (2.87 +- 3.14)
+* Use SEE values for scoring tacticals (1.59 +- 3.27)
 * Add 2-ply continuation history (0.05 +- 2.20)
 
 ## Misc

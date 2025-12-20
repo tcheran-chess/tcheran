@@ -332,4 +332,21 @@ impl TranspositionTable {
 
         None
     }
+
+    pub fn prefetch(&self, hash: ZobristHash) {
+        let idx = self.get_entry_idx(hash);
+        let entry = &self.data[idx];
+
+        #[cfg(target_arch = "x86_64")]
+        unsafe {
+            use std::arch::x86_64::{_MM_HINT_T0, _mm_prefetch};
+            _mm_prefetch((entry as *const AtomicTranspositionTableEntry).cast::<i8>(), _MM_HINT_T0);
+        }
+
+        #[cfg(not(target_arch = "x86_64"))]
+        {
+            // Prevent warnings on platforms that can't prefetch TT entries
+            _ = entry;
+        }
+    }
 }

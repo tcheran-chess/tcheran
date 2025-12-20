@@ -194,6 +194,8 @@ pub fn negamax(
             && ctx.stack.last(plies).is_some_and(|s| s.mv.is_some())
             && !game.zugzwang_likely()
         {
+            ctx.tt.prefetch(game.approx_zobrist_after_null_move());
+
             let reduction = params::NULL_MOVE_PRUNING_BASE_REDUCTION
                 + depth / params::NULL_MOVE_PRUNING_REDUCTION_FACTOR;
 
@@ -273,6 +275,8 @@ pub fn negamax(
         if Some(mv) == excluded_mv {
             continue;
         }
+
+        ctx.tt.prefetch(game.approx_zobrist_after(mv));
 
         node_pv.clear();
 

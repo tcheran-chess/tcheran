@@ -558,6 +558,43 @@ impl Game {
         self.diagonal_pins = history.diagonal_pins;
         self.threats = history.threats;
     }
+
+    pub fn approx_zobrist_after(&self, mv: Move) -> ZobristHash {
+        let mut key = self.zobrist;
+
+        let moved_piece = self.board.piece_guaranteed_at(mv.src());
+        let captured_piece = self.board.piece_at(mv.dst());
+
+        key.toggle_piece_on_square(mv.src(), moved_piece);
+
+        if let Some(promotion) = mv.promotion() {
+            key.toggle_piece_on_square(mv.dst(), Piece::new(moved_piece.player, promotion.piece()));
+        } else {
+            key.toggle_piece_on_square(mv.dst(), moved_piece);
+        }
+
+        if let Some(captured_piece) = captured_piece {
+            key.toggle_piece_on_square(mv.dst(), captured_piece);
+        }
+
+        if let Some(ep_target) = self.en_passant_target {
+            key.toggle_en_passant(ep_target);
+        }
+
+        if mv.is_double_push() {
+            let ep_square = mv.dst().backward(self.player);
+            key.toggle_en_passant(ep_square);
+        }
+
+        key.toggle_side_to_play();
+        key
+    }
+
+    pub fn approx_zobrist_after_null_move(&self) -> ZobristHash {
+        let mut key = self.zobrist;
+        key.toggle_side_to_play();
+        key
+    }
 }
 
 impl Default for Game {

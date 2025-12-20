@@ -192,11 +192,7 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
-            self.stage = if self.only_tacticals {
-                Done
-            } else {
-                ScoreQuiets
-            };
+            self.stage = ScoreQuiets;
         }
 
         if self.stage == ScoreQuiets {

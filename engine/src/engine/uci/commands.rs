@@ -43,5 +43,7 @@ pub enum UciCommand {
     },
     Eval,
 
+    Spsa,
+
     Quit,
 }

@@ -336,6 +336,8 @@ pub fn parse(input: &str) -> Result<UciCommand, ()> {
         "perftdiv" => cmd_perft_div(args),
         "eval" => no_args_command(UciCommand::Eval, args),
 
+        "spsa" => no_args_command(UciCommand::Spsa, args),
+
         "quit" => no_args_command(UciCommand::Quit, args),
         _ => Err(()),
     }

@@ -83,7 +83,9 @@ pub struct History {
     pub castle_rights: [CastleRights; Player::N],
     pub en_passant_target: Option<Square>,
     pub halfmove_clock: u32,
+
     pub zobrist: ZobristHash,
+    pub pawn_zobrist: ZobristHash,
 
     pub checkers: Bitboard,
     pub orthogonal_pins: Bitboard,
@@ -101,6 +103,8 @@ pub struct Game {
     pub plies: u32,
 
     pub zobrist: ZobristHash,
+    pub pawn_zobrist: ZobristHash,
+
     pub history: Vec<History>,
 
     pub checkers: Bitboard,
@@ -136,10 +140,12 @@ impl Game {
             threats: Bitboard::EMPTY,
 
             zobrist: ZobristHash::uninit(),
+            pawn_zobrist: ZobristHash::uninit(),
             history: Vec::new(),
         };
 
         game.zobrist = zobrist::hash(&game);
+        game.pawn_zobrist = zobrist::hash_pawns(&game);
         game.update_threats();
         game.update_checks_and_pins();
 
@@ -234,12 +240,21 @@ impl Game {
     fn set_at(&mut self, sq: Square, piece: Piece) {
         self.board.set_at(sq, piece);
         self.zobrist.toggle_piece_on_square(sq, piece);
+
+        if piece.kind == PieceKind::Pawn {
+            self.pawn_zobrist.toggle_piece_on_square(sq, piece);
+        }
     }
 
     fn remove_at(&mut self, sq: Square) -> Piece {
         let removed_piece = self.board.piece_guaranteed_at(sq);
         self.board.remove_at(sq);
         self.zobrist.toggle_piece_on_square(sq, removed_piece);
+
+        if removed_piece.kind == PieceKind::Pawn {
+            self.pawn_zobrist.toggle_piece_on_square(sq, removed_piece);
+        }
+
         removed_piece
     }
 
@@ -353,7 +368,9 @@ impl Game {
             castle_rights: self.castle_rights,
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
+
             zobrist: self.zobrist,
+            pawn_zobrist: self.pawn_zobrist,
 
             checkers: self.checkers,
             orthogonal_pins: self.orthogonal_pins,
@@ -466,7 +483,9 @@ impl Game {
             castle_rights: self.castle_rights,
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
+
             zobrist: self.zobrist,
+            pawn_zobrist: self.pawn_zobrist,
 
             checkers: self.checkers,
             orthogonal_pins: self.orthogonal_pins,
@@ -505,6 +524,7 @@ impl Game {
         self.plies -= 1;
         self.player = player;
         self.zobrist = history.zobrist;
+        self.pawn_zobrist = history.pawn_zobrist;
         self.halfmove_clock = history.halfmove_clock;
         self.castle_rights = history.castle_rights;
         self.en_passant_target = history.en_passant_target;
@@ -551,6 +571,7 @@ impl Game {
         self.plies -= 1;
         self.player = self.player.other();
         self.zobrist = history.zobrist;
+        self.pawn_zobrist = history.pawn_zobrist;
         self.en_passant_target = history.en_passant_target;
         self.halfmove_clock = history.halfmove_clock;
         self.checkers = history.checkers;

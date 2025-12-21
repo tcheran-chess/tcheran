@@ -121,6 +121,20 @@ pub fn hash(game: &Game) -> ZobristHash {
     ZobristHash(hash)
 }
 
+pub fn hash_pawns(game: &Game) -> ZobristHash {
+    let mut hash = 0u64;
+
+    for s in game.board.pawns(Player::White) {
+        hash ^= piece_on_square(Player::White, PieceKind::Pawn, s);
+    }
+
+    for s in game.board.pawns(Player::Black) {
+        hash ^= piece_on_square(Player::Black, PieceKind::Pawn, s);
+    }
+
+    ZobristHash(hash)
+}
+
 fn piece_on_square(player: Player, piece: PieceKind, square: Square) -> ZobristComponent {
     components::PIECE_SQUARE[player][square][piece]
 }

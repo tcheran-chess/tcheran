@@ -14,8 +14,10 @@ use crate::{
         piece::{Piece, PieceKind},
         player::Player,
         square::Square,
+        zobrist::ZobristHash,
     },
     engine::{
+        eval::Eval,
         search::{MAX_SEARCH_DEPTH_SIZE, Params},
         util::mem::alloc_boxed,
     },
@@ -26,6 +28,7 @@ pub struct Tables {
     pub capture_history: Box<CaptureHistoryTable>,
     pub killer_moves: KillersTable,
     pub conthist: Box<ContHistTable>,
+    pub corrhist: CorrectionHistories,
 }
 
 impl Tables {
@@ -35,6 +38,7 @@ impl Tables {
             capture_history: CaptureHistoryTable::new(),
             killer_moves: KillersTable::new(),
             conthist: ContHistTable::new(),
+            corrhist: CorrectionHistories::new(),
         }
     }
 
@@ -211,5 +215,57 @@ impl ContHistTable {
                 -bonus,
             );
         }
+    }
+}
+
+const PAWN_CORRECTION_HISTORY_WEIGHT: i32 = 128;
+
+pub struct CorrectionHistories {
+    pawn: Box<CorrectionHistoryTable>,
+}
+
+impl CorrectionHistories {
+    pub fn new() -> Self {
+        Self {
+            pawn: CorrectionHistoryTable::new(),
+        }
+    }
+
+    pub fn get(&self, game: &mut Game) -> Eval {
+        let corr = self.pawn.get(game.player, game.pawn_zobrist) * PAWN_CORRECTION_HISTORY_WEIGHT;
+
+        corr / 2048
+    }
+
+    pub fn update(&mut self, game: &mut Game, depth: u8, eval_diff: Eval) {
+        self.pawn
+            .update(game.player, game.pawn_zobrist, depth, eval_diff);
+    }
+}
+
+const CORRECTION_HISTORY_SIZE: usize = 16384;
+pub struct CorrectionHistoryTable([[i16; CORRECTION_HISTORY_SIZE]; Player::N]);
+
+impl CorrectionHistoryTable {
+    pub const MAX: i32 = 1024;
+    pub const MAX_UPDATE: i32 = Self::MAX / 4;
+
+    pub fn new() -> Box<Self> {
+        alloc_boxed()
+    }
+
+    #[expect(clippy::cast_possible_truncation, reason = "u64 to usize")]
+    pub fn get(&self, player: Player, key: ZobristHash) -> Eval {
+        Eval(i32::from(self.0[player][key.0 as usize % CORRECTION_HISTORY_SIZE]))
+    }
+
+    #[expect(clippy::cast_possible_truncation, reason = "u64 to usize")]
+    pub fn update(&mut self, player: Player, key: ZobristHash, depth: u8, eval_diff: Eval) {
+        let old = &mut self.0[player][key.0 as usize % CORRECTION_HISTORY_SIZE];
+
+        let raw_bonus = eval_diff.0 * i32::from(depth) / 8;
+        let bonus = i32::clamp(raw_bonus, -Self::MAX_UPDATE, Self::MAX_UPDATE);
+
+        *old = taper_bonus(bonus as i16, *old, Self::MAX);
     }
 }

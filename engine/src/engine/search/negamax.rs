@@ -154,7 +154,7 @@ pub fn negamax(
         }
     }
 
-    let eval = if excluded_mv.is_some() || in_check {
+    let raw_eval = if excluded_mv.is_some() || in_check {
         Eval::NONE
     } else {
         match tt_entry {
@@ -168,6 +168,12 @@ pub fn negamax(
                 e
             }
         }
+    };
+
+    let eval = if raw_eval == Eval::NONE {
+        Eval::NONE
+    } else {
+        (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate()
     };
 
     ctx.stack.get(plies).eval = eval;
@@ -516,8 +522,16 @@ pub fn negamax(
             }
         }
 
+        if !(in_check
+            || best_move.is_some_and(|m| m.is_capture() || m.is_promotion())
+            || tt_node_bound == NodeBound::Lower && best_eval <= eval
+            || tt_node_bound == NodeBound::Upper && best_eval >= eval)
+        {
+            ctx.tables.corrhist.update(game, depth, best_eval - eval);
+        }
+
         ctx.tt
-            .insert(game.zobrist, tt_node_bound, best_move, best_eval, eval, depth, plies);
+            .insert(game.zobrist, tt_node_bound, best_move, best_eval, raw_eval, depth, plies);
     }
 
     best_eval

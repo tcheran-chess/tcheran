@@ -64,6 +64,10 @@ impl Eval {
         None
     }
 
+    pub fn clamp_to_non_mate(self) -> Self {
+        self.clamp(Self(Self::MATED_THRESHOLD + 1), Self(Self::MATE_THRESHOLD - 1))
+    }
+
     pub fn to_white_eval(self, player: Player) -> WhiteEval {
         match player {
             Player::White => WhiteEval(self.0),

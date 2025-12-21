@@ -56,7 +56,7 @@ pub fn quiescence(
 
     let mut node_bound = NodeBound::Upper;
 
-    let eval = if let Some(tt_entry) = tt_entry {
+    let raw_eval = if let Some(tt_entry) = tt_entry {
         if tt_entry.eval == Eval::NONE {
             eval::eval(ctx.nnue, game.player)
         } else {
@@ -69,6 +69,12 @@ pub fn quiescence(
             .insert(game.zobrist, NodeBound::None, None, Eval::NONE, e, 0, plies);
 
         e
+    };
+
+    let eval = if raw_eval == Eval::NONE {
+        Eval::NONE
+    } else {
+        (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate()
     };
 
     if eval >= beta {
@@ -117,7 +123,7 @@ pub fn quiescence(
     }
 
     ctx.tt
-        .insert(game.zobrist, node_bound, best_move, best_eval, eval, 0, plies);
+        .insert(game.zobrist, node_bound, best_move, best_eval, raw_eval, 0, plies);
 
     best_eval
 }

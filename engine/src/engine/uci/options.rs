@@ -17,6 +17,9 @@ pub enum UciOptionType {
         min: isize,
         max: isize,
         set_fn: SetFn<SpinValue>,
+
+        spsa_step: Option<f64>,
+        spsa_disabled: bool,
     },
     Combo {
         default: &'static str,
@@ -64,6 +67,9 @@ impl UciOption {
             default: None,
             min: None,
             max: None,
+
+            spsa_step: None,
+            spsa_disabled: false,
         }
     }
 
@@ -128,6 +134,9 @@ pub struct UciSpinOptionBuilder {
     default: Option<isize>,
     min: Option<isize>,
     max: Option<isize>,
+
+    spsa_step: Option<f64>,
+    spsa_disabled: bool,
 }
 
 pub trait ToUciSpinOptionValue {
@@ -174,6 +183,16 @@ impl UciSpinOptionBuilder {
         self
     }
 
+    pub fn with_spsa_step(mut self, step: f64) -> Self {
+        self.spsa_step = Some(step);
+        self
+    }
+
+    pub fn disable(mut self) -> Self {
+        self.spsa_disabled = true;
+        self
+    }
+
     pub fn build(self) -> UciOption {
         let default = self
             .default
@@ -193,6 +212,9 @@ impl UciSpinOptionBuilder {
                 max,
 
                 set_fn: self.set_fn,
+
+                spsa_step: self.spsa_step,
+                spsa_disabled: self.spsa_disabled,
             },
         }
     }

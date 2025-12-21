@@ -12,6 +12,7 @@
 * Avoid re-allocating thread data before each search (8.95 +- 5.20 with 2 threads vs 2 threads, +~20 Elo in 2v1 thread odds)
 * Add 1-ply continuation history (8.88 +- 5.20)
 * Prefetch transposition table entries on X86 (8.65 +- 5.03)
+* Add multicut in singular search (7.99 +- 4.84)
 * Use beta + (eval - beta) / 3 formula for RFP (7.22 +- 4.67)
 * Start singular extensions earlier (6.23 +- 4.08 LTC, 21.11 +- 8.32 STC)
 * Introduce the improving heuristic and do less LMP if not improving (5.75 +- 4.00)

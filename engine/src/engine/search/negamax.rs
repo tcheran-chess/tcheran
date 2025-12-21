@@ -257,6 +257,8 @@ pub fn negamax(
 
         if value < se_beta {
             singular_extension = 1;
+        } else if !is_pv && !value.is_mate() && value >= beta {
+            return value;
         }
     }
 

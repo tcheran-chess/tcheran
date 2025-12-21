@@ -566,7 +566,7 @@ pub fn uci_options() -> Vec<UciOption> {
             state.tt.resize(options.hash_size);
         })
         .default(crate::engine::options::defaults::HASH_SIZE)
-        .with_bounds(0, 1024)
+        .with_bounds(0, 1024 * 1024)
         .build(),
         //
         UciOption::spin("Threads", |options, state, value| {

@@ -124,6 +124,22 @@ pub fn spsa_options() -> Vec<UciOption> {
         .with_spsa_step(5.0)
         .build(),
         //
+        UciOption::spin("GoodTacticalSeeBound", |options, _state, value| {
+            options.params.good_tactical_see_bound = value.as_eval();
+        })
+        .default(p.good_tactical_see_bound)
+        .with_bounds(-1024, 1024)
+        .with_spsa_step(50.0)
+        .build(),
+        //
+        UciOption::spin("QsGoodTacticalSeeBound", |options, _state, value| {
+            options.params.qs_good_tactical_see_bound = value.as_eval();
+        })
+        .default(p.qs_good_tactical_see_bound)
+        .with_bounds(-1024, 1024)
+        .with_spsa_step(50.0)
+        .build(),
+        //
         UciOption::spin("ReverseFutilityPruneDepth", |options, _state, value| {
             options.params.reverse_futility_prune_depth = value.as_depth();
         })

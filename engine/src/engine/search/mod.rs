@@ -56,6 +56,9 @@ pub struct Params {
     pub see_quiet_margin: Eval,
     pub see_capture_margin: Eval,
 
+    pub good_tactical_see_bound: Eval,
+    pub qs_good_tactical_see_bound: Eval,
+
     pub reverse_futility_prune_depth: u8,
     pub reverse_futility_prune_margin_per_ply: Eval,
 
@@ -110,6 +113,9 @@ impl Params {
             see_prune_depth: 10,
             see_quiet_margin: Eval::new(-30),
             see_capture_margin: Eval::new(-100),
+
+            good_tactical_see_bound: Eval(0),
+            qs_good_tactical_see_bound: Eval(0),
 
             reverse_futility_prune_depth: 4,
             reverse_futility_prune_margin_per_ply: Eval::new(150),
@@ -553,7 +559,7 @@ pub fn init() {
 // a bit of extra time so that we still make a move.
 // Rather than returning a random move, we return the first move that is returned after move ordering
 fn panic_move(game: &Game, ctx: &SearchContext<'_>) -> Move {
-    let mut move_picker = MovePicker::new(None);
+    let mut move_picker = MovePicker::new(None, Eval(0));
 
     move_picker
         .next(game, ctx.tables, ctx.stack, &ctx.params, 0)

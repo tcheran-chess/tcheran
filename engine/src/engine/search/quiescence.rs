@@ -83,7 +83,7 @@ pub fn quiescence(
     let mut best_eval = eval;
     let mut best_move = None;
 
-    let mut moves = MovePicker::new_loud(previous_best_move);
+    let mut moves = MovePicker::new_loud(previous_best_move, ctx.params.qs_good_tactical_see_bound);
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, &ctx.params, plies) {
         ctx.tt.prefetch(game.approx_zobrist_after(mv));
 

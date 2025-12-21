@@ -280,7 +280,7 @@ pub fn negamax(
     let mut best_move = None;
     let mut best_eval = Eval::MIN;
 
-    let mut moves = MovePicker::new(previous_best_move);
+    let mut moves = MovePicker::new(previous_best_move, ctx.params.good_tactical_see_bound);
     let mut number_of_legal_moves = 0;
     let mut node_pv = PrincipalVariation::new();
 

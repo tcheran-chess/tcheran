@@ -16,7 +16,7 @@ pub enum UciOptionType {
         default: isize,
         min: isize,
         max: isize,
-        set_fn: SetFn<isize>,
+        set_fn: SetFn<SpinValue>,
     },
     Combo {
         default: &'static str,
@@ -32,10 +32,30 @@ pub enum UciOptionType {
     },
 }
 
+pub struct SpinValue(isize);
+
+impl SpinValue {
+    pub fn new(value: isize) -> Self {
+        Self(value)
+    }
+
+    pub fn as_usize(&self) -> usize {
+        usize::try_from(self.0).expect("Could not convert value to usize")
+    }
+
+    pub fn as_depth(&self) -> u8 {
+        u8::try_from(self.0).expect("Could not convert value to depth")
+    }
+
+    pub fn as_eval(&self) -> Eval {
+        Eval(i32::try_from(self.0).expect("Could not convert value to eval"))
+    }
+}
+
 impl UciOption {
     pub fn spin(
         name: &'static str,
-        f: impl Fn(&mut EngineOptions, &mut PersistentState, isize) + 'static,
+        f: impl Fn(&mut EngineOptions, &mut PersistentState, SpinValue) + 'static,
     ) -> UciSpinOptionBuilder {
         UciSpinOptionBuilder {
             name,
@@ -82,7 +102,7 @@ impl UciOption {
                     return Err("Value smaller than min".to_string());
                 }
 
-                set_fn(options, state, value);
+                set_fn(options, state, SpinValue::new(value));
                 Ok(())
             }
             UciOptionType::Combo { set_fn: _, .. } => {
@@ -103,7 +123,7 @@ impl UciOption {
 
 pub struct UciSpinOptionBuilder {
     name: &'static str,
-    set_fn: SetFn<isize>,
+    set_fn: SetFn<SpinValue>,
 
     default: Option<isize>,
     min: Option<isize>,

@@ -67,6 +67,8 @@ mod params {
     pub const SINGULAR_EXTENSION_DEPTH: u8 = 5;
     pub const SINGULAR_EXTENSION_ENTRY_DEPTH_DELTA: u8 = 3;
     pub const SINGULAR_EXTENSION_MARGIN: Eval = Eval(2);
+    pub const DOUBLE_EXTENSION_MARGIN: Eval = Eval(17);
+    pub const DOUBLE_EXTENSION_MAX: usize = 4;
 
     pub const MAX_TIME_PER_MOVE: f32 = 0.5;
     pub const INCREMENT_TO_USE: f32 = 0.5;
@@ -236,6 +238,7 @@ pub struct SearchStackEntry {
     eval: Eval,
 
     excluded_mv: Option<Move>,
+    double_extensions: usize,
 }
 
 impl SearchStackEntry {
@@ -245,6 +248,7 @@ impl SearchStackEntry {
             eval: Eval::MIN,
 
             excluded_mv: None,
+            double_extensions: 0,
         }
     }
 }

@@ -53,6 +53,12 @@ pub fn negamax(
     let is_pv = alpha != beta - Eval(1);
     let excluded_mv = ctx.stack.get(plies).excluded_mv;
 
+    ctx.stack.get(plies).double_extensions = if is_root {
+        0
+    } else {
+        ctx.stack.last(plies).unwrap().double_extensions
+    };
+
     // Check extension: If we're about to finish searching, but we are in check, we
     // should keep going.
     let in_check = game.is_king_in_check();
@@ -257,6 +263,14 @@ pub fn negamax(
 
         if value < se_beta {
             singular_extension = 1;
+
+            if !is_pv
+                && value + params::DOUBLE_EXTENSION_MARGIN < se_beta
+                && ctx.stack.get(plies).double_extensions <= params::DOUBLE_EXTENSION_MAX
+            {
+                singular_extension = 2;
+                ctx.stack.get(plies).double_extensions += 1;
+            }
         } else if !is_pv && !value.is_mate() && value >= beta {
             return value;
         }
@@ -341,7 +355,15 @@ pub fn negamax(
         };
 
         let move_score = if number_of_legal_moves == 1 {
-            -negamax(game, -beta, -alpha, depth + extension - 1, plies + 1, &mut node_pv, ctx)
+            -negamax(
+                game,
+                -beta,
+                -alpha,
+                depth.saturating_add(extension) - 1,
+                plies + 1,
+                &mut node_pv,
+                ctx,
+            )
         } else {
             let reduction = if depth >= params::LMR_DEPTH
                 && number_of_legal_moves >= params::LMR_MOVE_THRESHOLD
@@ -364,7 +386,7 @@ pub fn negamax(
                 game,
                 -alpha - Eval(1),
                 -alpha,
-                (depth + extension).saturating_sub(reduction),
+                depth.saturating_add(extension).saturating_sub(reduction),
                 plies + 1,
                 &mut node_pv,
                 ctx,
@@ -377,7 +399,7 @@ pub fn negamax(
                     game,
                     -alpha - Eval(1),
                     -alpha,
-                    depth + extension - 1,
+                    depth.saturating_add(extension) - 1,
                     plies + 1,
                     &mut node_pv,
                     ctx,
@@ -387,7 +409,15 @@ pub fn negamax(
             // If searching at full depth STILL raised alpha, re-search with normal alpha/beta
             // bounds.
             if pvs_score > alpha && pvs_score < beta {
-                -negamax(game, -beta, -alpha, depth + extension - 1, plies + 1, &mut node_pv, ctx)
+                -negamax(
+                    game,
+                    -beta,
+                    -alpha,
+                    depth.saturating_add(extension) - 1,
+                    plies + 1,
+                    &mut node_pv,
+                    ctx,
+                )
             } else {
                 pvs_score
             }

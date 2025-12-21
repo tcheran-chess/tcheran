@@ -1,21 +1,9 @@
 use crate::{
     chess::{game::Game, movegen, movegen::tables, moves::Move, piece::PieceKind},
-    engine::eval::Eval,
+    engine::{eval::Eval, search::Params},
 };
 
-pub fn see_value(kind: PieceKind) -> Eval {
-    use PieceKind::*;
-
-    Eval(match kind {
-        Pawn => 100,
-        Knight | Bishop => 300,
-        Rook => 500,
-        Queen => 900,
-        King => 10000,
-    })
-}
-
-pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
+pub fn see(game: &Game, mv: Move, threshold: Eval, params: &Params) -> bool {
     let from = mv.src();
     let to = mv.dst();
     let board = &game.board;
@@ -30,10 +18,10 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
     //
     // If we captured a piece during the move, we score according to that piece's value
     score += match board.piece_at(to) {
-        Some(piece) => see_value(piece.kind),
+        Some(piece) => params.see_values[piece.kind],
         None => {
             if mv.is_en_passant() {
-                see_value(PieceKind::Pawn)
+                params.see_values[PieceKind::Pawn]
             } else {
                 Eval(0)
             }
@@ -42,8 +30,8 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
 
     // If we promoted a pawn, we lose the pawn and gain the value of the piece we promoted to
     if let Some(promotion_piece) = mv.promotion() {
-        score -= see_value(PieceKind::Pawn);
-        score += see_value(promotion_piece.piece());
+        score -= params.see_values[PieceKind::Pawn];
+        score += params.see_values[promotion_piece.piece()];
     }
 
     // The piece we just moved will be the first victim of the exchange on the target square
@@ -121,9 +109,9 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
         }
 
         if color == game.player {
-            score += see_value(victim);
+            score += params.see_values[victim];
         } else {
-            score -= see_value(victim);
+            score -= params.see_values[victim];
         }
 
         // The attacker that just captured is the next piece to be captured
@@ -148,7 +136,7 @@ mod tests {
         let game = Game::from_fen(fen).unwrap();
         let mv = game.moves().expect_matching(mv.0, mv.1, None);
 
-        assert!(see(&game, mv, Eval(0)));
+        assert!(see(&game, mv, Eval(0), &Params::default()));
     }
 
     fn should_be_bad_capture(fen: &str, mv: (Square, Square)) {
@@ -157,7 +145,7 @@ mod tests {
         let game = Game::from_fen(fen).unwrap();
         let mv = game.moves().expect_matching(mv.0, mv.1, None);
 
-        assert!(!see(&game, mv, Eval(0)));
+        assert!(!see(&game, mv, Eval(0), &Params::default()));
     }
 
     #[test]
@@ -203,7 +191,7 @@ mod tests {
 
             let mv = moves.iter().find(|m| format!("{m:?}") == ucimv).unwrap();
 
-            assert_eq!(see(&game, *mv, Eval(threshold)), result);
+            assert_eq!(see(&game, *mv, Eval(threshold), &Params::default()), result);
         }
     }
 
@@ -294,7 +282,7 @@ mod tests {
 
             let mv = moves.iter().find(|m| format!("{m:?}") == ucimv).unwrap();
 
-            assert_eq!(see(&game, *mv, Eval(threshold)), result);
+            assert_eq!(see(&game, *mv, Eval(threshold), &Params::default()), result);
         }
     }
 }

@@ -287,7 +287,7 @@ pub fn negamax(
     let mut captures_tried = MoveList::new();
     let mut quiets_tried = MoveList::new();
 
-    while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
+    while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, &ctx.params, plies) {
         if Some(mv) == excluded_mv {
             continue;
         }
@@ -323,7 +323,7 @@ pub fn negamax(
                 ctx.params.see_capture_margin * lmr_depth
             };
 
-            if !see(game, mv, margin) {
+            if !see(game, mv, margin, &ctx.params) {
                 continue;
             }
         }

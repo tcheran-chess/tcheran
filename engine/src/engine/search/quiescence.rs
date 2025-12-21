@@ -84,7 +84,7 @@ pub fn quiescence(
     let mut best_move = None;
 
     let mut moves = MovePicker::new_loud(previous_best_move);
-    while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
+    while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, &ctx.params, plies) {
         ctx.tt.prefetch(game.approx_zobrist_after(mv));
 
         ctx.nnue.push(&game.board, mv);

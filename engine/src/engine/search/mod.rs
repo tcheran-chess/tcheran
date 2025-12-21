@@ -15,7 +15,11 @@ use std::{
 };
 
 use crate::{
-    chess::{game::Game, moves::Move, piece::Piece},
+    chess::{
+        game::Game,
+        moves::Move,
+        piece::{Piece, PieceKind},
+    },
     engine::{
         eval::{Eval, nnue::NetworkStack},
         options::EngineOptions,
@@ -45,6 +49,8 @@ pub struct Params {
 
     pub futility_prune_depth: u8,
     pub futility_prune_max_move_value: Eval,
+
+    pub see_values: [Eval; PieceKind::N],
 
     pub see_prune_depth: u8,
     pub see_quiet_margin: Eval,
@@ -91,6 +97,15 @@ impl Params {
 
             futility_prune_depth: 1,
             futility_prune_max_move_value: Eval::new(135),
+
+            see_values: [
+                Eval(100),
+                Eval(300),
+                Eval(300),
+                Eval(500),
+                Eval(900),
+                Eval(10000),
+            ],
 
             see_prune_depth: 10,
             see_quiet_margin: Eval::new(-30),
@@ -541,7 +556,7 @@ fn panic_move(game: &Game, ctx: &SearchContext<'_>) -> Move {
     let mut move_picker = MovePicker::new(None);
 
     move_picker
-        .next(game, ctx.tables, ctx.stack, 0)
+        .next(game, ctx.tables, ctx.stack, &ctx.params, 0)
         .unwrap_or_else(|| panic!("No valid moves in position {}", game.to_fen()))
 }
 

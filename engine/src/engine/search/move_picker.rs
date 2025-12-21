@@ -8,8 +8,8 @@ use crate::{
     },
     engine::{
         eval::Eval,
-        search::{SearchStack, tables::Tables},
-        see::{see, see_value},
+        search::{Params, SearchStack, tables::Tables},
+        see::see,
     },
 };
 
@@ -106,6 +106,7 @@ impl MovePicker {
         game: &Game,
         tables: &Tables,
         stack: &SearchStack,
+        params: &Params,
         plies: u8,
     ) -> Option<Move> {
         use GenStage::*;
@@ -126,7 +127,7 @@ impl MovePicker {
             });
 
             for entry in &mut self.moves {
-                entry.score = score_tactical(game, entry.mv, tables);
+                entry.score = score_tactical(game, entry.mv, tables, params);
             }
         }
 
@@ -136,7 +137,7 @@ impl MovePicker {
                     continue;
                 }
 
-                if !see(game, entry.mv, Eval(0)) {
+                if !see(game, entry.mv, Eval(0), params) {
                     self.bad_tacticals.push(entry);
                     continue;
                 }
@@ -217,7 +218,7 @@ impl MovePicker {
     }
 }
 
-pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
+pub fn score_tactical(game: &Game, mv: Move, tables: &Tables, params: &Params) -> i32 {
     let moved_piece = game.board.piece_guaranteed_at(mv.src());
 
     let mut score = 0;
@@ -229,7 +230,7 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
             game.board.piece_guaranteed_at(mv.dst()).kind
         };
 
-        score += see_value(captured_piece_kind).0;
+        score += params.see_values[captured_piece_kind].0;
 
         // Capture history max is 8192, so divide by 8 so max is roughly
         // equivalent to the see_value of a queen.
@@ -242,7 +243,7 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
     }
 
     if mv.is_promotion() {
-        score += see_value(PieceKind::Queen).0 - see_value(PieceKind::Pawn).0;
+        score += params.see_values[PieceKind::Queen].0 - params.see_values[PieceKind::Pawn].0;
     }
 
     score
@@ -280,7 +281,9 @@ mod tests {
         let mut moves: Vec<Move> = Vec::new();
         let mut move_picker = MovePicker::new(Some(Move::quiet(G1, F3)));
 
-        while let Some(m) = move_picker.next(&game, &Tables::new(), &SearchStack::new(), 0) {
+        while let Some(m) =
+            move_picker.next(&game, &Tables::new(), &SearchStack::new(), &Params::default(), 0)
+        {
             moves.push(m);
         }
 
@@ -297,7 +300,9 @@ mod tests {
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
 
-        while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
+        while let Some(m) =
+            move_provider.next(&game, &Tables::new(), &SearchStack::new(), &Params::default(), 0)
+        {
             moves.push(m);
         }
 
@@ -315,7 +320,9 @@ mod tests {
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
 
-        while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
+        while let Some(m) =
+            move_provider.next(&game, &Tables::new(), &SearchStack::new(), &Params::default(), 0)
+        {
             moves.push(m);
         }
 
@@ -333,7 +340,9 @@ mod tests {
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
 
-        while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
+        while let Some(m) =
+            move_provider.next(&game, &Tables::new(), &SearchStack::new(), &Params::default(), 0)
+        {
             moves.push(m);
         }
 
@@ -350,7 +359,9 @@ mod tests {
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new_loud(None);
 
-        while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
+        while let Some(m) =
+            move_provider.next(&game, &Tables::new(), &SearchStack::new(), &Params::default(), 0)
+        {
             moves.push(m);
         }
 
@@ -369,7 +380,9 @@ mod tests {
         let mut tables = Tables::new();
         tables.killer_moves.set(0, Move::quiet(B7, D5));
 
-        while let Some(m) = move_provider.next(&game, &tables, &SearchStack::new(), 0) {
+        while let Some(m) =
+            move_provider.next(&game, &tables, &SearchStack::new(), &Params::default(), 0)
+        {
             moves.push(m);
         }
 

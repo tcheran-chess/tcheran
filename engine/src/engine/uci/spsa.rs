@@ -1,6 +1,9 @@
-use crate::engine::{
-    search::Params,
-    uci::options::{UciOption, UciOptionType},
+use crate::{
+    chess::piece::PieceKind,
+    engine::{
+        search::Params,
+        uci::options::{UciOption, UciOptionType},
+    },
 };
 
 #[allow(clippy::allow_attributes, reason = "May be unused in non-SPSA builds")]
@@ -55,6 +58,46 @@ pub fn spsa_options() -> Vec<UciOption> {
         .default(p.futility_prune_max_move_value)
         .with_bounds(1, 1024)
         .with_spsa_step(10.0)
+        .build(),
+        //
+        UciOption::spin("SeePawnValue", |options, _state, value| {
+            options.params.see_values[PieceKind::Pawn] = value.as_eval();
+        })
+        .default(p.see_values[PieceKind::Pawn])
+        .with_bounds(1, 2048)
+        .with_spsa_step(16.0)
+        .build(),
+        //
+        UciOption::spin("SeeKnightValue", |options, _state, value| {
+            options.params.see_values[PieceKind::Knight] = value.as_eval();
+        })
+        .default(p.see_values[PieceKind::Knight])
+        .with_bounds(1, 2048)
+        .with_spsa_step(16.0)
+        .build(),
+        //
+        UciOption::spin("SeeBishopValue", |options, _state, value| {
+            options.params.see_values[PieceKind::Bishop] = value.as_eval();
+        })
+        .default(p.see_values[PieceKind::Bishop])
+        .with_bounds(1, 2048)
+        .with_spsa_step(16.0)
+        .build(),
+        //
+        UciOption::spin("SeeRookValue", |options, _state, value| {
+            options.params.see_values[PieceKind::Rook] = value.as_eval();
+        })
+        .default(p.see_values[PieceKind::Rook])
+        .with_bounds(1, 2048)
+        .with_spsa_step(16.0)
+        .build(),
+        //
+        UciOption::spin("SeeQueenValue", |options, _state, value| {
+            options.params.see_values[PieceKind::Queen] = value.as_eval();
+        })
+        .default(p.see_values[PieceKind::Queen])
+        .with_bounds(1, 2048)
+        .with_spsa_step(16.0)
         .build(),
         //
         UciOption::spin("SeePruneDepth", |options, _state, value| {

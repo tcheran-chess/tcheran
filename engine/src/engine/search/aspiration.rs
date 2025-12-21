@@ -40,14 +40,15 @@ impl Window {
         }
     }
 
-    pub fn widen_down(&mut self) {
+    pub fn widen_down(&mut self, eval: Eval) {
+        self.beta = (self.alpha + self.beta) / 2;
+        self.alpha = clamp_alpha(eval - self.width);
         self.increase_window_widening_rate();
-        self.alpha = clamp_alpha(self.alpha - self.width);
     }
 
-    pub fn widen_up(&mut self) {
+    pub fn widen_up(&mut self, eval: Eval) {
+        self.beta = clamp_beta(eval + self.width);
         self.increase_window_widening_rate();
-        self.beta = clamp_beta(self.beta + self.width);
     }
 
     fn increase_window_widening_rate(&mut self) {
@@ -71,16 +72,29 @@ pub fn aspiration_search(
         )
     };
 
+    let mut reduction = 0;
+
     loop {
-        let eval = negamax::negamax(game, window.alpha, window.beta, depth, 0, pv, ctx);
+        let eval = negamax::negamax(
+            game,
+            window.alpha,
+            window.beta,
+            depth.saturating_sub(reduction),
+            0,
+            pv,
+            ctx,
+        );
+
         if ctx.time_control.stopped() {
             return Eval::MIN;
         }
 
         if eval <= window.alpha {
-            window.widen_down();
+            window.widen_down(eval);
+            reduction = 0;
         } else if eval >= window.beta {
-            window.widen_up();
+            window.widen_up(eval);
+            reduction += 1;
         } else {
             return eval;
         }

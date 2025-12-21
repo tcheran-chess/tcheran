@@ -4,6 +4,7 @@
 
 * Start using the transposition table in quiescence (40.16 +- 11.74)
 * Add singular extensions (19.91 +- 8.22 STC, 34.02 +- 10.72 LTC)
+* Aspiration - reduce on fail high, base window on new eval, adjust beta when widening down (14.95 +- 6.96)
 * Add internal iterative reductions (IIR) (9.66 +- 5.53)
 * Use threats in quiet move history (9.28 +- 5.28 at LTC with threat calculation, 18.34 +- 7.98 STC excluding threat calculation)
 * Add late move pruning (9.63 +- 5.59)

@@ -7,6 +7,7 @@
 * Add pawn eval correction history (21.76 +- 8.62)
 * Add major and minor piece eval correction history (18.86 +- 7.99)
 * Aspiration - reduce on fail high, base window on new eval, adjust beta when widening down (14.95 +- 6.96)
+* Add non-pawn eval correction history (12.69 +- 6.30)
 * Add internal iterative reductions (IIR) (9.66 +- 5.53)
 * Use threats in quiet move history (9.28 +- 5.28 at LTC with threat calculation, 18.34 +- 7.98 STC excluding threat calculation)
 * Add late move pruning (9.63 +- 5.59)

@@ -221,11 +221,13 @@ impl ContHistTable {
 const PAWN_CORRECTION_HISTORY_WEIGHT: i32 = 128;
 const MAJOR_CORRECTION_HISTORY_WEIGHT: i32 = 128;
 const MINOR_CORRECTION_HISTORY_WEIGHT: i32 = 128;
+const NON_PAWN_CORRECTION_HISTORY_WEIGHT: i32 = 128;
 
 pub struct CorrectionHistories {
     pawn: Box<CorrectionHistoryTable>,
     major: Box<CorrectionHistoryTable>,
     minor: Box<CorrectionHistoryTable>,
+    non_pawn: [Box<CorrectionHistoryTable>; 2],
 }
 
 impl CorrectionHistories {
@@ -234,13 +236,18 @@ impl CorrectionHistories {
             pawn: CorrectionHistoryTable::new(),
             major: CorrectionHistoryTable::new(),
             minor: CorrectionHistoryTable::new(),
+            non_pawn: [CorrectionHistoryTable::new(), CorrectionHistoryTable::new()],
         }
     }
 
     pub fn get(&self, game: &mut Game) -> Eval {
         let corr = self.pawn.get(game.player, game.pawn_zobrist) * PAWN_CORRECTION_HISTORY_WEIGHT
             + self.major.get(game.player, game.major_zobrist) * MAJOR_CORRECTION_HISTORY_WEIGHT
-            + self.minor.get(game.player, game.minor_zobrist) * MINOR_CORRECTION_HISTORY_WEIGHT;
+            + self.minor.get(game.player, game.minor_zobrist) * MINOR_CORRECTION_HISTORY_WEIGHT
+            + (self.non_pawn[Player::White].get(game.player, game.non_pawn_zobrist[Player::White])
+                + self.non_pawn[Player::Black]
+                    .get(game.player, game.non_pawn_zobrist[Player::Black]))
+                * NON_PAWN_CORRECTION_HISTORY_WEIGHT;
 
         corr / 2048
     }
@@ -254,6 +261,20 @@ impl CorrectionHistories {
 
         self.minor
             .update(game.player, game.minor_zobrist, depth, eval_diff);
+
+        self.non_pawn[Player::White].update(
+            game.player,
+            game.non_pawn_zobrist[Player::White],
+            depth,
+            eval_diff,
+        );
+
+        self.non_pawn[Player::Black].update(
+            game.player,
+            game.non_pawn_zobrist[Player::Black],
+            depth,
+            eval_diff,
+        );
     }
 }
 

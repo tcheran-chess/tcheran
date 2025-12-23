@@ -88,6 +88,7 @@ pub struct History {
     pub pawn_zobrist: ZobristHash,
     pub major_zobrist: ZobristHash,
     pub minor_zobrist: ZobristHash,
+    pub non_pawn_zobrist: [ZobristHash; Player::N],
 
     pub checkers: Bitboard,
     pub orthogonal_pins: Bitboard,
@@ -96,13 +97,13 @@ pub struct History {
 }
 
 #[inline]
-fn is_major_piece(piece_kind: PieceKind) -> bool {
-    [PieceKind::Rook, PieceKind::Queen, PieceKind::King].contains(&piece_kind)
+fn is_major_piece(piece: Piece) -> bool {
+    [PieceKind::Rook, PieceKind::Queen, PieceKind::King].contains(&piece.kind)
 }
 
 #[inline]
-fn is_minor_piece(piece_kind: PieceKind) -> bool {
-    [PieceKind::Knight, PieceKind::Bishop, PieceKind::King].contains(&piece_kind)
+fn is_minor_piece(piece: Piece) -> bool {
+    [PieceKind::Knight, PieceKind::Bishop, PieceKind::King].contains(&piece.kind)
 }
 
 #[derive(Debug, Clone)]
@@ -118,6 +119,7 @@ pub struct Game {
     pub pawn_zobrist: ZobristHash,
     pub major_zobrist: ZobristHash,
     pub minor_zobrist: ZobristHash,
+    pub non_pawn_zobrist: [ZobristHash; Player::N],
 
     pub history: Vec<History>,
 
@@ -157,13 +159,20 @@ impl Game {
             pawn_zobrist: ZobristHash::uninit(),
             major_zobrist: ZobristHash::uninit(),
             minor_zobrist: ZobristHash::uninit(),
+            non_pawn_zobrist: [ZobristHash::uninit(); Player::N],
+
             history: Vec::new(),
         };
 
         game.zobrist = zobrist::hash(&game);
-        game.pawn_zobrist = zobrist::hash_pieces(&game, |p| p == PieceKind::Pawn);
+        game.pawn_zobrist = zobrist::hash_pieces(&game, |p| p.kind == PieceKind::Pawn);
         game.major_zobrist = zobrist::hash_pieces(&game, is_major_piece);
         game.minor_zobrist = zobrist::hash_pieces(&game, is_minor_piece);
+        game.non_pawn_zobrist = [
+            zobrist::hash_pieces(&game, |p| p.player == Player::White),
+            zobrist::hash_pieces(&game, |p| p.player == Player::Black),
+        ];
+
         game.update_threats();
         game.update_checks_and_pins();
 
@@ -275,12 +284,18 @@ impl Game {
             self.pawn_zobrist.toggle_piece_on_square(sq, piece);
         }
 
-        if is_minor_piece(piece.kind) {
+        if is_minor_piece(piece) {
             self.minor_zobrist.toggle_piece_on_square(sq, piece);
         }
 
-        if is_major_piece(piece.kind) {
+        if is_major_piece(piece) {
             self.major_zobrist.toggle_piece_on_square(sq, piece);
+        }
+
+        for player in Player::ALL {
+            if piece.player == player && piece.kind != PieceKind::Pawn {
+                self.non_pawn_zobrist[player].toggle_piece_on_square(sq, piece);
+            }
         }
     }
 
@@ -399,6 +414,7 @@ impl Game {
             pawn_zobrist: self.pawn_zobrist,
             major_zobrist: self.major_zobrist,
             minor_zobrist: self.minor_zobrist,
+            non_pawn_zobrist: self.non_pawn_zobrist,
 
             checkers: self.checkers,
             orthogonal_pins: self.orthogonal_pins,
@@ -516,6 +532,7 @@ impl Game {
             pawn_zobrist: self.pawn_zobrist,
             major_zobrist: self.major_zobrist,
             minor_zobrist: self.minor_zobrist,
+            non_pawn_zobrist: self.non_pawn_zobrist,
 
             checkers: self.checkers,
             orthogonal_pins: self.orthogonal_pins,
@@ -557,6 +574,7 @@ impl Game {
         self.pawn_zobrist = history.pawn_zobrist;
         self.major_zobrist = history.major_zobrist;
         self.minor_zobrist = history.minor_zobrist;
+        self.non_pawn_zobrist = history.non_pawn_zobrist;
         self.halfmove_clock = history.halfmove_clock;
         self.castle_rights = history.castle_rights;
         self.en_passant_target = history.en_passant_target;
@@ -606,6 +624,7 @@ impl Game {
         self.pawn_zobrist = history.pawn_zobrist;
         self.major_zobrist = history.major_zobrist;
         self.minor_zobrist = history.minor_zobrist;
+        self.non_pawn_zobrist = history.non_pawn_zobrist;
         self.en_passant_target = history.en_passant_target;
         self.halfmove_clock = history.halfmove_clock;
         self.checkers = history.checkers;

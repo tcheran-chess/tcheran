@@ -6,6 +6,7 @@ pub enum Player {
 
 impl Player {
     pub const N: usize = 2;
+    pub const ALL: [Self; 2] = [Self::White, Self::Black];
 
     pub fn other(self) -> Self {
         !self

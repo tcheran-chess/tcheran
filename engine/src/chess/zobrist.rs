@@ -68,13 +68,13 @@ pub fn hash(game: &Game) -> ZobristHash {
     hash
 }
 
-pub fn hash_pieces(game: &Game, include_piece_fn: impl Fn(PieceKind) -> bool) -> ZobristHash {
+pub fn hash_pieces(game: &Game, include_piece_fn: impl Fn(Piece) -> bool) -> ZobristHash {
     let mut hash = ZobristHash::uninit();
 
     for sq in game.board.occupancy() {
         let piece = game.board.piece_guaranteed_at(sq);
 
-        if include_piece_fn(piece.kind) {
+        if include_piece_fn(piece) {
             hash.toggle_piece_on_square(sq, piece);
         }
     }

@@ -15,11 +15,7 @@ use std::{
 };
 
 use crate::{
-    chess::{
-        game::Game,
-        moves::Move,
-        piece::{Piece, PieceKind},
-    },
+    chess::{game::Game, moves::Move, piece::Piece},
     engine::{
         eval::{Eval, nnue::NetworkStack},
         options::EngineOptions,
@@ -38,114 +34,6 @@ use crate::{
 
 pub const MAX_SEARCH_DEPTH: u8 = u8::MAX;
 pub const MAX_SEARCH_DEPTH_SIZE: usize = MAX_SEARCH_DEPTH as usize;
-
-#[derive(Debug, Clone)]
-pub struct Params {
-    pub aspiration_min_depth: u8,
-    pub aspiration_window_size: Eval,
-
-    pub null_move_pruning_base_reduction: u8,
-    pub null_move_pruning_reduction_factor: u8,
-
-    pub futility_prune_depth: u8,
-    pub futility_prune_max_move_value: Eval,
-
-    pub see_values: [Eval; PieceKind::N],
-
-    pub see_prune_depth: u8,
-    pub see_quiet_margin: Eval,
-    pub see_capture_margin: Eval,
-
-    pub good_tactical_see_bound: Eval,
-    pub qs_good_tactical_see_bound: Eval,
-
-    pub reverse_futility_prune_depth: u8,
-    pub reverse_futility_prune_margin_per_ply: Eval,
-
-    pub lmr_base: f32,
-    pub lmr_factor: f32,
-    pub lmr_depth: u8,
-    pub lmr_move_threshold: usize,
-
-    pub lmp_depth: u8,
-    pub lmp_move_threshold: u8,
-
-    pub iir_depth: u8,
-
-    pub singular_extension_depth: u8,
-    pub singular_extension_entry_depth_delta: u8,
-    pub singular_extension_margin: Eval,
-    pub double_extension_margin: Eval,
-    pub double_extension_max: usize,
-
-    pub max_time_per_move: f32,
-    pub increment_to_use: f32,
-    pub base_time_per_move: f32,
-
-    pub soft_time_multiplier: f32,
-    pub hard_time_multiplier: f32,
-
-    pub best_move_stability_initial_depth: u8,
-    pub best_move_stability_time_multipliers: [f32; 5],
-}
-
-impl Params {
-    pub const fn default() -> Self {
-        Self {
-            aspiration_min_depth: 5,
-            aspiration_window_size: Eval::new(25),
-
-            null_move_pruning_base_reduction: 4,
-            null_move_pruning_reduction_factor: 4,
-
-            futility_prune_depth: 1,
-            futility_prune_max_move_value: Eval::new(135),
-
-            see_values: [
-                Eval(100),
-                Eval(300),
-                Eval(300),
-                Eval(500),
-                Eval(900),
-                Eval(10000),
-            ],
-
-            see_prune_depth: 10,
-            see_quiet_margin: Eval::new(-30),
-            see_capture_margin: Eval::new(-100),
-
-            good_tactical_see_bound: Eval(0),
-            qs_good_tactical_see_bound: Eval(0),
-
-            reverse_futility_prune_depth: 4,
-            reverse_futility_prune_margin_per_ply: Eval::new(150),
-
-            lmr_base: 0.75,
-            lmr_factor: 2.25,
-            lmr_depth: 3,
-            lmr_move_threshold: 3,
-
-            lmp_depth: 2,
-            lmp_move_threshold: 5,
-
-            iir_depth: 4,
-
-            singular_extension_depth: 5,
-            singular_extension_entry_depth_delta: 3,
-            singular_extension_margin: Eval(2),
-            double_extension_margin: Eval(17),
-            double_extension_max: 4,
-
-            max_time_per_move: 0.5,
-            increment_to_use: 0.5,
-            base_time_per_move: 0.033,
-            soft_time_multiplier: 0.75,
-            hard_time_multiplier: 3.00,
-            best_move_stability_initial_depth: 5,
-            best_move_stability_time_multipliers: [2.50, 1.20, 1.00, 0.80, 0.75],
-        }
-    }
-}
 
 pub struct PersistentState {
     pub tt: TranspositionTable,
@@ -234,8 +122,6 @@ pub struct SearchContext<'s> {
 
     pub time_control: TimeStrategy,
 
-    pub params: Params,
-
     max_depth_reached: u8,
     nodes_visited: BufferedAtomicU64<'s>,
     tbhits: BufferedAtomicU64<'s>,
@@ -263,8 +149,6 @@ impl<'s> SearchContext<'s> {
             stack: search_stack,
             nnue,
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
-
-            params: options.params.clone(),
 
             max_depth_reached: 0,
             nodes_visited: BufferedAtomicU64::new(node_counter),
@@ -304,7 +188,7 @@ pub struct SearchStackEntry {
     eval: Eval,
 
     excluded_mv: Option<Move>,
-    double_extensions: usize,
+    double_extensions: u8,
 }
 
 impl SearchStackEntry {
@@ -562,7 +446,7 @@ fn panic_move(game: &Game, ctx: &SearchContext<'_>) -> Move {
     let mut move_picker = MovePicker::new(None, Eval(0));
 
     move_picker
-        .next(game, ctx.tables, ctx.stack, &ctx.params, 0)
+        .next(game, ctx.tables, ctx.stack, 0)
         .unwrap_or_else(|| panic!("No valid moves in position {}", game.to_fen()))
 }
 

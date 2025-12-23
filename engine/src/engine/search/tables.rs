@@ -1,8 +1,7 @@
 pub mod lmr_table;
 
 pub fn init() {
-    // TODO: This means that LMR params cannot be tuned
-    lmr_table::init(&Params::default());
+    lmr_table::init();
 }
 
 use std::cmp::min;
@@ -16,11 +15,7 @@ use crate::{
         square::Square,
         zobrist::ZobristHash,
     },
-    engine::{
-        eval::Eval,
-        search::{MAX_SEARCH_DEPTH_SIZE, Params},
-        util::mem::alloc_boxed,
-    },
+    engine::{eval::Eval, params::*, search::MAX_SEARCH_DEPTH_SIZE, util::mem::alloc_boxed},
 };
 
 pub struct HistoryEntry<const MAX: i16>(i16);
@@ -79,12 +74,8 @@ impl KillersTable {
     }
 }
 
-pub const HISTORY_MAX_BONUS: i32 = 1600;
-pub const HISTORY_FACTOR: i32 = 350;
-pub const HISTORY_OFFSET: i32 = 350;
-
 pub fn history_bonus(depth: u8) -> i32 {
-    min(HISTORY_FACTOR * i32::from(depth) - HISTORY_OFFSET, HISTORY_MAX_BONUS)
+    min(history_factor() * i32::from(depth) - history_offset(), history_max_bonus())
 }
 
 pub struct HistoryTable(
@@ -229,12 +220,6 @@ impl ContHistTable {
     }
 }
 
-const PAWN_CORRECTION_HISTORY_WEIGHT: i32 = 128;
-const MAJOR_CORRECTION_HISTORY_WEIGHT: i32 = 128;
-const MINOR_CORRECTION_HISTORY_WEIGHT: i32 = 128;
-const NON_PAWN_CORRECTION_HISTORY_WEIGHT: i32 = 128;
-const THREAT_CORRECTION_HISTORY_WEIGHT: i32 = 128;
-
 pub struct CorrectionHistories {
     pawn: Box<CorrectionHistoryTable>,
     major: Box<CorrectionHistoryTable>,
@@ -255,17 +240,17 @@ impl CorrectionHistories {
     }
 
     pub fn get(&self, game: &mut Game) -> Eval {
-        let corr = self.pawn.get(game.player, game.pawn_zobrist) * PAWN_CORRECTION_HISTORY_WEIGHT
-            + self.major.get(game.player, game.major_zobrist) * MAJOR_CORRECTION_HISTORY_WEIGHT
-            + self.minor.get(game.player, game.minor_zobrist) * MINOR_CORRECTION_HISTORY_WEIGHT
+        let corr = self.pawn.get(game.player, game.pawn_zobrist) * pawn_correction_history_weight()
+            + self.major.get(game.player, game.major_zobrist) * major_correction_history_weight()
+            + self.minor.get(game.player, game.minor_zobrist) * minor_correction_history_weight()
             + (self.non_pawn[Player::White].get(game.player, game.non_pawn_zobrist[Player::White])
                 + self.non_pawn[Player::Black]
                     .get(game.player, game.non_pawn_zobrist[Player::Black]))
-                * NON_PAWN_CORRECTION_HISTORY_WEIGHT
+                * non_pawn_correction_history_weight()
             + self
                 .threat
                 .get(game.player, ZobristHash(game.threats.as_u64()))
-                * THREAT_CORRECTION_HISTORY_WEIGHT;
+                * threat_correction_history_weight();
 
         corr / 2048
     }

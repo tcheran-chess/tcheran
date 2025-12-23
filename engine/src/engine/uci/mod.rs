@@ -3,7 +3,7 @@
 mod bench;
 pub mod commands;
 mod r#move;
-mod options;
+pub mod options;
 pub mod parser;
 pub mod responses;
 mod spsa;
@@ -559,13 +559,15 @@ pub enum UciInputMode {
     Stdin,
 }
 
+#[expect(clippy::cast_possible_truncation, reason = "Default values are too small to be truncated")]
+#[expect(clippy::cast_possible_wrap, reason = "Default values are too small to be wrapped")]
 pub fn uci_options() -> Vec<UciOption> {
     let options = vec![
         UciOption::spin("Hash", |options, state, value| {
             options.hash_size = value.as_usize();
             state.tt.resize(options.hash_size);
         })
-        .default(crate::engine::options::defaults::HASH_SIZE)
+        .default(crate::engine::options::defaults::HASH_SIZE as i32)
         .with_bounds(0, 1024 * 1024)
         .build(),
         //
@@ -573,19 +575,19 @@ pub fn uci_options() -> Vec<UciOption> {
             options.threads = value.as_usize();
             state.scale_threads(options.threads);
         })
-        .default(crate::engine::options::defaults::THREADS)
+        .default(crate::engine::options::defaults::THREADS as i32)
         .with_bounds(
             1,
             std::thread::available_parallelism()
                 .unwrap_or(NonZero::new(1).unwrap())
-                .get(),
+                .get() as i32,
         )
         .build(),
         //
         UciOption::spin("Move Overhead", |options, _state, value| {
             options.move_overhead = value.as_usize();
         })
-        .default(crate::engine::options::defaults::MOVE_OVERHEAD)
+        .default(crate::engine::options::defaults::MOVE_OVERHEAD as i32)
         .with_bounds(0, 1000)
         .build(),
         //
@@ -599,7 +601,7 @@ pub fn uci_options() -> Vec<UciOption> {
     let mut o = vec![];
     o.extend(options);
     #[cfg(feature = "spsa")]
-    o.extend(spsa::spsa_options());
+    o.extend(crate::engine::params::spsa_params());
     o
 }
 

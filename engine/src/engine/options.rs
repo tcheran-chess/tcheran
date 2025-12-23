@@ -1,5 +1,3 @@
-use crate::engine::search::Params;
-
 pub mod defaults {
     pub const HASH_SIZE: usize = 16;
     pub const THREADS: usize = 1;
@@ -16,8 +14,6 @@ pub struct EngineOptions {
     // e.g. sending the best move over the internet.
     pub move_overhead: usize,
     pub syzygy_path: Option<String>,
-
-    pub params: Params,
 }
 
 impl EngineOptions {
@@ -26,7 +22,5 @@ impl EngineOptions {
         threads: defaults::THREADS,
         move_overhead: defaults::MOVE_OVERHEAD,
         syzygy_path: defaults::SYZYGY_PATH,
-
-        params: Params::default(),
     };
 }

@@ -13,13 +13,12 @@ pub enum UciOptionType {
         set_fn: SetFn<bool>,
     },
     Spin {
-        default: isize,
-        min: isize,
-        max: isize,
+        default: i32,
+        min: i32,
+        max: i32,
         set_fn: SetFn<SpinValue>,
 
         spsa_step: Option<f64>,
-        spsa_disabled: bool,
     },
     Combo {
         default: &'static str,
@@ -35,11 +34,15 @@ pub enum UciOptionType {
     },
 }
 
-pub struct SpinValue(isize);
+pub struct SpinValue(i32);
 
 impl SpinValue {
-    pub fn new(value: isize) -> Self {
+    pub fn new(value: i32) -> Self {
         Self(value)
+    }
+
+    pub fn as_i32(&self) -> i32 {
+        self.0
     }
 
     pub fn as_usize(&self) -> usize {
@@ -51,7 +54,7 @@ impl SpinValue {
     }
 
     pub fn as_eval(&self) -> Eval {
-        Eval(i32::try_from(self.0).expect("Could not convert value to eval"))
+        Eval(self.0)
     }
 }
 
@@ -69,7 +72,6 @@ impl UciOption {
             max: None,
 
             spsa_step: None,
-            spsa_disabled: false,
         }
     }
 
@@ -98,7 +100,7 @@ impl UciOption {
             UciOptionType::Spin {
                 min, max, set_fn, ..
             } => {
-                let value = value.parse::<isize>().map_err(|_| "Invalid value")?;
+                let value = value.parse::<i32>().map_err(|_| "Invalid value")?;
 
                 if value > *max {
                     return Err("Value larger than max".to_string());
@@ -131,65 +133,57 @@ pub struct UciSpinOptionBuilder {
     name: &'static str,
     set_fn: SetFn<SpinValue>,
 
-    default: Option<isize>,
-    min: Option<isize>,
-    max: Option<isize>,
+    default: Option<i32>,
+    min: Option<i32>,
+    max: Option<i32>,
 
     spsa_step: Option<f64>,
-    spsa_disabled: bool,
 }
 
-pub trait ToUciSpinOptionValue {
-    fn convert(self) -> isize;
-}
-
-impl ToUciSpinOptionValue for usize {
-    fn convert(self) -> isize {
-        isize::try_from(self).expect("Value should fit in an isize")
+impl From<SpinValue> for i32 {
+    fn from(value: SpinValue) -> Self {
+        value.0
     }
 }
 
-impl ToUciSpinOptionValue for u8 {
-    fn convert(self) -> isize {
-        isize::from(self)
+impl From<SpinValue> for u8 {
+    fn from(value: SpinValue) -> Self {
+        Self::try_from(value.0).expect("Value should fit in a u8")
     }
 }
 
-impl ToUciSpinOptionValue for i32 {
-    fn convert(self) -> isize {
-        isize::try_from(self).expect("Value should fit in an isize")
+impl From<usize> for SpinValue {
+    fn from(value: usize) -> Self {
+        Self(i32::try_from(value).expect("Value should fit in an i32"))
     }
 }
 
-impl ToUciSpinOptionValue for Eval {
-    fn convert(self) -> isize {
-        isize::try_from(self.0).expect("Value should fit in an isize")
+impl From<u8> for SpinValue {
+    fn from(value: u8) -> Self {
+        Self(i32::from(value))
+    }
+}
+
+impl From<i32> for SpinValue {
+    fn from(value: i32) -> Self {
+        Self(value)
     }
 }
 
 impl UciSpinOptionBuilder {
-    pub fn default(mut self, value: impl ToUciSpinOptionValue) -> Self {
-        self.default = Some(value.convert());
+    pub fn default(mut self, value: impl Into<i32>) -> Self {
+        self.default = Some(value.into());
         self
     }
 
-    pub fn with_bounds(
-        mut self,
-        min: impl ToUciSpinOptionValue,
-        max: impl ToUciSpinOptionValue,
-    ) -> Self {
-        self.min = Some(min.convert());
-        self.max = Some(max.convert());
+    pub fn with_bounds(mut self, min: impl Into<i32>, max: impl Into<i32>) -> Self {
+        self.min = Some(min.into());
+        self.max = Some(max.into());
         self
     }
 
     pub fn with_spsa_step(mut self, step: f64) -> Self {
         self.spsa_step = Some(step);
-        self
-    }
-
-    pub fn disable(mut self) -> Self {
-        self.spsa_disabled = true;
         self
     }
 
@@ -214,7 +208,6 @@ impl UciSpinOptionBuilder {
                 set_fn: self.set_fn,
 
                 spsa_step: self.spsa_step,
-                spsa_disabled: self.spsa_disabled,
             },
         }
     }

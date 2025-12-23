@@ -2,6 +2,7 @@ use crate::{
     chess::game::Game,
     engine::{
         eval::Eval,
+        params::*,
         search::{SearchContext, negamax, principal_variation::PrincipalVariation},
     },
 };
@@ -63,12 +64,12 @@ pub fn aspiration_search(
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
-    let mut window = if depth < ctx.params.aspiration_min_depth {
+    let mut window = if depth < aspiration_min_depth() {
         Window::no_window()
     } else {
         Window::around(
             eval.expect("Aspiration search should have an evaluation after it reaches min depth"),
-            ctx.params.aspiration_window_size,
+            Eval(aspiration_window_size()),
         )
     };
 

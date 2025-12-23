@@ -1,4 +1,4 @@
-use crate::engine::search::Params;
+use crate::engine::params::*;
 
 static mut LMR_TABLE: [[u8; 64]; 64] = [[0; 64]; 64];
 
@@ -13,12 +13,12 @@ pub fn lmr_reduction(depth: u8, move_count: usize) -> u8 {
     clippy::cast_precision_loss,
     reason = "Calculation is intentionally approximate"
 )]
-pub fn init(params: &Params) {
+pub fn init() {
     unsafe {
         for (depth, table) in LMR_TABLE.iter_mut().enumerate().skip(1) {
             for (move_count, reduction) in table.iter_mut().enumerate().skip(1) {
-                *reduction = (params.lmr_base
-                    + f32::ln(depth as f32) * f32::ln(move_count as f32) / params.lmr_factor)
+                *reduction = (lmr_base()
+                    + f32::ln(depth as f32) * f32::ln(move_count as f32) / lmr_factor())
                     as u8;
             }
         }

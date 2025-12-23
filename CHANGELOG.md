@@ -32,6 +32,7 @@
 
 * All reported evaluations are now normalised using a model derived from Stockfish's WDL\_model tool
 * Add scaffolding for SPSA
+* Switch all tunable params to be defined using macros
 
 ## [9.0]
 

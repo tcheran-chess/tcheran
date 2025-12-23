@@ -9,6 +9,7 @@ use crate::{
     engine::{
         eval,
         eval::Eval,
+        params::*,
         search::{
             move_picker::{GenStage, MovePicker},
             principal_variation::PrincipalVariation,
@@ -194,8 +195,8 @@ pub fn negamax(
 
     if !is_root && !is_pv && !in_check && excluded_mv.is_none() {
         // Reverse futility pruning
-        if depth <= ctx.params.reverse_futility_prune_depth
-            && eval - ctx.params.reverse_futility_prune_margin_per_ply * i32::from(depth) > beta
+        if depth <= reverse_futility_prune_depth()
+            && eval - reverse_futility_prune_margin_per_ply() * i32::from(depth) > beta
         {
             return beta + (eval - beta) / 3;
         }
@@ -208,8 +209,8 @@ pub fn negamax(
         {
             ctx.tt.prefetch(game.approx_zobrist_after_null_move());
 
-            let reduction = ctx.params.null_move_pruning_base_reduction
-                + depth / ctx.params.null_move_pruning_reduction_factor;
+            let reduction =
+                null_move_pruning_base_reduction() + depth / null_move_pruning_reduction_factor();
 
             ctx.stack.get(plies).mv = None;
 
@@ -237,7 +238,7 @@ pub fn negamax(
         }
     }
 
-    if !is_root && tt_entry.is_none() && depth >= ctx.params.iir_depth {
+    if !is_root && tt_entry.is_none() && depth >= iir_depth() {
         depth -= 1;
     }
 
@@ -247,11 +248,11 @@ pub fn negamax(
     let singular_extension_candidate = tt_entry
         .as_ref()
         .filter(|entry| {
-            depth >= ctx.params.singular_extension_depth
+            depth >= singular_extension_depth()
                 && !is_root
                 && excluded_mv.is_none()
                 && entry.bound != NodeBound::Upper
-                && entry.depth >= depth - ctx.params.singular_extension_entry_depth_delta
+                && entry.depth >= depth - singular_extension_entry_depth_delta()
                 && !entry.score.is_mate()
         })
         .and_then(|entry| entry.best_move);
@@ -261,7 +262,7 @@ pub fn negamax(
         let tt_score = tt_entry.as_ref().unwrap().score;
 
         let se_depth = (depth - 1) / 2;
-        let se_beta = tt_score - ctx.params.singular_extension_margin * i32::from(depth);
+        let se_beta = tt_score - singular_extension_margin() * i32::from(depth);
 
         ctx.stack.get(plies).excluded_mv = Some(mv);
         let value = negamax(game, se_beta - Eval(1), se_beta, se_depth, plies, &mut se_pv, ctx);
@@ -271,8 +272,8 @@ pub fn negamax(
             singular_extension = 1;
 
             if !is_pv
-                && value + ctx.params.double_extension_margin < se_beta
-                && ctx.stack.get(plies).double_extensions <= ctx.params.double_extension_max
+                && value + double_extension_margin() < se_beta
+                && ctx.stack.get(plies).double_extensions <= double_extension_max()
             {
                 singular_extension = 2;
                 ctx.stack.get(plies).double_extensions += 1;
@@ -286,14 +287,14 @@ pub fn negamax(
     let mut best_move = None;
     let mut best_eval = Eval::MIN;
 
-    let mut moves = MovePicker::new(previous_best_move, ctx.params.good_tactical_see_bound);
+    let mut moves = MovePicker::new(previous_best_move, Eval(good_tactical_see_bound()));
     let mut number_of_legal_moves = 0;
     let mut node_pv = PrincipalVariation::new();
 
     let mut captures_tried = MoveList::new();
     let mut quiets_tried = MoveList::new();
 
-    while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, &ctx.params, plies) {
+    while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
         if Some(mv) == excluded_mv {
             continue;
         }
@@ -307,13 +308,13 @@ pub fn negamax(
             && !is_pv
             && !mv.is_capture()
             && !in_check
-            && depth <= ctx.params.futility_prune_depth
-            && eval + ctx.params.futility_prune_max_move_value < alpha
+            && depth <= futility_prune_depth()
+            && eval + futility_prune_max_move_value() < alpha
         {
             continue;
         }
 
-        if depth < ctx.params.see_prune_depth
+        if depth < see_prune_depth()
             && moves.stage > GenStage::GoodTacticals
             && number_of_legal_moves > 0
             && !is_root
@@ -324,21 +325,20 @@ pub fn negamax(
                 i32::from(depth.saturating_sub(lmr_reduction(depth, number_of_legal_moves)));
 
             let margin = if mv.is_quiet() {
-                ctx.params.see_quiet_margin * lmr_depth * lmr_depth
+                see_quiet_margin() * lmr_depth * lmr_depth
             } else {
-                ctx.params.see_capture_margin * lmr_depth
+                see_capture_margin() * lmr_depth
             };
 
-            if !see(game, mv, margin, &ctx.params) {
+            if !see(game, mv, Eval(margin)) {
                 continue;
             }
         }
 
-        let lmp_moves = (ctx.params.lmp_move_threshold as usize
-            + (depth as usize * depth as usize))
+        let lmp_moves = (lmp_move_threshold() as usize + (depth as usize * depth as usize))
             / (1 + usize::from(!improving));
 
-        if depth <= ctx.params.lmp_depth
+        if depth <= lmp_depth()
             && !is_root
             && !is_pv
             && !in_check
@@ -372,8 +372,7 @@ pub fn negamax(
                 ctx,
             )
         } else {
-            let reduction = if depth >= ctx.params.lmr_depth
-                && number_of_legal_moves >= ctx.params.lmr_move_threshold
+            let reduction = if depth >= lmr_depth() && number_of_legal_moves >= lmr_move_threshold()
             {
                 let mut reduction = DepthReduction(lmr_reduction(depth, number_of_legal_moves));
 

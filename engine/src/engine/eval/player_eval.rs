@@ -84,6 +84,14 @@ impl std::ops::Add for Eval {
     }
 }
 
+impl std::ops::Add<i32> for Eval {
+    type Output = Self;
+
+    fn add(self, rhs: i32) -> Self::Output {
+        Self(self.0 + rhs)
+    }
+}
+
 impl std::ops::AddAssign for Eval {
     fn add_assign(&mut self, rhs: Self) {
         self.0 += rhs.0;
@@ -95,6 +103,14 @@ impl std::ops::Sub for Eval {
 
     fn sub(self, rhs: Self) -> Self::Output {
         Self(self.0 - rhs.0)
+    }
+}
+
+impl std::ops::Sub<i32> for Eval {
+    type Output = Self;
+
+    fn sub(self, rhs: i32) -> Self::Output {
+        Self(self.0 - rhs)
     }
 }
 

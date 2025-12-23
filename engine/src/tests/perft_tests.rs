@@ -2,7 +2,7 @@ use crate::{
     chess::{fen::START_POS, game::Game, movegen, moves::MoveList, perft::perft},
     engine::{
         eval::Eval,
-        search::{Params, SearchStack, move_picker::MovePicker, tables::Tables},
+        search::{SearchStack, move_picker::MovePicker, tables::Tables},
     },
 };
 
@@ -67,7 +67,7 @@ fn movepicker_perft(
 
     let mut moves_at_this_node = Vec::new();
     let mut movepicker = MovePicker::new(best_move, Eval(0));
-    while let Some(mv) = movepicker.next(game, tables, stack, &Params::default(), depth) {
+    while let Some(mv) = movepicker.next(game, tables, stack, depth) {
         game.make_move(mv);
         moves += movepicker_perft(depth - 1, game, tables, stack);
         game.undo_move();

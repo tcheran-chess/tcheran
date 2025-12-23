@@ -23,6 +23,22 @@ use crate::{
     },
 };
 
+pub struct HistoryEntry<const MAX: i16>(i16);
+
+impl<const MAX: i16> HistoryEntry<MAX> {
+    #[expect(clippy::cast_possible_truncation, reason = "Dipped into i32 to avoid overflows")]
+    pub fn update(&mut self, bonus: i32) {
+        let old = i32::from(self.0);
+        let max = i32::from(MAX);
+
+        self.0 = (old + bonus - (old * bonus.abs()) / max) as i16;
+    }
+
+    pub fn get(&self) -> i32 {
+        i32::from(self.0)
+    }
+}
+
 pub struct Tables {
     pub quiet_history: Box<HistoryTable>,
     pub capture_history: Box<CaptureHistoryTable>,
@@ -63,26 +79,20 @@ impl KillersTable {
     }
 }
 
-pub const HISTORY_MAX_BONUS: i16 = 1600;
-pub const HISTORY_FACTOR: i16 = 350;
-pub const HISTORY_OFFSET: i16 = 350;
+pub const HISTORY_MAX_BONUS: i32 = 1600;
+pub const HISTORY_FACTOR: i32 = 350;
+pub const HISTORY_OFFSET: i32 = 350;
 
-pub fn history_bonus(depth: u8) -> i16 {
-    min(HISTORY_FACTOR * i16::from(depth) - HISTORY_OFFSET, HISTORY_MAX_BONUS)
+pub fn history_bonus(depth: u8) -> i32 {
+    min(HISTORY_FACTOR * i32::from(depth) - HISTORY_OFFSET, HISTORY_MAX_BONUS)
 }
 
-#[expect(clippy::cast_possible_truncation, reason = "Dipped into i32 to avoid overflows")]
-const fn taper_bonus(bonus: i16, old: i16, max: i32) -> i16 {
-    let old = old as i32;
-    let bonus = bonus as i32;
-
-    (old + bonus - (old * bonus.abs()) / max) as i16
-}
-
-pub struct HistoryTable([[[[[i16; 2]; 2]; Square::N]; Square::N]; Player::N]);
+pub struct HistoryTable(
+    [[[[[HistoryEntry<{ Self::MAX }>; 2]; 2]; Square::N]; Square::N]; Player::N],
+);
 
 impl HistoryTable {
-    const MAX: i32 = 8192;
+    const MAX: i16 = 8192;
 
     pub fn new() -> Box<Self> {
         alloc_boxed()
@@ -92,15 +102,14 @@ impl HistoryTable {
         let from_threatened = usize::from(game.threats.contains(mv.src()));
         let to_threatened = usize::from(game.threats.contains(mv.dst()));
 
-        i32::from(self.0[game.player][mv.src()][mv.dst()][from_threatened][to_threatened])
+        self.0[game.player][mv.src()][mv.dst()][from_threatened][to_threatened].get()
     }
 
-    fn update_for_move(&mut self, game: &Game, mv: Move, bonus: i16) {
+    fn update_for_move(&mut self, game: &Game, mv: Move, bonus: i32) {
         let from_threatened = usize::from(game.threats.contains(mv.src()));
         let to_threatened = usize::from(game.threats.contains(mv.dst()));
 
-        let old = &mut self.0[game.player][mv.src()][mv.dst()][from_threatened][to_threatened];
-        *old = taper_bonus(bonus, *old, Self::MAX);
+        self.0[game.player][mv.src()][mv.dst()][from_threatened][to_threatened].update(bonus);
     }
 
     pub fn update(&mut self, game: &Game, mv: Move, depth: u8, other_quiets_tried: &MoveList) {
@@ -114,10 +123,12 @@ impl HistoryTable {
     }
 }
 
-pub struct CaptureHistoryTable([[[[i16; PieceKind::N]; Square::N]; PieceKind::N]; Player::N]);
+pub struct CaptureHistoryTable(
+    [[[[HistoryEntry<{ Self::MAX }>; PieceKind::N]; Square::N]; PieceKind::N]; Player::N],
+);
 
 impl CaptureHistoryTable {
-    pub const MAX: i32 = 8192;
+    pub const MAX: i16 = 8192;
 
     pub fn new() -> Box<Self> {
         alloc_boxed()
@@ -130,10 +141,10 @@ impl CaptureHistoryTable {
         capture_square: Square,
         captured_piece: PieceKind,
     ) -> i32 {
-        i32::from(self.0[player][capturing_piece][capture_square][captured_piece])
+        self.0[player][capturing_piece][capture_square][captured_piece].get()
     }
 
-    fn update_for_move(&mut self, mv: Move, game: &Game, bonus: i16) {
+    fn update_for_move(&mut self, mv: Move, game: &Game, bonus: i32) {
         let capturing_piece = game.board.piece_guaranteed_at(mv.src()).kind;
         let capture_square = mv.dst();
         let captured_piece = if mv.is_en_passant() {
@@ -142,8 +153,7 @@ impl CaptureHistoryTable {
             game.board.piece_guaranteed_at(mv.dst()).kind
         };
 
-        let old = &mut self.0[game.player][capturing_piece][capture_square][captured_piece];
-        *old = taper_bonus(bonus, *old, Self::MAX);
+        self.0[game.player][capturing_piece][capture_square][captured_piece].update(bonus);
     }
 
     pub fn update(&mut self, mv: Move, game: &Game, depth: u8, other_captures_tried: &MoveList) {
@@ -159,10 +169,12 @@ impl CaptureHistoryTable {
     }
 }
 
-pub struct ContHistTable([[[[i16; Square::N]; Piece::N]; Square::N]; Piece::N]);
+pub struct ContHistTable(
+    [[[[HistoryEntry<{ Self::MAX }>; Square::N]; Piece::N]; Square::N]; Piece::N],
+);
 
 impl ContHistTable {
-    const MAX: i32 = 16384;
+    const MAX: i16 = 16384;
 
     pub fn new() -> Box<Self> {
         alloc_boxed()
@@ -176,7 +188,7 @@ impl ContHistTable {
         mv: Move,
     ) -> i32 {
         let moved = game.board.piece_guaranteed_at(mv.src());
-        i32::from(self.0[previous_piece_moved][previous_moved_to][moved][mv.dst()])
+        self.0[previous_piece_moved][previous_moved_to][moved][mv.dst()].get()
     }
 
     fn update_for_move(
@@ -185,10 +197,9 @@ impl ContHistTable {
         previous_moved_to: Square,
         moved: Piece,
         moved_to: Square,
-        bonus: i16,
+        bonus: i32,
     ) {
-        let old = &mut self.0[previous_piece_moved][previous_moved_to][moved][moved_to];
-        *old = taper_bonus(bonus, *old, Self::MAX);
+        self.0[previous_piece_moved][previous_moved_to][moved][moved_to].update(bonus);
     }
 
     pub fn update(
@@ -289,11 +300,13 @@ impl CorrectionHistories {
 }
 
 const CORRECTION_HISTORY_SIZE: usize = 16384;
-pub struct CorrectionHistoryTable([[i16; CORRECTION_HISTORY_SIZE]; Player::N]);
+pub struct CorrectionHistoryTable(
+    [[HistoryEntry<{ Self::MAX }>; CORRECTION_HISTORY_SIZE]; Player::N],
+);
 
 impl CorrectionHistoryTable {
-    pub const MAX: i32 = 1024;
-    pub const MAX_UPDATE: i32 = Self::MAX / 4;
+    pub const MAX: i16 = 1024;
+    pub const MAX_UPDATE: i32 = Self::MAX as i32 / 4;
 
     pub fn new() -> Box<Self> {
         alloc_boxed()
@@ -301,16 +314,14 @@ impl CorrectionHistoryTable {
 
     #[expect(clippy::cast_possible_truncation, reason = "u64 to usize")]
     pub fn get(&self, player: Player, key: ZobristHash) -> Eval {
-        Eval(i32::from(self.0[player][key.0 as usize % CORRECTION_HISTORY_SIZE]))
+        Eval(self.0[player][key.0 as usize % CORRECTION_HISTORY_SIZE].get())
     }
 
     #[expect(clippy::cast_possible_truncation, reason = "u64 to usize")]
     pub fn update(&mut self, player: Player, key: ZobristHash, depth: u8, eval_diff: Eval) {
-        let old = &mut self.0[player][key.0 as usize % CORRECTION_HISTORY_SIZE];
-
         let raw_bonus = eval_diff.0 * i32::from(depth) / 8;
         let bonus = i32::clamp(raw_bonus, -Self::MAX_UPDATE, Self::MAX_UPDATE);
 
-        *old = taper_bonus(bonus as i16, *old, Self::MAX);
+        self.0[player][key.0 as usize % CORRECTION_HISTORY_SIZE].update(bonus);
     }
 }

@@ -86,6 +86,8 @@ pub struct History {
 
     pub zobrist: ZobristHash,
     pub pawn_zobrist: ZobristHash,
+    pub major_zobrist: ZobristHash,
+    pub minor_zobrist: ZobristHash,
 
     pub checkers: Bitboard,
     pub orthogonal_pins: Bitboard,
@@ -104,6 +106,8 @@ pub struct Game {
 
     pub zobrist: ZobristHash,
     pub pawn_zobrist: ZobristHash,
+    pub major_zobrist: ZobristHash,
+    pub minor_zobrist: ZobristHash,
 
     pub history: Vec<History>,
 
@@ -141,11 +145,15 @@ impl Game {
 
             zobrist: ZobristHash::uninit(),
             pawn_zobrist: ZobristHash::uninit(),
+            major_zobrist: ZobristHash::uninit(),
+            minor_zobrist: ZobristHash::uninit(),
             history: Vec::new(),
         };
 
         game.zobrist = zobrist::hash(&game);
         game.pawn_zobrist = zobrist::hash_pawns(&game);
+        game.major_zobrist = zobrist::hash_majors(&game);
+        game.minor_zobrist = zobrist::hash_minors(&game);
         game.update_threats();
         game.update_checks_and_pins();
 
@@ -244,6 +252,14 @@ impl Game {
         if piece.kind == PieceKind::Pawn {
             self.pawn_zobrist.toggle_piece_on_square(sq, piece);
         }
+
+        if [PieceKind::Knight, PieceKind::Bishop, PieceKind::King].contains(&piece.kind) {
+            self.minor_zobrist.toggle_piece_on_square(sq, piece);
+        }
+
+        if [PieceKind::Rook, PieceKind::Queen, PieceKind::King].contains(&piece.kind) {
+            self.major_zobrist.toggle_piece_on_square(sq, piece);
+        }
     }
 
     fn remove_at(&mut self, sq: Square) -> Piece {
@@ -253,6 +269,14 @@ impl Game {
 
         if removed_piece.kind == PieceKind::Pawn {
             self.pawn_zobrist.toggle_piece_on_square(sq, removed_piece);
+        }
+
+        if [PieceKind::Knight, PieceKind::Bishop, PieceKind::King].contains(&removed_piece.kind) {
+            self.minor_zobrist.toggle_piece_on_square(sq, removed_piece);
+        }
+
+        if [PieceKind::Rook, PieceKind::Queen, PieceKind::King].contains(&removed_piece.kind) {
+            self.major_zobrist.toggle_piece_on_square(sq, removed_piece);
         }
 
         removed_piece
@@ -371,6 +395,8 @@ impl Game {
 
             zobrist: self.zobrist,
             pawn_zobrist: self.pawn_zobrist,
+            major_zobrist: self.major_zobrist,
+            minor_zobrist: self.minor_zobrist,
 
             checkers: self.checkers,
             orthogonal_pins: self.orthogonal_pins,
@@ -486,6 +512,8 @@ impl Game {
 
             zobrist: self.zobrist,
             pawn_zobrist: self.pawn_zobrist,
+            major_zobrist: self.major_zobrist,
+            minor_zobrist: self.minor_zobrist,
 
             checkers: self.checkers,
             orthogonal_pins: self.orthogonal_pins,
@@ -525,6 +553,8 @@ impl Game {
         self.player = player;
         self.zobrist = history.zobrist;
         self.pawn_zobrist = history.pawn_zobrist;
+        self.major_zobrist = history.major_zobrist;
+        self.minor_zobrist = history.minor_zobrist;
         self.halfmove_clock = history.halfmove_clock;
         self.castle_rights = history.castle_rights;
         self.en_passant_target = history.en_passant_target;
@@ -572,6 +602,8 @@ impl Game {
         self.player = self.player.other();
         self.zobrist = history.zobrist;
         self.pawn_zobrist = history.pawn_zobrist;
+        self.major_zobrist = history.major_zobrist;
+        self.minor_zobrist = history.minor_zobrist;
         self.en_passant_target = history.en_passant_target;
         self.halfmove_clock = history.halfmove_clock;
         self.checkers = history.checkers;

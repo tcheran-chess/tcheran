@@ -135,6 +135,66 @@ pub fn hash_pawns(game: &Game) -> ZobristHash {
     ZobristHash(hash)
 }
 
+pub fn hash_majors(game: &Game) -> ZobristHash {
+    let mut hash = ZobristHash::uninit();
+
+    for s in game.board.rooks(Player::White) {
+        hash.toggle_piece_on_square(s, Piece::WHITE_ROOK);
+    }
+
+    for s in game.board.rooks(Player::Black) {
+        hash.toggle_piece_on_square(s, Piece::BLACK_ROOK);
+    }
+
+    for s in game.board.queens(Player::White) {
+        hash.toggle_piece_on_square(s, Piece::WHITE_QUEEN);
+    }
+
+    for s in game.board.queens(Player::Black) {
+        hash.toggle_piece_on_square(s, Piece::BLACK_QUEEN);
+    }
+
+    for s in game.board.king(Player::White) {
+        hash.toggle_piece_on_square(s, Piece::WHITE_KING);
+    }
+
+    for s in game.board.king(Player::Black) {
+        hash.toggle_piece_on_square(s, Piece::BLACK_KING);
+    }
+
+    hash
+}
+
+pub fn hash_minors(game: &Game) -> ZobristHash {
+    let mut hash = ZobristHash::uninit();
+
+    for s in game.board.knights(Player::White) {
+        hash.toggle_piece_on_square(s, Piece::WHITE_KNIGHT);
+    }
+
+    for s in game.board.knights(Player::Black) {
+        hash.toggle_piece_on_square(s, Piece::BLACK_KNIGHT);
+    }
+
+    for s in game.board.bishops(Player::White) {
+        hash.toggle_piece_on_square(s, Piece::WHITE_BISHOP);
+    }
+
+    for s in game.board.bishops(Player::Black) {
+        hash.toggle_piece_on_square(s, Piece::BLACK_BISHOP);
+    }
+
+    for s in game.board.king(Player::White) {
+        hash.toggle_piece_on_square(s, Piece::WHITE_KING);
+    }
+
+    for s in game.board.king(Player::Black) {
+        hash.toggle_piece_on_square(s, Piece::BLACK_KING);
+    }
+
+    hash
+}
+
 fn piece_on_square(player: Player, piece: PieceKind, square: Square) -> ZobristComponent {
     components::PIECE_SQUARE[player][square][piece]
 }

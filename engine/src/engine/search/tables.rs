@@ -219,20 +219,28 @@ impl ContHistTable {
 }
 
 const PAWN_CORRECTION_HISTORY_WEIGHT: i32 = 128;
+const MAJOR_CORRECTION_HISTORY_WEIGHT: i32 = 128;
+const MINOR_CORRECTION_HISTORY_WEIGHT: i32 = 128;
 
 pub struct CorrectionHistories {
     pawn: Box<CorrectionHistoryTable>,
+    major: Box<CorrectionHistoryTable>,
+    minor: Box<CorrectionHistoryTable>,
 }
 
 impl CorrectionHistories {
     pub fn new() -> Self {
         Self {
             pawn: CorrectionHistoryTable::new(),
+            major: CorrectionHistoryTable::new(),
+            minor: CorrectionHistoryTable::new(),
         }
     }
 
     pub fn get(&self, game: &mut Game) -> Eval {
-        let corr = self.pawn.get(game.player, game.pawn_zobrist) * PAWN_CORRECTION_HISTORY_WEIGHT;
+        let corr = self.pawn.get(game.player, game.pawn_zobrist) * PAWN_CORRECTION_HISTORY_WEIGHT
+            + self.major.get(game.player, game.major_zobrist) * MAJOR_CORRECTION_HISTORY_WEIGHT
+            + self.minor.get(game.player, game.minor_zobrist) * MINOR_CORRECTION_HISTORY_WEIGHT;
 
         corr / 2048
     }
@@ -240,6 +248,12 @@ impl CorrectionHistories {
     pub fn update(&mut self, game: &mut Game, depth: u8, eval_diff: Eval) {
         self.pawn
             .update(game.player, game.pawn_zobrist, depth, eval_diff);
+
+        self.major
+            .update(game.player, game.major_zobrist, depth, eval_diff);
+
+        self.minor
+            .update(game.player, game.minor_zobrist, depth, eval_diff);
     }
 }
 

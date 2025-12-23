@@ -222,12 +222,14 @@ const PAWN_CORRECTION_HISTORY_WEIGHT: i32 = 128;
 const MAJOR_CORRECTION_HISTORY_WEIGHT: i32 = 128;
 const MINOR_CORRECTION_HISTORY_WEIGHT: i32 = 128;
 const NON_PAWN_CORRECTION_HISTORY_WEIGHT: i32 = 128;
+const THREAT_CORRECTION_HISTORY_WEIGHT: i32 = 128;
 
 pub struct CorrectionHistories {
     pawn: Box<CorrectionHistoryTable>,
     major: Box<CorrectionHistoryTable>,
     minor: Box<CorrectionHistoryTable>,
     non_pawn: [Box<CorrectionHistoryTable>; 2],
+    threat: Box<CorrectionHistoryTable>,
 }
 
 impl CorrectionHistories {
@@ -237,6 +239,7 @@ impl CorrectionHistories {
             major: CorrectionHistoryTable::new(),
             minor: CorrectionHistoryTable::new(),
             non_pawn: [CorrectionHistoryTable::new(), CorrectionHistoryTable::new()],
+            threat: CorrectionHistoryTable::new(),
         }
     }
 
@@ -247,7 +250,11 @@ impl CorrectionHistories {
             + (self.non_pawn[Player::White].get(game.player, game.non_pawn_zobrist[Player::White])
                 + self.non_pawn[Player::Black]
                     .get(game.player, game.non_pawn_zobrist[Player::Black]))
-                * NON_PAWN_CORRECTION_HISTORY_WEIGHT;
+                * NON_PAWN_CORRECTION_HISTORY_WEIGHT
+            + self
+                .threat
+                .get(game.player, ZobristHash(game.threats.as_u64()))
+                * THREAT_CORRECTION_HISTORY_WEIGHT;
 
         corr / 2048
     }
@@ -275,6 +282,9 @@ impl CorrectionHistories {
             depth,
             eval_diff,
         );
+
+        self.threat
+            .update(game.player, ZobristHash(game.threats.as_u64()), depth, eval_diff);
     }
 }
 

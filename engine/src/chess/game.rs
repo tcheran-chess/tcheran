@@ -95,6 +95,16 @@ pub struct History {
     pub threats: Bitboard,
 }
 
+#[inline]
+fn is_major_piece(piece_kind: PieceKind) -> bool {
+    [PieceKind::Rook, PieceKind::Queen, PieceKind::King].contains(&piece_kind)
+}
+
+#[inline]
+fn is_minor_piece(piece_kind: PieceKind) -> bool {
+    [PieceKind::Knight, PieceKind::Bishop, PieceKind::King].contains(&piece_kind)
+}
+
 #[derive(Debug, Clone)]
 pub struct Game {
     pub player: Player,
@@ -151,9 +161,9 @@ impl Game {
         };
 
         game.zobrist = zobrist::hash(&game);
-        game.pawn_zobrist = zobrist::hash_pawns(&game);
-        game.major_zobrist = zobrist::hash_majors(&game);
-        game.minor_zobrist = zobrist::hash_minors(&game);
+        game.pawn_zobrist = zobrist::hash_pieces(&game, |p| p == PieceKind::Pawn);
+        game.major_zobrist = zobrist::hash_pieces(&game, is_major_piece);
+        game.minor_zobrist = zobrist::hash_pieces(&game, is_minor_piece);
         game.update_threats();
         game.update_checks_and_pins();
 
@@ -247,39 +257,31 @@ impl Game {
 
     fn set_at(&mut self, sq: Square, piece: Piece) {
         self.board.set_at(sq, piece);
+        self.toggle_piece_in_hashes(sq, piece);
+    }
+
+    fn remove_at(&mut self, sq: Square) -> Piece {
+        let removed_piece = self.board.piece_guaranteed_at(sq);
+        self.board.remove_at(sq);
+        self.toggle_piece_in_hashes(sq, removed_piece);
+
+        removed_piece
+    }
+
+    fn toggle_piece_in_hashes(&mut self, sq: Square, piece: Piece) {
         self.zobrist.toggle_piece_on_square(sq, piece);
 
         if piece.kind == PieceKind::Pawn {
             self.pawn_zobrist.toggle_piece_on_square(sq, piece);
         }
 
-        if [PieceKind::Knight, PieceKind::Bishop, PieceKind::King].contains(&piece.kind) {
+        if is_minor_piece(piece.kind) {
             self.minor_zobrist.toggle_piece_on_square(sq, piece);
         }
 
-        if [PieceKind::Rook, PieceKind::Queen, PieceKind::King].contains(&piece.kind) {
+        if is_major_piece(piece.kind) {
             self.major_zobrist.toggle_piece_on_square(sq, piece);
         }
-    }
-
-    fn remove_at(&mut self, sq: Square) -> Piece {
-        let removed_piece = self.board.piece_guaranteed_at(sq);
-        self.board.remove_at(sq);
-        self.zobrist.toggle_piece_on_square(sq, removed_piece);
-
-        if removed_piece.kind == PieceKind::Pawn {
-            self.pawn_zobrist.toggle_piece_on_square(sq, removed_piece);
-        }
-
-        if [PieceKind::Knight, PieceKind::Bishop, PieceKind::King].contains(&removed_piece.kind) {
-            self.minor_zobrist.toggle_piece_on_square(sq, removed_piece);
-        }
-
-        if [PieceKind::Rook, PieceKind::Queen, PieceKind::King].contains(&removed_piece.kind) {
-            self.major_zobrist.toggle_piece_on_square(sq, removed_piece);
-        }
-
-        removed_piece
     }
 
     fn try_remove_castle_rights(&mut self, player: Player, castle_rights_side: CastleRightsSide) {

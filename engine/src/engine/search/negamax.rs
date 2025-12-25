@@ -91,7 +91,7 @@ pub fn negamax(
             return if in_check {
                 Eval::DRAW
             } else {
-                eval::eval(ctx.nnue, game.player)
+                eval::eval(ctx.nnue, game)
             };
         }
     }
@@ -161,7 +161,7 @@ pub fn negamax(
         match tt_entry {
             Some(ref e) if e.eval != Eval::NONE => e.eval,
             _ => {
-                let e = eval::eval(ctx.nnue, game.player);
+                let e = eval::eval(ctx.nnue, game);
 
                 ctx.tt
                     .insert(game.zobrist, NodeBound::None, None, Eval::NONE, e, 0, plies);

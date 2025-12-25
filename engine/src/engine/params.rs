@@ -29,6 +29,9 @@ parameters!(
     (minor_correction_history_weight, i32, 128, 48, 256, 8.0),
     (non_pawn_correction_history_weight, i32, 128, 48, 256, 8.0),
     (threat_correction_history_weight, i32, 128, 48, 256, 8.0),
+
+    (material_scale_base, i32, 950, 512, 1024, 20.0),
+    (material_scale_divisor, i32, 32, 16, 128, 2.0),
 );
 
 #[rustfmt::skip]

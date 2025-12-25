@@ -20,6 +20,7 @@
 * Add multicut in singular search (7.99 +- 4.84)
 * Use beta + (eval - beta) / 3 formula for RFP (7.22 +- 4.67)
 * Start singular extensions earlier (6.23 +- 4.08 LTC, 21.11 +- 8.32 STC)
+* Scale evaluation by remaining material (6.02 +- 4.02)
 * Introduce the improving heuristic and do less LMP if not improving (5.75 +- 4.00)
 * LMR: Reduce non-PV nodes more (3.91 +- 3.03)
 * Look back four plies for improving heuristic (1.91 +- 1.86)

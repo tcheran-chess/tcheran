@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [10.0]
+
 * Start using the transposition table in quiescence (40.16 +- 11.74)
 * Add singular extensions (19.91 +- 8.22 STC, 34.02 +- 10.72 LTC)
 * Add pawn eval correction history (21.76 +- 8.62)
@@ -369,7 +371,8 @@ Initial release with the following major features:
     * Tapered midgame vs. endgame evaluation
     * Incremental updates
 
-[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v9.0...HEAD
+[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v10.0...HEAD
+[10.0]: https://github.com/jgilchrist/chess-engine/compare/v9.0..v10.0
 [9.0]: https://github.com/jgilchrist/chess-engine/compare/v8.0..v9.0
 [8.0]: https://github.com/jgilchrist/chess-engine/compare/v7.0..v8.0
 [7.0]: https://github.com/jgilchrist/chess-engine/compare/v6.0..v7.0

@@ -117,13 +117,10 @@ fn datagen(config: &DatagenConfig) {
     println!("Generated data will be saved in {dir}");
     std::fs::create_dir_all(&dir).unwrap();
 
-    assert_eq!(
-        config.positions % config.threads,
-        0,
-        "Number of games must be divisible by number of threads"
-    );
-
     let games_per_thread = config.positions / config.threads;
+    if !config.positions.is_multiple_of(config.threads) {
+        println!("Warning: Number of desired positions is not a multiple of the number of threads");
+    }
 
     std::thread::scope(|s| {
         for id in 0..config.threads {

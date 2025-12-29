@@ -28,7 +28,7 @@ Thank you to everybody who has tested the engine.
 
 [ccrl-ltc]: https://computerchess.org.uk/ccrl/4040/
 [ccrl-blitz]: https://computerchess.org.uk/ccrl/404/
-[cegt]: http://www.cegt.net/40_40%20Rating%20List/40_40%20All%20Versions/rangliste.html
+[cegt]: http://www.cegt.net/40_40%20Rating%20List/40_40%20SingleVersion/rangliste.html
 [mcerl]: https://www.chessengeria.eu/mcerl
 
 It can also be found on Lichess as [`jpg-bot`](https://lichess.org/@/jpg-bot). Its current ratings are:

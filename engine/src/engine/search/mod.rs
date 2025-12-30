@@ -443,7 +443,7 @@ pub fn init() {
 // a bit of extra time so that we still make a move.
 // Rather than returning a random move, we return the first move that is returned after move ordering
 fn panic_move(game: &Game, ctx: &SearchContext<'_>) -> Move {
-    let mut move_picker = MovePicker::new(None, Eval(0));
+    let mut move_picker = MovePicker::new(None);
 
     move_picker
         .next(game, ctx.tables, ctx.stack, 0)

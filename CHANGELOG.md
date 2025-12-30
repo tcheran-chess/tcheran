@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+* Use capture history as the SEE threshold during move picking (13.97 +- 6.76)
+
 ## [10.0]
 
 * Start using the transposition table in quiescence (40.16 +- 11.74)

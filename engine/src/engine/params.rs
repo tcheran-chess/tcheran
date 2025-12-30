@@ -17,9 +17,6 @@ parameters!(
     (see_quiet_margin, i32, -30, -256, -8, 5.0),
     (see_capture_margin, i32, -100, -256, -8, 5.0),
 
-    (good_tactical_see_bound, i32, 0, -1024, 1024, 50.0),
-    (qs_good_tactical_see_bound, i32, 0, -1024, 1024, 50.0),
-
     (reverse_futility_prune_margin_per_ply, i32, 150, 16, 256, 10.0),
 
     (double_extension_margin, i32, 17, 1, 128, 1.0),

@@ -73,32 +73,28 @@ pub struct MovePicker {
     previous_best_move: Option<Move>,
     only_tacticals: bool,
 
-    see_margin: Eval,
-
     pub stage: GenStage,
 
     bad_tacticals: ArrayVec<MoveEntry, MAX_LEGAL_MOVES>,
 }
 
 impl MovePicker {
-    pub fn new(previous_best_move: Option<Move>, see_margin: Eval) -> Self {
+    pub fn new(previous_best_move: Option<Move>) -> Self {
         Self {
             moves: ArrayVec::new(),
             previous_best_move,
             only_tacticals: false,
-            see_margin,
 
             stage: GenStage::BestMove,
             bad_tacticals: ArrayVec::new(),
         }
     }
 
-    pub fn new_loud(previous_best_move: Option<Move>, see_margin: Eval) -> Self {
+    pub fn new_loud(previous_best_move: Option<Move>) -> Self {
         Self {
             moves: ArrayVec::new(),
             previous_best_move,
             only_tacticals: true,
-            see_margin,
 
             stage: GenStage::BestMove,
             bad_tacticals: ArrayVec::new(),
@@ -140,7 +136,11 @@ impl MovePicker {
                     continue;
                 }
 
-                if !see(game, entry.mv, self.see_margin) {
+                // If a move has good history, we can be more sure it should be searched
+                // early even if its SEE score is poor.
+                let threshold = -entry.score / 4;
+
+                if !see(game, entry.mv, Eval(threshold)) {
                     self.bad_tacticals.push(entry);
                     continue;
                 }
@@ -282,7 +282,7 @@ mod tests {
         let game = Game::new();
 
         let mut moves: Vec<Move> = Vec::new();
-        let mut move_picker = MovePicker::new(Some(Move::quiet(G1, F3)), Eval(0));
+        let mut move_picker = MovePicker::new(Some(Move::quiet(G1, F3)));
 
         while let Some(m) = move_picker.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);
@@ -299,7 +299,7 @@ mod tests {
             .unwrap();
 
         let mut moves: Vec<Move> = Vec::new();
-        let mut move_provider = MovePicker::new(None, Eval(0));
+        let mut move_provider = MovePicker::new(None);
 
         while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);
@@ -317,7 +317,7 @@ mod tests {
                 .unwrap();
 
         let mut moves: Vec<Move> = Vec::new();
-        let mut move_provider = MovePicker::new(None, Eval(0));
+        let mut move_provider = MovePicker::new(None);
 
         while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);
@@ -335,7 +335,7 @@ mod tests {
                 .unwrap();
 
         let mut moves: Vec<Move> = Vec::new();
-        let mut move_provider = MovePicker::new(None, Eval(0));
+        let mut move_provider = MovePicker::new(None);
 
         while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);
@@ -352,7 +352,7 @@ mod tests {
             Game::from_fen("rnb1kbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").unwrap();
 
         let mut moves: Vec<Move> = Vec::new();
-        let mut move_provider = MovePicker::new_loud(None, Eval(0));
+        let mut move_provider = MovePicker::new_loud(None);
 
         while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);
@@ -368,7 +368,7 @@ mod tests {
         let game = Game::from_fen("r2k3r/1b4bq/8/3R4/8/8/7B/4K2R b K - 3 2").unwrap();
 
         let mut moves: Vec<Move> = Vec::new();
-        let mut move_provider = MovePicker::new(Some(Move::quiet(D8, E7)), Eval(0));
+        let mut move_provider = MovePicker::new(Some(Move::quiet(D8, E7)));
 
         let mut tables = Tables::new();
         tables.killer_moves.set(0, Move::quiet(B7, D5));

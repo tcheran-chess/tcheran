@@ -25,6 +25,7 @@ pub struct TimeStrategy {
 
     last_best_move: Option<Move>,
     best_move_stability: usize,
+    scale: f32,
 
     next_check_at: u64,
 
@@ -116,6 +117,7 @@ impl TimeStrategy {
 
             last_best_move: None,
             best_move_stability: 0,
+            scale: 1.0,
 
             next_check_at: CHECK_TERMINATION_NODE_FREQUENCY,
 
@@ -138,16 +140,7 @@ impl TimeStrategy {
 
         match self.time_control {
             TimeControl::Infinite => true,
-            TimeControl::Clocks { .. } => {
-                let soft_stop = if depth > best_move_stability_initial_depth() {
-                    self.soft_stop
-                        .mul_f32(BEST_MOVE_STABILITY_TIME_MULTIPLIERS[self.best_move_stability])
-                } else {
-                    self.soft_stop
-                };
-
-                self.elapsed() < soft_stop
-            }
+            TimeControl::Clocks { .. } => self.elapsed() < self.soft_stop.mul_f32(self.scale),
             TimeControl::ExactTime { time, .. } => self.elapsed() < time,
             TimeControl::Depth(d) => d >= depth,
             TimeControl::Nodes { soft, .. } => soft == 0 || ctx.nodes_visited.get() <= soft,
@@ -203,14 +196,19 @@ impl TimeStrategy {
     }
 
     pub fn update_after_search(&mut self, best_move: Move, depth: u8) {
+        let mut scale = 1.0;
+
         if depth >= best_move_stability_initial_depth() {
             self.best_move_stability = if Some(best_move) == self.last_best_move {
                 std::cmp::min(4, self.best_move_stability + 1)
             } else {
                 0
             };
+
+            scale *= BEST_MOVE_STABILITY_TIME_MULTIPLIERS[self.best_move_stability];
         }
 
+        self.scale = scale;
         self.last_best_move = Some(best_move);
     }
 

@@ -283,6 +283,8 @@ pub fn negamax(
         }
     }
 
+    ctx.tables.killer_moves.clear(plies + 1);
+
     let mut tt_node_bound = NodeBound::Upper;
     let mut best_move = None;
     let mut best_eval = Eval::MIN;

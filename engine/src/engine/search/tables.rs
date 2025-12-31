@@ -72,6 +72,10 @@ impl KillersTable {
     pub fn set(&mut self, plies: u8, mv: Move) {
         self.0[plies as usize] = Some(mv);
     }
+
+    pub fn clear(&mut self, plies: u8) {
+        self.0[plies as usize] = None;
+    }
 }
 
 pub fn history_bonus(depth: u8) -> i32 {

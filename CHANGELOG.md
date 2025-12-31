@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 * Use capture history as the SEE threshold during move picking (13.97 +- 6.76)
+* Clear killer moves for upcoming plies (5.77 +- 3.92)
 
 ## [10.0]
 

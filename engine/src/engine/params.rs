@@ -66,5 +66,9 @@ non_tunable_parameters!(
     (increment_to_use, f32, 0.8),
     (soft_time_multiplier, f32, 0.70),
     (hard_time_multiplier, f32, 0.50),
+
     (best_move_stability_initial_depth, u8, 5),
+    (node_tm_base, f32, 2.63),
+    (node_tm_multiplier, f32, 1.7),
+    (node_tm_min, f32, 0.9),
 );

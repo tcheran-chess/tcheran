@@ -40,7 +40,8 @@ pub fn search(
 
         result = Some((new_best_move, eval));
 
-        ctx.time_control.update_after_search(new_best_move, depth);
+        ctx.time_control
+            .update_after_search(new_best_move, depth, ctx.nodes_visited.get());
 
         reporter.report_search_progress(
             game,

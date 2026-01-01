@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-    chess::{game::Game, moves::Move},
+    chess::{game::Game, moves::Move, square::Square},
     engine::{
         options::EngineOptions,
         params::*,
@@ -25,6 +25,7 @@ pub struct TimeStrategy {
 
     last_best_move: Option<Move>,
     best_move_stability: usize,
+    nodes_used: [[u64; Square::N]; Square::N],
     scale: f32,
 
     next_check_at: u64,
@@ -108,6 +109,7 @@ impl TimeStrategy {
 
             last_best_move: None,
             best_move_stability: 0,
+            nodes_used: [[0; Square::N]; Square::N],
             scale: 1.0,
 
             next_check_at: CHECK_TERMINATION_NODE_FREQUENCY,
@@ -186,7 +188,12 @@ impl TimeStrategy {
         }
     }
 
-    pub fn update_after_search(&mut self, best_move: Move, depth: u8) {
+    pub fn update_nodes_used(&mut self, mv: Move, nodes_used: u64) {
+        self.nodes_used[mv.src()][mv.dst()] += nodes_used;
+    }
+
+    #[expect(clippy::cast_precision_loss, reason = "Time management calculations can be approx")]
+    pub fn update_after_search(&mut self, best_move: Move, depth: u8, nodes_visited: u64) {
         let mut scale = 1.0;
 
         if depth >= best_move_stability_initial_depth() {
@@ -198,6 +205,14 @@ impl TimeStrategy {
 
             scale *= BEST_MOVE_STABILITY_TIME_MULTIPLIERS[self.best_move_stability];
         }
+
+        let nodes_for_best_move = self.nodes_used[best_move.src()][best_move.dst()];
+        let fraction_used_for_best_move = nodes_for_best_move as f32 / nodes_visited as f32;
+        let node_scale_adjustment = fraction_used_for_best_move
+            .mul_add(-node_tm_multiplier(), node_tm_base())
+            .max(node_tm_min());
+
+        scale *= node_scale_adjustment;
 
         self.scale = scale;
         self.last_best_move = Some(best_move);

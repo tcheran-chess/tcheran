@@ -352,6 +352,7 @@ pub fn negamax(
             moves.yield_only_tacticals();
         }
 
+        let nodes_before = ctx.nodes_visited.get();
         ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.src())));
         ctx.nnue.push(&game.board, mv);
 
@@ -434,6 +435,11 @@ pub fn negamax(
 
         game.undo_move();
         ctx.nnue.pop();
+
+        if is_root {
+            let nodes_for_this_move = ctx.nodes_visited.get() - nodes_before;
+            ctx.time_control.update_nodes_used(mv, nodes_for_this_move);
+        }
 
         if ctx.time_control.stopped() {
             return Eval::MIN;

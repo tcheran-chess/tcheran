@@ -5,6 +5,7 @@
 * Network #11, trained with an entirely new 5k soft node dataset (23.37 +- 8.61)
 * Use capture history as the SEE threshold during move picking (13.97 +- 6.76)
 * Time management tweaks - base hard time on the total time and allow using more of the total time (22.35 +- 8.36 STC, 12.20 +- 5.91 LTC)
+* Scale soft time based on the fraction of nodes used to search the bset move (10.89 +- 5.82 STC, 16.01 +- 6.94 LTC)
 * Network #12, adding 8 output buckets and using the same data as #11 (9.89 +- 5.56)
 * Network #13, trained using the same arch and data as #12 but with horizontal mirroring (7.49 +- 4.59)
 * Clear killer moves for upcoming plies (5.77 +- 3.92)

@@ -8,6 +8,7 @@ default-run = "engine"
 [features]
 release = []
 spsa = []
+datagen = []
 
 [lib]
 path = "src/lib.rs"

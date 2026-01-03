@@ -2,14 +2,17 @@
 // https://github.com/lynx-chess/Lynx/blob/main/src/Lynx/Bench.cs
 // https://github.com/JacquesRW/akimbo/blob/main/resources/fens.txt
 
-use std::time::{Duration, Instant};
+use std::{
+    cell::RefCell,
+    time::{Duration, Instant},
+};
 
 use crate::{
-    chess::game::Game,
+    chess::{game::Game, moves::Move},
     engine::{
         options::EngineOptions,
         search,
-        search::{CapturingReporter, PersistentState, TimeControl, time_control::StopControl},
+        search::{PersistentState, Reporter, SearchInfo, TimeControl, time_control::StopControl},
     },
 };
 
@@ -106,6 +109,32 @@ const POSITIONS: [&str; 88] = [
 
 const DEFAULT_DEPTH: u8 = 12;
 
+pub struct BenchReporter {
+    nodes: RefCell<Option<u64>>,
+}
+
+impl BenchReporter {
+    pub fn new() -> Self {
+        Self {
+            nodes: RefCell::new(None),
+        }
+    }
+
+    pub fn nodes(&self) -> u64 {
+        self.nodes.borrow().unwrap()
+    }
+}
+
+impl Reporter for BenchReporter {
+    fn generic_report(&self, _: &str) {}
+
+    fn report_search_progress(&self, _: &Game, stats: SearchInfo) {
+        *self.nodes.borrow_mut() = Some(stats.stats.nodes);
+    }
+
+    fn best_move(&self, _: &Game, _: Move) {}
+}
+
 pub fn bench(depth: Option<u8>) -> (u64, Duration) {
     let mut nodes = 0;
     let mut search_time = Duration::new(0, 0);
@@ -113,7 +142,7 @@ pub fn bench(depth: Option<u8>) -> (u64, Duration) {
     let depth = depth.unwrap_or(DEFAULT_DEPTH);
 
     for position in POSITIONS {
-        let bench_reporter = CapturingReporter::new();
+        let bench_reporter = BenchReporter::new();
         let game = Game::from_fen(position).unwrap();
 
         let mut persistent_state = PersistentState::new(16);

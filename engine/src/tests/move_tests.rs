@@ -7,9 +7,7 @@ use crate::{
     engine::{
         eval::Eval,
         options::EngineOptions,
-        search::{
-            CapturingReporter, PersistentState, TimeControl, search, time_control::StopControl,
-        },
+        search::{NullReporter, PersistentState, TimeControl, search, time_control::StopControl},
     },
 };
 
@@ -18,21 +16,17 @@ fn test_expected_move(fen: &str, depth: u8, mv: (Square, Square)) -> (Move, Eval
     let game = Game::from_fen(fen).unwrap();
     let mut persistent_state = PersistentState::new(16);
 
-    let capturing_reporter = CapturingReporter::new();
-
-    search(
+    let (best_move, eval) = search(
         &game,
         &mut persistent_state,
         TimeControl::Depth(depth),
         StopControl::new(),
         &EngineOptions::DEFAULT,
-        &capturing_reporter,
+        &NullReporter,
     );
 
-    let best_move = capturing_reporter.best_move();
-
     assert_eq!((best_move.src(), best_move.dst()), mv);
-    (best_move, capturing_reporter.eval())
+    (best_move, eval)
 }
 
 #[test]

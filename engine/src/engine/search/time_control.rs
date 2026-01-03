@@ -162,7 +162,13 @@ impl TimeStrategy {
         self.stopped = true;
     }
 
-    pub fn update(&mut self, nodes_visited: u64) {
+    pub fn update(&mut self, nodes_visited: u64, root_depth: u8) {
+        // If we're on our first iterative deepening iteration we don't have a best move
+        // yet, so don't force-stop the search under any circumstances.
+        if root_depth == 1 {
+            return;
+        }
+
         if nodes_visited < self.next_check_at || self.stopped {
             return;
         }

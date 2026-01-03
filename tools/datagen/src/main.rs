@@ -17,9 +17,7 @@ use engine::{
     engine::{
         eval::{Eval, WhiteEval, wdl},
         options::EngineOptions,
-        search::{
-            CapturingReporter, PersistentState, TimeControl, search, time_control::StopControl,
-        },
+        search::{NullReporter, PersistentState, TimeControl, search, time_control::StopControl},
         tablebases::{Tablebase, Wdl},
         util::log,
     },
@@ -355,13 +353,14 @@ fn search_position(
     time_control: TimeControl,
     persistent_state: &mut PersistentState,
 ) -> (Move, Eval, Eval) {
-    let options = EngineOptions::DEFAULT;
-    let reporter = CapturingReporter::new();
-
-    search(game, persistent_state, time_control, StopControl::new(), &options, &reporter);
-
-    let best_move = reporter.best_move();
-    let eval = reporter.eval();
+    let (best_move, eval) = search(
+        game,
+        persistent_state,
+        time_control,
+        StopControl::new(),
+        &EngineOptions::DEFAULT,
+        &NullReporter,
+    );
 
     let normalised_eval = wdl::normalize(eval, &game.board);
 

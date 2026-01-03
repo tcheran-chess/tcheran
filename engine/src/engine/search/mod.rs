@@ -8,7 +8,6 @@ pub mod tables;
 pub mod time_control;
 
 use std::{
-    cell::RefCell,
     sync::{Arc, Mutex, atomic::AtomicU64},
     thread,
     time::{Duration, Instant},
@@ -20,7 +19,6 @@ use crate::{
         eval::{Eval, nnue::NetworkStack},
         options::EngineOptions,
         search::{
-            move_picker::MovePicker,
             principal_variation::PrincipalVariation,
             tables::{KillersTable, Tables},
             time_control::{StopControl, TimeStrategy},
@@ -123,6 +121,7 @@ pub struct SearchContext<'s> {
     pub time_control: TimeStrategy,
 
     max_depth_reached: u8,
+    root_depth: u8,
     nodes_visited: BufferedAtomicU64<'s>,
     tbhits: BufferedAtomicU64<'s>,
 }
@@ -151,6 +150,7 @@ impl<'s> SearchContext<'s> {
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
 
             max_depth_reached: 0,
+            root_depth: 0,
             nodes_visited: BufferedAtomicU64::new(node_counter),
             tbhits: BufferedAtomicU64::new(tbhits_counter),
         }
@@ -256,47 +256,6 @@ impl Reporter for NullReporter {
     fn best_move(&self, _: &Game, _: Move) {}
 }
 
-pub struct CapturingReporter {
-    best_move: RefCell<Option<Move>>,
-    eval: RefCell<Option<Eval>>,
-    nodes: RefCell<u64>,
-}
-
-impl CapturingReporter {
-    pub fn new() -> Self {
-        Self {
-            best_move: RefCell::new(None),
-            eval: RefCell::new(None),
-            nodes: RefCell::new(0),
-        }
-    }
-
-    pub fn best_move(&self) -> Move {
-        self.best_move.borrow().unwrap()
-    }
-
-    pub fn eval(&self) -> Eval {
-        self.eval.borrow().unwrap()
-    }
-
-    pub fn nodes(&self) -> u64 {
-        *self.nodes.borrow()
-    }
-}
-
-impl Reporter for CapturingReporter {
-    fn generic_report(&self, _: &str) {}
-
-    fn report_search_progress(&self, _: &Game, stats: SearchInfo) {
-        *self.eval.borrow_mut() = Some(stats.eval);
-        *self.nodes.borrow_mut() = stats.stats.nodes;
-    }
-
-    fn best_move(&self, _: &Game, mv: Move) {
-        *self.best_move.borrow_mut() = Some(mv);
-    }
-}
-
 pub fn search(
     game: &Game,
     persistent_state: &mut PersistentState,
@@ -304,7 +263,7 @@ pub fn search(
     stop_control: StopControl,
     options: &EngineOptions,
     reporter: &impl Reporter,
-) {
+) -> (Move, Eval) {
     persistent_state.tt.new_generation();
 
     let tablebase_result = persistent_state.tablebase.best_move(game);
@@ -334,14 +293,14 @@ pub fn search(
         );
 
         reporter.best_move(game, mv);
-        return;
+        return (mv, eval);
     }
 
     let threads_stop_control = StopControl::new();
     let global_node_count = AtomicU64::new(0);
     let global_tbhits_count = AtomicU64::new(0);
 
-    let best_move = thread::scope(|scope| {
+    let (best_move, eval) = thread::scope(|scope| {
         let mut threads = Vec::new();
 
         // If we want more than one thread, spawn our other threads, sharing the transposition
@@ -377,12 +336,7 @@ pub fn search(
                     options,
                 );
 
-                iterative_deepening::search(
-                    &mut game.clone(),
-                    &mut ctx,
-                    &mut PrincipalVariation::new(),
-                    &NullReporter,
-                );
+                iterative_deepening::search(&mut game.clone(), &mut ctx, &NullReporter);
             });
 
             threads.push(thread);
@@ -411,43 +365,28 @@ pub fn search(
             options,
         );
 
-        let mut pv = PrincipalVariation::new();
-
-        iterative_deepening::search(
+        let result = iterative_deepening::search(
             // Give the search its own copy of the game so we don't get one returned in a dirty state
             // when the search aborts.
             &mut game.clone(),
             &mut ctx,
-            &mut pv,
             reporter,
         );
-
-        let best_move = pv.first().copied();
 
         threads_stop_control.stop();
         for thread in threads {
             thread.join().expect("Thread panicked");
         }
 
-        best_move.unwrap_or_else(|| panic_move(game, &ctx))
+        result.expect("Should always have a result")
     });
 
     reporter.best_move(game, best_move);
+    (best_move, eval)
 }
 
 pub fn init() {
     tables::init();
-}
-
-// If we have so little time to search that we couldn't determine a best move, we'll need to spend
-// a bit of extra time so that we still make a move.
-// Rather than returning a random move, we return the first move that is returned after move ordering
-fn panic_move(game: &Game, ctx: &SearchContext<'_>) -> Move {
-    let mut move_picker = MovePicker::new(None);
-
-    move_picker
-        .next(game, ctx.tables, ctx.stack, 0)
-        .unwrap_or_else(|| panic!("No valid moves in position {}", game.to_fen()))
 }
 
 fn get_tablebase_pv(game: &Game, tb: &Tablebase) -> (PrincipalVariation, Eval) {

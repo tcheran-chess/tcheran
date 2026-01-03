@@ -13,11 +13,10 @@ use crate::{
 pub fn search(
     game: &mut Game,
     ctx: &mut SearchContext<'_>,
-    pv: &mut PrincipalVariation,
     reporter: &impl Reporter,
-) -> Option<Move> {
-    let mut best_move: Option<Move> = None;
-    let mut overall_eval: Option<Eval> = None;
+) -> Option<(Move, Eval)> {
+    let mut pv = PrincipalVariation::new();
+    let mut result: Option<(Move, Eval)> = None;
 
     ctx.max_depth_reached = 0;
 
@@ -26,7 +25,11 @@ pub fn search(
             break;
         }
 
-        let eval = aspiration_search(game, depth, overall_eval, pv, ctx);
+        ctx.root_depth = depth;
+
+        let previous_eval = result.map(|r| r.1);
+        let eval = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
+
         if ctx.time_control.stopped() {
             break;
         }
@@ -35,8 +38,7 @@ pub fn search(
             panic!("No PV move at depth {} for position {}", depth, game.to_fen())
         });
 
-        best_move = Some(new_best_move);
-        overall_eval = Some(eval);
+        result = Some((new_best_move, eval));
 
         ctx.time_control.update_after_search(new_best_move, depth);
 
@@ -62,5 +64,5 @@ pub fn search(
         );
     }
 
-    best_move
+    result
 }

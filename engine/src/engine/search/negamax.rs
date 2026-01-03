@@ -77,7 +77,8 @@ pub fn negamax(
     }
 
     // Check periodically to see if we're out of time.
-    ctx.time_control.update(ctx.nodes_visited.get());
+    ctx.time_control
+        .update(ctx.nodes_visited.get(), ctx.root_depth);
     if ctx.time_control.stopped() {
         return Eval::MIN;
     }

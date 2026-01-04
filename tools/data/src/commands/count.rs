@@ -27,24 +27,16 @@ pub fn run(options: &CountOptions) -> Result<()> {
     let mut draws = 0;
 
     let mut buffer = Vec::new();
-    let mut boardsbuffer = Vec::new();
 
     let filter = viriformat::dataformat::Filter::default();
 
     while let Ok(game) = Game::deserialise_from(&mut reader, buffer) {
         games += 1;
 
-        game.splat_to_bulletformat(
-            |b| {
-                boardsbuffer.push(b);
-                Ok(())
-            },
-            &filter,
-        )?;
+        let all_positions = game.len();
+        positions += all_positions;
 
-        positions += game.moves.len();
-
-        let actual_positions_after_filtering = boardsbuffer.len();
+        let actual_positions_after_filtering = game.filter_pass_count(&filter) as usize;
         let filtered_in_this_game = game.moves.len() - actual_positions_after_filtering;
         kept += actual_positions_after_filtering;
         filtered += filtered_in_this_game;
@@ -56,7 +48,6 @@ pub fn run(options: &CountOptions) -> Result<()> {
         if game.moves.is_empty() {
             buffer = game.moves;
             buffer.clear();
-            boardsbuffer.clear();
             continue;
         }
 
@@ -68,7 +59,6 @@ pub fn run(options: &CountOptions) -> Result<()> {
 
         buffer = game.moves;
         buffer.clear();
-        boardsbuffer.clear();
     }
 
     println!();

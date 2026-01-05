@@ -26,28 +26,19 @@ pub const SCALE: i32 = 313;
 enum FeatureChanges {
     None,
     Add1Sub1 {
-        white_add1: usize,
-        white_sub1: usize,
-        black_add1: usize,
-        black_sub1: usize,
+        add1: usize,
+        sub1: usize,
     },
     Add1Sub2 {
-        white_add1: usize,
-        white_sub1: usize,
-        white_sub2: usize,
-        black_add1: usize,
-        black_sub1: usize,
-        black_sub2: usize,
+        add1: usize,
+        sub1: usize,
+        sub2: usize,
     },
     Add2Sub2 {
-        white_add1: usize,
-        white_add2: usize,
-        white_sub1: usize,
-        white_sub2: usize,
-        black_add1: usize,
-        black_add2: usize,
-        black_sub1: usize,
-        black_sub2: usize,
+        add1: usize,
+        add2: usize,
+        sub1: usize,
+        sub2: usize,
     },
 }
 
@@ -59,8 +50,8 @@ pub struct NetworkStack {
 #[derive(Clone)]
 pub struct NetworkStackEntry {
     pub network: NNUE,
-    feature_changes: FeatureChanges,
-    correct: bool,
+    feature_changes: [FeatureChanges; Player::N],
+    correct: [bool; Player::N],
 }
 
 impl NetworkStack {
@@ -69,8 +60,8 @@ impl NetworkStack {
             stack: vec![
                 NetworkStackEntry {
                     network: NNUE::default(),
-                    feature_changes: FeatureChanges::None,
-                    correct: false,
+                    feature_changes: [FeatureChanges::None, FeatureChanges::None],
+                    correct: [false; Player::N],
                 };
                 MAX_SEARCH_DEPTH_SIZE
             ],
@@ -80,13 +71,13 @@ impl NetworkStack {
 
     pub fn setup(&mut self, board: &Board) {
         self.stack[0].network = NNUE::from_board(board);
-        self.stack[0].correct = true;
+        self.stack[0].correct = [true; Player::N];
         self.current_idx = 0;
     }
 
     pub fn push(&mut self, board: &Board, mv: Move) {
         self.current_idx += 1;
-        self.current_entry().correct = false;
+        self.current_entry().correct = [false; Player::N];
 
         let piece_at_src = board.piece_guaranteed_at(mv.src());
         let piece_at_dst = mv
@@ -106,16 +97,20 @@ impl NetworkStack {
             let (white_add2, black_add2) = nnue_index(rook, rook_to);
             let (white_sub2, black_sub2) = nnue_index(rook, rook_from);
 
-            self.current_entry().feature_changes = FeatureChanges::Add2Sub2 {
-                white_add1,
-                white_add2,
-                white_sub1,
-                white_sub2,
-                black_add1,
-                black_add2,
-                black_sub1,
-                black_sub2,
-            };
+            self.current_entry().feature_changes = [
+                FeatureChanges::Add2Sub2 {
+                    add1: white_add1,
+                    add2: white_add2,
+                    sub1: white_sub1,
+                    sub2: white_sub2,
+                },
+                FeatureChanges::Add2Sub2 {
+                    add1: black_add1,
+                    add2: black_add2,
+                    sub1: black_sub1,
+                    sub2: black_sub2,
+                },
+            ];
         } else if mv.is_capture() {
             let (white_sub2, black_sub2) = if mv.is_en_passant() {
                 let en_passant_capture_square = mv.dst().backward(player);
@@ -126,21 +121,29 @@ impl NetworkStack {
                 nnue_index(taken_piece, mv.dst())
             };
 
-            self.current_entry().feature_changes = FeatureChanges::Add1Sub2 {
-                white_add1,
-                white_sub1,
-                white_sub2,
-                black_add1,
-                black_sub1,
-                black_sub2,
-            };
+            self.current_entry().feature_changes = [
+                FeatureChanges::Add1Sub2 {
+                    add1: white_add1,
+                    sub1: white_sub1,
+                    sub2: white_sub2,
+                },
+                FeatureChanges::Add1Sub2 {
+                    add1: black_add1,
+                    sub1: black_sub1,
+                    sub2: black_sub2,
+                },
+            ];
         } else {
-            self.current_entry().feature_changes = FeatureChanges::Add1Sub1 {
-                white_add1,
-                white_sub1,
-                black_add1,
-                black_sub1,
-            };
+            self.current_entry().feature_changes = [
+                FeatureChanges::Add1Sub1 {
+                    add1: white_add1,
+                    sub1: white_sub1,
+                },
+                FeatureChanges::Add1Sub1 {
+                    add1: black_add1,
+                    sub1: black_sub1,
+                },
+            ];
         }
     }
 
@@ -156,94 +159,59 @@ impl NetworkStack {
         // First, we need to cycle through our stack and update any network accumulators that we
         // deferred updates for.
 
-        // We don't need to do this if we've only got one entry in the stack.
-        for i in 1..=self.current_idx {
-            if self.stack[i].correct {
-                continue;
-            }
+        for player in Player::ALL {
+            // We don't need to do this if we've only got one entry in the stack.
+            for i in 1..=self.current_idx {
+                if self.stack[i].correct[player] {
+                    continue;
+                }
 
-            if let (prev, [entry, ..]) = self.stack.split_at_mut(i) {
-                let previous_entry = prev.last().unwrap();
+                if let (prev, [entry, ..]) = self.stack.split_at_mut(i) {
+                    let previous_entry = prev.last().unwrap();
 
-                // For each accumulator, copy over the values from the previous (now-materialised) accumulator
-                // while also applying feature changes.
-                match entry.feature_changes {
-                    FeatureChanges::Add1Sub1 {
-                        white_add1,
-                        white_sub1,
-                        black_add1,
-                        black_sub1,
-                    } => {
-                        NNUE::add1_sub1(
-                            &previous_entry.network.white,
-                            &mut entry.network.white,
-                            white_add1,
-                            white_sub1,
-                        );
-                        NNUE::add1_sub1(
-                            &previous_entry.network.black,
-                            &mut entry.network.black,
-                            black_add1,
-                            black_sub1,
-                        );
-                    }
-                    FeatureChanges::Add1Sub2 {
-                        white_add1,
-                        white_sub1,
-                        white_sub2,
-                        black_add1,
-                        black_sub1,
-                        black_sub2,
-                    } => {
-                        NNUE::add1_sub2(
-                            &previous_entry.network.white,
-                            &mut entry.network.white,
-                            white_add1,
-                            white_sub1,
-                            white_sub2,
-                        );
-                        NNUE::add1_sub2(
-                            &previous_entry.network.black,
-                            &mut entry.network.black,
-                            black_add1,
-                            black_sub1,
-                            black_sub2,
-                        );
-                    }
-                    FeatureChanges::Add2Sub2 {
-                        white_add1,
-                        white_add2,
-                        white_sub1,
-                        white_sub2,
-                        black_add1,
-                        black_add2,
-                        black_sub1,
-                        black_sub2,
-                    } => {
-                        NNUE::add2_sub2(
-                            &previous_entry.network.white,
-                            &mut entry.network.white,
-                            white_add1,
-                            white_add2,
-                            white_sub1,
-                            white_sub2,
-                        );
-                        NNUE::add2_sub2(
-                            &previous_entry.network.black,
-                            &mut entry.network.black,
-                            black_add1,
-                            black_add2,
-                            black_sub1,
-                            black_sub2,
-                        );
-                    }
-                    FeatureChanges::None => {
-                        unreachable!();
+                    // For each accumulator, copy over the values from the previous (now-materialised) accumulator
+                    // while also applying feature changes.
+                    match entry.feature_changes[player] {
+                        FeatureChanges::Add1Sub1 { add1, sub1 } => {
+                            NNUE::add1_sub1(
+                                &previous_entry.network[player],
+                                &mut entry.network[player],
+                                add1,
+                                sub1,
+                            );
+                        }
+                        FeatureChanges::Add1Sub2 { add1, sub1, sub2 } => {
+                            NNUE::add1_sub2(
+                                &previous_entry.network[player],
+                                &mut entry.network[player],
+                                add1,
+                                sub1,
+                                sub2,
+                            );
+                        }
+                        FeatureChanges::Add2Sub2 {
+                            add1,
+                            add2,
+                            sub1,
+                            sub2,
+                        } => {
+                            NNUE::add2_sub2(
+                                &previous_entry.network[player],
+                                &mut entry.network[player],
+                                add1,
+                                add2,
+                                sub1,
+                                sub2,
+                            );
+                        }
+                        FeatureChanges::None => {
+                            unreachable!();
+                        }
                     }
                 }
-            }
 
-            self.stack[i].correct = true;
+                self.stack[i].correct[player] = true;
+            }
         }
 
         // We should now have a full stack of materialised accumulators, all the way up to our current one
@@ -270,16 +238,28 @@ static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NET
 
 #[derive(Clone)]
 pub struct NNUE {
-    white: Accumulator,
-    black: Accumulator,
+    accumulators: [Accumulator; Player::N],
 }
 
 impl Default for NNUE {
     fn default() -> Self {
         Self {
-            white: NETWORK.feature_bias.clone(),
-            black: NETWORK.feature_bias.clone(),
+            accumulators: [NETWORK.feature_bias.clone(), NETWORK.feature_bias.clone()],
         }
+    }
+}
+
+impl std::ops::Index<Player> for NNUE {
+    type Output = Accumulator;
+
+    fn index(&self, index: Player) -> &Self::Output {
+        &self.accumulators[index as usize]
+    }
+}
+
+impl std::ops::IndexMut<Player> for NNUE {
+    fn index_mut(&mut self, index: Player) -> &mut Self::Output {
+        &mut self.accumulators[index as usize]
     }
 }
 
@@ -292,8 +272,8 @@ impl NNUE {
 
             let (white_idx, black_idx) = nnue_index(piece, sq);
 
-            Self::add1(&mut nnue.white, white_idx);
-            Self::add1(&mut nnue.black, black_idx);
+            Self::add1(&mut nnue[Player::White], white_idx);
+            Self::add1(&mut nnue[Player::Black], black_idx);
         }
 
         nnue
@@ -369,8 +349,8 @@ impl NNUE {
 
     pub fn evaluate(&self, player: Player, game: &Game) -> Eval {
         let (us, them) = match player {
-            Player::White => (&self.white, &self.black),
-            Player::Black => (&self.black, &self.white),
+            Player::White => (&self[Player::White], &self[Player::Black]),
+            Player::Black => (&self[Player::Black], &self[Player::White]),
         };
 
         let mut output = 0;
@@ -410,14 +390,14 @@ impl NNUE {
         let (white_idx, black_idx) = nnue_index(piece, square);
 
         // Remove this feature from the accumulator to see what the eval looks like without it
-        Self::sub1(&mut self.white, white_idx);
-        Self::sub1(&mut self.black, black_idx);
+        Self::sub1(&mut self[Player::White], white_idx);
+        Self::sub1(&mut self[Player::Black], black_idx);
 
         let eval_without_feature = self.evaluate(player, game);
 
         // Add the feature back again
-        Self::add1(&mut self.white, white_idx);
-        Self::add1(&mut self.black, black_idx);
+        Self::add1(&mut self[Player::White], white_idx);
+        Self::add1(&mut self[Player::Black], black_idx);
 
         eval - eval_without_feature
     }

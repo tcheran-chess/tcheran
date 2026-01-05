@@ -3,9 +3,9 @@ use crate::{
         board::Board,
         game::Game,
         moves::Move,
-        piece::{Piece, PieceKind},
+        piece::{Piece, PieceKind, PromotionPieceKind},
         player::Player,
-        square::{Square, squares},
+        square::{Square, squares, squares::all::H8},
     },
     engine::{eval::Eval, search::MAX_SEARCH_DEPTH_SIZE},
 };
@@ -23,23 +23,21 @@ const QB: i32 = 64;
 pub const SCALE: i32 = 313;
 
 #[derive(Clone)]
-enum FeatureChanges {
-    None,
-    Add1Sub1 {
-        add1: usize,
-        sub1: usize,
-    },
-    Add1Sub2 {
-        add1: usize,
-        sub1: usize,
-        sub2: usize,
-    },
-    Add2Sub2 {
-        add1: usize,
-        add2: usize,
-        sub1: usize,
-        sub2: usize,
-    },
+struct Changes {
+    pub mv: Move,
+    pub moved_piece: Piece,
+    pub captured_piece: Option<Piece>,
+}
+
+impl Changes {
+    pub const fn uninit() -> Self {
+        Self {
+            // Arbitrarily chosen - these values will never be read
+            mv: Move::quiet(H8, H8),
+            moved_piece: Piece::WHITE_KING,
+            captured_piece: None,
+        }
+    }
 }
 
 pub struct NetworkStack {
@@ -50,7 +48,7 @@ pub struct NetworkStack {
 #[derive(Clone)]
 pub struct NetworkStackEntry {
     pub network: NNUE,
-    feature_changes: [FeatureChanges; Player::N],
+    changes: Changes,
     correct: [bool; Player::N],
 }
 
@@ -60,7 +58,7 @@ impl NetworkStack {
             stack: vec![
                 NetworkStackEntry {
                     network: NNUE::default(),
-                    feature_changes: [FeatureChanges::None, FeatureChanges::None],
+                    changes: Changes::uninit(),
                     correct: [false; Player::N],
                 };
                 MAX_SEARCH_DEPTH_SIZE
@@ -77,74 +75,12 @@ impl NetworkStack {
 
     pub fn push(&mut self, board: &Board, mv: Move) {
         self.current_idx += 1;
-        self.current_entry().correct = [false; Player::N];
 
-        let piece_at_src = board.piece_guaranteed_at(mv.src());
-        let piece_at_dst = mv
-            .promotion()
-            .map_or(piece_at_src, |p| Piece::new(piece_at_src.player, p.piece()));
-
-        let player = piece_at_src.player;
-
-        let (white_add1, black_add1) = nnue_index(piece_at_dst, mv.dst());
-        let (white_sub1, black_sub1) = nnue_index(piece_at_src, mv.src());
-
-        if mv.is_castling() {
-            let (rook_from, rook_to) = squares::castle_squares(player, mv.dst())
-                .expect("Move should have castling squares");
-            let rook = board.piece_guaranteed_at(rook_from);
-
-            let (white_add2, black_add2) = nnue_index(rook, rook_to);
-            let (white_sub2, black_sub2) = nnue_index(rook, rook_from);
-
-            self.current_entry().feature_changes = [
-                FeatureChanges::Add2Sub2 {
-                    add1: white_add1,
-                    add2: white_add2,
-                    sub1: white_sub1,
-                    sub2: white_sub2,
-                },
-                FeatureChanges::Add2Sub2 {
-                    add1: black_add1,
-                    add2: black_add2,
-                    sub1: black_sub1,
-                    sub2: black_sub2,
-                },
-            ];
-        } else if mv.is_capture() {
-            let (white_sub2, black_sub2) = if mv.is_en_passant() {
-                let en_passant_capture_square = mv.dst().backward(player);
-                let taken_pawn = board.piece_guaranteed_at(en_passant_capture_square);
-                nnue_index(taken_pawn, en_passant_capture_square)
-            } else {
-                let taken_piece = board.piece_guaranteed_at(mv.dst());
-                nnue_index(taken_piece, mv.dst())
-            };
-
-            self.current_entry().feature_changes = [
-                FeatureChanges::Add1Sub2 {
-                    add1: white_add1,
-                    sub1: white_sub1,
-                    sub2: white_sub2,
-                },
-                FeatureChanges::Add1Sub2 {
-                    add1: black_add1,
-                    sub1: black_sub1,
-                    sub2: black_sub2,
-                },
-            ];
-        } else {
-            self.current_entry().feature_changes = [
-                FeatureChanges::Add1Sub1 {
-                    add1: white_add1,
-                    sub1: white_sub1,
-                },
-                FeatureChanges::Add1Sub1 {
-                    add1: black_add1,
-                    sub1: black_sub1,
-                },
-            ];
-        }
+        let current_entry = self.current_entry();
+        current_entry.changes.mv = mv;
+        current_entry.changes.moved_piece = board.piece_guaranteed_at(mv.src());
+        current_entry.changes.captured_piece = board.piece_at(mv.dst());
+        current_entry.correct = [false; Player::N];
     }
 
     pub fn pop(&mut self) {
@@ -159,64 +95,83 @@ impl NetworkStack {
         // First, we need to cycle through our stack and update any network accumulators that we
         // deferred updates for.
 
-        for player in Player::ALL {
+        for pov in Player::ALL {
             // We don't need to do this if we've only got one entry in the stack.
             for i in 1..=self.current_idx {
-                if self.stack[i].correct[player] {
+                if self.stack[i].correct[pov] {
                     continue;
                 }
 
                 if let (prev, [entry, ..]) = self.stack.split_at_mut(i) {
                     let previous_entry = prev.last().unwrap();
 
-                    // For each accumulator, copy over the values from the previous (now-materialised) accumulator
-                    // while also applying feature changes.
-                    match entry.feature_changes[player] {
-                        FeatureChanges::Add1Sub1 { add1, sub1 } => {
-                            NNUE::add1_sub1(
-                                &previous_entry.network[player],
-                                &mut entry.network[player],
-                                add1,
-                                sub1,
-                            );
-                        }
-                        FeatureChanges::Add1Sub2 { add1, sub1, sub2 } => {
-                            NNUE::add1_sub2(
-                                &previous_entry.network[player],
-                                &mut entry.network[player],
-                                add1,
-                                sub1,
-                                sub2,
-                            );
-                        }
-                        FeatureChanges::Add2Sub2 {
-                            add1,
-                            add2,
-                            sub1,
-                            sub2,
-                        } => {
-                            NNUE::add2_sub2(
-                                &previous_entry.network[player],
-                                &mut entry.network[player],
-                                add1,
-                                add2,
-                                sub1,
-                                sub2,
-                            );
-                        }
-                        FeatureChanges::None => {
-                            unreachable!();
-                        }
-                    }
+                    Self::update_accumulator(entry, previous_entry, pov);
                 }
 
-                self.stack[i].correct[player] = true;
+                self.stack[i].correct[pov] = true;
             }
         }
 
         // We should now have a full stack of materialised accumulators, all the way up to our current one
         // so we can evaluate that.
         self.current_entry().network.evaluate(game.player, game)
+    }
+
+    fn update_accumulator(
+        entry: &mut NetworkStackEntry,
+        previous_entry: &NetworkStackEntry,
+        pov: Player,
+    ) {
+        let mv = entry.changes.mv;
+        let moved_piece = entry.changes.moved_piece;
+        let captured_piece = entry.changes.captured_piece;
+        let player = moved_piece.player;
+
+        let moved_piece_at_dst = Piece::new(
+            player,
+            mv.promotion()
+                .map_or(moved_piece.kind, PromotionPieceKind::piece),
+        );
+
+        let add1 = nnue_index(moved_piece_at_dst, mv.dst(), pov);
+        let sub1 = nnue_index(moved_piece, mv.src(), pov);
+
+        if mv.is_castling() {
+            let (rook_from, rook_to) = squares::castle_squares(player, mv.dst())
+                .expect("Move should have castling squares");
+            let rook = Piece::new(moved_piece.player, PieceKind::Rook);
+
+            let add2 = nnue_index(rook, rook_to, pov);
+            let sub2 = nnue_index(rook, rook_from, pov);
+
+            NNUE::add2_sub2(
+                &previous_entry.network[pov],
+                &mut entry.network[pov],
+                add1,
+                add2,
+                sub1,
+                sub2,
+            );
+        } else if mv.is_capture() {
+            let sub2 = if mv.is_en_passant() {
+                let en_passant_capture_square = mv.dst().backward(player);
+                let taken_pawn = Piece::new(player.other(), PieceKind::Pawn);
+                nnue_index(taken_pawn, en_passant_capture_square, pov)
+            } else {
+                let taken_piece = captured_piece.expect("Move should have captured piece");
+                nnue_index(taken_piece, mv.dst(), pov)
+            };
+
+            NNUE::add1_sub2(
+                &previous_entry.network[pov],
+                &mut entry.network[pov],
+                add1,
+                sub1,
+                sub2,
+            );
+        } else {
+            NNUE::add1_sub1(&previous_entry.network[pov], &mut entry.network[pov], add1, sub1);
+        }
     }
 }
 
@@ -267,13 +222,11 @@ impl NNUE {
     pub fn from_board(board: &Board) -> Self {
         let mut nnue = Self::default();
 
-        for sq in board.occupancy() {
-            let piece = board.piece_guaranteed_at(sq);
-
-            let (white_idx, black_idx) = nnue_index(piece, sq);
-
-            Self::add1(&mut nnue[Player::White], white_idx);
-            Self::add1(&mut nnue[Player::Black], black_idx);
+        for pov in Player::ALL {
+            for sq in board.occupancy() {
+                let piece = board.piece_guaranteed_at(sq);
+                Self::add1(&mut nnue[pov], nnue_index(piece, sq, pov));
+            }
         }
 
         nnue
@@ -387,36 +340,32 @@ impl NNUE {
 
         let piece = game.board.piece_guaranteed_at(square);
 
-        let (white_idx, black_idx) = nnue_index(piece, square);
-
         // Remove this feature from the accumulator to see what the eval looks like without it
-        Self::sub1(&mut self[Player::White], white_idx);
-        Self::sub1(&mut self[Player::Black], black_idx);
+        for pov in Player::ALL {
+            Self::sub1(&mut self[pov], nnue_index(piece, square, pov));
+        }
 
         let eval_without_feature = self.evaluate(player, game);
 
         // Add the feature back again
-        Self::add1(&mut self[Player::White], white_idx);
-        Self::add1(&mut self[Player::Black], black_idx);
+        for pov in Player::ALL {
+            Self::add1(&mut self[pov], nnue_index(piece, square, pov));
+        }
 
         eval - eval_without_feature
     }
 }
 
-const fn nnue_index(piece: Piece, sq: Square) -> (usize, usize) {
+fn nnue_index(piece: Piece, sq: Square, pov: Player) -> usize {
     const COLOR_STRIDE: usize = Square::N * PieceKind::N;
     const PIECE_STRIDE: usize = Square::N;
 
     let p = piece.kind as usize;
     let c = piece.player as usize;
 
-    let white_idx =
-        c * COLOR_STRIDE + p * PIECE_STRIDE + sq.relative_for(Player::White).idx() as usize;
+    let square_idx = sq.relative_for(pov).idx();
 
-    let black_idx =
-        (1 ^ c) * COLOR_STRIDE + p * PIECE_STRIDE + sq.relative_for(Player::Black).idx() as usize;
-
-    (white_idx, black_idx)
+    (c ^ pov as usize) * COLOR_STRIDE + p * PIECE_STRIDE + square_idx as usize
 }
 
 fn screlu(value: i16) -> i32 {

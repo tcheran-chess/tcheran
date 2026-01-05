@@ -4,6 +4,13 @@ version = "0.0.0"
 rust-version = { workspace = true }
 edition = { workspace = true }
 
-[dependencies]
+# On non-macOS targets, use the GPU-enabled version of Bullet
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+bullet_lib = { git = "https://github.com/jw1912/bullet", package = "bullet_lib" }
+
+# When building on macOS, disable GPU features for Bullet
+[target.'cfg(target_os = "macos")'.dependencies]
 bullet_lib = { git = "https://github.com/jw1912/bullet", package = "bullet_lib", features = ["cpu"], default-features = false }
+
+[dependencies]
 viriformat = "2.0.1"

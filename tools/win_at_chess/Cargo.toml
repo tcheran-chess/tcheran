@@ -1,7 +1,0 @@
-[package]
-name = "engine_win_at_chess_tests"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-regex = { version = "1.10.2", features = [] }

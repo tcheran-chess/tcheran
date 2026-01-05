@@ -5,7 +5,7 @@ use crate::{
         moves::Move,
         piece::{Piece, PieceKind, PromotionPieceKind},
         player::Player,
-        square::{Square, squares, squares::all::H8},
+        square::{File, Square, squares, squares::all::H8},
     },
     engine::{eval::Eval, search::MAX_SEARCH_DEPTH_SIZE},
 };
@@ -94,21 +94,19 @@ impl NetworkStack {
     pub fn evaluate(&mut self, game: &Game) -> Eval {
         // First, we need to cycle through our stack and update any network accumulators that we
         // deferred updates for.
-
         for pov in Player::ALL {
-            // We don't need to do this if we've only got one entry in the stack.
-            for i in 1..=self.current_idx {
-                if self.stack[i].correct[pov] {
-                    continue;
-                }
+            if self.current_entry().correct[pov] {
+                continue;
+            }
 
-                if let (prev, [entry, ..]) = self.stack.split_at_mut(i) {
-                    let previous_entry = prev.last().unwrap();
-
-                    Self::update_accumulator(entry, previous_entry, pov);
-                }
-
-                self.stack[i].correct[pov] = true;
+            // We can efficiently update if there hasn't been a move since our last 'correct' accumulator
+            // that causes us to need to do a full refresh (e.g. a king crossing the horizontal mirroring
+            // boundary).
+            if let Some(i) = self.last_good_efficient_update_index(pov) {
+                self.update(i, game, pov);
+            } else {
+                self.current_entry().network[pov].refresh(&game.board, pov);
+                self.current_entry().correct[pov] = true;
             }
         }
 
@@ -117,9 +115,52 @@ impl NetworkStack {
         self.current_entry().network.evaluate(game.player, game)
     }
 
+    fn last_good_efficient_update_index(&self, pov: Player) -> Option<usize> {
+        // Starting at the current accumulator, look back until we find either a correct accumulator
+        // we can work forward from, or a change in board state that means we can't do efficient updates.
+        for i in (0..=self.current_idx).rev() {
+            let entry = &self.stack[i];
+
+            if entry.correct[pov] {
+                return Some(i);
+            }
+
+            // If the king crossed over the middle of the board, the board either becomes, or stops being
+            // mirrored and will require a full refresh.
+            if entry.changes.moved_piece.kind == PieceKind::King {
+                let from_file = entry.changes.mv.src().file().idx();
+                let to_file = entry.changes.mv.dst().file().idx();
+
+                let crossed_mirroring_boundary = (from_file <= File::D.idx()
+                    && to_file >= File::E.idx())
+                    || (from_file >= File::E.idx() && to_file <= File::D.idx());
+
+                if crossed_mirroring_boundary {
+                    return None;
+                }
+            }
+        }
+
+        None
+    }
+
+    fn update(&mut self, last_good_idx: usize, game: &Game, pov: Player) {
+        // We know the king is on the same side of the board for all entries since last_good_idx by definition
+        let king = game.board.king_square(pov);
+
+        for i in last_good_idx..self.current_idx {
+            if let (prev, [entry, ..]) = self.stack.split_at_mut(i + 1) {
+                Self::update_accumulator(entry, &prev[i], king, pov);
+            }
+
+            self.stack[i].correct[pov] = true;
+        }
+    }
+
     fn update_accumulator(
         entry: &mut NetworkStackEntry,
         previous_entry: &NetworkStackEntry,
+        king: Square,
         pov: Player,
     ) {
         let mv = entry.changes.mv;
@@ -133,16 +174,16 @@ impl NetworkStack {
                 .map_or(moved_piece.kind, PromotionPieceKind::piece),
         );
 
-        let add1 = nnue_index(moved_piece_at_dst, mv.dst(), pov);
-        let sub1 = nnue_index(moved_piece, mv.src(), pov);
+        let add1 = nnue_index(moved_piece_at_dst, mv.dst(), king, pov);
+        let sub1 = nnue_index(moved_piece, mv.src(), king, pov);
 
         if mv.is_castling() {
             let (rook_from, rook_to) = squares::castle_squares(player, mv.dst())
                 .expect("Move should have castling squares");
             let rook = Piece::new(moved_piece.player, PieceKind::Rook);
 
-            let add2 = nnue_index(rook, rook_to, pov);
-            let sub2 = nnue_index(rook, rook_from, pov);
+            let add2 = nnue_index(rook, rook_to, king, pov);
+            let sub2 = nnue_index(rook, rook_from, king, pov);
 
             NNUE::add2_sub2(
                 &previous_entry.network[pov],
@@ -156,10 +197,10 @@ impl NetworkStack {
             let sub2 = if mv.is_en_passant() {
                 let en_passant_capture_square = mv.dst().backward(player);
                 let taken_pawn = Piece::new(player.other(), PieceKind::Pawn);
-                nnue_index(taken_pawn, en_passant_capture_square, pov)
+                nnue_index(taken_pawn, en_passant_capture_square, king, pov)
             } else {
                 let taken_piece = captured_piece.expect("Move should have captured piece");
-                nnue_index(taken_piece, mv.dst(), pov)
+                nnue_index(taken_piece, mv.dst(), king, pov)
             };
 
             NNUE::add1_sub2(
@@ -179,6 +220,19 @@ impl NetworkStack {
 #[derive(Clone)]
 #[repr(C, align(64))]
 pub struct Accumulator([i16; HIDDEN_SIZE]);
+
+impl Accumulator {
+    pub fn refresh(&mut self, board: &Board, pov: Player) {
+        let king = board.king_square(pov);
+
+        self.0 = NETWORK.feature_bias.0;
+
+        for sq in board.occupancy() {
+            let piece = board.piece_guaranteed_at(sq);
+            NNUE::add1(self, nnue_index(piece, sq, king, pov));
+        }
+    }
+}
 
 /// Container for all network parameters
 #[repr(C, align(64))]
@@ -223,10 +277,7 @@ impl NNUE {
         let mut nnue = Self::default();
 
         for pov in Player::ALL {
-            for sq in board.occupancy() {
-                let piece = board.piece_guaranteed_at(sq);
-                Self::add1(&mut nnue[pov], nnue_index(piece, sq, pov));
-            }
+            nnue[pov].refresh(board, pov);
         }
 
         nnue
@@ -342,21 +393,23 @@ impl NNUE {
 
         // Remove this feature from the accumulator to see what the eval looks like without it
         for pov in Player::ALL {
-            Self::sub1(&mut self[pov], nnue_index(piece, square, pov));
+            let king = game.board.king_square(pov);
+            Self::sub1(&mut self[pov], nnue_index(piece, square, king, pov));
         }
 
         let eval_without_feature = self.evaluate(player, game);
 
         // Add the feature back again
         for pov in Player::ALL {
-            Self::add1(&mut self[pov], nnue_index(piece, square, pov));
+            let king = game.board.king_square(pov);
+            Self::add1(&mut self[pov], nnue_index(piece, square, king, pov));
         }
 
         eval - eval_without_feature
     }
 }
 
-fn nnue_index(piece: Piece, sq: Square, pov: Player) -> usize {
+fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
     const COLOR_STRIDE: usize = Square::N * PieceKind::N;
     const PIECE_STRIDE: usize = Square::N;
 
@@ -364,8 +417,9 @@ fn nnue_index(piece: Piece, sq: Square, pov: Player) -> usize {
     let c = piece.player as usize;
 
     let square_idx = sq.relative_for(pov).idx();
+    let king_flip = 7 * u8::from(king.file().idx() >= 4);
 
-    (c ^ pov as usize) * COLOR_STRIDE + p * PIECE_STRIDE + square_idx as usize
+    (c ^ pov as usize) * COLOR_STRIDE + p * PIECE_STRIDE + (square_idx ^ king_flip) as usize
 }
 
 fn screlu(value: i16) -> i32 {

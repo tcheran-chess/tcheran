@@ -1,5 +1,5 @@
 use bullet_lib::{
-    game::{inputs::Chess768, outputs::MaterialCount},
+    game::{inputs::ChessBucketsMirrored, outputs::MaterialCount},
     nn::optimiser::AdamW,
     trainer::{
         save::SavedFormat,
@@ -23,7 +23,7 @@ fn main() {
         .use_threads(8)
         .dual_perspective()
         .optimiser(AdamW)
-        .inputs(Chess768)
+        .inputs(ChessBucketsMirrored::default())
         .output_buckets(MaterialCount::<N_OUTPUT_BUCKETS>)
         .save_format(&[
             SavedFormat::id("l0w").round().quantise::<i16>(QA),

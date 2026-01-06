@@ -254,17 +254,51 @@ pub fn main() -> ExitCode {
     let elo_bound = elo - elo_lower;
 
     let llr = sprt(penta, elo0, elo1);
+    let mut decided = false;
 
     if llr > upperllr {
         println!("{CONSOLE_GREEN}PASSED{CONSOLE_RESET}");
+        decided = true;
     }
 
     if llr < lowerllr {
         println!("{CONSOLE_RED}FAILED{CONSOLE_RESET}");
+        decided = true;
     }
 
     println!("LLR: {llr:.2} ({lowerllr:0.2}, {upperllr:0.2}) [{elo0:.1}, {elo1:.1}]");
     println!("Elo: {elo:.2} +- {elo_bound:.2}");
+
+    if !decided {
+        let total_games = penta.iter().sum::<f64>();
+
+        let ll_percent = cli.ll / total_games;
+        let ld_percent = cli.ld / total_games;
+        let dd_percent = cli.dd / total_games;
+        let dw_percent = cli.dw / total_games;
+        let ww_percent = cli.ww / total_games;
+
+        let mut speculative_games = total_games;
+        loop {
+            speculative_games += 1.0;
+            let speculative_penta = [
+                ll_percent * speculative_games,
+                ld_percent * speculative_games,
+                dd_percent * speculative_games,
+                dw_percent * speculative_games,
+                ww_percent * speculative_games,
+            ];
+
+            let llr = sprt(speculative_penta, elo0, elo1);
+            if llr > upperllr || llr < lowerllr {
+                let additional_games = speculative_games - total_games;
+                println!(
+                    "{additional_games} additional game pairs required ({speculative_games} total) for termination assuming no Elo change"
+                );
+                break;
+            }
+        }
+    }
 
     ExitCode::SUCCESS
 }

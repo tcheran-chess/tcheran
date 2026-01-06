@@ -14,7 +14,7 @@ use std::{
 };
 
 use crate::{
-    chess::{game::Game, moves::Move, piece::Piece},
+    chess::{game::Game, moves::Move, piece::Piece, player::Player},
     engine::{
         eval::{Eval, nnue::NetworkStack},
         options::EngineOptions,
@@ -214,11 +214,15 @@ pub enum TimeControl {
 
 #[derive(Debug, Clone)]
 pub struct Clocks {
-    pub white_clock: Option<Duration>,
-    pub black_clock: Option<Duration>,
-    pub white_increment: Option<Duration>,
-    pub black_increment: Option<Duration>,
+    pub clocks: [Option<Duration>; Player::N],
+    pub increments: [Option<Duration>; Player::N],
     pub moves_to_go: Option<u32>,
+}
+
+impl Clocks {
+    pub fn for_player(&self, player: Player) -> (Duration, Duration) {
+        (self.clocks[player].unwrap_or_default(), self.increments[player].unwrap_or_default())
+    }
 }
 
 pub struct SearchInfo {

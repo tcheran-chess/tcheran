@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-    chess::{game::Game, moves::Move, player::Player},
+    chess::{game::Game, moves::Move},
     engine::{
         options::EngineOptions,
         params::*,
@@ -82,14 +82,7 @@ impl TimeStrategy {
                 start_time,
             } => {
                 started_at = Some(start_time);
-
-                let (time_remaining, increment) = match game.player {
-                    Player::White => (clocks.white_clock, clocks.white_increment),
-                    Player::Black => (clocks.black_clock, clocks.black_increment),
-                };
-                let increment = increment.unwrap_or_default();
-
-                let mut time_remaining = time_remaining.unwrap_or_default();
+                let (mut time_remaining, increment) = clocks.for_player(game.player);
 
                 time_remaining = time_remaining
                     .saturating_sub(move_overhead)

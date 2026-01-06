@@ -4,6 +4,7 @@ use super::commands::UciCommand;
 use crate::{
     chess::{
         piece::PromotionPieceKind,
+        player::Player,
         square::{File, Rank, Square},
     },
     engine::{
@@ -211,10 +212,8 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
     let start_time = Instant::now();
 
     let mut clocks = Clocks {
-        white_clock: None,
-        black_clock: None,
-        white_increment: None,
-        black_increment: None,
+        clocks: [None; Player::N],
+        increments: [None; Player::N],
         moves_to_go: None,
     };
 
@@ -226,10 +225,14 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
     while let Some(&arg) = args.next() {
         match arg {
             "infinite" => infinite = true,
-            "wtime" => clocks.white_clock = Some(parse_duration(args.next().ok_or(())?)?),
-            "btime" => clocks.black_clock = Some(parse_duration(args.next().ok_or(())?)?),
-            "winc" => clocks.white_increment = Some(parse_duration(args.next().ok_or(())?)?),
-            "binc" => clocks.black_increment = Some(parse_duration(args.next().ok_or(())?)?),
+            "wtime" => clocks.clocks[Player::White] = Some(parse_duration(args.next().ok_or(())?)?),
+            "btime" => clocks.clocks[Player::Black] = Some(parse_duration(args.next().ok_or(())?)?),
+            "winc" => {
+                clocks.increments[Player::White] = Some(parse_duration(args.next().ok_or(())?)?);
+            }
+            "binc" => {
+                clocks.increments[Player::Black] = Some(parse_duration(args.next().ok_or(())?)?);
+            }
             "movestogo" => {
                 clocks.moves_to_go = Some(args.next().ok_or(())?.parse().map_err(|_| ())?);
             }
@@ -240,10 +243,8 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
         }
     }
 
-    let clocks_used = clocks.white_clock.is_some()
-        || clocks.black_clock.is_some()
-        || clocks.white_increment.is_some()
-        || clocks.black_increment.is_some()
+    let clocks_used = clocks.clocks.iter().any(Option::is_some)
+        || clocks.increments.iter().any(Option::is_some)
         || clocks.moves_to_go.is_some();
 
     let time_control_types_used = [

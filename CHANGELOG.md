@@ -37,7 +37,7 @@
 * Simplify countermoves and move quiets before bad captures (1.35 +- 3.17)
 * Add 2-ply continuation history (0.05 +- 2.20)
 
-## Misc
+### Misc
 
 * All reported evaluations are now normalised using a model derived from Stockfish's WDL\_model tool
 * Add scaffolding for SPSA

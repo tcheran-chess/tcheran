@@ -87,20 +87,13 @@ impl TimeStrategy {
                     .saturating_sub(options.move_overhead)
                     .max(options.move_overhead);
 
-                let max_time_per_move = time_remaining.mul_f32(max_time_per_move());
+                let absolute_max = time_remaining.mul_f32(max_time_per_move());
+                let moves_to_go = clocks.moves_to_go.unwrap_or(default_moves_to_go());
 
-                let base_time = if let Some(moves_to_go) = clocks.moves_to_go {
-                    // Try to use a roughly even amount of time per move
-                    time_remaining / moves_to_go
-                } else {
-                    time_remaining.mul_f32(base_time_per_move())
-                } + increment.mul_f32(increment_to_use());
+                let base_time = absolute_max / moves_to_go + increment.mul_f32(increment_to_use());
 
-                soft_stop =
-                    std::cmp::min(base_time.mul_f32(soft_time_multiplier()), max_time_per_move);
-
-                hard_stop =
-                    std::cmp::min(base_time.mul_f32(hard_time_multiplier()), max_time_per_move);
+                hard_stop = absolute_max.mul_f32(hard_time_multiplier());
+                soft_stop = std::cmp::min(base_time.mul_f32(soft_time_multiplier()), hard_stop);
             }
             TimeControl::Infinite | TimeControl::Depth(_) | TimeControl::Nodes { .. } => {}
         }

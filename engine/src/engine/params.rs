@@ -61,10 +61,10 @@ non_tunable_parameters!(
 
     (double_extension_max, u8, 4),
 
-    (max_time_per_move, f32, 0.5),
-    (increment_to_use, f32, 0.5),
-    (base_time_per_move, f32, 0.033),
-    (soft_time_multiplier, f32, 0.75),
-    (hard_time_multiplier, f32, 3.00),
+    (max_time_per_move, f32, 0.9),
+    (default_moves_to_go, u32, 20),
+    (increment_to_use, f32, 0.8),
+    (soft_time_multiplier, f32, 0.70),
+    (hard_time_multiplier, f32, 0.50),
     (best_move_stability_initial_depth, u8, 5),
 );

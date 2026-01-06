@@ -193,48 +193,54 @@ pub fn negamax(
         false
     };
 
-    if !is_root && !is_pv && !in_check && excluded_mv.is_none() {
-        // Reverse futility pruning
-        if depth <= reverse_futility_prune_depth()
-            && eval - reverse_futility_prune_margin_per_ply() * i32::from(depth) > beta
-        {
-            return beta + (eval - beta) / 3;
+    // Reverse futility pruning
+    if !is_root
+        && !is_pv
+        && !in_check
+        && excluded_mv.is_none()
+        && depth <= reverse_futility_prune_depth()
+        && eval - reverse_futility_prune_margin_per_ply() * i32::from(depth) > beta
+    {
+        return beta + (eval - beta) / 3;
+    }
+
+    // Null move pruning
+    if !is_root
+        && !is_pv
+        && !in_check
+        && excluded_mv.is_none()
+        && eval >= beta
+        // Don't let a player play a null move in response to a null move
+        && ctx.stack.last(plies).is_some_and(|s| s.mv.is_some())
+        && !game.zugzwang_likely()
+    {
+        ctx.tt.prefetch(game.approx_zobrist_after_null_move());
+
+        let reduction =
+            null_move_pruning_base_reduction() + depth / null_move_pruning_reduction_factor();
+
+        ctx.stack.get(plies).mv = None;
+
+        game.make_null_move();
+
+        let null_score = -negamax(
+            game,
+            -beta,
+            -beta + Eval(1),
+            depth.saturating_sub(reduction),
+            plies + 1,
+            &mut PrincipalVariation::new(),
+            ctx,
+        );
+
+        game.undo_null_move();
+
+        if ctx.time_control.stopped() {
+            return Eval::MIN;
         }
 
-        // Null move pruning
-        if eval >= beta
-            // Don't let a player play a null move in response to a null move
-            && ctx.stack.last(plies).is_some_and(|s| s.mv.is_some())
-            && !game.zugzwang_likely()
-        {
-            ctx.tt.prefetch(game.approx_zobrist_after_null_move());
-
-            let reduction =
-                null_move_pruning_base_reduction() + depth / null_move_pruning_reduction_factor();
-
-            ctx.stack.get(plies).mv = None;
-
-            game.make_null_move();
-
-            let null_score = -negamax(
-                game,
-                -beta,
-                -beta + Eval(1),
-                depth.saturating_sub(reduction),
-                plies + 1,
-                &mut PrincipalVariation::new(),
-                ctx,
-            );
-
-            game.undo_null_move();
-
-            if ctx.time_control.stopped() {
-                return Eval::MIN;
-            }
-
-            if null_score >= beta {
-                return null_score;
-            }
+        if null_score >= beta {
+            return null_score;
         }
     }
 

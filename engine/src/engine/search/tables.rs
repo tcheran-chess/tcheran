@@ -239,7 +239,7 @@ pub struct CorrectionHistories {
     pawn: Box<CorrectionHistoryTable>,
     major: Box<CorrectionHistoryTable>,
     minor: Box<CorrectionHistoryTable>,
-    non_pawn: [Box<CorrectionHistoryTable>; 2],
+    non_pawn: [Box<CorrectionHistoryTable>; Player::N],
     threat: Box<CorrectionHistoryTable>,
 }
 

@@ -61,7 +61,8 @@ jobs:
 
       - name: Test
         run: |
-          cargo test --release --workspace
+          # Exclude the trainer as it requires CUDA
+          cargo test --release --workspace --exclude trainer
 
   build-and-test-release-build:
     runs-on: ubuntu-latest

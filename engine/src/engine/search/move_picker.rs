@@ -238,6 +238,8 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
         // Capture history max is 8192, so divide by 8 so max is roughly
         // equivalent to the see_value of a queen.
         score += tables.capture_history.get(
+            game,
+            mv,
             game.player,
             moved_piece.kind,
             mv.dst(),

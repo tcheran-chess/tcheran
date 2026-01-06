@@ -119,7 +119,7 @@ impl HistoryTable {
 }
 
 pub struct CaptureHistoryTable(
-    [[[[HistoryEntry<{ Self::MAX }>; PieceKind::N]; Square::N]; PieceKind::N]; Player::N],
+    [[[[[[HistoryEntry<{ Self::MAX }>; 2]; 2]; PieceKind::N]; Square::N]; PieceKind::N]; Player::N],
 );
 
 impl CaptureHistoryTable {
@@ -131,12 +131,19 @@ impl CaptureHistoryTable {
 
     pub fn get(
         &self,
+        game: &Game,
+        mv: Move,
         player: Player,
         capturing_piece: PieceKind,
         capture_square: Square,
         captured_piece: PieceKind,
     ) -> i32 {
-        self.0[player][capturing_piece][capture_square][captured_piece].get()
+        let from_threatened = usize::from(game.threats.contains(mv.src()));
+        let to_threatened = usize::from(game.threats.contains(mv.dst()));
+
+        self.0[player][capturing_piece][capture_square][captured_piece][from_threatened]
+            [to_threatened]
+            .get()
     }
 
     fn update_for_move(&mut self, mv: Move, game: &Game, bonus: i32) {
@@ -147,8 +154,12 @@ impl CaptureHistoryTable {
         } else {
             game.board.piece_guaranteed_at(mv.dst()).kind
         };
+        let from_threatened = usize::from(game.threats.contains(mv.src()));
+        let to_threatened = usize::from(game.threats.contains(mv.dst()));
 
-        self.0[game.player][capturing_piece][capture_square][captured_piece].update(bonus);
+        self.0[game.player][capturing_piece][capture_square][captured_piece][from_threatened]
+            [to_threatened]
+            .update(bonus);
     }
 
     pub fn update(&mut self, mv: Move, game: &Game, depth: u8, other_captures_tried: &MoveList) {

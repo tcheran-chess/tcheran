@@ -45,6 +45,10 @@ impl SpinValue {
         self.0
     }
 
+    pub fn as_u64(&self) -> u64 {
+        u64::try_from(self.0).expect("Could not convert value to u64")
+    }
+
     pub fn as_usize(&self) -> usize {
         usize::try_from(self.0).expect("Could not convert value to usize")
     }

@@ -585,9 +585,9 @@ pub fn uci_options() -> Vec<UciOption> {
         .build(),
         //
         UciOption::spin("Move Overhead", |options, _state, value| {
-            options.move_overhead = value.as_usize();
+            options.move_overhead = Duration::from_millis(value.as_u64());
         })
-        .default(crate::engine::options::defaults::MOVE_OVERHEAD as i32)
+        .default(crate::engine::options::defaults::MOVE_OVERHEAD.as_millis() as i32)
         .with_bounds(0, 1000)
         .build(),
         //

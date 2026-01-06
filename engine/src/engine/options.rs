@@ -1,7 +1,11 @@
+use std::time::Duration;
+
 pub mod defaults {
+    use std::time::Duration;
+
     pub const HASH_SIZE: usize = 16;
     pub const THREADS: usize = 1;
-    pub const MOVE_OVERHEAD: usize = 0;
+    pub const MOVE_OVERHEAD: Duration = Duration::from_millis(0);
     pub const SYZYGY_PATH: Option<String> = None;
 }
 
@@ -12,7 +16,7 @@ pub struct EngineOptions {
 
     // Account for the possibility that there's some overhead making the move
     // e.g. sending the best move over the internet.
-    pub move_overhead: usize,
+    pub move_overhead: Duration,
     pub syzygy_path: Option<String>,
 }
 

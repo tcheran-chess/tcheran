@@ -63,8 +63,6 @@ impl TimeStrategy {
         control: StopControl,
         options: &EngineOptions,
     ) -> Self {
-        let move_overhead = Duration::from_millis(options.move_overhead as u64);
-
         let mut started_at = None;
         let mut soft_stop = Duration::default();
         let mut hard_stop = Duration::default();
@@ -86,8 +84,8 @@ impl TimeStrategy {
                 let (mut time_remaining, increment) = clocks.for_player(game.player);
 
                 time_remaining = time_remaining
-                    .saturating_sub(move_overhead)
-                    .max(move_overhead);
+                    .saturating_sub(options.move_overhead)
+                    .max(options.move_overhead);
 
                 let max_time_per_move = time_remaining.mul_f32(max_time_per_move());
 

@@ -35,7 +35,7 @@ impl<const MAX: i16> HistoryEntry<MAX> {
 }
 
 pub struct Tables {
-    pub quiet_history: Box<HistoryTable>,
+    pub quiet_history: Box<QuietHistoryTable>,
     pub capture_history: Box<CaptureHistoryTable>,
     pub killer_moves: KillersTable,
     pub conthist: Box<ContHistTable>,
@@ -45,7 +45,7 @@ pub struct Tables {
 impl Tables {
     pub fn new() -> Self {
         Self {
-            quiet_history: HistoryTable::new(),
+            quiet_history: QuietHistoryTable::new(),
             capture_history: CaptureHistoryTable::new(),
             killer_moves: KillersTable::new(),
             conthist: ContHistTable::new(),
@@ -82,11 +82,11 @@ pub fn history_bonus(depth: u8) -> i32 {
     min(history_factor() * i32::from(depth) - history_offset(), history_max_bonus())
 }
 
-pub struct HistoryTable(
+pub struct QuietHistoryTable(
     [[[[[HistoryEntry<{ Self::MAX }>; 2]; 2]; Square::N]; Square::N]; Player::N],
 );
 
-impl HistoryTable {
+impl QuietHistoryTable {
     const MAX: i16 = 8192;
 
     pub fn new() -> Box<Self> {

@@ -62,18 +62,27 @@ impl TimeStrategy {
         control: StopControl,
         options: &EngineOptions,
     ) -> Self {
-        let now = Instant::now();
         let move_overhead = Duration::from_millis(options.move_overhead as u64);
 
+        let mut started_at = None;
         let mut soft_stop = Duration::default();
         let mut hard_stop = Duration::default();
 
         match time_control {
-            TimeControl::ExactTime(move_time) => {
+            TimeControl::ExactTime {
+                time: move_time,
+                start_time,
+            } => {
+                started_at = Some(start_time);
                 soft_stop = move_time;
                 hard_stop = move_time;
             }
-            TimeControl::Clocks(ref clocks) => {
+            TimeControl::Clocks {
+                ref clocks,
+                start_time,
+            } => {
+                started_at = Some(start_time);
+
                 let (time_remaining, increment) = match game.player {
                     Player::White => (clocks.white_clock, clocks.white_increment),
                     Player::Black => (clocks.black_clock, clocks.black_increment),
@@ -106,7 +115,7 @@ impl TimeStrategy {
 
         Self {
             time_control,
-            started_at: now,
+            started_at: started_at.unwrap_or_else(Instant::now),
             stopped: false,
 
             soft_stop,
@@ -136,7 +145,7 @@ impl TimeStrategy {
 
         match self.time_control {
             TimeControl::Infinite => true,
-            TimeControl::Clocks(_) => {
+            TimeControl::Clocks { .. } => {
                 let soft_stop = if depth > best_move_stability_initial_depth() {
                     self.soft_stop
                         .mul_f32(BEST_MOVE_STABILITY_TIME_MULTIPLIERS[self.best_move_stability])
@@ -146,7 +155,7 @@ impl TimeStrategy {
 
                 self.elapsed() < soft_stop
             }
-            TimeControl::ExactTime(time) => self.elapsed() < time,
+            TimeControl::ExactTime { time, .. } => self.elapsed() < time,
             TimeControl::Depth(d) => d >= depth,
             TimeControl::Nodes { soft, .. } => soft == 0 || ctx.nodes_visited.get() <= soft,
         }
@@ -181,12 +190,12 @@ impl TimeStrategy {
         self.next_check_at = nodes_visited + CHECK_TERMINATION_NODE_FREQUENCY;
 
         match self.time_control {
-            TimeControl::Clocks(_) => {
+            TimeControl::Clocks { .. } => {
                 if self.elapsed() > self.hard_stop {
                     self.stop();
                 }
             }
-            TimeControl::ExactTime(time) => {
+            TimeControl::ExactTime { time, .. } => {
                 if self.elapsed() > time {
                     self.stop();
                 }

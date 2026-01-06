@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use super::commands::UciCommand;
 use crate::{
@@ -206,6 +206,10 @@ fn parse_duration(n: &str) -> Result<Duration, ()> {
 fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
     let mut infinite = false;
 
+    // Capture the start time as close as possible to when we parse the command to avoid excluding
+    // search setup overhead from our time - see https://github.com/AndyGrant/Ethereal/issues/214
+    let start_time = Instant::now();
+
     let mut clocks = Clocks {
         white_clock: None,
         black_clock: None,
@@ -257,9 +261,12 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
         0 => TimeControl::Infinite,
         1 => {
             if clocks_used {
-                TimeControl::Clocks(clocks)
+                TimeControl::Clocks { clocks, start_time }
             } else if let Some(movetime) = movetime {
-                TimeControl::ExactTime(movetime)
+                TimeControl::ExactTime {
+                    time: movetime,
+                    start_time,
+                }
             } else if let Some(depth) = depth {
                 TimeControl::Depth(depth)
             } else if let Some(nodes) = nodes {

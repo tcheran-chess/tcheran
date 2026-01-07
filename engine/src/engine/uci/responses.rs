@@ -43,7 +43,7 @@ pub struct InfoFields {
     pub(super) pv: Option<Vec<UciMove>>,
     pub(super) score: Option<InfoScore>,
     pub(super) wdl: Option<WdlProbabilities>,
-    pub(super) hashfull: Option<usize>,
+    pub(super) hashfull: Option<u64>,
     pub(super) nps: Option<u64>,
     pub(super) tbhits: Option<u64>,
     pub(super) string: Option<String>,

@@ -55,8 +55,8 @@ mod colors {
 impl UciReporter {
     fn uci_report_search_progress(progress: &search::SearchInfo) {
         send_response(&UciResponse::Info(InfoFields {
-            depth: Some(progress.depth),
-            seldepth: Some(progress.seldepth),
+            depth: Some(progress.stats.depth),
+            seldepth: Some(progress.stats.seldepth),
             score: Some(InfoScore::from(progress.eval, &progress.game)),
             wdl: Some(wdl::wdl(progress.eval, &progress.game.board)),
             pv: Some(
@@ -71,7 +71,7 @@ impl UciReporter {
             nodes: Some(progress.stats.nodes),
             nps: Some(progress.stats.nodes_per_second),
             tbhits: Some(progress.stats.tbhits),
-            hashfull: Some(progress.hashfull),
+            hashfull: Some(progress.stats.hashfull),
             string: None,
         }));
     }
@@ -84,8 +84,8 @@ impl UciReporter {
         let score = InfoScore::from(progress.eval, &progress.game);
         let mut game = game.clone();
 
-        print!(" {:>3}", progress.depth);
-        print!("{BRIGHT_BLACK}/{:<3}{RESET}", progress.seldepth);
+        print!(" {:>3}", progress.stats.depth);
+        print!("{BRIGHT_BLACK}/{:<3}{RESET}", progress.stats.seldepth);
 
         let (formatted_score, score_color) = match score {
             InfoScore::Centipawns(cp) => {
@@ -146,7 +146,10 @@ impl UciReporter {
             format!("{:.0}knps", progress.stats.nodes_per_second as f64 / 1000.0)
         );
 
-        print!("  {BRIGHT_BLACK}{:>4}{RESET}", format!("{:.0}%", progress.hashfull as f64 / 10.0));
+        print!(
+            "  {BRIGHT_BLACK}{:>4}{RESET}",
+            format!("{:.0}%", progress.stats.hashfull as f64 / 10.0)
+        );
 
         print!("  ");
         for mv in progress.pv.iter() {

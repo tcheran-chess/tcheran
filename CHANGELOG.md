@@ -11,6 +11,10 @@
 * Add threats to capture history (6.37 +- 4.12)
 * Clear killer moves for upcoming plies (5.77 +- 3.92)
 
+### Misc
+
+* We now always report a line immediately before printing the best move
+
 ## [10.0]
 
 * Start using the transposition table in quiescence (40.16 +- 11.74)

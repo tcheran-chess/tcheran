@@ -187,7 +187,7 @@ impl TranspositionTable {
         clippy::cast_sign_loss,
         reason = "This is just an approximation, so a loss of precision is fine"
     )]
-    pub fn occupancy(&self) -> usize {
+    pub fn occupancy(&self) -> u64 {
         let mut occupied = 0;
         let estimate_n = 1000;
 
@@ -202,7 +202,7 @@ impl TranspositionTable {
 
         let decimal = occupied as f32 / estimate_n as f32;
         let permille = decimal * 1000.0;
-        permille as usize
+        permille as u64
     }
 
     fn should_overwrite(old: &TranspositionTableEntry, new: &TranspositionTableEntry) -> bool {

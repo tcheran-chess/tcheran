@@ -112,6 +112,7 @@ pub struct SearchContext<'s> {
 
     pub time_control: TimeStrategy,
 
+    pub completed_depth: u8,
     pub max_depth_reached: u8,
     pub root_depth: u8,
     pub nodes_visited: BufferedAtomicU64<'s>,
@@ -141,6 +142,7 @@ impl<'s> SearchContext<'s> {
             nnue,
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
 
+            completed_depth: 0,
             max_depth_reached: 0,
             root_depth: 0,
             nodes_visited: BufferedAtomicU64::new(node_counter),
@@ -217,21 +219,44 @@ impl Clocks {
     }
 }
 
+pub struct SearchResult {
+    pub best_move: Move,
+    pub eval: Eval,
+    pub pv: PrincipalVariation,
+}
+
 pub struct SearchInfo {
     pub game: Game,
-    pub depth: u8,
-    pub seldepth: u8,
     pub eval: Eval,
     pub stats: SearchStats,
     pub pv: PrincipalVariation,
-    pub hashfull: usize,
 }
 
 pub struct SearchStats {
     pub time: Duration,
+    pub depth: u8,
+    pub seldepth: u8,
     pub nodes: u64,
     pub nodes_per_second: u64,
     pub tbhits: u64,
+    pub hashfull: u64,
+}
+
+impl SearchStats {
+    pub fn from_ctx(ctx: &SearchContext<'_>) -> Self {
+        Self {
+            time: ctx.time_control.elapsed(),
+            depth: ctx.completed_depth,
+            seldepth: ctx.max_depth_reached,
+            nodes: ctx.nodes_visited.get_global(),
+            nodes_per_second: util::metrics::nodes_per_second(
+                ctx.nodes_visited.get_global(),
+                ctx.time_control.elapsed(),
+            ),
+            tbhits: ctx.tbhits.get_global(),
+            hashfull: ctx.tt.occupancy(),
+        }
+    }
 }
 
 pub trait Reporter {
@@ -274,16 +299,16 @@ pub fn search(
             game,
             SearchInfo {
                 game: game.clone(),
-                depth,
-                seldepth: depth,
                 eval,
                 pv,
-                hashfull: 0,
                 stats: SearchStats {
                     time: elapsed,
+                    depth,
+                    seldepth: depth,
                     nodes: u64::from(depth),
                     nodes_per_second: util::metrics::nodes_per_second(u64::from(depth), elapsed),
                     tbhits: 1,
+                    hashfull: 0,
                 },
             },
         );
@@ -296,7 +321,7 @@ pub fn search(
     let global_node_count = AtomicU64::new(0);
     let global_tbhits_count = AtomicU64::new(0);
 
-    let (best_move, eval) = thread::scope(|scope| {
+    let result = thread::scope(|scope| {
         let mut threads = Vec::new();
 
         // If we want more than one thread, spawn our other threads, sharing the transposition
@@ -374,11 +399,27 @@ pub fn search(
             thread.join().expect("Thread panicked");
         }
 
-        result.expect("Should always have a result")
+        let result = result.expect("Should always have a result");
+
+        // Always send a final info line before reporting the best move so we have useful information
+        // such as the exact number of nodes searched and the exact time used. This could be useful for
+        // debugging time issues or reproducing a bug by playing exact nodes.
+        // See https://github.com/AndyGrant/Ethereal/issues/214
+        reporter.report_search_progress(
+            game,
+            SearchInfo {
+                game: game.clone(),
+                eval: result.eval,
+                pv: result.pv.clone(),
+                stats: SearchStats::from_ctx(&ctx),
+            },
+        );
+
+        result
     });
 
-    reporter.best_move(game, best_move);
-    (best_move, eval)
+    reporter.best_move(game, result.best_move);
+    (result.best_move, result.eval)
 }
 
 fn get_tablebase_pv(game: &Game, tb: &Tablebase) -> (PrincipalVariation, Eval) {

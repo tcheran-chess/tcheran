@@ -1,12 +1,8 @@
 use crate::{
-    chess::{game::Game, moves::Move},
-    engine::{
-        eval::Eval,
-        search::{
-            MAX_SEARCH_DEPTH, Reporter, SearchContext, SearchInfo, SearchStats,
-            aspiration::aspiration_search, principal_variation::PrincipalVariation,
-        },
-        util,
+    chess::game::Game,
+    engine::search::{
+        MAX_SEARCH_DEPTH, Reporter, SearchContext, SearchInfo, SearchResult, SearchStats,
+        aspiration::aspiration_search, principal_variation::PrincipalVariation,
     },
 };
 
@@ -14,9 +10,9 @@ pub fn search(
     game: &mut Game,
     ctx: &mut SearchContext<'_>,
     reporter: &impl Reporter,
-) -> Option<(Move, Eval)> {
+) -> Option<SearchResult> {
     let mut pv = PrincipalVariation::new();
-    let mut result: Option<(Move, Eval)> = None;
+    let mut result: Option<SearchResult> = None;
 
     ctx.max_depth_reached = 0;
 
@@ -27,7 +23,7 @@ pub fn search(
 
         ctx.root_depth = depth;
 
-        let previous_eval = result.map(|r| r.1);
+        let previous_eval = result.as_ref().map(|r| r.eval);
         let eval = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
 
         if ctx.time_control.stopped() {
@@ -38,8 +34,13 @@ pub fn search(
             panic!("No PV move at depth {} for position {}", depth, game.to_fen())
         });
 
-        result = Some((new_best_move, eval));
+        result = Some(SearchResult {
+            best_move: new_best_move,
+            eval,
+            pv: pv.clone(),
+        });
 
+        ctx.completed_depth = depth;
         ctx.time_control
             .update_after_search(new_best_move, depth, ctx.nodes_visited.get());
 
@@ -47,20 +48,9 @@ pub fn search(
             game,
             SearchInfo {
                 game: game.clone(),
-                depth,
-                seldepth: ctx.max_depth_reached,
                 eval,
                 pv: pv.clone(),
-                hashfull: ctx.tt.occupancy(),
-                stats: SearchStats {
-                    time: ctx.time_control.elapsed(),
-                    nodes: ctx.nodes_visited.get_global(),
-                    nodes_per_second: util::metrics::nodes_per_second(
-                        ctx.nodes_visited.get_global(),
-                        ctx.time_control.elapsed(),
-                    ),
-                    tbhits: ctx.tbhits.get_global(),
-                },
+                stats: SearchStats::from_ctx(ctx),
             },
         );
     }

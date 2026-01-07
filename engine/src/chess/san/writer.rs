@@ -2,7 +2,7 @@ use crate::chess::{
     game::Game,
     moves::Move,
     piece::{PieceKind, PromotionPieceKind},
-    san,
+    san::constants,
     square::squares,
 };
 
@@ -24,12 +24,12 @@ pub fn format_move(game: &Game, mv: Move) -> String {
     if piece.kind == PieceKind::King && from == king_start {
         let kingside_castle_dest = squares::kingside_castle_dest(game.player);
         if to == kingside_castle_dest {
-            return san::KINGSIDE_CASTLE.to_string();
+            return constants::KINGSIDE_CASTLE.to_string();
         }
 
         let queenside_castle_dest = squares::queenside_castle_dest(game.player);
         if to == queenside_castle_dest {
-            return san::QUEENSIDE_CASTLE.to_string();
+            return constants::QUEENSIDE_CASTLE.to_string();
         }
     }
 
@@ -62,7 +62,7 @@ pub fn format_move(game: &Game, mv: Move) -> String {
     };
 
     let capture_x = if mv.is_capture() {
-        san::CAPTURE.to_string()
+        constants::CAPTURE.to_string()
     } else {
         String::new()
     };
@@ -73,7 +73,7 @@ pub fn format_move(game: &Game, mv: Move) -> String {
         None => "",
         Some(p) => &format!(
             "{}{}",
-            san::PROMOTION,
+            constants::PROMOTION,
             match p {
                 PromotionPieceKind::Knight => "N",
                 PromotionPieceKind::Bishop => "B",
@@ -84,7 +84,7 @@ pub fn format_move(game: &Game, mv: Move) -> String {
     };
 
     let opponent_in_check_specifier = if places_opponent_in_check {
-        san::CHECK.to_string()
+        constants::CHECK.to_string()
     } else {
         String::new()
     };

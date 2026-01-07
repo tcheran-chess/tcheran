@@ -4,7 +4,7 @@ use crate::chess::{
     game::Game,
     moves::{Move, MoveListExt},
     piece::{PieceKind, PromotionPieceKind},
-    san,
+    san::constants,
     square::{File, Rank, Square, squares},
 };
 
@@ -199,7 +199,7 @@ fn parse_move_squares(game: &Game, mv: &str) -> Result<(Square, Square), ParseEr
 
 fn parse_capture_squares(game: &Game, mv: &str) -> Result<(Square, Square), ParseError> {
     let (src, dst) = mv
-        .split_once(san::CAPTURE)
+        .split_once(constants::CAPTURE)
         .ok_or(ParseError::NoXInCaptureMove)?;
 
     let dst = parse_destination_square(dst)?;
@@ -209,7 +209,7 @@ fn parse_capture_squares(game: &Game, mv: &str) -> Result<(Square, Square), Pars
 }
 
 fn parse_squares(game: &Game, mv: &str) -> Result<(Square, Square), ParseError> {
-    let is_capture_move = mv.contains(san::CAPTURE);
+    let is_capture_move = mv.contains(constants::CAPTURE);
     if is_capture_move {
         return parse_capture_squares(game, mv);
     }
@@ -218,7 +218,7 @@ fn parse_squares(game: &Game, mv: &str) -> Result<(Square, Square), ParseError> 
 }
 
 pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
-    if mv == san::KINGSIDE_CASTLE {
+    if mv == constants::KINGSIDE_CASTLE {
         return Ok(game.moves().expect_matching(
             squares::king_start(game.player),
             squares::kingside_castle_dest(game.player),
@@ -226,7 +226,7 @@ pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
         ));
     }
 
-    if mv == san::QUEENSIDE_CASTLE {
+    if mv == constants::QUEENSIDE_CASTLE {
         return Ok(game.moves().expect_matching(
             squares::king_start(game.player),
             squares::queenside_castle_dest(game.player),
@@ -235,12 +235,12 @@ pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
     }
 
     let mv = mv
-        .trim_end_matches(san::CHECK)
-        .trim_end_matches(san::CHECKMATE);
+        .trim_end_matches(constants::CHECK)
+        .trim_end_matches(constants::CHECKMATE);
 
-    let (mv, promotion) = if mv.contains(san::PROMOTION) {
+    let (mv, promotion) = if mv.contains(constants::PROMOTION) {
         let (rest, promotion_piece) = mv
-            .split_once(san::PROMOTION)
+            .split_once(constants::PROMOTION)
             .ok_or(ParseError::InvalidPromotionPiece)?;
         let promoted_to = parse_promotion_piece(promotion_piece)?;
         (rest, Some(promoted_to))

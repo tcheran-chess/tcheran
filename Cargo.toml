@@ -52,6 +52,11 @@ upper_case_acronyms = "allow"
 # want to add more code later which would invalidate the refactoring.
 useless_let_if_seq = "allow"
 
+# I prefer, for subdirectories, keeping things for that module within the subdirectory
+# but don't like lots of mod.rs files. mod.rs will be the registry for that module while
+# modulename.rs will contain any top-level logic.
+module_inception = "allow"
+
 allow_attributes = "warn"
 allow_attributes_without_reason = "warn"
 

@@ -238,7 +238,7 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
             }
             "movetime" => movetime = Some(parse_duration(args.next().ok_or(())?)?),
             "depth" => depth = Some(args.next().ok_or(())?.parse().map_err(|_| ())?),
-            "nodes" => nodes = Some(args.next().ok_or(())?.parse().map_err(|_| ())?),
+            "nodes" => nodes = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
             _ => return Err(()),
         }
     }
@@ -272,8 +272,8 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
                 TimeControl::Depth(depth)
             } else if let Some(nodes) = nodes {
                 TimeControl::Nodes {
-                    soft: 0,
-                    hard: nodes,
+                    soft: None,
+                    hard: Some(nodes),
                 }
             } else if infinite {
                 TimeControl::Infinite

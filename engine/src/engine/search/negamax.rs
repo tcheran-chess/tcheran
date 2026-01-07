@@ -50,6 +50,13 @@ pub fn negamax(
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
+    // Check periodically to see if we're out of time.
+    ctx.time_control
+        .update(ctx.nodes_visited.get(), ctx.root_depth);
+    if ctx.time_control.stopped() {
+        return Eval::MIN;
+    }
+
     let is_root = plies == 0;
     let is_pv = alpha != beta - Eval(1);
     let excluded_mv = ctx.stack.get(plies).excluded_mv;
@@ -74,13 +81,6 @@ pub fn negamax(
     ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
     if !is_root {
         ctx.nodes_visited.incr();
-    }
-
-    // Check periodically to see if we're out of time.
-    ctx.time_control
-        .update(ctx.nodes_visited.get(), ctx.root_depth);
-    if ctx.time_control.stopped() {
-        return Eval::MIN;
     }
 
     if !is_root {

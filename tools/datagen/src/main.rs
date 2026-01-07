@@ -334,8 +334,8 @@ fn acceptable_starting_position(rand: &mut impl Rng, states: &mut PlayerStates) 
         let (_, _, normalised_eval) = search_position(
             &game,
             TimeControl::Nodes {
-                soft: DEFAULT_NODES,
-                hard: DEFAULT_NODES * DEFAULT_HARD_NODES_FACTOR,
+                soft: Some(DEFAULT_NODES),
+                hard: Some(DEFAULT_NODES * DEFAULT_HARD_NODES_FACTOR),
             },
             state,
         );
@@ -564,8 +564,8 @@ fn play_game(
     let time_control = match config.mode {
         DatagenMode::Depth(d) => TimeControl::Depth(d),
         DatagenMode::Nodes(nodes) => TimeControl::Nodes {
-            soft: nodes,
-            hard: nodes * DEFAULT_HARD_NODES_FACTOR,
+            soft: Some(nodes),
+            hard: Some(nodes * DEFAULT_HARD_NODES_FACTOR),
         },
     };
 

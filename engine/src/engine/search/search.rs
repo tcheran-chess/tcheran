@@ -199,10 +199,19 @@ impl SearchStackEntry {
 
 #[derive(Debug, Clone)]
 pub enum TimeControl {
-    Clocks { clocks: Clocks, start_time: Instant },
-    ExactTime { time: Duration, start_time: Instant },
+    Clocks {
+        clocks: Clocks,
+        start_time: Instant,
+    },
+    ExactTime {
+        time: Duration,
+        start_time: Instant,
+    },
     Depth(u8),
-    Nodes { soft: u64, hard: u64 },
+    Nodes {
+        soft: Option<u64>,
+        hard: Option<u64>,
+    },
     Infinite,
 }
 

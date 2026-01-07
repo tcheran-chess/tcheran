@@ -67,6 +67,7 @@ impl TimeStrategy {
         let mut started_at = None;
         let mut soft_stop = Duration::default();
         let mut hard_stop = Duration::default();
+        let mut next_check_at = CHECK_TERMINATION_NODE_FREQUENCY;
 
         match time_control {
             TimeControl::ExactTime {
@@ -96,7 +97,12 @@ impl TimeStrategy {
                 hard_stop = absolute_max.mul_f32(hard_time_multiplier());
                 soft_stop = std::cmp::min(base_time.mul_f32(soft_time_multiplier()), hard_stop);
             }
-            TimeControl::Infinite | TimeControl::Depth(_) | TimeControl::Nodes { .. } => {}
+            TimeControl::Nodes { hard, .. } => {
+                if let Some(hard_limit) = hard {
+                    next_check_at = hard_limit;
+                }
+            }
+            TimeControl::Infinite | TimeControl::Depth(_) => {}
         }
 
         Self {
@@ -112,7 +118,7 @@ impl TimeStrategy {
             nodes_used: [[0; Square::N]; Square::N],
             scale: 1.0,
 
-            next_check_at: CHECK_TERMINATION_NODE_FREQUENCY,
+            next_check_at,
 
             control,
         }
@@ -136,7 +142,9 @@ impl TimeStrategy {
             TimeControl::Clocks { .. } => self.elapsed() < self.soft_stop.mul_f32(self.scale),
             TimeControl::ExactTime { time, .. } => self.elapsed() < time,
             TimeControl::Depth(d) => d >= depth,
-            TimeControl::Nodes { soft, .. } => soft == 0 || ctx.nodes_visited.get() <= soft,
+            TimeControl::Nodes { soft, .. } => {
+                soft.is_none() || soft.is_some_and(|s| ctx.nodes_visited.get() <= s)
+            }
         }
     }
 
@@ -180,7 +188,9 @@ impl TimeStrategy {
                 }
             }
             TimeControl::Nodes { hard, .. } => {
-                if hard > 0 && nodes_visited > hard {
+                // If we had a hard node limit, we will have waited to check until we hit
+                // that limit so we can just stop immediately here.
+                if hard.is_some() {
                     self.stop();
                 }
             }

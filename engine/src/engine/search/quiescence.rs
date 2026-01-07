@@ -11,17 +11,17 @@ pub fn quiescence(
     plies: u8,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
-    let is_pv = alpha != beta - Eval(1);
-
-    ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
-    ctx.nodes_visited.incr();
-
     // Check periodically to see if we're out of time.
     ctx.time_control
         .update(ctx.nodes_visited.get(), ctx.root_depth);
     if ctx.time_control.stopped() {
         return Eval::MIN;
     }
+
+    let is_pv = alpha != beta - Eval(1);
+
+    ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
+    ctx.nodes_visited.incr();
 
     if game.is_draw() {
         return Eval::DRAW;

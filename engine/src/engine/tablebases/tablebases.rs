@@ -22,7 +22,7 @@ pub enum Wdl {
 
 #[derive(Clone)]
 pub struct Tablebase {
-    is_enabled: bool,
+    pub is_enabled: bool,
 }
 
 impl Tablebase {

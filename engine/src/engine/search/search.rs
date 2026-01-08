@@ -239,7 +239,7 @@ pub struct SearchResult {
 pub struct SearchInfo<'s> {
     pub game: &'s Game,
     pub eval: Eval,
-    pub pv: &'s PrincipalVariation,
+    pub pv: PrincipalVariation,
     pub stats: SearchStats,
 }
 
@@ -296,34 +296,15 @@ pub fn search(
     options: &EngineOptions,
     reporter: &impl Reporter,
 ) -> (Move, Eval) {
-    persistent_state.tt.new_generation();
-
-    let tablebase_result = persistent_state.tablebase.best_move(game);
-    if let Some(mv) = tablebase_result {
-        let start_time = Instant::now();
-        let (pv, eval) = get_tablebase_pv(game, &persistent_state.tablebase);
-        let elapsed = start_time.elapsed();
-
-        let depth = pv.len();
-
-        reporter.report_search_progress(SearchInfo {
-            game,
-            eval,
-            pv: &pv,
-            stats: SearchStats {
-                time: elapsed,
-                depth,
-                seldepth: depth,
-                nodes: u64::from(depth),
-                nodes_per_second: util::metrics::nodes_per_second(u64::from(depth), elapsed),
-                tbhits: 1,
-                hashfull: 0,
-            },
-        });
-
+    if let Some((mv, eval, info)) =
+        probe_tb_at_root(game, &persistent_state.tablebase, &time_control)
+    {
+        reporter.report_search_progress(info);
         reporter.best_move(game, mv);
         return (mv, eval);
     }
+
+    persistent_state.tt.new_generation();
 
     let threads_stop_control = StopControl::new();
     let global_node_count = AtomicU64::new(0);
@@ -416,7 +397,7 @@ pub fn search(
         reporter.report_search_progress(SearchInfo {
             game,
             eval: result.eval,
-            pv: &result.pv,
+            pv: result.pv.clone(),
             stats: SearchStats::from_ctx(&ctx),
         });
 
@@ -427,26 +408,46 @@ pub fn search(
     (result.best_move, result.eval)
 }
 
-fn get_tablebase_pv(game: &Game, tb: &Tablebase) -> (PrincipalVariation, Eval) {
-    let mut game = game.clone();
+fn probe_tb_at_root<'s>(
+    game: &'s Game,
+    tb: &Tablebase,
+    time_control: &TimeControl,
+) -> Option<(Move, Eval, SearchInfo<'s>)> {
+    if !tb.is_enabled {
+        return None;
+    }
+
+    if game.board.occupancy().count() > tb.n_men() {
+        return None;
+    }
+
+    let best_move = tb.best_move(game)?;
+
+    let start_time = match time_control {
+        TimeControl::Clocks { start_time, .. } | TimeControl::ExactTime { start_time, .. } => {
+            *start_time
+        }
+        _ => Instant::now(),
+    };
+
     let player = game.player;
+    let mut g = game.clone();
 
     let mut pv = PrincipalVariation::new();
 
     let tb_score = tb
-        .wdl(&game)
+        .wdl(game)
         .expect("In tablebase position, but unable to get tablebase score");
 
     let mut eval = None;
 
     for _ in 0..MAX_SEARCH_DEPTH {
         let tablebase_move = tb
-            .best_move(&game)
+            .best_move(game)
             .expect("In tablebase position, but unable to get tablebase move");
 
         pv.append(tablebase_move);
-
-        game.make_move(tablebase_move);
+        g.make_move(tablebase_move);
 
         // Check if this move terminated the game, and return an appropriate score
         let legal_moves = game.moves();
@@ -469,12 +470,30 @@ fn get_tablebase_pv(game: &Game, tb: &Tablebase) -> (PrincipalVariation, Eval) {
         }
     }
 
-    (
-        pv,
-        eval.unwrap_or_else(|| match tb_score {
-            Wdl::Win => Eval::mate_in(1),
-            Wdl::Draw => Eval::DRAW,
-            Wdl::Loss => Eval::mated_in(1),
-        }),
-    )
+    let elapsed = start_time.elapsed();
+    let depth = pv.len();
+    let eval = eval.unwrap_or_else(|| match tb_score {
+        Wdl::Win => Eval::mate_in(1),
+        Wdl::Draw => Eval::DRAW,
+        Wdl::Loss => Eval::mated_in(1),
+    });
+
+    Some((
+        best_move,
+        eval,
+        SearchInfo {
+            game,
+            pv: pv.clone(),
+            eval,
+            stats: SearchStats {
+                time: elapsed,
+                depth,
+                seldepth: depth,
+                nodes: u64::from(depth),
+                nodes_per_second: util::metrics::nodes_per_second(u64::from(depth), elapsed),
+                tbhits: 1,
+                hashfull: 0,
+            },
+        },
+    ))
 }

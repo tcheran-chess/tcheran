@@ -47,7 +47,7 @@ pub fn search(
         reporter.report_search_progress(SearchInfo {
             game,
             eval,
-            pv: &pv,
+            pv: pv.clone(),
             stats: SearchStats::from_ctx(ctx),
         });
     }

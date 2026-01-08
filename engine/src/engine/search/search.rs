@@ -115,7 +115,7 @@ pub struct SearchContext<'s> {
     pub completed_depth: u8,
     pub max_depth_reached: u8,
     pub root_depth: u8,
-    pub nodes_visited: BufferedAtomicU64<'s>,
+    pub nodes: BufferedAtomicU64<'s>,
     pub tbhits: BufferedAtomicU64<'s>,
 }
 
@@ -145,7 +145,7 @@ impl<'s> SearchContext<'s> {
             completed_depth: 0,
             max_depth_reached: 0,
             root_depth: 0,
-            nodes_visited: BufferedAtomicU64::new(node_counter),
+            nodes: BufferedAtomicU64::new(node_counter),
             tbhits: BufferedAtomicU64::new(tbhits_counter),
         }
     }
@@ -257,9 +257,9 @@ impl SearchStats {
             time: ctx.time_control.elapsed(),
             depth: ctx.completed_depth,
             seldepth: ctx.max_depth_reached,
-            nodes: ctx.nodes_visited.get_global(),
+            nodes: ctx.nodes.get_global(),
             nodes_per_second: util::metrics::nodes_per_second(
-                ctx.nodes_visited.get_global(),
+                ctx.nodes.get_global(),
                 ctx.time_control.elapsed(),
             ),
             tbhits: ctx.tbhits.get_global(),

@@ -51,8 +51,7 @@ pub fn negamax(
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
     // Check periodically to see if we're out of time.
-    ctx.time_control
-        .update(ctx.nodes_visited.get(), ctx.root_depth);
+    ctx.time_control.update(ctx.nodes.get(), ctx.root_depth);
     if ctx.time_control.stopped() {
         return Eval::MIN;
     }
@@ -80,7 +79,7 @@ pub fn negamax(
 
     ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
     if !is_root {
-        ctx.nodes_visited.incr();
+        ctx.nodes.incr();
     }
 
     if !is_root {
@@ -352,7 +351,7 @@ pub fn negamax(
             moves.yield_only_tacticals();
         }
 
-        let nodes_before = ctx.nodes_visited.get();
+        let nodes_before = ctx.nodes.get();
         ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.src())));
         ctx.nnue.push(&game.board, mv);
 
@@ -437,7 +436,7 @@ pub fn negamax(
         ctx.nnue.pop();
 
         if is_root {
-            let nodes_for_this_move = ctx.nodes_visited.get() - nodes_before;
+            let nodes_for_this_move = ctx.nodes.get() - nodes_before;
             ctx.time_control.update_nodes_used(mv, nodes_for_this_move);
         }
 

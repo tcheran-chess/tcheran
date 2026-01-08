@@ -42,7 +42,7 @@ pub fn search(
 
         ctx.completed_depth = depth;
         ctx.time_control
-            .update_after_search(new_best_move, depth, ctx.nodes_visited.get());
+            .update_after_search(new_best_move, depth, ctx.nodes.get());
 
         reporter.report_search_progress(SearchInfo {
             game,

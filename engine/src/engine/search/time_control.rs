@@ -143,7 +143,7 @@ impl TimeStrategy {
             TimeControl::ExactTime { time, .. } => self.elapsed() < time,
             TimeControl::Depth(d) => d >= depth,
             TimeControl::Nodes { soft, .. } => {
-                soft.is_none() || soft.is_some_and(|s| ctx.nodes_visited.get() <= s)
+                soft.is_none() || soft.is_some_and(|s| ctx.nodes.get() <= s)
             }
         }
     }

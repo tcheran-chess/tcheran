@@ -53,11 +53,11 @@ mod colors {
 }
 
 impl UciReporter {
-    fn uci_report_search_progress(progress: &search::SearchInfo) {
+    fn uci_report_search_progress(progress: &search::SearchInfo<'_>) {
         send_response(&UciResponse::Info(InfoFields {
             depth: Some(progress.stats.depth),
             seldepth: Some(progress.stats.seldepth),
-            score: Some(InfoScore::from(progress.eval, &progress.game)),
+            score: Some(InfoScore::from(progress.eval, progress.game)),
             wdl: Some(wdl::wdl(progress.eval, &progress.game.board)),
             pv: Some(
                 progress
@@ -78,11 +78,11 @@ impl UciReporter {
 
     // Inspired by Simbelmyne's lovely search output
     #[expect(clippy::cast_precision_loss, reason = "Various approximate calculations")]
-    fn pretty_report_search_progress(game: &Game, progress: &search::SearchInfo) {
+    fn pretty_report_search_progress(progress: &search::SearchInfo<'_>) {
         use colors::*;
 
-        let score = InfoScore::from(progress.eval, &progress.game);
-        let mut game = game.clone();
+        let score = InfoScore::from(progress.eval, progress.game);
+        let mut game = progress.game.clone();
 
         print!(" {:>3}", progress.stats.depth);
         print!("{BRIGHT_BLACK}/{:<3}{RESET}", progress.stats.seldepth);
@@ -183,9 +183,9 @@ impl Reporter for UciReporter {
         println!("{s}");
     }
 
-    fn report_search_progress(&self, game: &Game, progress: search::SearchInfo) {
+    fn report_search_progress(&self, progress: search::SearchInfo<'_>) {
         if self.pretty_output {
-            Self::pretty_report_search_progress(game, &progress);
+            Self::pretty_report_search_progress(&progress);
         } else {
             Self::uci_report_search_progress(&progress);
         }

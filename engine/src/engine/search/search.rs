@@ -225,11 +225,11 @@ pub struct SearchResult {
     pub pv: PrincipalVariation,
 }
 
-pub struct SearchInfo {
-    pub game: Game,
+pub struct SearchInfo<'s> {
+    pub game: &'s Game,
     pub eval: Eval,
+    pub pv: &'s PrincipalVariation,
     pub stats: SearchStats,
-    pub pv: PrincipalVariation,
 }
 
 pub struct SearchStats {
@@ -262,7 +262,7 @@ impl SearchStats {
 pub trait Reporter {
     fn generic_report(&self, s: &str);
 
-    fn report_search_progress(&self, game: &Game, progress: SearchInfo);
+    fn report_search_progress(&self, progress: SearchInfo<'_>);
 
     fn best_move(&self, game: &Game, mv: Move);
 }
@@ -272,7 +272,7 @@ pub struct NullReporter;
 impl Reporter for NullReporter {
     fn generic_report(&self, _: &str) {}
 
-    fn report_search_progress(&self, _: &Game, _: SearchInfo) {}
+    fn report_search_progress(&self, _: SearchInfo<'_>) {}
 
     fn best_move(&self, _: &Game, _: Move) {}
 }
@@ -295,23 +295,20 @@ pub fn search(
 
         let depth = pv.len();
 
-        reporter.report_search_progress(
+        reporter.report_search_progress(SearchInfo {
             game,
-            SearchInfo {
-                game: game.clone(),
-                eval,
-                pv,
-                stats: SearchStats {
-                    time: elapsed,
-                    depth,
-                    seldepth: depth,
-                    nodes: u64::from(depth),
-                    nodes_per_second: util::metrics::nodes_per_second(u64::from(depth), elapsed),
-                    tbhits: 1,
-                    hashfull: 0,
-                },
+            eval,
+            pv: &pv,
+            stats: SearchStats {
+                time: elapsed,
+                depth,
+                seldepth: depth,
+                nodes: u64::from(depth),
+                nodes_per_second: util::metrics::nodes_per_second(u64::from(depth), elapsed),
+                tbhits: 1,
+                hashfull: 0,
             },
-        );
+        });
 
         reporter.best_move(game, mv);
         return (mv, eval);
@@ -405,15 +402,12 @@ pub fn search(
         // such as the exact number of nodes searched and the exact time used. This could be useful for
         // debugging time issues or reproducing a bug by playing exact nodes.
         // See https://github.com/AndyGrant/Ethereal/issues/214
-        reporter.report_search_progress(
+        reporter.report_search_progress(SearchInfo {
             game,
-            SearchInfo {
-                game: game.clone(),
-                eval: result.eval,
-                pv: result.pv.clone(),
-                stats: SearchStats::from_ctx(&ctx),
-            },
-        );
+            eval: result.eval,
+            pv: &result.pv,
+            stats: SearchStats::from_ctx(&ctx),
+        });
 
         result
     });

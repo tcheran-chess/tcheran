@@ -44,15 +44,12 @@ pub fn search(
         ctx.time_control
             .update_after_search(new_best_move, depth, ctx.nodes_visited.get());
 
-        reporter.report_search_progress(
+        reporter.report_search_progress(SearchInfo {
             game,
-            SearchInfo {
-                game: game.clone(),
-                eval,
-                pv: pv.clone(),
-                stats: SearchStats::from_ctx(ctx),
-            },
-        );
+            eval,
+            pv: &pv,
+            stats: SearchStats::from_ctx(ctx),
+        });
     }
 
     result

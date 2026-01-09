@@ -34,7 +34,7 @@ use crate::{
             spsa::print_spsa_input,
         },
         util,
-        util::sync::LockLatch,
+        util::{log, sync::LockLatch},
     },
 };
 
@@ -241,7 +241,7 @@ impl Uci {
             UciCommand::IsReady => send_response(&UciResponse::ReadyOk),
             UciCommand::SetOption { name, value } => {
                 let Some(option) = self.options.iter().find(|o| o.name == name) else {
-                    return Err("Invalid option".into());
+                    return Err(format!("Unknown option: {name}"));
                 };
 
                 let Ok(mut state_handle) = self.persistent_state.try_lock() else {
@@ -485,17 +485,16 @@ impl Uci {
     fn run_line(&mut self, line: &str) -> Result<bool, String> {
         let command = parser::parse(line);
 
-        match command {
-            Ok(ref c) => {
-                let execute_result = self.execute(c)?;
+        let Ok(ref c) = command else {
+            log::crashlog(format!("Invalid command: {line}"));
+            eprintln!("Invalid command");
+            return Ok(true);
+        };
 
-                if execute_result == ExecuteResult::Exit {
-                    return Ok(false);
-                }
-            }
-            Err(()) => {
-                eprintln!("Invalid command");
-            }
+        let execute_result = self.execute(c)?;
+
+        if execute_result == ExecuteResult::Exit {
+            return Ok(false);
         }
 
         Ok(true)

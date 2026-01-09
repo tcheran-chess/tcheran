@@ -1,11 +1,8 @@
 use std::{fs, io::Write};
 
 pub fn crashlog<S: AsRef<str>>(s: S) {
-    log_to_file(s, "crash.log");
-}
+    let extension = "err.log";
 
-// FIXME: It's not ideal to open a handle to the file every time we want to write a line
-fn log_to_file<S: AsRef<str>>(s: S, extension: &str) {
     let current_exe =
         std::env::current_exe().expect("Unable to determine current executable directory");
 

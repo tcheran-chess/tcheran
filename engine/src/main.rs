@@ -44,6 +44,7 @@ fn run() -> ExitCode {
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
+            log::crashlog(e.clone());
             eprintln!("{e}");
             ExitCode::FAILURE
         }

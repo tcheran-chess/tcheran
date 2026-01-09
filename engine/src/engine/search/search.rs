@@ -22,7 +22,7 @@ use crate::{
     },
 };
 
-pub const MAX_SEARCH_DEPTH: u8 = u8::MAX;
+pub const MAX_SEARCH_DEPTH: u8 = u8::MAX - 1;
 pub const MAX_SEARCH_DEPTH_SIZE: usize = MAX_SEARCH_DEPTH as usize;
 
 pub struct PersistentState {

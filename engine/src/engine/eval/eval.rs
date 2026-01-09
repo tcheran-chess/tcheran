@@ -9,6 +9,7 @@ use crate::{
     },
 };
 
+#[cfg(not(feature = "datagen"))]
 fn scale_eval(eval: Eval, game: &Game) -> Eval {
     let material = i32::from(game.board.all_knights().count()) * see_knight_value()
         + i32::from(game.board.all_bishops().count()) * see_bishop_value()

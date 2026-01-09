@@ -44,6 +44,7 @@ pub fn quiescence(
 
     let tt_entry = ctx.tt.get(game.hash, plies);
     let mut previous_best_move = None;
+    let mut tt_pv = is_pv;
 
     if let Some(ref tt_entry) = tt_entry {
         if !is_pv {
@@ -57,6 +58,7 @@ pub fn quiescence(
             }
         }
 
+        tt_pv |= tt_entry.was_pv;
         previous_best_move = tt_entry.best_move;
     }
 
@@ -76,8 +78,16 @@ pub fn quiescence(
         let raw_eval = eval::eval(ctx.nnue, game);
         let eval = (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate();
 
-        ctx.tt
-            .insert(game.hash, NodeBound::None, None, Eval::NONE, raw_eval, Depth::ZERO, plies);
+        ctx.tt.insert(
+            game.hash,
+            NodeBound::None,
+            None,
+            Eval::NONE,
+            raw_eval,
+            Depth::ZERO,
+            plies,
+            tt_pv,
+        );
 
         (raw_eval, eval)
     };
@@ -154,8 +164,16 @@ pub fn quiescence(
         return Eval::mated_in(plies);
     }
 
-    ctx.tt
-        .insert(game.hash, node_bound, best_move, best_score, raw_eval, Depth::new(0), plies);
+    ctx.tt.insert(
+        game.hash,
+        node_bound,
+        best_move,
+        best_score,
+        raw_eval,
+        Depth::new(0),
+        plies,
+        tt_pv,
+    );
 
     best_score
 }

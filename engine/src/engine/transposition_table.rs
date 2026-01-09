@@ -18,12 +18,12 @@ pub struct TranspositionTable {
 #[repr(transparent)]
 struct Flags(u8);
 
-const MAX_AGE: u8 = 1 << 6;
+const MAX_AGE: u8 = 1 << 5;
 const AGE_MASK: u8 = MAX_AGE - 1;
 
 impl Flags {
-    fn new(bound: NodeBound, age: u8) -> Self {
-        Self(age << 2 | bound as u8)
+    fn new(bound: NodeBound, age: u8, was_pv: bool) -> Self {
+        Self(age << 3 | u8::from(was_pv) << 2 | bound as u8)
     }
 
     fn bound(&self) -> NodeBound {
@@ -36,8 +36,12 @@ impl Flags {
         }
     }
 
+    fn was_pv(&self) -> bool {
+        self.0 & 0b100 == 0b100
+    }
+
     fn age(&self) -> u8 {
-        self.0 >> 2
+        self.0 >> 3
     }
 }
 
@@ -69,6 +73,10 @@ impl TranspositionTableEntry {
         self.flags.age()
     }
 
+    fn was_pv(&self) -> bool {
+        self.flags.was_pv()
+    }
+
     fn relative_age(&self, age: u8) -> i32 {
         i32::from((MAX_AGE + age - self.age()) & AGE_MASK)
     }
@@ -84,6 +92,7 @@ pub struct TranspositionTableHit {
     pub eval: Eval,
     pub depth: Depth,
     pub best_move: Option<Move>,
+    pub was_pv: bool,
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -302,6 +311,7 @@ impl TranspositionTable {
         eval: Eval,
         depth: Depth,
         plies: u8,
+        was_pv: bool,
     ) {
         let idx = self.get_cluster_idx(key);
         let key = tt_key(key);
@@ -336,7 +346,7 @@ impl TranspositionTable {
             eval: eval.0 as i16,
             depth: depth.as_u8(),
             best_move,
-            flags: Flags::new(bound, age),
+            flags: Flags::new(bound, age, was_pv),
         };
 
         if best_move.is_none()
@@ -374,6 +384,7 @@ impl TranspositionTable {
                         depth: Depth::new(entry.depth),
                         eval: Eval(i32::from(entry.eval)),
                         best_move: entry.best_move,
+                        was_pv: entry.was_pv(),
                     });
                 }
             }

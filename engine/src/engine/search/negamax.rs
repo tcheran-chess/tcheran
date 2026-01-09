@@ -81,6 +81,7 @@ pub fn negamax(
     }
 
     let mut previous_best_move: Option<Move> = None;
+    let mut tt_pv = is_pv;
 
     let tt_entry = match excluded_mv {
         Some(_) => None,
@@ -99,6 +100,7 @@ pub fn negamax(
             }
         }
 
+        tt_pv |= tt_entry.was_pv;
         previous_best_move = tt_entry.best_move;
     }
 
@@ -130,7 +132,7 @@ pub fn negamax(
                 || (tb_bound == NodeBound::Upper && score <= s.alpha)
             {
                 ctx.tt
-                    .insert(game.hash, tb_bound, None, score, Eval::NONE, depth, plies);
+                    .insert(game.hash, tb_bound, None, score, Eval::NONE, depth, plies, tt_pv);
 
                 return score;
             }
@@ -166,8 +168,16 @@ pub fn negamax(
         let raw_eval = eval::eval(ctx.nnue, game);
         let eval = (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate();
 
-        ctx.tt
-            .insert(game.hash, NodeBound::None, None, Eval::NONE, raw_eval, Depth::ZERO, plies);
+        ctx.tt.insert(
+            game.hash,
+            NodeBound::None,
+            None,
+            Eval::NONE,
+            raw_eval,
+            Depth::ZERO,
+            plies,
+            tt_pv,
+        );
 
         (raw_eval, eval)
     };
@@ -567,8 +577,16 @@ pub fn negamax(
             ctx.tables.corrhist.update(game, depth, best_score - eval);
         }
 
-        ctx.tt
-            .insert(game.hash, tt_node_bound, best_move, best_score, raw_eval, depth, plies);
+        ctx.tt.insert(
+            game.hash,
+            tt_node_bound,
+            best_move,
+            best_score,
+            raw_eval,
+            depth,
+            plies,
+            tt_pv,
+        );
     }
 
     best_score

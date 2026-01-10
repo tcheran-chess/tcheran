@@ -78,7 +78,11 @@ pub fn quiescence(
     };
 
     if eval >= beta {
-        return eval;
+        return if !eval.is_mate() && !beta.is_mate() {
+            (eval + beta) / 2
+        } else {
+            eval
+        };
     }
 
     if eval > alpha {

@@ -8,7 +8,7 @@ Thank you to everybody who has tested the engine.
 
 | Version | [CCRL 40/15][ccrl-ltc] | [CCRL Blitz][ccrl-blitz] | [CEGT][cegt]   | [MCERL][mcerl] |
 | ------- | ---------------------- | ------------------------ | -------------- | -------------- |
-| v10.0   | 3457                   |                          |                |                |
+| v10.0   | 3457                   |                          | 3407           |                |
 | v9.0    | 3366                   | 3415                     |                |                |
 | v8.0    | 3323                   |                          | 3245           |                |
 | v7.0    | 3174                   | 3231                     |                |                |

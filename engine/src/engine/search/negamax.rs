@@ -178,6 +178,7 @@ pub fn negamax(
     };
 
     ctx.stack.get(plies).eval = eval;
+    ctx.stack.get(plies + 1).fail_highs = 0;
 
     let improving = if in_check {
         false
@@ -389,6 +390,8 @@ pub fn negamax(
 
                 reduction.reduce_more_if(!is_pv);
 
+                reduction.reduce_more_if(ctx.stack.get(plies + 1).fail_highs > 2);
+
                 reduction.value()
             } else {
                 1
@@ -457,6 +460,7 @@ pub fn negamax(
             // Cutoff: This move is so good that our opponent won't let it be played.
             if move_score >= beta {
                 tt_node_bound = NodeBound::Lower;
+                ctx.stack.get(plies).fail_highs += 1;
                 break;
             }
 

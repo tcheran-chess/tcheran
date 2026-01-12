@@ -24,18 +24,50 @@ pub const QA: i16 = 255;
 pub const QB: i16 = 64;
 
 // Eval scaling factor
-pub const SCALE: i32 = 289;
+pub const SCALE: i32 = 288;
 
 /// Container for all network parameters
 #[repr(C, align(64))]
 pub struct Network {
-    pub feature_weights: [Accumulator; FEATURES],
+    pub feature_weights: [Accumulator; INPUT_BUCKETS * FEATURES],
     pub feature_bias: Accumulator,
     pub output_weights: [[i16; HIDDEN_SIZE * 2]; OUTPUT_BUCKETS],
     pub output_bias: [i16; OUTPUT_BUCKETS],
 }
 
 pub static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
+
+#[rustfmt::skip]
+const BUCKET_LAYOUT: [usize; Square::N] = [
+    0, 0, 1, 1, 1, 1, 0, 0,
+    2, 2, 2, 2, 2, 2, 2, 2,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+    3, 3, 3, 3, 3, 3, 3, 3,
+];
+
+const INPUT_BUCKETS: usize = const {
+    let mut max = 0;
+    let mut i = 0;
+
+    while i < Square::N {
+        if BUCKET_LAYOUT[i] > max {
+            max = BUCKET_LAYOUT[i];
+        }
+
+        i += 1;
+    }
+
+    max + 1
+};
+
+fn input_bucket(king: Square, pov: Player) -> usize {
+    let king_flip = 7 * u8::from(king.file().idx() >= 4);
+    BUCKET_LAYOUT[(king.relative_for(pov).idx() ^ king_flip) as usize]
+}
 
 #[derive(Debug, Clone)]
 pub struct NNUEChanges {
@@ -173,6 +205,13 @@ impl NetworkStack {
                     || (from_file >= File::E.idx() && to_file <= File::D.idx());
 
                 if crossed_mirroring_boundary {
+                    return None;
+                }
+
+                let changed_input_bucket = input_bucket(entry.changes.mv.from(), pov)
+                    != input_bucket(entry.changes.mv.to(), pov);
+
+                if changed_input_bucket {
                     return None;
                 }
             }
@@ -408,6 +447,7 @@ impl NNUE {
 }
 
 fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
+    const KING_BUCKET_STRIDE: usize = FEATURES;
     const COLOR_STRIDE: usize = Square::N * PieceKind::N;
     const PIECE_STRIDE: usize = Square::N;
 
@@ -416,6 +456,10 @@ fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
 
     let square_idx = sq.relative_for(pov).idx();
     let king_flip = 7 * u8::from(king.file().idx() >= 4);
+    let input_bucket = input_bucket(king, pov);
 
-    (c ^ pov as usize) * COLOR_STRIDE + p * PIECE_STRIDE + (square_idx ^ king_flip) as usize
+    input_bucket * KING_BUCKET_STRIDE
+        + (c ^ pov as usize) * COLOR_STRIDE
+        + p * PIECE_STRIDE
+        + (square_idx ^ king_flip) as usize
 }

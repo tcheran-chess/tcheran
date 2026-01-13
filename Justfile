@@ -12,6 +12,9 @@ build:
 fmt:
 	@cargo +nightly fmt
 
+clippy:
+	@cargo +nightly clippy --workspace
+
 generate-fathom-bindings:
 	bindgen engine/src/engine/tablebases/fathom/src/tbprobe.h \
 		-o engine/src/engine/tablebases/bindings.rs \

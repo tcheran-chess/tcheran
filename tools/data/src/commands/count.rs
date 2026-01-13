@@ -36,7 +36,7 @@ pub fn run(options: &CountOptions) -> Result<()> {
         let all_positions = game.len();
         positions += all_positions;
 
-        let actual_positions_after_filtering = game.filter_pass_count(&filter) as usize;
+        let actual_positions_after_filtering = usize::try_from(game.filter_pass_count(&filter))?;
         let filtered_in_this_game = game.moves.len() - actual_positions_after_filtering;
         kept += actual_positions_after_filtering;
         filtered += filtered_in_this_game;

@@ -1,3 +1,5 @@
+mod bullet_extensions;
+
 use bullet_lib::{
     game::{inputs::ChessBucketsMirrored, outputs::MaterialCount},
     nn::optimiser::AdamW,
@@ -9,22 +11,28 @@ use bullet_lib::{
     value::{ValueTrainerBuilder, loader::ViriBinpackLoader},
 };
 
-const SCALE: i32 = 400;
+use crate::bullet_extensions::*;
+
+const SCALE: f32 = 400.0;
 const QA: i16 = 255;
 const QB: i16 = 64;
 
+const HIDDEN_LAYER: usize = 1024;
+const OUTPUT_BUCKETS: usize = 8;
+
 fn main() {
-    let hidden_size: usize = 1024;
-    let wdl_proportion: f32 = 0.4;
-    let superbatches: usize = 80;
-    const N_OUTPUT_BUCKETS: usize = 8;
+    let data = ViriBinpackLoader::new(
+        "etc/data/data.viri",
+        1024 * 20,
+        4,
+        viriformat::dataformat::Filter::default(),
+    );
 
     let mut trainer = ValueTrainerBuilder::default()
-        .use_threads(8)
         .dual_perspective()
         .optimiser(AdamW)
         .inputs(ChessBucketsMirrored::default())
-        .output_buckets(MaterialCount::<N_OUTPUT_BUCKETS>)
+        .output_buckets(MaterialCount::<OUTPUT_BUCKETS>)
         .save_format(&[
             SavedFormat::id("l0w").round().quantise::<i16>(QA),
             SavedFormat::id("l0b").round().quantise::<i16>(QA),
@@ -37,8 +45,8 @@ fn main() {
         .loss_fn(|output, target| output.sigmoid().squared_error(target))
         .build(|builder, stm_inputs, ntm_inputs, output_buckets| {
             // weights
-            let l0 = builder.new_affine("l0", 768, hidden_size);
-            let l1 = builder.new_affine("l1", 2 * hidden_size, N_OUTPUT_BUCKETS);
+            let l0 = builder.new_affine("l0", 768, HIDDEN_LAYER);
+            let l1 = builder.new_affine("l1", 2 * HIDDEN_LAYER, OUTPUT_BUCKETS);
 
             // inference
             let stm_hidden = l0.forward(stm_inputs).screlu();
@@ -47,15 +55,20 @@ fn main() {
             l1.forward(hidden_layer).select(output_buckets)
         });
 
+    let settings = LocalSettings {
+        threads: 8,
+        test_set: None,
+        output_directory: "etc/checkpoints",
+        batch_queue_size: 32,
+    };
+
+    let wdl_proportion: f32 = 0.4;
+    let superbatches: usize = 80;
+
     let schedule = TrainingSchedule {
         net_id: "tcheran".to_string(),
-        eval_scale: SCALE as f32,
-        steps: TrainingSteps {
-            batch_size: 16_384,
-            batches_per_superbatch: 6104,
-            start_superbatch: 1,
-            end_superbatch: superbatches,
-        },
+        eval_scale: SCALE,
+        steps: TrainingSteps::default(superbatches),
         wdl_scheduler: wdl::ConstantWDL {
             value: wdl_proportion,
         },
@@ -66,20 +79,6 @@ fn main() {
         },
         save_rate: 10,
     };
-
-    let settings = LocalSettings {
-        threads: 8,
-        test_set: None,
-        output_directory: "etc/checkpoints",
-        batch_queue_size: 32,
-    };
-
-    let data = ViriBinpackLoader::new(
-        "etc/data/data.viri",
-        1024 * 20,
-        4,
-        viriformat::dataformat::Filter::default(),
-    );
 
     trainer.run(&schedule, &settings, &data);
 }

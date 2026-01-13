@@ -8,6 +8,16 @@ use engine::{
     chess::game::Game,
     engine::eval::{nnue, nnue::NetworkStack},
 };
+use rayon::{iter::ParallelIterator, prelude::ParallelSlice};
+
+#[derive(Default)]
+struct Stats {
+    total: i128,
+    count: i128,
+    abs_total: i128,
+    min: i32,
+    max: i32,
+}
 
 #[expect(clippy::cast_precision_loss, reason = "All calculations are approximate")]
 fn main() -> ExitCode {
@@ -22,44 +32,21 @@ fn main() -> ExitCode {
         .lines()
         .collect::<Result<Vec<_>, _>>()
         .expect("Should be able to collect FENs");
-    let nfens = fens.len();
 
-    let mut total = 0i128;
-    let mut count = 0i128;
-    let mut abs_total = 0i128;
-    let mut min = i32::MAX;
-    let mut max = i32::MIN;
+    let stats = fens
+        .par_chunks(100_000)
+        .map(chunk_stats)
+        .collect::<Vec<_>>();
 
-    for (i, fen) in fens.iter().enumerate() {
-        let game = Game::from_fen(fen).unwrap();
-        let mut nnue = NetworkStack::new();
-        nnue.setup(&game.board);
-
-        let eval = nnue.evaluate(&game).0;
-
-        count += 1;
-        total += i128::from(eval);
-        abs_total += i128::from(eval.abs());
-
-        if eval < min {
-            min = eval;
-        }
-        if eval > max {
-            max = eval;
-        }
-
-        if i % 1024 == 0 {
-            print!("\r{}/{}", i + 1, nfens);
-        }
-    }
+    let stats = aggregate_stats(&stats);
 
     println!("Stats:");
-    println!("FENs: {count:>7}");
+    println!("FENs: {:>7}", stats.count);
 
-    let mean = total as f64 / count as f64;
-    let abs_mean = abs_total as f64 / count as f64;
-    let min = f64::from(min);
-    let max = f64::from(max);
+    let mean = stats.total as f64 / stats.count as f64;
+    let abs_mean = stats.abs_total as f64 / stats.count as f64;
+    let min = f64::from(stats.min);
+    let max = f64::from(stats.max);
 
     println!("Average: {mean}");
     println!("Average (abs): {abs_mean}");
@@ -73,4 +60,49 @@ fn main() -> ExitCode {
     println!("\nScale: {scale:.6}");
 
     ExitCode::SUCCESS
+}
+
+fn chunk_stats(fens: &[String]) -> Stats {
+    let mut stats = Stats::default();
+
+    for fen in fens {
+        let game = Game::from_fen(fen).unwrap();
+        let mut nnue = NetworkStack::new();
+        nnue.setup(&game.board);
+
+        let eval = nnue.evaluate(&game).0;
+
+        stats.count += 1;
+        stats.total += i128::from(eval);
+        stats.abs_total += i128::from(eval.abs());
+
+        if eval < stats.min {
+            stats.min = eval;
+        }
+        if eval > stats.max {
+            stats.max = eval;
+        }
+    }
+
+    stats
+}
+
+fn aggregate_stats(chunk_stats: &[Stats]) -> Stats {
+    let mut stats = Stats::default();
+
+    for s in chunk_stats {
+        stats.count += s.count;
+        stats.total += s.total;
+        stats.abs_total += s.abs_total;
+
+        if s.min < stats.min {
+            stats.min = s.min;
+        }
+
+        if s.max > stats.max {
+            stats.max = s.max;
+        }
+    }
+
+    stats
 }

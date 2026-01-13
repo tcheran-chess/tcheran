@@ -151,11 +151,11 @@ impl<'s> SearchContext<'s> {
     }
 }
 
-pub struct SearchStack([SearchStackEntry; MAX_SEARCH_DEPTH_SIZE]);
+pub struct SearchStack([SearchStackEntry; MAX_SEARCH_DEPTH_SIZE + 1]);
 
 impl SearchStack {
     pub const fn new() -> Self {
-        Self([const { SearchStackEntry::new() }; MAX_SEARCH_DEPTH_SIZE])
+        Self([const { SearchStackEntry::new() }; MAX_SEARCH_DEPTH_SIZE + 1])
     }
 
     pub fn get(&mut self, plies: u8) -> &mut SearchStackEntry {

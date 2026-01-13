@@ -11,6 +11,7 @@
 * Network #13, trained using the same arch and data as #12 but with horizontal mirroring (7.49 +- 4.59)
 * Add threats to capture history (6.37 +- 4.12)
 * Clear killer moves for upcoming plies (5.77 +- 3.92)
+* Network #14, using the same data and architecture as net 13 but trained for an additional 40 superbatches at 0.6 WDL (5.00 +- 3.60)
 * Return average of eval and beta for quiescence fail-highs (2.86 +- 2.29)
 
 ### Misc

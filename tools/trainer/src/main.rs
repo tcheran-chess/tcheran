@@ -62,23 +62,37 @@ fn main() {
         batch_queue_size: 32,
     };
 
-    let wdl_proportion: f32 = 0.4;
-    let superbatches: usize = 80;
-
-    let schedule = TrainingSchedule {
+    // Schedule 1
+    let schedule1_superbatches: usize = 80;
+    let schedule1 = TrainingSchedule {
         net_id: "tcheran".to_string(),
         eval_scale: SCALE,
-        steps: TrainingSteps::default(superbatches),
-        wdl_scheduler: wdl::ConstantWDL {
-            value: wdl_proportion,
-        },
+        steps: TrainingSteps::default(schedule1_superbatches),
+        wdl_scheduler: wdl::ConstantWDL { value: 0.4 },
         lr_scheduler: lr::CosineDecayLR {
-            initial_lr: 0.001,
-            final_lr: 0.001 * 0.3f32.powi(5),
-            final_superbatch: superbatches,
+            initial_lr: 1e-3,
+            final_lr: 2.7e-5,
+            final_superbatch: schedule1_superbatches,
         },
         save_rate: 10,
     };
 
-    trainer.run(&schedule, &settings, &data);
+    trainer.run(&schedule1, &settings, &data);
+
+    // Schedule 2
+    let schedule2_superbatches: usize = 40;
+    let schedule2 = TrainingSchedule {
+        net_id: "tcheran-ft".to_string(),
+        eval_scale: SCALE,
+        steps: TrainingSteps::default(schedule2_superbatches),
+        wdl_scheduler: wdl::ConstantWDL { value: 0.6 },
+        lr_scheduler: lr::CosineDecayLR {
+            initial_lr: 4.5e-5,
+            final_lr: 4.05e-6,
+            final_superbatch: schedule2_superbatches,
+        },
+        save_rate: 10,
+    };
+
+    trainer.run(&schedule2, &settings, &data);
 }

@@ -20,7 +20,7 @@ const QA: i32 = 255;
 const QB: i32 = 64;
 
 // Eval scaling factor
-pub const SCALE: i32 = 313;
+pub const SCALE: i32 = 289;
 
 #[derive(Clone)]
 struct Changes {

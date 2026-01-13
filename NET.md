@@ -30,3 +30,4 @@ All data used for training is self-play data generated using the datagen code fr
 | 11 | `(768->1024)x2->1` | WDL 0.4, LR 0.001, 80 batches  | `23.37 +- 8.61`     | Entirely new dataset using 5k soft nodes and no tablebase adjudication, no other changes |
 | 12 | `(768->1024)x2->8` | WDL 0.4, LR 0.001, 80 batches  | `9.89 +- 5.56`      | Added 8 output buckets, using the same dataset as net 11 |
 | 13 | `(768->1024)x2->8` | WDL 0.4, LR 0.001, 80 batches  | `7.49 +- 4.59`      | Same architecture and data as net 12, but with horizontally mirrored features |
+| 14 | `(768->1024)x2->8` | WDL 0.4, LR 0.001, 120 batches | `5.00 +- 3.60`      | Same architecture and data as net 13, but with an additional 40 batch fine tuning stage at 0.6 WDL |

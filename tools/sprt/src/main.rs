@@ -246,9 +246,10 @@ pub fn main() -> ExitCode {
     let elo0 = cli.elo0;
     let elo1 = cli.elo1;
 
-    let test_confidence = 0.05f64;
-    let lowerllr = (test_confidence / (1.0 - test_confidence)).ln();
-    let upperllr = ((1.0 - test_confidence) / test_confidence).ln();
+    let alpha = 0.05f64;
+    let beta = 0.1f64;
+    let lowerllr = (beta / (1.0 - alpha)).ln();
+    let upperllr = ((1.0 - beta) / alpha).ln();
 
     let (elo_lower, elo, _elo_upper) = elo(penta);
     let elo_bound = elo - elo_lower;

@@ -270,30 +270,32 @@ pub fn main() -> ExitCode {
     println!("Elo: {elo:.2} +- {elo_bound:.2}");
 
     if !decided {
-        let total_games = penta.iter().sum::<f64>();
+        let total_pairs = penta.iter().sum::<f64>();
 
-        let ll_percent = cli.ll / total_games;
-        let ld_percent = cli.ld / total_games;
-        let dd_percent = cli.dd / total_games;
-        let dw_percent = cli.dw / total_games;
-        let ww_percent = cli.ww / total_games;
+        let ll_percent = cli.ll / total_pairs;
+        let ld_percent = cli.ld / total_pairs;
+        let dd_percent = cli.dd / total_pairs;
+        let dw_percent = cli.dw / total_pairs;
+        let ww_percent = cli.ww / total_pairs;
 
-        let mut speculative_games = total_games;
+        let mut speculative_pairs = total_pairs;
         loop {
-            speculative_games += 1.0;
+            speculative_pairs += 1.0;
             let speculative_penta = [
-                ll_percent * speculative_games,
-                ld_percent * speculative_games,
-                dd_percent * speculative_games,
-                dw_percent * speculative_games,
-                ww_percent * speculative_games,
+                ll_percent * speculative_pairs,
+                ld_percent * speculative_pairs,
+                dd_percent * speculative_pairs,
+                dw_percent * speculative_pairs,
+                ww_percent * speculative_pairs,
             ];
 
             let llr = sprt(speculative_penta, elo0, elo1);
             if llr > upperllr || llr < lowerllr {
-                let additional_games = speculative_games - total_games;
+                let additional_pairs = speculative_pairs - total_pairs;
+                let additional_games = additional_pairs * 2.0;
+                let speculative_games = speculative_pairs * 2.0;
                 println!(
-                    "{additional_games} additional game pairs required ({speculative_games} total) for termination assuming no Elo change"
+                    "{additional_pairs} more pairs required ({additional_games} more games for {speculative_games} total) for termination assuming no Elo change"
                 );
                 break;
             }

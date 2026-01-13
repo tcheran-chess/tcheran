@@ -1,16 +1,12 @@
 use crate::{
     chess::game::Game,
-    engine::{
-        eval::{Eval, nnue::NetworkStack},
-        params::{
-            material_scale_base, material_scale_divisor, see_bishop_value, see_knight_value,
-            see_queen_value, see_rook_value,
-        },
-    },
+    engine::eval::{Eval, nnue::NetworkStack},
 };
 
 #[cfg(not(feature = "datagen"))]
 fn scale_eval(eval: Eval, game: &Game) -> Eval {
+    use crate::engine::params::*;
+
     let material = i32::from(game.board.all_knights().count()) * see_knight_value()
         + i32::from(game.board.all_bishops().count()) * see_bishop_value()
         + i32::from(game.board.all_rooks().count()) * see_rook_value()

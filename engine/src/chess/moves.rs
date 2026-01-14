@@ -278,6 +278,7 @@ mod tests {
         let mv = Move::quiet(A1, B1);
         assert_eq!(mv.src(), A1);
         assert_eq!(mv.dst(), B1);
+        assert!(mv.is_quiet());
         assert!(mv.promotion().is_none());
         assert!(!mv.is_capture());
         assert!(!mv.is_castling());
@@ -285,9 +286,23 @@ mod tests {
     }
 
     #[test]
+    fn test_double_push() {
+        let mv = Move::double_push(A2, A4);
+        assert_eq!(mv.src(), A2);
+        assert_eq!(mv.dst(), A4);
+        assert!(mv.is_quiet());
+        assert!(mv.promotion().is_none());
+        assert!(!mv.is_capture());
+        assert!(!mv.is_castling());
+        assert!(!mv.is_en_passant());
+        assert!(mv.is_double_push());
+    }
+
+    #[test]
     fn test_quiet_promotion() {
         let mv = Move::quiet_promotion(A1, B1, PromotionPieceKind::Queen);
         assert_eq!(mv.promotion(), Some(PromotionPieceKind::Queen));
+        assert!(!mv.is_quiet());
         assert!(!mv.is_capture());
         assert!(!mv.is_castling());
         assert!(!mv.is_en_passant());
@@ -297,6 +312,7 @@ mod tests {
     fn test_capture() {
         let mv = Move::capture(A1, B1);
         assert!(mv.promotion().is_none());
+        assert!(!mv.is_quiet());
         assert!(mv.is_capture());
         assert!(!mv.is_castling());
         assert!(!mv.is_en_passant());
@@ -306,6 +322,7 @@ mod tests {
     fn test_capture_promotion() {
         let mv = Move::capture_promotion(A1, B1, PromotionPieceKind::Queen);
         assert_eq!(mv.promotion(), Some(PromotionPieceKind::Queen));
+        assert!(!mv.is_quiet());
         assert!(mv.is_capture());
         assert!(!mv.is_castling());
         assert!(!mv.is_en_passant());
@@ -314,6 +331,7 @@ mod tests {
     #[test]
     fn test_castles() {
         let mv = Move::castles(A1, B1);
+        assert!(mv.is_quiet());
         assert!(mv.promotion().is_none());
         assert!(!mv.is_capture());
         assert!(mv.is_castling());
@@ -323,6 +341,7 @@ mod tests {
     #[test]
     fn test_en_passant() {
         let mv = Move::en_passant(A1, B1);
+        assert!(!mv.is_quiet());
         assert!(mv.promotion().is_none());
         assert!(mv.is_capture());
         assert!(!mv.is_castling());

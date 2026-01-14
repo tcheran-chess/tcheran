@@ -192,8 +192,8 @@ impl Game {
     }
 
     #[inline]
-    pub fn is_draw(&self) -> bool {
-        self.is_repeated_position()
+    pub fn is_draw(&self, plies: u8) -> bool {
+        self.is_repeated_position(plies)
             || self.is_stalemate_by_fifty_move_rule()
             || self.is_stalemate_by_insufficient_material()
     }
@@ -208,12 +208,35 @@ impl Game {
         false
     }
 
-    pub fn is_repeated_position(&self) -> bool {
-        self.history
+    pub fn is_repeated_position(&self, plies: u8) -> bool {
+        let plies = plies as usize;
+
+        let mut seen = false;
+        for (plies_back, position) in self
+            .history
             .iter()
             .rev()
+            .enumerate()
             .take(self.halfmove_clock as usize)
-            .any(|h| h.hash == self.hash)
+            .skip(3)
+            .step_by(2)
+        {
+            if position.hash == self.hash {
+                // If the move happened before during search, use two-fold.
+                if plies_back < plies {
+                    return true;
+                }
+
+                // If we're before the start of the search, use three-fold.
+                if seen {
+                    return true;
+                }
+
+                seen = true;
+            }
+        }
+
+        false
     }
 
     pub fn is_stalemate_by_insufficient_material(&self) -> bool {

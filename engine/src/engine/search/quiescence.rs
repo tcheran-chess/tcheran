@@ -22,7 +22,7 @@ pub fn quiescence(
     ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
     ctx.nodes.incr();
 
-    if game.is_draw() {
+    if game.is_draw(plies) {
         return Eval::DRAW;
     }
 

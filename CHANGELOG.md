@@ -14,6 +14,7 @@
 * Clear killer moves for upcoming plies (5.77 +- 3.92)
 * Network #14, using the same data and architecture as net 13 but trained for an additional 40 superbatches at 0.6 WDL (5.00 +- 3.60)
 * Return average of eval and beta for quiescence fail-highs (2.86 +- 2.29)
+* Use threefold repetitions (2.49 +- 3.65)
 
 ### Misc
 

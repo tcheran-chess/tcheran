@@ -83,7 +83,7 @@ pub fn negamax(
     }
 
     if !is_root {
-        if game.is_draw() {
+        if game.is_draw(plies) {
             return Eval::DRAW;
         }
 

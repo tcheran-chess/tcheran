@@ -100,7 +100,7 @@ pub fn negamax(
 
     let tt_entry = match excluded_mv {
         Some(_) => None,
-        None => ctx.tt.get(game.zobrist, plies),
+        None => ctx.tt.get(game.hash, plies),
     };
 
     if let Some(ref tt_entry) = tt_entry {
@@ -144,7 +144,7 @@ pub fn negamax(
                 || (tb_bound == NodeBound::Upper && score <= alpha)
             {
                 ctx.tt
-                    .insert(game.zobrist, tb_bound, None, score, Eval::NONE, depth, plies);
+                    .insert(game.hash, tb_bound, None, score, Eval::NONE, depth, plies);
 
                 return score;
             }
@@ -164,7 +164,7 @@ pub fn negamax(
                 let e = eval::eval(ctx.nnue, game);
 
                 ctx.tt
-                    .insert(game.zobrist, NodeBound::None, None, Eval::NONE, e, 0, plies);
+                    .insert(game.hash, NodeBound::None, None, Eval::NONE, e, 0, plies);
 
                 e
             }
@@ -548,7 +548,7 @@ pub fn negamax(
         }
 
         ctx.tt
-            .insert(game.zobrist, tt_node_bound, best_move, best_eval, raw_eval, depth, plies);
+            .insert(game.hash, tt_node_bound, best_move, best_eval, raw_eval, depth, plies);
     }
 
     best_eval

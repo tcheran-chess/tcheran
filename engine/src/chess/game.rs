@@ -115,11 +115,11 @@ pub struct Game {
     pub halfmove_clock: u32,
     pub plies: u32,
 
-    pub zobrist: ZobristHash,
-    pub pawn_zobrist: ZobristHash,
-    pub major_zobrist: ZobristHash,
-    pub minor_zobrist: ZobristHash,
-    pub non_pawn_zobrist: [ZobristHash; Player::N],
+    pub hash: ZobristHash,
+    pub pawn_hash: ZobristHash,
+    pub major_piece_hash: ZobristHash,
+    pub minor_piece_hash: ZobristHash,
+    pub non_pawn_hash: [ZobristHash; Player::N],
 
     pub history: Vec<History>,
 
@@ -155,20 +155,20 @@ impl Game {
             diagonal_pins: Bitboard::EMPTY,
             threats: Bitboard::EMPTY,
 
-            zobrist: ZobristHash::uninit(),
-            pawn_zobrist: ZobristHash::uninit(),
-            major_zobrist: ZobristHash::uninit(),
-            minor_zobrist: ZobristHash::uninit(),
-            non_pawn_zobrist: [ZobristHash::uninit(); Player::N],
+            hash: ZobristHash::uninit(),
+            pawn_hash: ZobristHash::uninit(),
+            major_piece_hash: ZobristHash::uninit(),
+            minor_piece_hash: ZobristHash::uninit(),
+            non_pawn_hash: [ZobristHash::uninit(); Player::N],
 
             history: Vec::new(),
         };
 
-        game.zobrist = zobrist::hash(&game);
-        game.pawn_zobrist = zobrist::hash_pieces(&game, |p| p.kind == PieceKind::Pawn);
-        game.major_zobrist = zobrist::hash_pieces(&game, is_major_piece);
-        game.minor_zobrist = zobrist::hash_pieces(&game, is_minor_piece);
-        game.non_pawn_zobrist = [
+        game.hash = zobrist::hash(&game);
+        game.pawn_hash = zobrist::hash_pieces(&game, |p| p.kind == PieceKind::Pawn);
+        game.major_piece_hash = zobrist::hash_pieces(&game, is_major_piece);
+        game.minor_piece_hash = zobrist::hash_pieces(&game, is_minor_piece);
+        game.non_pawn_hash = [
             zobrist::hash_pieces(&game, |p| p.player == Player::White),
             zobrist::hash_pieces(&game, |p| p.player == Player::Black),
         ];
@@ -213,7 +213,7 @@ impl Game {
             .iter()
             .rev()
             .take(self.halfmove_clock as usize)
-            .any(|h| h.zobrist == self.zobrist)
+            .any(|h| h.zobrist == self.hash)
     }
 
     pub fn is_stalemate_by_insufficient_material(&self) -> bool {
@@ -278,23 +278,23 @@ impl Game {
     }
 
     fn toggle_piece_in_hashes(&mut self, sq: Square, piece: Piece) {
-        self.zobrist.toggle_piece_on_square(sq, piece);
+        self.hash.toggle_piece_on_square(sq, piece);
 
         if piece.kind == PieceKind::Pawn {
-            self.pawn_zobrist.toggle_piece_on_square(sq, piece);
+            self.pawn_hash.toggle_piece_on_square(sq, piece);
         }
 
         if is_minor_piece(piece) {
-            self.minor_zobrist.toggle_piece_on_square(sq, piece);
+            self.minor_piece_hash.toggle_piece_on_square(sq, piece);
         }
 
         if is_major_piece(piece) {
-            self.major_zobrist.toggle_piece_on_square(sq, piece);
+            self.major_piece_hash.toggle_piece_on_square(sq, piece);
         }
 
         for player in Player::ALL {
             if piece.player == player && piece.kind != PieceKind::Pawn {
-                self.non_pawn_zobrist[player].toggle_piece_on_square(sq, piece);
+                self.non_pawn_hash[player].toggle_piece_on_square(sq, piece);
             }
         }
     }
@@ -309,8 +309,7 @@ impl Game {
 
         castle_rights.remove_rights(castle_rights_side);
 
-        self.zobrist
-            .toggle_castle_rights(player, castle_rights_side);
+        self.hash.toggle_castle_rights(player, castle_rights_side);
     }
 
     // Convenience method to prevent tests from having to construct their own
@@ -410,11 +409,11 @@ impl Game {
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
 
-            zobrist: self.zobrist,
-            pawn_zobrist: self.pawn_zobrist,
-            major_zobrist: self.major_zobrist,
-            minor_zobrist: self.minor_zobrist,
-            non_pawn_zobrist: self.non_pawn_zobrist,
+            zobrist: self.hash,
+            pawn_zobrist: self.pawn_hash,
+            major_zobrist: self.major_piece_hash,
+            minor_zobrist: self.minor_piece_hash,
+            non_pawn_zobrist: self.non_pawn_hash,
 
             checkers: self.checkers,
             orthogonal_pins: self.orthogonal_pins,
@@ -461,11 +460,11 @@ impl Game {
         };
 
         if let Some(previous_en_passant_target) = self.en_passant_target {
-            self.zobrist.toggle_en_passant(previous_en_passant_target);
+            self.hash.toggle_en_passant(previous_en_passant_target);
         }
 
         if let Some(new_en_passant_target) = new_en_passant_target {
-            self.zobrist.toggle_en_passant(new_en_passant_target);
+            self.hash.toggle_en_passant(new_en_passant_target);
         }
 
         self.en_passant_target = new_en_passant_target;
@@ -512,7 +511,7 @@ impl Game {
         self.plies += 1;
 
         self.player = other_player;
-        self.zobrist.toggle_side_to_play();
+        self.hash.toggle_side_to_play();
 
         self.update_checks_and_pins();
         self.update_threats();
@@ -528,11 +527,11 @@ impl Game {
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
 
-            zobrist: self.zobrist,
-            pawn_zobrist: self.pawn_zobrist,
-            major_zobrist: self.major_zobrist,
-            minor_zobrist: self.minor_zobrist,
-            non_pawn_zobrist: self.non_pawn_zobrist,
+            zobrist: self.hash,
+            pawn_zobrist: self.pawn_hash,
+            major_zobrist: self.major_piece_hash,
+            minor_zobrist: self.minor_piece_hash,
+            non_pawn_zobrist: self.non_pawn_hash,
 
             checkers: self.checkers,
             orthogonal_pins: self.orthogonal_pins,
@@ -543,7 +542,7 @@ impl Game {
         self.history.push(history);
 
         if let Some(previous_en_passant_target) = self.en_passant_target {
-            self.zobrist.toggle_en_passant(previous_en_passant_target);
+            self.hash.toggle_en_passant(previous_en_passant_target);
         }
 
         self.en_passant_target = None;
@@ -551,7 +550,7 @@ impl Game {
         self.plies += 1;
 
         self.player = self.player.other();
-        self.zobrist.toggle_side_to_play();
+        self.hash.toggle_side_to_play();
 
         self.update_checks_and_pins();
         self.update_threats();
@@ -570,11 +569,11 @@ impl Game {
 
         self.plies -= 1;
         self.player = player;
-        self.zobrist = history.zobrist;
-        self.pawn_zobrist = history.pawn_zobrist;
-        self.major_zobrist = history.major_zobrist;
-        self.minor_zobrist = history.minor_zobrist;
-        self.non_pawn_zobrist = history.non_pawn_zobrist;
+        self.hash = history.zobrist;
+        self.pawn_hash = history.pawn_zobrist;
+        self.major_piece_hash = history.major_zobrist;
+        self.minor_piece_hash = history.minor_zobrist;
+        self.non_pawn_hash = history.non_pawn_zobrist;
         self.halfmove_clock = history.halfmove_clock;
         self.castle_rights = history.castle_rights;
         self.en_passant_target = history.en_passant_target;
@@ -620,11 +619,11 @@ impl Game {
 
         self.plies -= 1;
         self.player = self.player.other();
-        self.zobrist = history.zobrist;
-        self.pawn_zobrist = history.pawn_zobrist;
-        self.major_zobrist = history.major_zobrist;
-        self.minor_zobrist = history.minor_zobrist;
-        self.non_pawn_zobrist = history.non_pawn_zobrist;
+        self.hash = history.zobrist;
+        self.pawn_hash = history.pawn_zobrist;
+        self.major_piece_hash = history.major_zobrist;
+        self.minor_piece_hash = history.minor_zobrist;
+        self.non_pawn_hash = history.non_pawn_zobrist;
         self.en_passant_target = history.en_passant_target;
         self.halfmove_clock = history.halfmove_clock;
         self.checkers = history.checkers;
@@ -634,7 +633,7 @@ impl Game {
     }
 
     pub fn approx_zobrist_after(&self, mv: Move) -> ZobristHash {
-        let mut key = self.zobrist;
+        let mut key = self.hash;
 
         let moved_piece = self.board.piece_guaranteed_at(mv.src());
         let captured_piece = self.board.piece_at(mv.dst());
@@ -665,7 +664,7 @@ impl Game {
     }
 
     pub fn approx_zobrist_after_null_move(&self) -> ZobristHash {
-        let mut key = self.zobrist;
+        let mut key = self.hash;
         key.toggle_side_to_play();
         key
     }

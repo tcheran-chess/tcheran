@@ -255,12 +255,13 @@ impl CorrectionHistories {
     }
 
     pub fn get(&self, game: &mut Game) -> Eval {
-        let corr = self.pawn.get(game.player, game.pawn_zobrist) * pawn_correction_history_weight()
-            + self.major.get(game.player, game.major_zobrist) * major_correction_history_weight()
-            + self.minor.get(game.player, game.minor_zobrist) * minor_correction_history_weight()
-            + (self.non_pawn[Player::White].get(game.player, game.non_pawn_zobrist[Player::White])
-                + self.non_pawn[Player::Black]
-                    .get(game.player, game.non_pawn_zobrist[Player::Black]))
+        let corr = self.pawn.get(game.player, game.pawn_hash) * pawn_correction_history_weight()
+            + self.major.get(game.player, game.major_piece_hash)
+                * major_correction_history_weight()
+            + self.minor.get(game.player, game.minor_piece_hash)
+                * minor_correction_history_weight()
+            + (self.non_pawn[Player::White].get(game.player, game.non_pawn_hash[Player::White])
+                + self.non_pawn[Player::Black].get(game.player, game.non_pawn_hash[Player::Black]))
                 * non_pawn_correction_history_weight()
             + self
                 .threat
@@ -272,24 +273,24 @@ impl CorrectionHistories {
 
     pub fn update(&mut self, game: &mut Game, depth: u8, eval_diff: Eval) {
         self.pawn
-            .update(game.player, game.pawn_zobrist, depth, eval_diff);
+            .update(game.player, game.pawn_hash, depth, eval_diff);
 
         self.major
-            .update(game.player, game.major_zobrist, depth, eval_diff);
+            .update(game.player, game.major_piece_hash, depth, eval_diff);
 
         self.minor
-            .update(game.player, game.minor_zobrist, depth, eval_diff);
+            .update(game.player, game.minor_piece_hash, depth, eval_diff);
 
         self.non_pawn[Player::White].update(
             game.player,
-            game.non_pawn_zobrist[Player::White],
+            game.non_pawn_hash[Player::White],
             depth,
             eval_diff,
         );
 
         self.non_pawn[Player::Black].update(
             game.player,
-            game.non_pawn_zobrist[Player::Black],
+            game.non_pawn_hash[Player::Black],
             depth,
             eval_diff,
         );

@@ -36,7 +36,7 @@ pub fn quiescence(
         };
     }
 
-    let tt_entry = ctx.tt.get(game.zobrist, plies);
+    let tt_entry = ctx.tt.get(game.hash, plies);
     let mut previous_best_move = None;
 
     if let Some(ref tt_entry) = tt_entry {
@@ -66,7 +66,7 @@ pub fn quiescence(
         let e = eval::eval(ctx.nnue, game);
 
         ctx.tt
-            .insert(game.zobrist, NodeBound::None, None, Eval::NONE, e, 0, plies);
+            .insert(game.hash, NodeBound::None, None, Eval::NONE, e, 0, plies);
 
         e
     };
@@ -127,7 +127,7 @@ pub fn quiescence(
     }
 
     ctx.tt
-        .insert(game.zobrist, node_bound, best_move, best_eval, raw_eval, 0, plies);
+        .insert(game.hash, node_bound, best_move, best_eval, raw_eval, 0, plies);
 
     best_eval
 }

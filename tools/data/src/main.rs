@@ -20,9 +20,12 @@ enum Command {
     Head(head::HeadOptions),
     Interleave(interleave::InterleaveOptions),
     Relabel(relabel::RelabelOptions),
+    Convert(convert::ConvertOptions),
 }
 
 pub fn main() -> Result<ExitCode> {
+    engine::init();
+
     let cli = Cli::parse();
 
     match &cli.command {
@@ -30,6 +33,7 @@ pub fn main() -> Result<ExitCode> {
         Command::Count(opts) => count::run(opts)?,
         Command::Interleave(opts) => interleave::run(opts)?,
         Command::Relabel(opts) => relabel::run(opts)?,
+        Command::Convert(opts) => convert::run(opts)?,
     }
 
     Ok(ExitCode::SUCCESS)

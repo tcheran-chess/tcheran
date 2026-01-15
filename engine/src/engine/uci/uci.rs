@@ -179,7 +179,7 @@ impl UciReporter {
 
 impl Reporter for UciReporter {
     fn generic_report(&self, s: &str) {
-        println!("{s}");
+        println!("info string {s}");
     }
 
     fn report_search_progress(&self, progress: search::SearchInfo<'_>) {

@@ -84,11 +84,11 @@ pub struct History {
     pub en_passant_target: Option<Square>,
     pub halfmove_clock: u32,
 
-    pub zobrist: ZobristHash,
-    pub pawn_zobrist: ZobristHash,
-    pub major_zobrist: ZobristHash,
-    pub minor_zobrist: ZobristHash,
-    pub non_pawn_zobrist: [ZobristHash; Player::N],
+    pub hash: ZobristHash,
+    pub pawn_hash: ZobristHash,
+    pub major_piece_hash: ZobristHash,
+    pub minor_piece_hash: ZobristHash,
+    pub non_pawn_hash: [ZobristHash; Player::N],
 
     pub checkers: Bitboard,
     pub orthogonal_pins: Bitboard,
@@ -213,7 +213,7 @@ impl Game {
             .iter()
             .rev()
             .take(self.halfmove_clock as usize)
-            .any(|h| h.zobrist == self.hash)
+            .any(|h| h.hash == self.hash)
     }
 
     pub fn is_stalemate_by_insufficient_material(&self) -> bool {
@@ -409,11 +409,11 @@ impl Game {
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
 
-            zobrist: self.hash,
-            pawn_zobrist: self.pawn_hash,
-            major_zobrist: self.major_piece_hash,
-            minor_zobrist: self.minor_piece_hash,
-            non_pawn_zobrist: self.non_pawn_hash,
+            hash: self.hash,
+            pawn_hash: self.pawn_hash,
+            major_piece_hash: self.major_piece_hash,
+            minor_piece_hash: self.minor_piece_hash,
+            non_pawn_hash: self.non_pawn_hash,
 
             checkers: self.checkers,
             orthogonal_pins: self.orthogonal_pins,
@@ -527,11 +527,11 @@ impl Game {
             en_passant_target: self.en_passant_target,
             halfmove_clock: self.halfmove_clock,
 
-            zobrist: self.hash,
-            pawn_zobrist: self.pawn_hash,
-            major_zobrist: self.major_piece_hash,
-            minor_zobrist: self.minor_piece_hash,
-            non_pawn_zobrist: self.non_pawn_hash,
+            hash: self.hash,
+            pawn_hash: self.pawn_hash,
+            major_piece_hash: self.major_piece_hash,
+            minor_piece_hash: self.minor_piece_hash,
+            non_pawn_hash: self.non_pawn_hash,
 
             checkers: self.checkers,
             orthogonal_pins: self.orthogonal_pins,
@@ -569,11 +569,11 @@ impl Game {
 
         self.plies -= 1;
         self.player = player;
-        self.hash = history.zobrist;
-        self.pawn_hash = history.pawn_zobrist;
-        self.major_piece_hash = history.major_zobrist;
-        self.minor_piece_hash = history.minor_zobrist;
-        self.non_pawn_hash = history.non_pawn_zobrist;
+        self.hash = history.hash;
+        self.pawn_hash = history.pawn_hash;
+        self.major_piece_hash = history.major_piece_hash;
+        self.minor_piece_hash = history.minor_piece_hash;
+        self.non_pawn_hash = history.non_pawn_hash;
         self.halfmove_clock = history.halfmove_clock;
         self.castle_rights = history.castle_rights;
         self.en_passant_target = history.en_passant_target;
@@ -619,11 +619,11 @@ impl Game {
 
         self.plies -= 1;
         self.player = self.player.other();
-        self.hash = history.zobrist;
-        self.pawn_hash = history.pawn_zobrist;
-        self.major_piece_hash = history.major_zobrist;
-        self.minor_piece_hash = history.minor_zobrist;
-        self.non_pawn_hash = history.non_pawn_zobrist;
+        self.hash = history.hash;
+        self.pawn_hash = history.pawn_hash;
+        self.major_piece_hash = history.major_piece_hash;
+        self.minor_piece_hash = history.minor_piece_hash;
+        self.non_pawn_hash = history.non_pawn_hash;
         self.en_passant_target = history.en_passant_target;
         self.halfmove_clock = history.halfmove_clock;
         self.checkers = history.checkers;

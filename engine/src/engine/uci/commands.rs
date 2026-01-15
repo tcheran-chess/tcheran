@@ -29,6 +29,11 @@ pub enum UciCommand {
     // OpenBench UCI commands
     Bench,
     BenchNodes,
+    GenFens {
+        n: u64,
+        seed: u64,
+        book: String,
+    },
 
     // Extra debug UCI commands
     PrintPosition,

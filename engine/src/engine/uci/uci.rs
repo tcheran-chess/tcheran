@@ -474,6 +474,22 @@ impl Uci {
                 let (nodes, _) = bench(None);
                 println!("{nodes}");
             }
+
+            #[cfg(not(feature = "datagen"))]
+            UciCommand::GenFens { .. } => self
+                .reporter
+                .generic_report("datagen feature is not enabled"),
+            #[cfg(feature = "datagen")]
+            UciCommand::GenFens { n, seed, book } => {
+                use crate::engine::util::datagen;
+
+                let starting_positions =
+                    datagen::generate_random_starting_positions(*n, *seed, book.to_owned());
+                for pos in starting_positions {
+                    self.reporter
+                        .generic_report(&format!("genfens {}", pos.to_fen()));
+                }
+            }
             #[cfg(not(feature = "spsa"))]
             UciCommand::Spsa => {
                 self.reporter.generic_report("spsa feature is not enabled");

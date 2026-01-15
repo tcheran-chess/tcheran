@@ -18,6 +18,7 @@
 ### Misc
 
 * We now always report a line immediately before printing the best move
+* The 'genfens' UCI command is now implemented to support OpenBench datagen
 
 ## [10.0]
 

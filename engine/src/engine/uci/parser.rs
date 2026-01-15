@@ -271,9 +271,20 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
             } else if let Some(depth) = depth {
                 TimeControl::Depth(depth)
             } else if let Some(nodes) = nodes {
-                TimeControl::Nodes {
-                    soft: None,
-                    hard: Some(nodes),
+                // When doing datagen, 'go nodes n' means soft nodes n,
+                // hard nodes n * f
+                if cfg!(feature = "datagen") {
+                    const DATAGEN_HARD_NODES_FACTOR: u64 = 10;
+
+                    TimeControl::Nodes {
+                        soft: Some(nodes),
+                        hard: Some(nodes * DATAGEN_HARD_NODES_FACTOR),
+                    }
+                } else {
+                    TimeControl::Nodes {
+                        soft: None,
+                        hard: Some(nodes),
+                    }
                 }
             } else if infinite {
                 TimeControl::Infinite
@@ -315,6 +326,29 @@ fn cmd_perft_div(args: &[&str]) -> Result<UciCommand, ()> {
     Ok(UciCommand::PerftDiv { depth })
 }
 
+fn cmd_genfens(args: &[&str]) -> Result<UciCommand, ()> {
+    let mut args = args.iter();
+
+    let n = args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?;
+
+    let mut seed: Option<u64> = None;
+    let mut book: Option<String> = None;
+
+    while let Some(&arg) = args.next() {
+        match arg {
+            "seed" => seed = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
+            "book" => book = Some(args.next().ok_or(())?.to_string()),
+            _ => return Err(()),
+        }
+    }
+
+    Ok(UciCommand::GenFens {
+        n,
+        seed: seed.ok_or(())?,
+        book: book.ok_or(())?,
+    })
+}
+
 #[expect(clippy::result_unit_err, reason = "Improved error reporting is planned")]
 pub fn parse(input: &str) -> Result<UciCommand, ()> {
     let tokens = input.split_whitespace().collect::<Vec<&str>>();
@@ -337,6 +371,7 @@ pub fn parse(input: &str) -> Result<UciCommand, ()> {
 
         "bench" => no_args_command(UciCommand::Bench, args),
         "benchnodes" => no_args_command(UciCommand::BenchNodes, args),
+        "genfens" => cmd_genfens(args),
 
         "pos" => no_args_command(UciCommand::PrintPosition, args),
         "move" => cmd_move(args),

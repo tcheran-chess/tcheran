@@ -16,27 +16,15 @@ fn run() -> ExitCode {
     use engine::engine::uci::UciInputMode;
 
     let args = std::env::args().collect::<Vec<_>>();
-    let uci_input_mode = match args.len() {
-        1 => UciInputMode::Stdin,
-        2 => {
-            let commands = args[1]
-                .replace("\\n", "\n")
-                .lines()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>();
+    let uci_input_mode = if args.len() == 1 {
+        UciInputMode::Stdin
+    } else {
+        let commands = args[1..]
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>();
 
-            UciInputMode::Commands(commands)
-        }
-        _ => {
-            let binary_name = args[0].clone();
-            eprintln!("usage:");
-            eprintln!("  {binary_name}                  - run in UCI mode");
-            eprintln!(
-                "  {binary_name} \"<uci commands>\" - run specific UCI commands and then exit"
-            );
-
-            return ExitCode::FAILURE;
-        }
+        UciInputMode::Commands(commands)
     };
 
     let result = engine::engine::uci::uci(uci_input_mode);

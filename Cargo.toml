@@ -3,7 +3,6 @@ resolver = "3"
 members = [
     "engine",
     "tools/data",
-    "tools/datagen",
     "tools/zobrist",
     "tools/sprt",
     "tools/nnue_scaling",

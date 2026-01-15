@@ -33,7 +33,7 @@ parameters!(
 
 #[rustfmt::skip]
 non_tunable_parameters!(
-    (aspiration_window_size, i32, 20),
+    (aspiration_window_size, i32, 15),
     (aspiration_min_depth, u8, 5),
 
     (null_move_pruning_base_reduction, u8, 4),

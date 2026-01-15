@@ -1,9 +1,3 @@
-#[cfg(not(feature = "spsa"))]
-pub fn print_spsa_input() {
-    println!("spsa feature is not enabled");
-}
-
-#[cfg(feature = "spsa")]
 pub fn print_spsa_input() {
     use crate::engine::uci::options::{UciOption, UciOptionType};
 

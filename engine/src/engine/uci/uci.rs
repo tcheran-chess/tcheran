@@ -31,7 +31,6 @@ use crate::{
             options::UciOption,
             parser,
             responses::{IdParam, InfoFields, InfoScore, UciResponse},
-            spsa::print_spsa_input,
         },
         util,
         util::{log, sync::LockLatch},
@@ -475,7 +474,12 @@ impl Uci {
                 let (nodes, _) = bench(None);
                 println!("{nodes}");
             }
-            UciCommand::Spsa => print_spsa_input(),
+            #[cfg(not(feature = "spsa"))]
+            UciCommand::Spsa => {
+                self.reporter.generic_report("spsa feature is not enabled");
+            }
+            #[cfg(feature = "spsa")]
+            UciCommand::Spsa => crate::engine::uci::spsa::print_spsa_input(),
             UciCommand::Quit => return Ok(ExecuteResult::Exit),
         }
 

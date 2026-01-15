@@ -34,6 +34,15 @@ fn wdl_params(board: &Board) -> (f64, f64) {
 
 #[expect(clippy::cast_possible_truncation, reason = "Approximate calculation")]
 pub fn normalize(eval: Eval, board: &Board) -> Eval {
+    // Don't normalize eval scores in datagen
+    if cfg!(feature = "datagen") {
+        return eval;
+    }
+
+    if eval.is_mate() {
+        return eval;
+    }
+
     let (a, _) = wdl_params(board);
     let eval = f64::from(eval.0);
 

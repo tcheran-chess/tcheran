@@ -165,10 +165,16 @@ fn parse_source_square(game: &Game, src: &str, dst: Square) -> Result<Square, Pa
 
     let ambiguity_resolution = parse_ambiguity_resolution(&src_chars)?;
 
+    // If the SAN didn't specify the piece that was going to be moved but rather the square, then
+    // we moved a pawn, so restrict to pawn moves only.
     let matching_source_squares: Vec<Square> = piece_moves
         .into_iter()
-        .filter(|&(_, mv)| mv.dst() == dst && ambiguity_resolution.satisfied_by(mv))
+        .filter(|&(piece, mv)| {
+            piece == PieceKind::Pawn && mv.dst() == dst && ambiguity_resolution.satisfied_by(mv)
+        })
         .map(|(_, mv)| mv.src())
+        .collect::<HashSet<_>>()
+        .into_iter()
         .collect();
 
     if matching_source_squares.len() != 1 {
@@ -355,6 +361,28 @@ mod tests {
             "k7/6P1/8/8/8/8/8/K7 w - - 0 1",
             (G7, G8, PromotionPieceKind::Queen),
             "g8=Q+",
+        );
+    }
+
+    #[test]
+    fn pawn_capture_bug_from_pgn_conversion_20260115() {
+        // cxd4 was interpreted as potentially referring to a knight capture due to not filtering to pawn moves
+        test_parse_san(
+            "r2qk2r/pp2b3/2n1bppn/2p1p2p/P1PP3P/1P1P1NP1/1B3PB1/RN1Q1RK1 b kq - 0 13",
+            (C5, D4),
+            "cxd4",
+        );
+    }
+
+    #[test]
+    fn promotion_duplicate_square_ambiguity_20260115() {
+        // When trying to parse out the source square, we considered the fact we saw the same square four
+        // times as ambiguous when we should have deduplicated (since we have four possible promotion moves
+        // from the same square)
+        test_parse_san_with_promotion(
+            "8/5p2/8/3k4/K3p1p1/3r4/p7/1R6 b - - 0 69",
+            (A2, B1, PromotionPieceKind::Rook),
+            "axb1=R",
         );
     }
 }

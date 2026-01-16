@@ -323,7 +323,7 @@ pub fn negamax(
             continue;
         }
 
-        if depth < see_prune_depth()
+        if depth <= see_prune_depth()
             && moves.stage > GenStage::GoodTacticals
             && number_of_legal_moves > 0
             && !is_root

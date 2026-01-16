@@ -24,7 +24,11 @@ use crate::{
         square::{File, Rank, Square},
     },
     engine::{
-        eval::{WhiteEval, nnue::NNUE, wdl},
+        eval::{
+            WhiteEval,
+            nnue::{AccumulatorCache, NNUE},
+            wdl,
+        },
         options::{EngineOptions, defaults},
         search::{
             NullReporter, PersistentState, Reporter, SearchInfo, SearchStats, ThreadData,
@@ -394,7 +398,12 @@ impl Uci {
                 println!();
             }
             UciCommand::Eval => {
-                let mut nnue = NNUE::from_board(&self.game.board);
+                let mut nnue = NNUE::default();
+                let mut cache = AccumulatorCache::new();
+
+                for player in Player::ALL {
+                    nnue.refresh(&self.game.board, player, &mut cache);
+                }
 
                 let mut piece_contributions: [WhiteEval; Square::N] = [WhiteEval(0); Square::N];
                 for sq in Bitboard::FULL {

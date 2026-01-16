@@ -110,9 +110,29 @@ impl NNUEChange {
     }
 }
 
+// [pov][mirrored][bucket]
+pub struct AccumulatorCache([[[CacheEntry; INPUT_BUCKETS]; 2]; Player::N]);
+
+impl AccumulatorCache {
+    pub fn new() -> Box<Self> {
+        let mut cache = unsafe { Box::<Self>::new_zeroed().assume_init() };
+
+        for pov in 0..Player::N {
+            for side in 0..2 {
+                for bucket in 0..INPUT_BUCKETS {
+                    cache.0[pov][side][bucket] = CacheEntry::new();
+                }
+            }
+        }
+        cache
+    }
+}
+
 pub struct NetworkStack {
     stack: Vec<NetworkStackEntry>,
     current_idx: usize,
+
+    cache: Box<AccumulatorCache>,
 }
 
 #[derive(Clone)]
@@ -120,6 +140,20 @@ pub struct NetworkStackEntry {
     pub network: NNUE,
     changes: NNUEChanges,
     correct: [bool; Player::N],
+}
+
+pub struct CacheEntry {
+    value: Accumulator,
+    board: Board,
+}
+
+impl CacheEntry {
+    fn new() -> Self {
+        Self {
+            value: NETWORK.feature_bias.clone(),
+            board: Board::EMPTY,
+        }
+    }
 }
 
 impl NetworkStack {
@@ -134,12 +168,17 @@ impl NetworkStack {
                 MAX_PLIES_ARRAY_SIZE
             ],
             current_idx: 0,
+
+            cache: AccumulatorCache::new(),
         }
     }
 
     pub fn setup(&mut self, board: &Board) {
-        self.stack[0].network = NNUE::from_board(board);
-        self.stack[0].correct = [true; Player::N];
+        for pov in Player::ALL {
+            self.stack[0].network.refresh(board, pov, &mut self.cache);
+            self.stack[0].correct[pov] = true;
+        }
+
         self.current_idx = 0;
     }
 
@@ -174,8 +213,11 @@ impl NetworkStack {
             if let Some(i) = self.last_good_efficient_update_index(pov) {
                 self.update(i, game, pov);
             } else {
-                self.current_entry().network[pov].refresh(&game.board, pov);
-                self.current_entry().correct[pov] = true;
+                let current_entry = &mut self.stack[self.current_idx];
+                current_entry
+                    .network
+                    .refresh(&game.board, pov, &mut self.cache);
+                current_entry.correct[pov] = true;
             }
         }
 
@@ -283,19 +325,6 @@ impl NetworkStack {
 #[repr(C, align(64))]
 pub struct Accumulator(pub [i16; HIDDEN_SIZE]);
 
-impl Accumulator {
-    pub fn refresh(&mut self, board: &Board, pov: Player) {
-        let king = board.king_square(pov);
-
-        self.0 = NETWORK.feature_bias.0;
-
-        for sq in board.occupancy() {
-            let piece = board.piece_guaranteed_at(sq);
-            NNUE::add1(self, nnue_index(piece, sq, king, pov));
-        }
-    }
-}
-
 #[derive(Clone)]
 pub struct NNUE {
     accumulators: [Accumulator; Player::N],
@@ -324,14 +353,47 @@ impl std::ops::IndexMut<Player> for NNUE {
 }
 
 impl NNUE {
-    pub fn from_board(board: &Board) -> Self {
-        let mut nnue = Self::default();
+    pub fn refresh(&mut self, board: &Board, pov: Player, cache: &mut AccumulatorCache) {
+        let king = board.king_square(pov);
+        let king_side = usize::from(king.file() >= File::E);
+        let king_bucket = BUCKET_LAYOUT[king.relative_for(pov)];
 
-        for pov in Player::ALL {
-            nnue[pov].refresh(board, pov);
+        let cache_entry = &mut cache.0[pov][king_side][king_bucket];
+
+        let mut adds = ArrayVec::<_, 32>::new();
+        let mut subs = ArrayVec::<_, 32>::new();
+
+        for player in Player::ALL {
+            for piece in PieceKind::ALL {
+                let pieces = board.pieces_of_kind(piece, player);
+                let old_pieces = cache_entry.board.pieces_of_kind(piece, player);
+
+                let to_add = pieces & !old_pieces;
+                let to_sub = !pieces & old_pieces;
+
+                let piece = Piece::new(player, piece);
+
+                for square in to_add {
+                    adds.push(nnue_index(piece, square, king, pov));
+                }
+
+                for square in to_sub {
+                    subs.push(nnue_index(piece, square, king, pov));
+                }
+            }
         }
 
-        nnue
+        for add in &adds {
+            Self::add1(&mut cache_entry.value, *add);
+        }
+
+        for sub in &subs {
+            Self::sub1(&mut cache_entry.value, *sub);
+        }
+
+        cache_entry.board = board.clone();
+
+        self.accumulators[pov] = cache_entry.value.clone();
     }
 
     #[expect(clippy::needless_range_loop, reason = "Readability")]

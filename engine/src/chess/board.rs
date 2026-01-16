@@ -14,6 +14,12 @@ pub struct Board {
 }
 
 impl Board {
+    pub const EMPTY: Self = Self {
+        pieces: [Bitboard::EMPTY; PieceKind::N],
+        colors: [Bitboard::EMPTY; Player::N],
+        squares: [None; Square::N],
+    };
+
     #[inline(always)]
     pub fn occupancy(&self) -> Bitboard {
         self.occupancy_for(Player::White) | self.occupancy_for(Player::Black)

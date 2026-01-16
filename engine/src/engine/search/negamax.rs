@@ -336,7 +336,18 @@ pub fn negamax(
             let margin = if mv.is_quiet() {
                 see_quiet_margin() * lmr_depth * lmr_depth
             } else {
-                see_capture_margin() * lmr_depth
+                let history_mod = game.board.captured_piece(mv).map_or(0, |p| {
+                    ctx.tables.capture_history.get(
+                        game,
+                        mv,
+                        game.player,
+                        game.board.piece_guaranteed_at(mv.src()).kind,
+                        mv.dst(),
+                        p,
+                    ) / see_prune_history_divisor()
+                });
+
+                see_capture_margin() * lmr_depth - history_mod
             };
 
             if !see(game, mv, Eval(margin)) {

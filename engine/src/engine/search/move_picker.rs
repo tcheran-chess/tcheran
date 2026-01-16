@@ -226,14 +226,8 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
 
     let mut score = 0;
 
-    if mv.is_capture() {
-        let captured_piece_kind = if mv.is_en_passant() {
-            PieceKind::Pawn
-        } else {
-            game.board.piece_guaranteed_at(mv.dst()).kind
-        };
-
-        score += see_value(captured_piece_kind).0;
+    if let Some(captured_piece) = game.board.captured_piece(mv) {
+        score += see_value(captured_piece).0;
 
         // Capture history max is 8192, so divide by 8 so max is roughly
         // equivalent to the see_value of a queen.
@@ -243,7 +237,7 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
             game.player,
             moved_piece.kind,
             mv.dst(),
-            captured_piece_kind,
+            captured_piece,
         ) / 8;
     }
 

@@ -40,16 +40,7 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
     // First, make the move and adjust the score accordingly
     //
     // If we captured a piece during the move, we score according to that piece's value
-    score += match board.piece_at(to) {
-        Some(piece) => see_value(piece.kind),
-        None => {
-            if mv.is_en_passant() {
-                see_value(PieceKind::Pawn)
-            } else {
-                Eval(0)
-            }
-        }
-    };
+    score += board.captured_piece(mv).map_or(Eval(0), see_value);
 
     // If we promoted a pawn, we lose the pawn and gain the value of the piece we promoted to
     if let Some(promotion_piece) = mv.promotion() {

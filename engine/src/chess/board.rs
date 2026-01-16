@@ -1,5 +1,6 @@
 use crate::chess::{
     bitboard::Bitboard,
+    moves::Move,
     piece::{Piece, PieceKind},
     player::Player,
     square::Square,
@@ -104,6 +105,18 @@ impl Board {
     #[inline(always)]
     pub fn piece_guaranteed_at(&self, square: Square) -> Piece {
         self.piece_at(square).unwrap()
+    }
+
+    pub fn captured_piece(&self, mv: Move) -> Option<PieceKind> {
+        if !mv.is_capture() {
+            return None;
+        }
+
+        if mv.is_en_passant() {
+            return Some(PieceKind::Pawn);
+        }
+
+        Some(self.piece_guaranteed_at(mv.dst()).kind)
     }
 
     #[inline(always)]

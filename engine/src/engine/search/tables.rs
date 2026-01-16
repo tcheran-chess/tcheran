@@ -149,11 +149,7 @@ impl CaptureHistoryTable {
     fn update_for_move(&mut self, mv: Move, game: &Game, bonus: i32) {
         let capturing_piece = game.board.piece_guaranteed_at(mv.src()).kind;
         let capture_square = mv.dst();
-        let captured_piece = if mv.is_en_passant() {
-            PieceKind::Pawn
-        } else {
-            game.board.piece_guaranteed_at(mv.dst()).kind
-        };
+        let captured_piece = game.board.captured_piece(mv).expect("Move was a capture");
         let from_threatened = usize::from(game.threats.contains(mv.src()));
         let to_threatened = usize::from(game.threats.contains(mv.dst()));
 

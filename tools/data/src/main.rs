@@ -5,6 +5,7 @@ use clap::{Parser, Subcommand};
 
 mod commands;
 mod rand;
+mod viriformat_ext;
 
 use commands::*;
 

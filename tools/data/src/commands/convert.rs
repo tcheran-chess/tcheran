@@ -8,19 +8,14 @@ use std::{
 
 use anyhow::{Result, bail};
 use clap::Args;
-use engine::chess::{
-    game::Game,
-    moves::Move,
-    piece::PromotionPieceKind,
-    player::Player,
-    san,
-    square::{Square, squares::all::*},
-};
+use engine::chess::{game::Game, moves::Move, player::Player, san};
 use pgn_reader::{RawComment, RawTag, Reader, SanPlus, Visitor};
 use viriformat::{
     chess::board::{Board, DrawType, GameOutcome, WinType},
     dataformat::Game as ViriGame,
 };
+
+use crate::viriformat_ext::ToViriExt;
 
 #[derive(Debug, Args)]
 pub struct ConvertOptions {
@@ -160,64 +155,13 @@ impl Visitor for PgnToViri {
         };
 
         movetext.game.make_move(mv);
-
-        let virimove = move_to_viri(mv);
-        movetext.virigame.add_move(virimove, score);
+        movetext.virigame.add_move(mv.to_viri(), score);
 
         ControlFlow::Continue(())
     }
 
     fn end_game(&mut self, movetext: Self::Movetext) -> Self::Output {
         movetext.virigame
-    }
-}
-
-fn move_to_viri(mv: Move) -> viriformat::chess::chessmove::Move {
-    use viriformat::chess::chessmove::MoveFlags;
-
-    if let Some(promo_piece) = mv.promotion() {
-        viriformat::chess::chessmove::Move::new_with_promo(
-            square_to_viri(mv.src()),
-            square_to_viri(mv.dst()),
-            piece_to_viri(promo_piece),
-        )
-    } else if mv.is_castling() {
-        let to_sq = match mv.dst() {
-            G1 => H1,
-            G8 => H8,
-            C1 => A1,
-            C8 => A8,
-            _ => unreachable!("invalid castle square"),
-        };
-
-        viriformat::chess::chessmove::Move::new_with_flags(
-            square_to_viri(mv.src()),
-            square_to_viri(to_sq),
-            MoveFlags::Castle,
-        )
-    } else if mv.is_en_passant() {
-        viriformat::chess::chessmove::Move::new_with_flags(
-            square_to_viri(mv.src()),
-            square_to_viri(mv.dst()),
-            MoveFlags::EnPassant,
-        )
-    } else {
-        viriformat::chess::chessmove::Move::new(square_to_viri(mv.src()), square_to_viri(mv.dst()))
-    }
-}
-
-fn square_to_viri(sq: Square) -> viriformat::chess::types::Square {
-    viriformat::chess::types::Square::new(sq.idx()).expect("Should be a valid square")
-}
-
-fn piece_to_viri(piece: PromotionPieceKind) -> viriformat::chess::piece::PieceType {
-    use viriformat::chess::piece::PieceType::*;
-
-    match piece {
-        PromotionPieceKind::Knight => Knight,
-        PromotionPieceKind::Bishop => Bishop,
-        PromotionPieceKind::Rook => Rook,
-        PromotionPieceKind::Queen => Queen,
     }
 }
 

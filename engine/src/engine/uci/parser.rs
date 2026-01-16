@@ -415,7 +415,7 @@ mod tests {
 
     #[test]
     fn test_debugon() {
-        let _unused = parse("debugon").expect_err("Should not parse 'debugon'");
+        parse("debugon").expect_err("Should not parse 'debugon'");
     }
 
     #[test]
@@ -426,7 +426,7 @@ mod tests {
 
     #[test]
     fn test_debug_cutoff() {
-        let _unused = parse("debug    ontario").expect_err("Should not parse");
+        parse("debug    ontario").expect_err("Should not parse");
     }
 
     #[test]

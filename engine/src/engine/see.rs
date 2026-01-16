@@ -188,8 +188,6 @@ mod tests {
     // Test suite stolen from Simbelmyne, which was stolen from Carp
     #[test]
     fn test_see_carp() {
-        crate::init();
-
         #[rustfmt::skip]
         const SEE_SUITE: [(&str, &str, i32, bool); 11] = [
             ("1k1r4/1pp4p/p7/4p3/8/P5P1/1PP4P/2K1R3 w - - 0 1", "e1e5", 0, true),
@@ -206,6 +204,8 @@ mod tests {
             // ("5rk1/1pp2q1p/p1pb4/8/3P1NP1/2P5/1P1BQ1P1/5RK1 b - - 0 1", "d6f4", 0, false),
             // ("5rk1/1pp2q1p/p1pb4/8/3P1NP1/2P5/1P1BQ1P1/5RK1 b - - 0 1", "d6f4", -100, true),
         ];
+
+        crate::init();
 
         for (fen, ucimv, threshold, result) in SEE_SUITE {
             println!("{fen}");

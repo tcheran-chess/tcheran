@@ -11,7 +11,7 @@ fn test_perft(fen: &str, depth: u8, expected_positions: usize) {
     test_perft_default(fen, depth, expected_positions);
 
     if ENABLE_MOVEPICKER_PERFT {
-        test_perft_with_movepicker(fen, depth, expected_positions)
+        test_perft_with_movepicker(fen, depth, expected_positions);
     }
 }
 
@@ -86,7 +86,7 @@ fn movepicker_perft(
                 game.to_fen(),
                 legal_moves.len(),
                 moves_at_this_node.len(),
-                legal_moves.iter().cloned().collect::<Vec<_>>(),
+                legal_moves.iter().copied().collect::<Vec<_>>(),
                 moves_at_this_node,
                 best_move,
                 tables.killer_moves.get(depth),

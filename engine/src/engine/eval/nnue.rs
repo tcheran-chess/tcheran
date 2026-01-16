@@ -22,6 +22,17 @@ const QB: i32 = 64;
 // Eval scaling factor
 pub const SCALE: i32 = 289;
 
+/// Container for all network parameters
+#[repr(C, align(64))]
+struct Network {
+    feature_weights: [Accumulator; FEATURES],
+    feature_bias: Accumulator,
+    output_weights: [[i16; HIDDEN_SIZE * 2]; OUTPUT_BUCKETS],
+    output_bias: [i16; OUTPUT_BUCKETS],
+}
+
+static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
+
 #[derive(Clone)]
 struct Changes {
     pub mv: Move,
@@ -233,17 +244,6 @@ impl Accumulator {
         }
     }
 }
-
-/// Container for all network parameters
-#[repr(C, align(64))]
-struct Network {
-    feature_weights: [Accumulator; FEATURES],
-    feature_bias: Accumulator,
-    output_weights: [[i16; HIDDEN_SIZE * 2]; OUTPUT_BUCKETS],
-    output_bias: [i16; OUTPUT_BUCKETS],
-}
-
-static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
 
 #[derive(Clone)]
 pub struct NNUE {

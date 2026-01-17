@@ -169,6 +169,7 @@ pub struct ContHistTable(PieceTo<PieceTo<HistoryEntry<{ Self::MAX }>>>);
 
 impl ContHistTable {
     const MAX: i16 = 16384;
+    pub const PLIES: [usize; 2] = [1, 2];
 
     pub fn new() -> Box<Self> {
         alloc_boxed()

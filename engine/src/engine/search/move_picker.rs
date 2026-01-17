@@ -8,7 +8,10 @@ use crate::{
     },
     engine::{
         eval::Eval,
-        search::{SearchStack, tables::Tables},
+        search::{
+            SearchStack,
+            tables::{ContHistTable, Tables},
+        },
         see::{see, see_value},
     },
 };
@@ -240,21 +243,19 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
 }
 
 pub fn score_quiet(game: &Game, mv: Move, tables: &Tables, stack: &SearchStack, plies: u8) -> i32 {
-    let conthist1_bonus = stack
-        .get_prev(plies, 1)
-        .and_then(|s| s.mv)
-        .map_or(0, |(prev_move, prev_moved)| {
-            tables.conthist.get(game, prev_moved, prev_move.dst(), mv)
-        });
+    let conthists = ContHistTable::PLIES
+        .into_iter()
+        .map(|i| {
+            stack
+                .get_prev(plies, i)
+                .and_then(|s| s.mv)
+                .map_or(0, |(prev_move, prev_moved)| {
+                    tables.conthist.get(game, prev_moved, prev_move.dst(), mv)
+                })
+        })
+        .sum::<i32>();
 
-    let conthist2_bonus = stack
-        .get_prev(plies, 2)
-        .and_then(|s| s.mv)
-        .map_or(0, |(prev_move, prev_moved)| {
-            tables.conthist.get(game, prev_moved, prev_move.dst(), mv)
-        });
-
-    tables.quiet_history.get(game, mv) + conthist1_bonus + conthist2_bonus
+    tables.quiet_history.get(game, mv) + conthists
 }
 
 #[cfg(test)]

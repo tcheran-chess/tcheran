@@ -14,7 +14,7 @@ use crate::{
             move_picker::{GenStage, MovePicker},
             principal_variation::PrincipalVariation,
             quiescence::quiescence,
-            tables::lmr_table::lmr_reduction,
+            tables::{ContHistTable, lmr_table::lmr_reduction},
         },
         see::see,
         tablebases::Wdl,
@@ -513,30 +513,19 @@ pub fn negamax(
             if !mv.is_capture() {
                 ctx.tables.killer_moves.set(plies, mv);
 
-                if let Some(last_ply) = ctx.stack.get_prev(plies, 1)
-                    && let Some((last_move, last_moved)) = last_ply.mv
-                {
-                    ctx.tables.conthist.update(
-                        game,
-                        last_moved,
-                        last_move,
-                        mv,
-                        depth,
-                        &quiets_tried,
-                    );
-                }
-
-                if let Some(ply_2) = ctx.stack.get_prev(plies, 2)
-                    && let Some((last_move, last_moved)) = ply_2.mv
-                {
-                    ctx.tables.conthist.update(
-                        game,
-                        last_moved,
-                        last_move,
-                        mv,
-                        depth,
-                        &quiets_tried,
-                    );
+                for i in ContHistTable::PLIES {
+                    if let Some(last_ply) = ctx.stack.get_prev(plies, i)
+                        && let Some((last_move, last_moved)) = last_ply.mv
+                    {
+                        ctx.tables.conthist.update(
+                            game,
+                            last_moved,
+                            last_move,
+                            mv,
+                            depth,
+                            &quiets_tried,
+                        );
+                    }
                 }
 
                 ctx.tables

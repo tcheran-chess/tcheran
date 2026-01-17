@@ -187,8 +187,7 @@ pub fn negamax(
     }
 
     // Null move pruning
-    if !is_root
-        && !is_pv
+    if cut_node
         && !in_check
         && excluded_mv.is_none()
         && eval >= beta

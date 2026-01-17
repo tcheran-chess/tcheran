@@ -76,7 +76,8 @@ pub fn aspiration_search(
     let mut reduction = 0;
 
     loop {
-        let eval = negamax::negamax(game, window.alpha, window.beta, depth - reduction, 0, pv, ctx);
+        let eval =
+            negamax::negamax(game, window.alpha, window.beta, depth - reduction, 0, false, pv, ctx);
 
         if ctx.time_control.stopped() {
             return Eval::MIN;

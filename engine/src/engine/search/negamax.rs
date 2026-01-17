@@ -27,6 +27,7 @@ pub fn negamax(
     beta: Eval,
     mut depth: Depth,
     plies: u8,
+    _cut_node: bool,
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
@@ -210,6 +211,7 @@ pub fn negamax(
             -beta + Eval(1),
             depth - reduction,
             plies + 1,
+            false,
             &mut PrincipalVariation::new(),
             ctx,
         );
@@ -252,7 +254,8 @@ pub fn negamax(
         let se_beta = tt_score - depth * singular_extension_margin();
 
         ctx.stack.get(plies).excluded_mv = Some(mv);
-        let value = negamax(game, se_beta - Eval(1), se_beta, se_depth, plies, &mut se_pv, ctx);
+        let value =
+            negamax(game, se_beta - Eval(1), se_beta, se_depth, plies, cut_node, &mut se_pv, ctx);
         ctx.stack.get(plies).excluded_mv = None;
 
         if value < se_beta {
@@ -362,7 +365,16 @@ pub fn negamax(
         let search_depth = depth + extension - 1;
 
         let move_score = if number_of_legal_moves == 1 {
-            -negamax(game, -beta, -alpha, search_depth, plies + 1, &mut node_pv, ctx)
+            -negamax(
+                game,
+                -beta,
+                -alpha,
+                search_depth,
+                plies + 1,
+                !is_pv && !cut_node,
+                &mut node_pv,
+                ctx,
+            )
         } else {
             let reduction = if depth >= lmr_depth() && number_of_legal_moves >= lmr_move_threshold()
             {
@@ -403,6 +415,7 @@ pub fn negamax(
                 -alpha,
                 reduced_search_depth,
                 plies + 1,
+                true,
                 &mut node_pv,
                 ctx,
             );
@@ -416,6 +429,7 @@ pub fn negamax(
                     -alpha,
                     search_depth,
                     plies + 1,
+                    !cut_node,
                     &mut node_pv,
                     ctx,
                 );
@@ -424,7 +438,7 @@ pub fn negamax(
             // If searching at full depth STILL raised alpha, re-search with normal alpha/beta
             // bounds.
             if pvs_score > alpha && pvs_score < beta {
-                -negamax(game, -beta, -alpha, search_depth, plies + 1, &mut node_pv, ctx)
+                -negamax(game, -beta, -alpha, search_depth, plies + 1, false, &mut node_pv, ctx)
             } else {
                 pvs_score
             }

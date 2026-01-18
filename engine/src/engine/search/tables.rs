@@ -82,9 +82,12 @@ pub fn history_bonus(depth: u8) -> i32 {
     min(history_factor() * i32::from(depth) - history_offset(), history_max_bonus())
 }
 
-pub struct QuietHistoryTable(
-    [[[[[HistoryEntry<{ Self::MAX }>; 2]; 2]; Square::N]; Square::N]; Player::N],
-);
+type ByPlayer<T> = [T; Player::N];
+type FromTo<T> = [[T; Square::N]; Square::N];
+type PieceTo<T> = [[T; Square::N]; Piece::N];
+type Threats<T> = [[T; 2]; 2];
+
+pub struct QuietHistoryTable(ByPlayer<FromTo<Threats<HistoryEntry<{ Self::MAX }>>>>);
 
 impl QuietHistoryTable {
     const MAX: i16 = 8192;
@@ -118,9 +121,7 @@ impl QuietHistoryTable {
     }
 }
 
-pub struct CaptureHistoryTable(
-    [[[[[[HistoryEntry<{ Self::MAX }>; 2]; 2]; PieceKind::N]; Square::N]; PieceKind::N]; Player::N],
-);
+pub struct CaptureHistoryTable(PieceTo<[Threats<HistoryEntry<{ Self::MAX }>>; PieceKind::N]>);
 
 impl CaptureHistoryTable {
     pub const MAX: i16 = 8192;
@@ -130,26 +131,24 @@ impl CaptureHistoryTable {
     }
 
     pub fn get(&self, game: &Game, mv: Move) -> i32 {
-        let capturing_piece = game.board.piece_guaranteed_at(mv.src()).kind;
+        let capturing_piece = game.board.piece_guaranteed_at(mv.src());
         let capture_square = mv.dst();
         let captured_piece = game.board.captured_piece(mv).expect("Move was a capture");
         let from_threatened = usize::from(game.threats.contains(mv.src()));
         let to_threatened = usize::from(game.threats.contains(mv.dst()));
 
-        self.0[game.player][capturing_piece][capture_square][captured_piece][from_threatened]
-            [to_threatened]
+        self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened]
             .get()
     }
 
     fn update_for_move(&mut self, mv: Move, game: &Game, bonus: i32) {
-        let capturing_piece = game.board.piece_guaranteed_at(mv.src()).kind;
+        let capturing_piece = game.board.piece_guaranteed_at(mv.src());
         let capture_square = mv.dst();
         let captured_piece = game.board.captured_piece(mv).expect("Move was a capture");
         let from_threatened = usize::from(game.threats.contains(mv.src()));
         let to_threatened = usize::from(game.threats.contains(mv.dst()));
 
-        self.0[game.player][capturing_piece][capture_square][captured_piece][from_threatened]
-            [to_threatened]
+        self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened]
             .update(bonus);
     }
 
@@ -166,9 +165,7 @@ impl CaptureHistoryTable {
     }
 }
 
-pub struct ContHistTable(
-    [[[[HistoryEntry<{ Self::MAX }>; Square::N]; Piece::N]; Square::N]; Piece::N],
-);
+pub struct ContHistTable(PieceTo<PieceTo<HistoryEntry<{ Self::MAX }>>>);
 
 impl ContHistTable {
     const MAX: i16 = 16384;

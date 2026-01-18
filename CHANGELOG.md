@@ -14,6 +14,7 @@
 * Clear killer moves for upcoming plies (5.77 +- 3.92)
 * Generate quiets to evade check in quiescence (5.16 +- 3.69)
 * Network #14, using the same data and architecture as net 13 but trained for an additional 40 superbatches at 0.6 WDL (5.00 +- 3.60)
+* Set SearchStackEntry::mv in quiescence (4.77 +- 3.47)
 * Use capture history in SEE pruning threshold (4.01 +- 3.05)
 * Shrink aspiration windows further, from 20 to 15 (3.40 +- 2.70)
 * Return average of eval and beta for quiescence fail-highs (2.86 +- 2.29)

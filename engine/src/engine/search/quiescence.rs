@@ -111,6 +111,8 @@ pub fn quiescence(
         ctx.tt.prefetch(game.approx_zobrist_after(mv));
 
         ctx.nnue.push(&game.board, mv);
+        ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.src())));
+
         game.make_move(mv);
 
         let move_score = -quiescence(game, -beta, -alpha, plies + 1, ctx);

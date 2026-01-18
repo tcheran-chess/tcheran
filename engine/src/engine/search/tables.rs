@@ -129,19 +129,14 @@ impl CaptureHistoryTable {
         alloc_boxed()
     }
 
-    pub fn get(
-        &self,
-        game: &Game,
-        mv: Move,
-        player: Player,
-        capturing_piece: PieceKind,
-        capture_square: Square,
-        captured_piece: PieceKind,
-    ) -> i32 {
+    pub fn get(&self, game: &Game, mv: Move) -> i32 {
+        let capturing_piece = game.board.piece_guaranteed_at(mv.src()).kind;
+        let capture_square = mv.dst();
+        let captured_piece = game.board.captured_piece(mv).expect("Move was a capture");
         let from_threatened = usize::from(game.threats.contains(mv.src()));
         let to_threatened = usize::from(game.threats.contains(mv.dst()));
 
-        self.0[player][capturing_piece][capture_square][captured_piece][from_threatened]
+        self.0[game.player][capturing_piece][capture_square][captured_piece][from_threatened]
             [to_threatened]
             .get()
     }

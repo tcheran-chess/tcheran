@@ -56,7 +56,9 @@ pub fn quiescence(
 
     let mut node_bound = NodeBound::Upper;
 
-    let raw_eval = if let Some(tt_entry) = tt_entry {
+    let raw_eval = if in_check {
+        Eval::MIN
+    } else if let Some(tt_entry) = tt_entry {
         if tt_entry.eval == Eval::NONE {
             eval::eval(ctx.nnue, game)
         } else {
@@ -71,7 +73,9 @@ pub fn quiescence(
         e
     };
 
-    let eval = if raw_eval == Eval::NONE {
+    let eval = if in_check {
+        Eval::MIN
+    } else if raw_eval == Eval::NONE {
         Eval::NONE
     } else {
         (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate()
@@ -92,9 +96,18 @@ pub fn quiescence(
 
     let mut best_eval = eval;
     let mut best_move = None;
+    let mut moves_tried = 0;
 
-    let mut moves = MovePicker::new_loud(previous_best_move);
+    let mut moves = MovePicker::new_loud(previous_best_move, !in_check);
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
+        moves_tried += 1;
+
+        // As long as we've found a move that gets us out of mate, we can stop looking at other quiets
+        if mv.is_quiet() && !best_eval.being_mated() {
+            moves.yield_only_tacticals();
+            continue;
+        }
+
         ctx.tt.prefetch(game.approx_zobrist_after(mv));
 
         ctx.nnue.push(&game.board, mv);
@@ -124,6 +137,10 @@ pub fn quiescence(
                 alpha = move_score;
             }
         }
+    }
+
+    if in_check && moves_tried == 0 {
+        return Eval::mated_in(plies);
     }
 
     ctx.tt

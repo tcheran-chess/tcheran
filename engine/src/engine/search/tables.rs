@@ -87,6 +87,14 @@ type FromTo<T> = [[T; Square::N]; Square::N];
 type PieceTo<T> = [[T; Square::N]; Piece::N];
 type Threats<T> = [[T; 2]; 2];
 
+#[inline]
+fn threat_indices(game: &Game, mv: Move) -> (usize, usize) {
+    let from_threatened = usize::from(game.threats.contains(mv.from()));
+    let to_threatened = usize::from(game.threats.contains(mv.to()));
+
+    (from_threatened, to_threatened)
+}
+
 pub struct QuietHistoryTable(ByPlayer<FromTo<Threats<HistoryEntry<{ Self::MAX }>>>>);
 
 pub fn quiet_history_bonus(depth: Depth) -> i32 {
@@ -101,16 +109,12 @@ impl QuietHistoryTable {
     }
 
     pub fn get(&self, game: &Game, mv: Move) -> i32 {
-        let from_threatened = usize::from(game.threats.contains(mv.from()));
-        let to_threatened = usize::from(game.threats.contains(mv.to()));
-
+        let (from_threatened, to_threatened) = threat_indices(game, mv);
         self.0[game.player][mv.from()][mv.to()][from_threatened][to_threatened].get()
     }
 
     fn update_for_move(&mut self, game: &Game, mv: Move, bonus: i32) {
-        let from_threatened = usize::from(game.threats.contains(mv.from()));
-        let to_threatened = usize::from(game.threats.contains(mv.to()));
-
+        let (from_threatened, to_threatened) = threat_indices(game, mv);
         self.0[game.player][mv.from()][mv.to()][from_threatened][to_threatened].update(bonus);
     }
 
@@ -142,8 +146,7 @@ impl CaptureHistoryTable {
         let capturing_piece = game.board.piece_guaranteed_at(mv.from());
         let capture_square = mv.to();
         let captured_piece = game.board.captured_piece(mv).expect("Move was a capture");
-        let from_threatened = usize::from(game.threats.contains(mv.from()));
-        let to_threatened = usize::from(game.threats.contains(mv.to()));
+        let (from_threatened, to_threatened) = threat_indices(game, mv);
 
         self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened]
             .get()
@@ -153,8 +156,7 @@ impl CaptureHistoryTable {
         let capturing_piece = game.board.piece_guaranteed_at(mv.from());
         let capture_square = mv.to();
         let captured_piece = game.board.captured_piece(mv).expect("Move was a capture");
-        let from_threatened = usize::from(game.threats.contains(mv.from()));
-        let to_threatened = usize::from(game.threats.contains(mv.to()));
+        let (from_threatened, to_threatened) = threat_indices(game, mv);
 
         self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened]
             .update(bonus);

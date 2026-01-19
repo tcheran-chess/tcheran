@@ -33,7 +33,7 @@ use crate::{
             responses::{IdParam, InfoFields, InfoScore, UciResponse},
         },
         util,
-        util::{log, sync::LockLatch},
+        util::{log, metrics, metrics::UnitPrefix, sync::LockLatch},
     },
 };
 
@@ -132,18 +132,27 @@ impl UciReporter {
 
         print!("  {BRIGHT_BLACK}{time:>6}{RESET}",);
 
-        let nodes = if progress.stats.nodes < 1000 {
-            format!("{}n", progress.stats.nodes)
-        } else {
-            format!("{:.0}kn", progress.stats.nodes as f64 / 1000.0)
+        let (nodes, nodes_unit) = metrics::unit_suffix(progress.stats.nodes);
+        let nodes_suffix = match nodes_unit {
+            UnitPrefix::None => "n",
+            UnitPrefix::Kilo => "kn",
+            UnitPrefix::Mega => "mn",
+            UnitPrefix::Giga => "gn",
+            UnitPrefix::Tera => "tn",
         };
 
-        print!(" {BRIGHT_BLACK}{nodes:>10}{RESET}",);
+        print!(" {BRIGHT_BLACK}{:>7}{RESET}", format!("{nodes}{nodes_suffix}"));
 
-        print!(
-            "  {BRIGHT_BLACK}{:>10}{RESET}",
-            format!("{:.0}knps", progress.stats.nodes_per_second as f64 / 1000.0)
-        );
+        let (nps, nps_unit) = metrics::unit_suffix(progress.stats.nodes_per_second);
+        let nps_suffix = match nps_unit {
+            UnitPrefix::None => "nps",
+            UnitPrefix::Kilo => "knps",
+            UnitPrefix::Mega => "mnps",
+            UnitPrefix::Giga => "gnps",
+            UnitPrefix::Tera => "tnps",
+        };
+
+        print!("  {BRIGHT_BLACK}{:>8}{RESET}", format!("{}{}", nps, nps_suffix));
 
         print!(
             "  {BRIGHT_BLACK}{:>4}{RESET}",

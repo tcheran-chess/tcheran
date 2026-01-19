@@ -18,7 +18,7 @@ use crate::{
     engine::{
         eval::Eval,
         params::*,
-        search::{MAX_SEARCH_DEPTH_SIZE, types::Depth},
+        search::{MAX_SEARCH_DEPTH_SIZE, SearchStack, types::Depth},
     },
 };
 
@@ -184,13 +184,13 @@ pub fn continuation_history_bonus(depth: Depth) -> i32 {
 
 impl ContHistTable {
     const MAX: i16 = 16384;
-    pub const PLIES: [usize; 2] = [1, 2];
+    const PLIES: [usize; 2] = [1, 2];
 
     pub fn new() -> Box<Self> {
         unsafe { Box::new_zeroed().assume_init() }
     }
 
-    pub fn get(
+    fn get_ply(
         &self,
         game: &Game,
         previous_piece_moved: Piece,
@@ -199,6 +199,20 @@ impl ContHistTable {
     ) -> i32 {
         let moved = game.board.piece_guaranteed_at(mv.src());
         self.0[previous_piece_moved][previous_moved_to][moved][mv.dst()].get()
+    }
+
+    pub fn get(&self, game: &Game, stack: &SearchStack, plies: u8, mv: Move) -> i32 {
+        Self::PLIES
+            .into_iter()
+            .map(|i| {
+                stack
+                    .get_prev(plies, i)
+                    .and_then(|s| s.mv)
+                    .map_or(0, |(prev_move, prev_moved)| {
+                        self.get_ply(game, prev_moved, prev_move.dst(), mv)
+                    })
+            })
+            .sum::<i32>()
     }
 
     fn update_for_move(
@@ -212,7 +226,7 @@ impl ContHistTable {
         self.0[previous_piece_moved][previous_moved_to][moved][moved_to].update(bonus);
     }
 
-    pub fn update(
+    fn update_ply(
         &mut self,
         game: &Game,
         previous_piece_moved: Piece,
@@ -235,6 +249,24 @@ impl ContHistTable {
                 quiet_tried.dst(),
                 -bonus,
             );
+        }
+    }
+
+    pub fn update(
+        &mut self,
+        game: &Game,
+        stack: &SearchStack,
+        plies: u8,
+        mv: Move,
+        depth: Depth,
+        quiets_tried: &MoveList,
+    ) {
+        for i in Self::PLIES {
+            if let Some(last_ply) = stack.get_prev(plies, i)
+                && let Some((last_move, last_moved)) = last_ply.mv
+            {
+                self.update_ply(game, last_moved, last_move, mv, depth, quiets_tried);
+            }
         }
     }
 }

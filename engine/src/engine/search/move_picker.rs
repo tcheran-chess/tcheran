@@ -8,10 +8,7 @@ use crate::{
     },
     engine::{
         eval::Eval,
-        search::{
-            SearchStack,
-            tables::{ContHistTable, Tables},
-        },
+        search::{SearchStack, tables::Tables},
         see::{see, see_value},
     },
 };
@@ -243,19 +240,7 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
 }
 
 pub fn score_quiet(game: &Game, mv: Move, tables: &Tables, stack: &SearchStack, plies: u8) -> i32 {
-    let conthists = ContHistTable::PLIES
-        .into_iter()
-        .map(|i| {
-            stack
-                .get_prev(plies, i)
-                .and_then(|s| s.mv)
-                .map_or(0, |(prev_move, prev_moved)| {
-                    tables.conthist.get(game, prev_moved, prev_move.dst(), mv)
-                })
-        })
-        .sum::<i32>();
-
-    tables.quiet_history.get(game, mv) + conthists
+    tables.quiet_history.get(game, mv) + tables.conthist.get(game, stack, plies, mv)
 }
 
 #[cfg(test)]

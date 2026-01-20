@@ -1,4 +1,4 @@
-use std::cmp::{Ordering, max};
+use std::cmp::Ordering;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Depth(u8);
@@ -132,6 +132,6 @@ impl DepthReduction {
 
     #[inline]
     pub fn value(&self) -> u8 {
-        max(1, self.0)
+        self.0
     }
 }

@@ -366,18 +366,27 @@ pub fn negamax(
             {
                 let mut reduction = DepthReduction(lmr_reduction(depth, number_of_legal_moves));
 
-                reduction.reduce_less_if(in_check);
-
+                // Reducing more:
                 reduction.reduce_more_if(!is_pv);
 
                 reduction.reduce_more_if(ctx.stack.get(plies + 1).fail_highs > 2);
 
+                // Reducing less:
+                reduction.reduce_less_if(in_check);
+
+                // Added to account for the fact that we previously did a separate calculation for
+                // reduced_depth which didn't include the -1 from search_depth. However I prefer
+                // that the -1 is 'built in' - then the reduction is an _additional_ reduction based
+                // on other criteria. To match the previous behaviour in practice, we need to reverse
+                // the -1 here. It should hopefully be possible to simplify this out in a future change.
+                reduction.reduce_less_if(true);
+
                 reduction.value()
             } else {
-                1
+                0
             };
 
-            let reduced_search_depth = depth + extension - reduction;
+            let reduced_search_depth = search_depth - reduction;
 
             // We already found a good move (i.e. we raised alpha).
             // Now, we just need to prove that the other moves are worse.
@@ -394,7 +403,7 @@ pub fn negamax(
 
             // If we raised alpha, but we were searching with reduced depth, we probably want to double
             // check we didn't miss something, so search without the reduction.
-            if pvs_score > alpha && reduction > 1 {
+            if pvs_score > alpha && reduction > 0 {
                 pvs_score = -negamax(
                     game,
                     -alpha - Eval(1),

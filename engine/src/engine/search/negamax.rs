@@ -143,15 +143,8 @@ pub fn negamax(
             _ => {
                 let e = eval::eval(ctx.nnue, game);
 
-                ctx.tt.insert(
-                    game.hash,
-                    NodeBound::None,
-                    None,
-                    Eval::NONE,
-                    e,
-                    Depth::new(0),
-                    plies,
-                );
+                ctx.tt
+                    .insert(game.hash, NodeBound::None, None, Eval::NONE, e, Depth::ZERO, plies);
 
                 e
             }

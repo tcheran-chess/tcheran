@@ -4,6 +4,8 @@ use std::cmp::{Ordering, max};
 pub struct Depth(u8);
 
 impl Depth {
+    pub const ZERO: Self = Self(0);
+
     pub const fn new(value: u8) -> Self {
         Self(value)
     }

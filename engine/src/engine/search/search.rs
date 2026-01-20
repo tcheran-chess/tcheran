@@ -143,9 +143,9 @@ impl<'s> SearchContext<'s> {
             nnue,
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
 
-            completed_depth: Depth::new(0),
             max_depth_reached: 0,
-            root_depth: Depth::new(0),
+            completed_depth: Depth::ZERO,
+            root_depth: Depth::ZERO,
             nodes: BufferedAtomicU64::new(node_counter),
             tbhits: BufferedAtomicU64::new(tbhits_counter),
         }

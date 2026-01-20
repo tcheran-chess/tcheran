@@ -8,7 +8,7 @@ use crate::{
         square::{File, Rank, Square},
     },
     engine::{
-        search::{Clocks, TimeControl},
+        search::{Clocks, TimeControl, types::Depth},
         uci::{UciMove, commands::Position},
     },
 };
@@ -237,7 +237,15 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
                 clocks.moves_to_go = Some(args.next().ok_or(())?.parse().map_err(|_| ())?);
             }
             "movetime" => movetime = Some(parse_duration(args.next().ok_or(())?)?),
-            "depth" => depth = Some(args.next().ok_or(())?.parse().map_err(|_| ())?),
+            "depth" => {
+                depth = Some(
+                    args.next()
+                        .ok_or(())?
+                        .parse::<u8>()
+                        .map(Depth::new)
+                        .map_err(|_| ())?,
+                );
+            }
             "nodes" => nodes = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
             _ => return Err(()),
         }

@@ -15,7 +15,12 @@ use crate::{
         square::Square,
         zobrist::ZobristHash,
     },
-    engine::{eval::Eval, params::*, search::MAX_SEARCH_DEPTH_SIZE, util::mem::alloc_boxed},
+    engine::{
+        eval::Eval,
+        params::*,
+        search::{MAX_SEARCH_DEPTH_SIZE, types::Depth},
+        util::mem::alloc_boxed,
+    },
 };
 
 pub struct HistoryEntry<const MAX: i16>(i16);
@@ -78,8 +83,8 @@ impl KillersTable {
     }
 }
 
-pub fn history_bonus(depth: u8) -> i32 {
-    min(history_factor() * i32::from(depth) - history_offset(), history_max_bonus())
+pub fn history_bonus(depth: Depth) -> i32 {
+    min(depth * history_factor() - history_offset(), history_max_bonus())
 }
 
 type ByPlayer<T> = [T; Player::N];
@@ -110,7 +115,7 @@ impl QuietHistoryTable {
         self.0[game.player][mv.src()][mv.dst()][from_threatened][to_threatened].update(bonus);
     }
 
-    pub fn update(&mut self, game: &Game, mv: Move, depth: u8, other_quiets_tried: &MoveList) {
+    pub fn update(&mut self, game: &Game, mv: Move, depth: Depth, other_quiets_tried: &MoveList) {
         let bonus = history_bonus(depth);
 
         self.update_for_move(game, mv, bonus);
@@ -152,7 +157,7 @@ impl CaptureHistoryTable {
             .update(bonus);
     }
 
-    pub fn update(&mut self, mv: Move, game: &Game, depth: u8, other_captures_tried: &MoveList) {
+    pub fn update(&mut self, mv: Move, game: &Game, depth: Depth, other_captures_tried: &MoveList) {
         let bonus = history_bonus(depth);
 
         if mv.is_capture() {
@@ -203,7 +208,7 @@ impl ContHistTable {
         previous_piece_moved: Piece,
         previous_move: Move,
         mv: Move,
-        depth: u8,
+        depth: Depth,
         quiets_tried: &MoveList,
     ) {
         let bonus = history_bonus(depth);
@@ -260,7 +265,7 @@ impl CorrectionHistories {
         corr / 2048
     }
 
-    pub fn update(&mut self, game: &mut Game, depth: u8, eval_diff: Eval) {
+    pub fn update(&mut self, game: &mut Game, depth: Depth, eval_diff: Eval) {
         self.pawn
             .update(game.player, game.pawn_hash, depth, eval_diff);
 
@@ -308,8 +313,8 @@ impl CorrectionHistoryTable {
     }
 
     #[expect(clippy::cast_possible_truncation, reason = "u64 to usize")]
-    pub fn update(&mut self, player: Player, key: ZobristHash, depth: u8, eval_diff: Eval) {
-        let raw_bonus = eval_diff.0 * i32::from(depth) / 8;
+    pub fn update(&mut self, player: Player, key: ZobristHash, depth: Depth, eval_diff: Eval) {
+        let raw_bonus = eval_diff.0 * depth.as_i32() / 8;
         let bonus = i32::clamp(raw_bonus, -Self::MAX_UPDATE, Self::MAX_UPDATE);
 
         self.0[player][key.0 as usize % CORRECTION_HISTORY_SIZE].update(bonus);

@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 use super::{MAX_SEARCH_DEPTH, SearchContext};
 use crate::{
     chess::{
@@ -15,6 +13,7 @@ use crate::{
             principal_variation::PrincipalVariation,
             quiescence::quiescence,
             tables::{ContHistTable, lmr_table::lmr_reduction},
+            types::{Depth, DepthReduction},
         },
         see::see,
         tablebases::Wdl,
@@ -22,30 +21,11 @@ use crate::{
     },
 };
 
-pub struct DepthReduction(u8);
-
-impl DepthReduction {
-    #[inline]
-    pub fn reduce_more_if(&mut self, predicate: bool) {
-        self.0 = self.0.saturating_add(u8::from(predicate));
-    }
-
-    #[inline]
-    pub fn reduce_less_if(&mut self, predicate: bool) {
-        self.0 = self.0.saturating_sub(u8::from(predicate));
-    }
-
-    #[inline]
-    pub fn value(&self) -> u8 {
-        max(1, self.0)
-    }
-}
-
 pub fn negamax(
     game: &mut Game,
     mut alpha: Eval,
     beta: Eval,
-    mut depth: u8,
+    mut depth: Depth,
     plies: u8,
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
@@ -163,8 +143,15 @@ pub fn negamax(
             _ => {
                 let e = eval::eval(ctx.nnue, game);
 
-                ctx.tt
-                    .insert(game.hash, NodeBound::None, None, Eval::NONE, e, 0, plies);
+                ctx.tt.insert(
+                    game.hash,
+                    NodeBound::None,
+                    None,
+                    Eval::NONE,
+                    e,
+                    Depth::new(0),
+                    plies,
+                );
 
                 e
             }
@@ -200,7 +187,7 @@ pub fn negamax(
         && !in_check
         && excluded_mv.is_none()
         && depth <= reverse_futility_prune_depth()
-        && eval - reverse_futility_prune_margin_per_ply() * i32::from(depth) > beta
+        && eval - depth * reverse_futility_prune_margin_per_ply() > beta
     {
         return beta + (eval - beta) / 3;
     }
@@ -217,8 +204,8 @@ pub fn negamax(
     {
         ctx.tt.prefetch(game.approx_zobrist_after_null_move());
 
-        let reduction =
-            null_move_pruning_base_reduction() + depth / null_move_pruning_reduction_factor();
+        let reduction = Depth::new(null_move_pruning_base_reduction())
+            + depth / null_move_pruning_reduction_factor();
 
         ctx.stack.get(plies).mv = None;
 
@@ -228,7 +215,7 @@ pub fn negamax(
             game,
             -beta,
             -beta + Eval(1),
-            depth.saturating_sub(reduction),
+            depth - reduction,
             plies + 1,
             &mut PrincipalVariation::new(),
             ctx,
@@ -268,8 +255,8 @@ pub fn negamax(
         let mut se_pv = PrincipalVariation::new();
         let tt_score = tt_entry.as_ref().unwrap().score;
 
-        let se_depth = (depth - 1) / 2;
-        let se_beta = tt_score - singular_extension_margin() * i32::from(depth);
+        let se_depth = (depth - 1) / 2u8;
+        let se_beta = tt_score - depth * singular_extension_margin();
 
         ctx.stack.get(plies).excluded_mv = Some(mv);
         let value = negamax(game, se_beta - Eval(1), se_beta, se_depth, plies, &mut se_pv, ctx);
@@ -330,11 +317,10 @@ pub fn negamax(
             && !is_pv
             && !best_eval.being_mated()
         {
-            let lmr_depth =
-                i32::from(depth.saturating_sub(lmr_reduction(depth, number_of_legal_moves)));
+            let lmr_depth = depth - lmr_reduction(depth, number_of_legal_moves);
 
             let margin = if mv.is_quiet() {
-                see_quiet_margin() * lmr_depth * lmr_depth
+                lmr_depth * lmr_depth * see_quiet_margin()
             } else {
                 let history_mod = if mv.is_capture() {
                     ctx.tables.capture_history.get(game, mv) / see_prune_history_divisor()
@@ -342,7 +328,7 @@ pub fn negamax(
                     0
                 };
 
-                see_capture_margin() * lmr_depth - history_mod
+                lmr_depth * see_capture_margin() - history_mod
             };
 
             if !see(game, mv, Eval(margin)) {
@@ -350,7 +336,7 @@ pub fn negamax(
             }
         }
 
-        let lmp_moves = (lmp_move_threshold() as usize + (depth as usize * depth as usize))
+        let lmp_moves = (lmp_move_threshold() as usize + (depth.idx() * depth.idx()))
             / (1 + usize::from(!improving));
 
         if depth <= lmp_depth()
@@ -378,15 +364,7 @@ pub fn negamax(
         };
 
         let move_score = if number_of_legal_moves == 1 {
-            -negamax(
-                game,
-                -beta,
-                -alpha,
-                depth.saturating_add(extension) - 1,
-                plies + 1,
-                &mut node_pv,
-                ctx,
-            )
+            -negamax(game, -beta, -alpha, depth + extension - 1, plies + 1, &mut node_pv, ctx)
         } else {
             let reduction = if depth >= lmr_depth() && number_of_legal_moves >= lmr_move_threshold()
             {
@@ -410,7 +388,7 @@ pub fn negamax(
                 game,
                 -alpha - Eval(1),
                 -alpha,
-                depth.saturating_add(extension).saturating_sub(reduction),
+                depth + extension - reduction,
                 plies + 1,
                 &mut node_pv,
                 ctx,
@@ -423,7 +401,7 @@ pub fn negamax(
                     game,
                     -alpha - Eval(1),
                     -alpha,
-                    depth.saturating_add(extension) - 1,
+                    depth + extension - 1,
                     plies + 1,
                     &mut node_pv,
                     ctx,
@@ -433,15 +411,7 @@ pub fn negamax(
             // If searching at full depth STILL raised alpha, re-search with normal alpha/beta
             // bounds.
             if pvs_score > alpha && pvs_score < beta {
-                -negamax(
-                    game,
-                    -beta,
-                    -alpha,
-                    depth.saturating_add(extension) - 1,
-                    plies + 1,
-                    &mut node_pv,
-                    ctx,
-                )
+                -negamax(game, -beta, -alpha, depth + extension - 1, plies + 1, &mut node_pv, ctx)
             } else {
                 pvs_score
             }

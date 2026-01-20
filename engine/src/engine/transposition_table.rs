@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     chess::{moves::Move, zobrist::ZobristHash},
-    engine::eval::Eval,
+    engine::{eval::Eval, search::types::Depth},
 };
 
 pub struct TranspositionTable {
@@ -67,7 +67,7 @@ pub struct TranspositionTableHit {
     pub bound: NodeBound,
     pub score: Eval,
     pub eval: Eval,
-    pub depth: u8,
+    pub depth: Depth,
     pub best_move: Option<Move>,
 }
 
@@ -286,7 +286,7 @@ impl TranspositionTable {
         best_move: Option<Move>,
         score: Eval,
         eval: Eval,
-        depth: u8,
+        depth: Depth,
         plies: u8,
     ) {
         let idx = self.get_entry_idx(key);
@@ -295,7 +295,7 @@ impl TranspositionTable {
             key,
             score: Self::with_mate_distance_from_position(score, plies).0 as i16,
             eval: eval.0 as i16,
-            depth,
+            depth: depth.as_u8(),
             best_move,
             bound_and_age: BoundAndAge::new(bound, self.generation),
         };
@@ -323,7 +323,7 @@ impl TranspositionTable {
                 return Some(TranspositionTableHit {
                     bound: entry.bound(),
                     score: Self::with_mate_distance_from_root(Eval(i32::from(entry.score)), plies),
-                    depth: entry.depth,
+                    depth: Depth::new(entry.depth),
                     eval: Eval(i32::from(entry.eval)),
                     best_move: entry.best_move,
                 });

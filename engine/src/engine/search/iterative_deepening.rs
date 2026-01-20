@@ -2,7 +2,7 @@ use crate::{
     chess::game::Game,
     engine::search::{
         MAX_SEARCH_DEPTH, Reporter, SearchContext, SearchInfo, SearchResult, SearchStats,
-        aspiration::aspiration_search, principal_variation::PrincipalVariation,
+        aspiration::aspiration_search, principal_variation::PrincipalVariation, types::Depth,
     },
 };
 
@@ -17,6 +17,8 @@ pub fn search(
     ctx.max_depth_reached = 0;
 
     for depth in 1..=MAX_SEARCH_DEPTH {
+        let depth = Depth::new(depth);
+
         if !ctx.time_control.should_start_new_search(depth, ctx) {
             break;
         }

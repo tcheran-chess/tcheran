@@ -7,6 +7,7 @@ mod quiescence;
 mod search;
 pub mod tables;
 pub mod time_control;
+pub mod types;
 
 pub use search::*;
 

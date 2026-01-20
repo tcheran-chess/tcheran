@@ -11,7 +11,7 @@ use crate::{
     engine::{
         options::EngineOptions,
         params::*,
-        search::{SearchContext, TimeControl},
+        search::{SearchContext, TimeControl, types::Depth},
     },
 };
 
@@ -128,7 +128,7 @@ impl TimeStrategy {
         self.started_at.elapsed()
     }
 
-    pub fn should_start_new_search(&self, depth: u8, ctx: &SearchContext<'_>) -> bool {
+    pub fn should_start_new_search(&self, depth: Depth, ctx: &SearchContext<'_>) -> bool {
         if depth == 1 {
             return true;
         }
@@ -158,7 +158,7 @@ impl TimeStrategy {
         self.stopped = true;
     }
 
-    pub fn update(&mut self, nodes_visited: u64, root_depth: u8) {
+    pub fn update(&mut self, nodes_visited: u64, root_depth: Depth) {
         // If we're on our first iterative deepening iteration we don't have a best move
         // yet, so don't force-stop the search under any circumstances.
         if root_depth == 1 {
@@ -203,7 +203,7 @@ impl TimeStrategy {
     }
 
     #[expect(clippy::cast_precision_loss, reason = "Time management calculations can be approx")]
-    pub fn update_after_search(&mut self, best_move: Move, depth: u8, nodes_visited: u64) {
+    pub fn update_after_search(&mut self, best_move: Move, depth: Depth, nodes_visited: u64) {
         let mut scale = 1.0;
 
         if depth >= best_move_stability_initial_depth() {

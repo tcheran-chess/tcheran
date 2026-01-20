@@ -14,6 +14,7 @@ use crate::{
             principal_variation::PrincipalVariation,
             tables::{KillersTable, Tables},
             time_control::{StopControl, TimeStrategy},
+            types::Depth,
         },
         tablebases::{Tablebase, Wdl},
         transposition_table::TranspositionTable,
@@ -112,9 +113,9 @@ pub struct SearchContext<'s> {
 
     pub time_control: TimeStrategy,
 
-    pub completed_depth: u8,
     pub max_depth_reached: u8,
-    pub root_depth: u8,
+    pub completed_depth: Depth,
+    pub root_depth: Depth,
     pub nodes: BufferedAtomicU64<'s>,
     pub tbhits: BufferedAtomicU64<'s>,
 }
@@ -142,9 +143,9 @@ impl<'s> SearchContext<'s> {
             nnue,
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
 
-            completed_depth: 0,
+            completed_depth: Depth::new(0),
             max_depth_reached: 0,
-            root_depth: 0,
+            root_depth: Depth::new(0),
             nodes: BufferedAtomicU64::new(node_counter),
             tbhits: BufferedAtomicU64::new(tbhits_counter),
         }
@@ -209,7 +210,7 @@ pub enum TimeControl {
         time: Duration,
         start_time: Instant,
     },
-    Depth(u8),
+    Depth(Depth),
     Nodes {
         soft: Option<u64>,
         hard: Option<u64>,
@@ -257,7 +258,7 @@ impl SearchStats {
     pub fn from_ctx(ctx: &SearchContext<'_>) -> Self {
         Self {
             time: ctx.time_control.elapsed(),
-            depth: ctx.completed_depth,
+            depth: ctx.completed_depth.as_u8(),
             seldepth: ctx.max_depth_reached,
             nodes: ctx.nodes.get_global(),
             nodes_per_second: util::metrics::nodes_per_second(

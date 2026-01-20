@@ -1,7 +1,12 @@
 use super::{MAX_SEARCH_DEPTH, SearchContext};
 use crate::{
     chess::game::Game,
-    engine::{eval, eval::Eval, search::move_picker::MovePicker, transposition_table::NodeBound},
+    engine::{
+        eval,
+        eval::Eval,
+        search::{move_picker::MovePicker, types::Depth},
+        transposition_table::NodeBound,
+    },
 };
 
 pub fn quiescence(
@@ -68,7 +73,7 @@ pub fn quiescence(
         let e = eval::eval(ctx.nnue, game);
 
         ctx.tt
-            .insert(game.hash, NodeBound::None, None, Eval::NONE, e, 0, plies);
+            .insert(game.hash, NodeBound::None, None, Eval::NONE, e, Depth::new(0), plies);
 
         e
     };
@@ -146,7 +151,7 @@ pub fn quiescence(
     }
 
     ctx.tt
-        .insert(game.hash, node_bound, best_move, best_eval, raw_eval, 0, plies);
+        .insert(game.hash, node_bound, best_move, best_eval, raw_eval, Depth::new(0), plies);
 
     best_eval
 }

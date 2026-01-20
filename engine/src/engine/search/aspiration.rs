@@ -3,7 +3,7 @@ use crate::{
     engine::{
         eval::Eval,
         params::*,
-        search::{SearchContext, negamax, principal_variation::PrincipalVariation},
+        search::{SearchContext, negamax, principal_variation::PrincipalVariation, types::Depth},
     },
 };
 
@@ -59,7 +59,7 @@ impl Window {
 
 pub fn aspiration_search(
     game: &mut Game,
-    depth: u8,
+    depth: Depth,
     eval: Option<Eval>,
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
@@ -76,15 +76,7 @@ pub fn aspiration_search(
     let mut reduction = 0;
 
     loop {
-        let eval = negamax::negamax(
-            game,
-            window.alpha,
-            window.beta,
-            depth.saturating_sub(reduction),
-            0,
-            pv,
-            ctx,
-        );
+        let eval = negamax::negamax(game, window.alpha, window.beta, depth - reduction, 0, pv, ctx);
 
         if ctx.time_control.stopped() {
             return Eval::MIN;

@@ -12,7 +12,10 @@ use crate::{
     engine::{
         options::EngineOptions,
         search,
-        search::{PersistentState, Reporter, SearchInfo, TimeControl, time_control::StopControl},
+        search::{
+            PersistentState, Reporter, SearchInfo, TimeControl, time_control::StopControl,
+            types::Depth,
+        },
     },
 };
 
@@ -107,7 +110,7 @@ const POSITIONS: [&str; 88] = [
     "5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28", // En passant discovered check
 ];
 
-const DEFAULT_DEPTH: u8 = 12;
+const DEFAULT_DEPTH: Depth = Depth::new(12);
 
 pub struct BenchReporter {
     nodes: RefCell<Option<u64>>,
@@ -135,7 +138,7 @@ impl Reporter for BenchReporter {
     fn best_move(&self, _: &Game, _: Move) {}
 }
 
-pub fn bench(depth: Option<u8>) -> (u64, Duration) {
+pub fn bench(depth: Option<Depth>) -> (u64, Duration) {
     let mut nodes = 0;
     let mut search_time = Duration::new(0, 0);
 

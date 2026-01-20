@@ -1,10 +1,9 @@
-use crate::engine::params::*;
+use crate::engine::{params::*, search::types::Depth};
 
 static mut LMR_TABLE: [[u8; 64]; 64] = [[0; 64]; 64];
 
-pub fn lmr_reduction(depth: u8, move_count: usize) -> u8 {
-    let depth = depth as usize;
-    unsafe { LMR_TABLE[depth.min(63)][move_count.min(63)] }
+pub fn lmr_reduction(depth: Depth, move_count: usize) -> u8 {
+    unsafe { LMR_TABLE[depth.idx().min(63)][move_count.min(63)] }
 }
 
 #[expect(

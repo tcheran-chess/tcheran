@@ -237,7 +237,7 @@ pub fn negamax(
     }
 
     // Singular extension
-    let mut singular_extension = 0;
+    let mut extension = 0;
 
     let singular_extension_candidate = tt_entry
         .as_ref()
@@ -263,13 +263,13 @@ pub fn negamax(
         ctx.stack.get(plies).excluded_mv = None;
 
         if value < se_beta {
-            singular_extension = 1;
+            extension = 1;
 
             if !is_pv
                 && value + double_extension_margin() < se_beta
                 && ctx.stack.get(plies).double_extensions <= double_extension_max()
             {
-                singular_extension = 2;
+                extension = 2;
                 ctx.stack.get(plies).double_extensions += 1;
             }
         } else if !is_pv && !value.is_mate() && value >= beta {
@@ -357,14 +357,17 @@ pub fn negamax(
         game.make_move(mv);
         number_of_legal_moves += 1;
 
+        // Only apply the extension to the singular move
         let extension = if Some(mv) == singular_extension_candidate {
-            singular_extension
+            extension
         } else {
             0
         };
 
+        let search_depth = depth + extension - 1;
+
         let move_score = if number_of_legal_moves == 1 {
-            -negamax(game, -beta, -alpha, depth + extension - 1, plies + 1, &mut node_pv, ctx)
+            -negamax(game, -beta, -alpha, search_depth, plies + 1, &mut node_pv, ctx)
         } else {
             let reduction = if depth >= lmr_depth() && number_of_legal_moves >= lmr_move_threshold()
             {
@@ -381,6 +384,8 @@ pub fn negamax(
                 1
             };
 
+            let reduced_search_depth = depth + extension - reduction;
+
             // We already found a good move (i.e. we raised alpha).
             // Now, we just need to prove that the other moves are worse.
             // We search them with a reduced window to prove that they are at least worse.
@@ -388,7 +393,7 @@ pub fn negamax(
                 game,
                 -alpha - Eval(1),
                 -alpha,
-                depth + extension - reduction,
+                reduced_search_depth,
                 plies + 1,
                 &mut node_pv,
                 ctx,
@@ -401,7 +406,7 @@ pub fn negamax(
                     game,
                     -alpha - Eval(1),
                     -alpha,
-                    depth + extension - 1,
+                    search_depth,
                     plies + 1,
                     &mut node_pv,
                     ctx,
@@ -411,7 +416,7 @@ pub fn negamax(
             // If searching at full depth STILL raised alpha, re-search with normal alpha/beta
             // bounds.
             if pvs_score > alpha && pvs_score < beta {
-                -negamax(game, -beta, -alpha, depth + extension - 1, plies + 1, &mut node_pv, ctx)
+                -negamax(game, -beta, -alpha, search_depth, plies + 1, &mut node_pv, ctx)
             } else {
                 pvs_score
             }

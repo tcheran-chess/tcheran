@@ -16,6 +16,7 @@
 * Network #14, using the same data and architecture as net 13 but trained for an additional 40 superbatches at 0.6 WDL (5.00 +- 3.60)
 * Set SearchStackEntry::mv in quiescence (4.77 +- 3.47)
 * Use capture history in SEE pruning threshold (4.01 +- 3.05)
+* Negative extension when tt_score >= beta (3.66 +- 2.85)
 * Shrink aspiration windows further, from 20 to 15 (3.40 +- 2.70)
 * Return average of eval and beta for quiescence fail-highs (2.86 +- 2.29)
 * Use threefold repetitions (2.49 +- 3.65)

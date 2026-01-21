@@ -267,6 +267,8 @@ pub fn negamax(
             }
         } else if !is_pv && !value.is_mate() && value >= beta {
             return value;
+        } else if tt_score >= beta {
+            extension = -2;
         }
     }
 

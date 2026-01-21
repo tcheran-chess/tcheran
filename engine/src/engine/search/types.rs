@@ -51,6 +51,14 @@ impl std::ops::Add<u8> for Depth {
     }
 }
 
+impl std::ops::Add<i8> for Depth {
+    type Output = Self;
+
+    fn add(self, rhs: i8) -> Self::Output {
+        Self(self.0.saturating_add_signed(rhs))
+    }
+}
+
 impl std::ops::AddAssign<u8> for Depth {
     fn add_assign(&mut self, rhs: u8) {
         self.0 = self.0.saturating_add(rhs);

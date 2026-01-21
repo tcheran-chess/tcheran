@@ -230,7 +230,7 @@ pub fn negamax(
     }
 
     // Singular extension
-    let mut extension = 0;
+    let mut extension: i8 = 0;
 
     let singular_extension_candidate = tt_entry
         .as_ref()

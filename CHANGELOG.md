@@ -15,6 +15,7 @@
 * Generate quiets to evade check in quiescence (5.16 +- 3.69)
 * Network #14, using the same data and architecture as net 13 but trained for an additional 40 superbatches at 0.6 WDL (5.00 +- 3.60)
 * Set SearchStackEntry::mv in quiescence (4.77 +- 3.47)
+* Reduce negative extension when tt_score >= beta (4.56 +- 3.38)
 * Use capture history in SEE pruning threshold (4.01 +- 3.05)
 * Negative extension when tt_score >= beta (3.66 +- 2.85)
 * Shrink aspiration windows further, from 20 to 15 (3.40 +- 2.70)

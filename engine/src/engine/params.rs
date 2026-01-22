@@ -25,9 +25,17 @@ parameters!(
     (see_queen_value, i32, 900, 4, 4096, 16.0),
 
     // History
-    (history_max_bonus, i32, 1600, 1, 4096, 256.0),
-    (history_factor, i32, 350, 1, 2048, 32.0),
-    (history_offset, i32, 350, 1, 2048, 32.0),
+    (quiet_history_max_bonus, i32, 1600, 1, 4096, 256.0),
+    (quiet_history_factor, i32, 350, 1, 2048, 32.0),
+    (quiet_history_offset, i32, 350, 1, 2048, 32.0),
+
+    (capture_history_max_bonus, i32, 1600, 1, 4096, 256.0),
+    (capture_history_factor, i32, 350, 1, 2048, 32.0),
+    (capture_history_offset, i32, 350, 1, 2048, 32.0),
+
+    (continuation_history_max_bonus, i32, 1600, 1, 4096, 256.0),
+    (continuation_history_factor, i32, 350, 1, 2048, 32.0),
+    (continuation_history_offset, i32, 350, 1, 2048, 32.0),
 
     (pawn_correction_history_weight, i32, 128, 48, 256, 8.0),
     (major_correction_history_weight, i32, 128, 48, 256, 8.0),

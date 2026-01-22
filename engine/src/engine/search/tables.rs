@@ -83,16 +83,16 @@ impl KillersTable {
     }
 }
 
-pub fn history_bonus(depth: Depth) -> i32 {
-    min(depth * history_factor() - history_offset(), history_max_bonus())
-}
-
 type ByPlayer<T> = [T; Player::N];
 type FromTo<T> = [[T; Square::N]; Square::N];
 type PieceTo<T> = [[T; Square::N]; Piece::N];
 type Threats<T> = [[T; 2]; 2];
 
 pub struct QuietHistoryTable(ByPlayer<FromTo<Threats<HistoryEntry<{ Self::MAX }>>>>);
+
+pub fn quiet_history_bonus(depth: Depth) -> i32 {
+    min(depth * quiet_history_factor() - quiet_history_offset(), quiet_history_max_bonus())
+}
 
 impl QuietHistoryTable {
     const MAX: i16 = 8192;
@@ -116,7 +116,7 @@ impl QuietHistoryTable {
     }
 
     pub fn update(&mut self, game: &Game, mv: Move, depth: Depth, other_quiets_tried: &MoveList) {
-        let bonus = history_bonus(depth);
+        let bonus = quiet_history_bonus(depth);
 
         self.update_for_move(game, mv, bonus);
 
@@ -127,6 +127,10 @@ impl QuietHistoryTable {
 }
 
 pub struct CaptureHistoryTable(PieceTo<[Threats<HistoryEntry<{ Self::MAX }>>; PieceKind::N]>);
+
+pub fn capture_history_bonus(depth: Depth) -> i32 {
+    min(depth * capture_history_factor() - capture_history_offset(), capture_history_max_bonus())
+}
 
 impl CaptureHistoryTable {
     pub const MAX: i16 = 8192;
@@ -158,7 +162,7 @@ impl CaptureHistoryTable {
     }
 
     pub fn update(&mut self, mv: Move, game: &Game, depth: Depth, other_captures_tried: &MoveList) {
-        let bonus = history_bonus(depth);
+        let bonus = capture_history_bonus(depth);
 
         if mv.is_capture() {
             self.update_for_move(mv, game, bonus);
@@ -171,6 +175,13 @@ impl CaptureHistoryTable {
 }
 
 pub struct ContHistTable(PieceTo<PieceTo<HistoryEntry<{ Self::MAX }>>>);
+
+pub fn continuation_history_bonus(depth: Depth) -> i32 {
+    min(
+        depth * continuation_history_factor() - continuation_history_offset(),
+        continuation_history_max_bonus(),
+    )
+}
 
 impl ContHistTable {
     const MAX: i16 = 16384;
@@ -211,7 +222,7 @@ impl ContHistTable {
         depth: Depth,
         quiets_tried: &MoveList,
     ) {
-        let bonus = history_bonus(depth);
+        let bonus = continuation_history_bonus(depth);
 
         let moved = game.board.piece_guaranteed_at(mv.src());
         self.update_for_move(previous_piece_moved, previous_move.dst(), moved, mv.dst(), bonus);

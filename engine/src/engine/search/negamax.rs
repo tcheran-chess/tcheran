@@ -27,7 +27,7 @@ pub fn negamax(
     beta: Eval,
     mut depth: Depth,
     plies: u8,
-    _cut_node: bool,
+    cut_node: bool,
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
@@ -382,6 +382,8 @@ pub fn negamax(
                     DepthReduction::new(lmr_reduction(depth, number_of_legal_moves));
 
                 // Reducing more:
+                reduction.reduce_more_if(cut_node, lmr_cut_node_factor());
+
                 reduction.reduce_more_if(!is_pv, lmr_is_not_pv_factor());
 
                 reduction.reduce_more_if(

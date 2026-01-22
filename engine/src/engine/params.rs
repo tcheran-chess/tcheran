@@ -14,6 +14,7 @@ parameters!(
     (lmr_base, i32, 75, 16, 256, 8.0),
     (lmr_factor, i32, 225, 64, 1028, 16.0),
 
+    (lmr_cut_node_factor, u32, 1024, 128, 2048, 64.0),
     (lmr_is_not_pv_factor, u32, 1024, 128, 2048, 64.0),
     (lmr_many_fail_highs_factor, u32, 1024, 128, 2048, 64.0),
     (lmr_in_check_factor, u32, 1024, 128, 2048, 64.0),

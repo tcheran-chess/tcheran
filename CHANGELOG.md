@@ -8,6 +8,7 @@
 * Scale soft time based on the fraction of nodes used to search the bset move (10.89 +- 5.82 STC, 16.01 +- 6.94 LTC)
 * Shrink default aspiration window from 25 to 20 (10.03 +- 5.56)
 * Network #12, adding 8 output buckets and using the same data as #11 (9.89 +- 5.56)
+* Do more LMR in cut nodes (9.87 +- 5.55)
 * Reduce more in LMR if the upcoming ply has failed high (7.80 +- 4.80)
 * Network #13, trained using the same arch and data as #12 but with horizontal mirroring (7.49 +- 4.59)
 * Add threats to capture history (6.37 +- 4.12)

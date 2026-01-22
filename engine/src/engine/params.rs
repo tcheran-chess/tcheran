@@ -13,6 +13,9 @@ parameters!(
     (see_capture_margin, i32, -100, -256, -8, 5.0),
     (see_prune_history_divisor, i32, 32, 8, 128, 6.0),
 
+    (lmr_base, i32, 75, 16, 256, 8.0),
+    (lmr_factor, i32, 225, 64, 1028, 16.0),
+
     // Eval
     (material_scale_base, i32, 950, 512, 1024, 20.0),
     (material_scale_divisor, i32, 32, 16, 128, 2.0),
@@ -70,8 +73,6 @@ non_tunable_parameters!(
     (lmp_depth, u8, 2),
     (lmp_move_threshold, u8, 5),
 
-    (lmr_base, f32, 0.75),
-    (lmr_factor, f32, 2.25),
     (lmr_depth, u8, 3),
     (lmr_move_threshold, usize, 3),
 

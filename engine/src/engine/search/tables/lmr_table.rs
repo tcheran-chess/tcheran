@@ -14,11 +14,13 @@ pub fn lmr_reduction(depth: Depth, move_count: usize) -> u8 {
 )]
 pub fn init() {
     unsafe {
+        let base = lmr_base() as f32 / 100.0;
+        let factor = lmr_factor() as f32 / 100.0;
+
         for (depth, table) in LMR_TABLE.iter_mut().enumerate().skip(1) {
             for (move_count, reduction) in table.iter_mut().enumerate().skip(1) {
-                *reduction = (lmr_base()
-                    + f32::ln(depth as f32) * f32::ln(move_count as f32) / lmr_factor())
-                    as u8;
+                *reduction =
+                    (base + f32::ln(depth as f32) * f32::ln(move_count as f32) / factor) as u8;
             }
         }
     }

@@ -87,8 +87,6 @@ impl ThreadData {
 
     pub fn new_search(&mut self, game: &Game) {
         self.tables.killer_moves = KillersTable::new();
-        // TODO: Do we need to reset the stack every time?
-        self.stack = SearchStack::new();
         self.nnue.setup(&game.board);
     }
 

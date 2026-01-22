@@ -45,6 +45,10 @@ impl SpinValue {
         self.0
     }
 
+    pub fn as_u32(&self) -> u32 {
+        u32::try_from(self.0).expect("Could not convert value to u32")
+    }
+
     pub fn as_u64(&self) -> u64 {
         u64::try_from(self.0).expect("Could not convert value to u64")
     }
@@ -153,6 +157,12 @@ impl From<SpinValue> for i32 {
 impl From<SpinValue> for u8 {
     fn from(value: SpinValue) -> Self {
         Self::try_from(value.0).expect("Value should fit in a u8")
+    }
+}
+
+impl From<SpinValue> for u32 {
+    fn from(value: SpinValue) -> Self {
+        Self::try_from(value.0).expect("Value should fit in a u32")
     }
 }
 

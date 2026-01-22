@@ -5,8 +5,6 @@ parameters!(
     // Search
     (reverse_futility_prune_margin_per_ply, i32, 150, 16, 256, 10.0),
 
-    (double_extension_margin, i32, 17, 1, 128, 1.0),
-
     (futility_prune_max_move_value, i32, 135, 8, 256, 10.0),
 
     (see_quiet_margin, i32, -30, -256, -8, 5.0),
@@ -67,6 +65,7 @@ non_tunable_parameters!(
     (singular_extension_depth, u8, 5),
     (singular_extension_entry_depth_delta, u8, 3),
     (singular_extension_margin, i32, 2),
+    (double_extension_margin, i32, 17),
 
     (double_extension_max, u8, 4),
 

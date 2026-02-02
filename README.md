@@ -1,10 +1,23 @@
 # <div align="center">Tcheran</div>
 
-A UCI compatible engine developed by [@jgilchrist](https://github.com/jgilchrist), written in Rust.
+Tcheran is a UCI chess engine developed by
+[@jgilchrist](https://github.com/jgilchrist) and written in Rust.
+
+For searching, it uses a standard alpha-beta search with many enhancements
+(e.g. additional pruning conditions, heuristics and history mechanisms to
+improve move ordering, etc.).
+
+For evaluation, it uses an efficiently-updatable neural network (NNUE). Its
+current architecture is `(768->1024hm)x2->8` (a single-layer,
+horizontally-mirrored network with a 1024-node hidden layer, and eight output
+buckets). The network is trained exclusively using self-play games from earlier
+versions of Tcheran, and [that data is available online][training-data]. More
+details, including a detailed network history are available in
+[NET.md](./NET.md).
+
+[training-data]: https://huggingface.co/datasets/jgilchrist/tcheran/tree/main
 
 ## Ratings
-
-Thank you to everybody who has tested the engine.
 
 | Version | [CCRL 40/15][ccrl-ltc] | [CCRL Blitz][ccrl-blitz] | [CEGT][cegt]   | [MCERL][mcerl] |
 | ------- | ---------------------- | ------------------------ | -------------- | -------------- |
@@ -32,38 +45,38 @@ Thank you to everybody who has tested the engine.
 [cegt]: http://www.cegt.net/40_40%20Rating%20List/40_40%20SingleVersion/rangliste.html
 [mcerl]: https://www.chessengeria.eu/mcerl
 
-It can also be found on Lichess as [`jpg-bot`](https://lichess.org/@/jpg-bot). Its current ratings are:
+It can also be found on Lichess as [`jpg-bot`](https://lichess.org/@/jpg-bot) where its ratings are:
 
 [![lichess-rapid](https://lichess-shield.vercel.app/api?username=jpg-bot&format=bullet)](https://lichess.org/@/jpg-bot/perf/bullet)
 [![lichess-rapid](https://lichess-shield.vercel.app/api?username=jpg-bot&format=blitz)](https://lichess.org/@/jpg-bot/perf/blitz)
 [![lichess-rapid](https://lichess-shield.vercel.app/api?username=jpg-bot&format=rapid)](https://lichess.org/@/jpg-bot/perf/rapid)
 
-## Features
+## Usage
 
-* Board
-    * Bitboard board representation
-    * Redundant mailbox representation for square lookups
-    * Zobrist hashing
+To run Tcheran, you can download the latest release from its [releases page][releases].
 
-* Move generation
-    * Fully legal move generation
-    * Fancy Magic bitboards
+If you would instead like to build it from source:
 
-* Search
-    * Iterative deepening
-    * Negamax
-    * Quiescence search
-    * Principal variation search (PVS)
-    * Check extensions
-    * Transposition table
-    * Null move pruning
-    * Reverse futility pruning
+* Ensure you have the pre-requisites installed:
+    * Rust (the minimum supported version is listed in [Cargo.toml](./Cargo.toml))
+    * A C compiler to build [Fathom][fathom] for tablebase probing support
+* Run `cargo build --release` - this will download the latest network and build the engine.
+* The engine binary will be available as `target/release/engine`.
 
-* Move ordering
-    * Previous best move
-    * Most Valuable Victim - Least Valuable Aggressor (MVV-LVA)
-    * Killer move heuristic
-    * History heuristic
-    * Incremental sorting
+[releases]: https://github.com/tcheran-chess/tcheran/releases
 
-* NNUE Evaluation (trained using Bullet)
+## Thanks
+
+A huge thanks to the following people and tools:
+
+* [Bullet][bullet], which is used for training Tcheran's neural networks
+* [Fathom][fathom], which is used for Syzygy tablebase probing
+* [OpenBench][openbench], which is used for testing changes to the engine
+* [Stockfish's WDL model][stockfish-wdl], which is used for normalizing Tcheran's evaluation output
+* The testers at [CCRL][ccrl] (and elsewhere), who have invested time and hardware resource, and provided consistent motivation to improve
+
+[bullet]: https://github.com/jw1912/bullet
+[fathom]: https://github.com/jdart1/Fathom
+[openbench]: https://github.com/AndyGrant/OpenBench
+[stockfish-wdl]: https://github.com/official-stockfish/WDL_model
+[ccrl]: https://www.computerchess.org.uk/ccrl/

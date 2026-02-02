@@ -280,6 +280,7 @@ dependencies = [
  "clap",
  "engine",
  "pgn-reader",
+ "rayon",
  "viriformat",
 ]
 
@@ -438,14 +439,6 @@ dependencies = [
  "rand_distr 0.4.3",
  "simba",
  "typenum",
-]
-
-[[package]]
-name = "nnue-scaling"
-version = "0.0.0"
-dependencies = [
- "engine",
- "rayon",
 ]
 
 [[package]]

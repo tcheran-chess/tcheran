@@ -5,7 +5,6 @@ members = [
     "tools/data",
     "tools/zobrist",
     "tools/sprt",
-    "tools/nnue_scaling",
     "tools/trainer"
 ]
 default-members = ["engine"]

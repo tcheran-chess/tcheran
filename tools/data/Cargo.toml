@@ -14,6 +14,7 @@ engine = { path = "../../engine", version = "*" }
 viriformat = "2.0.1"
 anyhow = "1.0.100"
 pgn-reader = "0.29.0"
+rayon = "1.11.0"
 
 [lints]
 workspace = true

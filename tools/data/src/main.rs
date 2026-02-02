@@ -22,6 +22,7 @@ enum Command {
     Interleave(interleave::InterleaveOptions),
     Relabel(relabel::RelabelOptions),
     Convert(convert::ConvertOptions),
+    Scaling(scaling::ScalingOptions),
 }
 
 pub fn main() -> Result<ExitCode> {
@@ -35,6 +36,7 @@ pub fn main() -> Result<ExitCode> {
         Command::Interleave(opts) => interleave::run(opts)?,
         Command::Relabel(opts) => relabel::run(opts)?,
         Command::Convert(opts) => convert::run(opts)?,
+        Command::Scaling(opts) => scaling::run(opts)?,
     }
 
     Ok(ExitCode::SUCCESS)

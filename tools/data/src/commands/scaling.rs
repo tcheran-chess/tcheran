@@ -1,14 +1,21 @@
 use std::{
     fs::File,
     io::{BufRead, BufReader},
-    process::ExitCode,
+    path::PathBuf,
 };
 
+use anyhow::Result;
+use clap::Args;
 use engine::{
     chess::game::Game,
     engine::eval::{nnue, nnue::NetworkStack},
 };
 use rayon::{iter::ParallelIterator, prelude::ParallelSlice};
+
+#[derive(Debug, Args)]
+pub struct ScalingOptions {
+    pub input: PathBuf,
+}
 
 #[derive(Default)]
 struct Stats {
@@ -20,18 +27,12 @@ struct Stats {
 }
 
 #[expect(clippy::cast_precision_loss, reason = "All calculations are approximate")]
-fn main() -> ExitCode {
-    engine::init();
-
-    let file_path = std::env::args()
-        .nth(1)
-        .expect("File argument should be supplied");
-    let file = File::open(file_path).expect("File should open");
+pub fn run(options: &ScalingOptions) -> Result<()> {
+    let file = File::open(&options.input)?;
 
     let fens = BufReader::new(file)
         .lines()
-        .collect::<Result<Vec<_>, _>>()
-        .expect("Should be able to collect FENs");
+        .collect::<Result<Vec<_>, _>>()?;
 
     let stats = fens
         .par_chunks(100_000)
@@ -59,7 +60,7 @@ fn main() -> ExitCode {
 
     println!("\nScale: {scale:.6}");
 
-    ExitCode::SUCCESS
+    Ok(())
 }
 
 fn chunk_stats(fens: &[String]) -> Stats {

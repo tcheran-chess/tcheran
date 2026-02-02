@@ -87,7 +87,6 @@ impl Visitor for PgnToViri {
         let mut virigame = ViriGame::new(&viriboard);
 
         // Uncomment for compatibility with Pawnocchio's output
-        // viriboard.set_fullmove_clock(1);
         // virigame = ViriGame {
         //     initial_position: viriboard.to_marlinformat(0, 0, 164),
         //     moves: vec![],

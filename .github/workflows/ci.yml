@@ -63,18 +63,3 @@ jobs:
         run: |
           # Exclude the trainer as it requires CUDA
           cargo test --release --workspace --exclude trainer
-
-  build-and-test-release-build:
-    runs-on: ubuntu-latest
-    needs: [metadata]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup toolchain
-        run: |
-          rustup override set ${{ needs.metadata.outputs.rust-version }}
-
-      - name: Test
-        run: |
-          cargo test --release --package engine --features release

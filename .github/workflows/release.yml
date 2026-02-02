@@ -59,7 +59,7 @@ jobs:
         run: |
           rustup override set ${{ needs.metadata.outputs.rust-version }}
           rustup target add x86_64-unknown-linux-musl
-          cargo build --release --package engine --features release --target x86_64-unknown-linux-musl
+          cargo build --release --package engine --target x86_64-unknown-linux-musl
           mv target/x86_64-unknown-linux-musl/release/engine tcheran-${{ needs.metadata.outputs.engine-version }}-linux-${{ matrix.exec_postfix }}
 
       - name: Upload artifacts
@@ -94,7 +94,7 @@ jobs:
         run: |
           rustup override set ${{ needs.metadata.outputs.rust-version }}
           rustup target add x86_64-pc-windows-msvc
-          cargo build --release --package engine --features release --target x86_64-pc-windows-msvc
+          cargo build --release --package engine --target x86_64-pc-windows-msvc
           mv .\target\x86_64-pc-windows-msvc\release\engine.exe tcheran-${{ needs.metadata.outputs.engine-version }}-windows-${{ matrix.exec_postfix }}.exe
 
       - name: Upload artifacts
@@ -116,7 +116,7 @@ jobs:
         run: |
           rustup override set ${{ needs.metadata.outputs.rust-version }}
           rustup target add aarch64-apple-darwin
-          cargo build --release --package engine --features release --target aarch64-apple-darwin
+          cargo build --release --package engine --target aarch64-apple-darwin
           mv target/aarch64-apple-darwin/release/engine tcheran-${{ needs.metadata.outputs.engine-version }}-macos
 
       - name: Upload artifacts

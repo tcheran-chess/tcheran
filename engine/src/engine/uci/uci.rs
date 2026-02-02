@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::{
-    ENGINE_NAME,
+    ENGINE_NAME, ENGINE_VERSION,
     chess::{
         bitboard::Bitboard,
         game::Game,
@@ -232,8 +232,9 @@ impl Uci {
             UciCommand::Uci => {
                 self.game = Game::new();
 
-                let version = crate::engine_version();
-                send_response(&UciResponse::Id(IdParam::Name(format!("{ENGINE_NAME} {version}"))));
+                send_response(&UciResponse::Id(IdParam::Name(format!(
+                    "{ENGINE_NAME} {ENGINE_VERSION}"
+                ))));
                 send_response(&UciResponse::Id(IdParam::Author("Jonathan Gilchrist")));
 
                 // Options

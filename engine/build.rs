@@ -9,10 +9,25 @@ const DOWNLOAD_BASE_URL: &str =
     "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks";
 
 fn main() {
+    generate_engine_version();
+
     let network_file = setup_network();
     println!("cargo:rustc-env=NETWORK={}", network_file.display());
 
     build_fathom();
+}
+
+fn generate_engine_version() {
+    let cargo_version = env!("CARGO_PKG_VERSION");
+
+    let (version, suffix) = match cargo_version.split_once('-') {
+        Some((version, suffix)) => (version, format!("-{suffix}")),
+        None => (cargo_version, String::new()),
+    };
+
+    let version = version.strip_suffix(".0").unwrap();
+
+    println!("cargo:rustc-env=ENGINE_VERSION=v{version}{suffix}");
 }
 
 fn setup_network() -> PathBuf {

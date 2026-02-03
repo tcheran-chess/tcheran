@@ -291,7 +291,7 @@ impl TranspositionTable {
     ) {
         let idx = self.get_entry_idx(key);
 
-        let new_entry = TranspositionTableEntry {
+        let mut new_entry = TranspositionTableEntry {
             key,
             score: Self::with_mate_distance_from_position(score, plies).0 as i16,
             eval: eval.0 as i16,
@@ -304,6 +304,14 @@ impl TranspositionTable {
         unsafe {
             if let Some(existing_entry) = self.data.get_unchecked(idx).read() {
                 if Self::should_overwrite(&existing_entry, &new_entry) {
+                    // Don't overwrite moves with None
+                    if best_move.is_none()
+                        && existing_entry.best_move.is_some()
+                        && new_entry.key == existing_entry.key
+                    {
+                        new_entry.best_move = existing_entry.best_move;
+                    }
+
                     self.data[idx].write(new_entry);
                 }
             } else {

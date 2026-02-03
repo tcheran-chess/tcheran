@@ -12,6 +12,7 @@
 * Reduce more in LMR if the upcoming ply has failed high (7.80 +- 4.80)
 * Network #13, trained using the same arch and data as #12 but with horizontal mirroring (7.49 +- 4.59)
 * Add threats to capture history (6.37 +- 4.12)
+* Only set best_move if we raised alpha (6.13 +- 4.10)
 * Clear killer moves for upcoming plies (5.77 +- 3.92)
 * Generate quiets to evade check in quiescence (5.16 +- 3.69)
 * Network #14, using the same data and architecture as net 13 but trained for an additional 40 superbatches at 0.6 WDL (5.00 +- 3.60)

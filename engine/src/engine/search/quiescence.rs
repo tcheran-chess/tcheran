@@ -132,16 +132,16 @@ pub fn quiescence(
         if move_score > best_eval {
             best_eval = move_score;
 
-            // Cutoff: This move is so good that our opponent won't let it be played.
-            if move_score >= beta {
-                node_bound = NodeBound::Lower;
-                break;
-            }
-
             if move_score > alpha {
                 best_move = Some(mv);
                 node_bound = NodeBound::Exact;
                 alpha = move_score;
+            }
+
+            // Cutoff: This move is so good that our opponent won't let it be played.
+            if move_score >= beta {
+                node_bound = NodeBound::Lower;
+                break;
             }
         }
     }

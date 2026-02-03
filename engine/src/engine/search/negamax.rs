@@ -459,20 +459,20 @@ pub fn negamax(
         }
 
         if move_score > best_eval {
-            best_move = Some(mv);
             best_eval = move_score;
+
+            if move_score > alpha {
+                alpha = move_score;
+                best_move = Some(mv);
+                tt_node_bound = NodeBound::Exact;
+                pv.push(mv, &node_pv);
+            }
 
             // Cutoff: This move is so good that our opponent won't let it be played.
             if move_score >= beta {
                 tt_node_bound = NodeBound::Lower;
                 ctx.stack.get(plies).fail_highs += 1;
                 break;
-            }
-
-            if move_score > alpha {
-                alpha = move_score;
-                tt_node_bound = NodeBound::Exact;
-                pv.push(mv, &node_pv);
             }
         }
 
@@ -499,9 +499,9 @@ pub fn negamax(
     }
 
     if excluded_mv.is_none() {
-        if tt_node_bound == NodeBound::Lower {
-            let mv = best_move.unwrap();
-
+        if tt_node_bound == NodeBound::Lower
+            && let Some(mv) = best_move
+        {
             ctx.tables
                 .capture_history
                 .update(mv, game, depth, &captures_tried);

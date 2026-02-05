@@ -19,7 +19,6 @@ use crate::{
         eval::Eval,
         params::*,
         search::{MAX_SEARCH_DEPTH_SIZE, types::Depth},
-        util::mem::alloc_boxed,
     },
 };
 
@@ -98,7 +97,7 @@ impl QuietHistoryTable {
     const MAX: i16 = 8192;
 
     pub fn new() -> Box<Self> {
-        alloc_boxed()
+        unsafe { Box::new_zeroed().assume_init() }
     }
 
     pub fn get(&self, game: &Game, mv: Move) -> i32 {
@@ -136,7 +135,7 @@ impl CaptureHistoryTable {
     pub const MAX: i16 = 8192;
 
     pub fn new() -> Box<Self> {
-        alloc_boxed()
+        unsafe { Box::new_zeroed().assume_init() }
     }
 
     pub fn get(&self, game: &Game, mv: Move) -> i32 {
@@ -188,7 +187,7 @@ impl ContHistTable {
     pub const PLIES: [usize; 2] = [1, 2];
 
     pub fn new() -> Box<Self> {
-        alloc_boxed()
+        unsafe { Box::new_zeroed().assume_init() }
     }
 
     pub fn get(
@@ -315,7 +314,7 @@ impl CorrectionHistoryTable {
     pub const MAX_UPDATE: i32 = Self::MAX as i32 / 4;
 
     pub fn new() -> Box<Self> {
-        alloc_boxed()
+        unsafe { Box::new_zeroed().assume_init() }
     }
 
     #[expect(clippy::cast_possible_truncation, reason = "u64 to usize")]

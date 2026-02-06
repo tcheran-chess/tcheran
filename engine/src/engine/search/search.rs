@@ -88,6 +88,7 @@ impl ThreadData {
     pub fn new_search(&mut self, game: &Game) {
         self.tables.killer_moves = KillersTable::new();
         self.nnue.setup(&game.board);
+        self.stack = SearchStack::new();
     }
 
     pub fn reset(&mut self) {

@@ -21,7 +21,6 @@
 * Use capture history in SEE pruning threshold (4.01 +- 3.05)
 * Negative extension when tt_score >= beta (3.66 +- 2.85)
 * Shrink aspiration windows further, from 20 to 15 (3.40 +- 2.70)
-* Don't reset the search stack when starting a new search (3.06 +- 6.06 reg) 
 * Return average of eval and beta for quiescence fail-highs (2.86 +- 2.29)
 * Use threefold repetitions (2.49 +- 3.65)
 

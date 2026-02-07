@@ -5,6 +5,8 @@ parameters!(
     // Search
     (reverse_futility_prune_margin_per_ply, i32, 150, 16, 256, 10.0),
 
+    (razoring_margin, i32, 315, 8, 512, 10.0),
+
     (futility_prune_max_move_value, i32, 135, 8, 256, 10.0),
 
     (see_quiet_margin, i32, -30, -256, -8, 5.0),
@@ -57,6 +59,9 @@ non_tunable_parameters!(
     (aspiration_min_depth, u8, 5),
 
     (reverse_futility_prune_depth, u8, 4),
+
+    (razoring_depth, u8, 4),
+    (razoring_max_alpha, i32, 2000),
 
     (null_move_pruning_base_reduction, u8, 4),
     (null_move_pruning_reduction_factor, u8, 4),

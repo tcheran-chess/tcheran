@@ -11,6 +11,7 @@
 * Do more LMR in cut nodes (9.87 +- 5.55)
 * Do NMP in cut nodes only (8.61 +- 5.05)
 * Reduce more in LMR if the upcoming ply has failed high (7.80 +- 4.80)
+* Add razoring (7.73 +- 4.76)
 * Network #13, trained using the same arch and data as #12 but with horizontal mirroring (7.49 +- 4.59)
 * Add threats to capture history (6.37 +- 4.12)
 * Only set best_move if we raised alpha (6.13 +- 4.10)

@@ -186,6 +186,21 @@ pub fn negamax(
         return beta + (eval - beta) / 3;
     }
 
+    // Razoring
+    if !is_root
+        && !is_pv
+        && !in_check
+        && excluded_mv.is_none()
+        && depth <= razoring_depth()
+        && alpha.0.abs() < razoring_max_alpha()
+        && eval + depth * razoring_margin() <= alpha
+    {
+        let qsearch_score = quiescence(game, alpha, alpha + 1, plies, ctx);
+        if qsearch_score <= alpha {
+            return qsearch_score;
+        }
+    }
+
     // Null move pruning
     if cut_node
         && !in_check

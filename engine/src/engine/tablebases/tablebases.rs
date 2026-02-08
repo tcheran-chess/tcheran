@@ -30,6 +30,18 @@ impl Tablebase {
         Self { is_enabled: false }
     }
 
+    pub fn can_probe(&self, game: &Game) -> bool {
+        if !self.is_enabled {
+            return false;
+        }
+
+        if game.board.occupancy().count() > self.n_men() {
+            return false;
+        }
+
+        true
+    }
+
     #[expect(
         clippy::cast_possible_truncation,
         reason = "n_men will be at most 7 as these are the largest syzygy tablebases"

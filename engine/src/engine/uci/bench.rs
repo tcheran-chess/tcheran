@@ -13,8 +13,8 @@ use crate::{
         options::EngineOptions,
         search,
         search::{
-            PersistentState, Reporter, SearchInfo, TimeControl, time_control::StopControl,
-            types::Depth,
+            PersistentState, Reporter, SearchInfo, ThreadData, TimeControl,
+            time_control::StopControl, types::Depth,
         },
     },
 };
@@ -145,19 +145,21 @@ pub fn bench(depth: Option<Depth>) -> (u64, Duration) {
     let depth = depth.unwrap_or(DEFAULT_DEPTH);
 
     for position in POSITIONS {
-        let bench_reporter = BenchReporter::new();
+        let bench_reporter = Box::new(BenchReporter::new());
         let game = Game::from_fen(position).unwrap();
 
-        let mut persistent_state = PersistentState::new(16);
+        let persistent_state = PersistentState::new(16);
         let now = Instant::now();
 
         search::search(
             &game,
-            &mut persistent_state,
+            &persistent_state,
+            // Non-main thread so that we don't wait to finish
+            &mut ThreadData::new(1),
             TimeControl::Depth(depth),
-            StopControl::new(),
+            &StopControl::new(0),
             &EngineOptions::DEFAULT,
-            &bench_reporter,
+            &*bench_reporter,
         );
 
         nodes += bench_reporter.nodes();

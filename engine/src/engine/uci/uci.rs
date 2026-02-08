@@ -2,7 +2,12 @@
 
 use std::{
     io::{BufRead, IsTerminal},
-    sync::{Arc, Mutex},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    thread,
+    thread::JoinHandle,
     time::{Duration, Instant},
 };
 
@@ -21,8 +26,10 @@ use crate::{
     engine::{
         eval::{WhiteEval, nnue::NNUE, wdl},
         options::{EngineOptions, defaults},
-        search,
-        search::{PersistentState, Reporter, time_control::StopControl},
+        search::{
+            NullReporter, PersistentState, Reporter, SearchInfo, SearchStats, ThreadData,
+            TimeControl, probe_tb_at_root, search, time_control::StopControl,
+        },
         uci::{
             bench::bench,
             commands,
@@ -32,16 +39,121 @@ use crate::{
             responses::{IdParam, UciReporter, UciResponse},
         },
         util,
-        util::{log, sync::LockLatch},
+        util::{
+            command_channel::{Receiver, Sender, channel},
+            log, metrics,
+        },
     },
 };
 
+pub struct Threads {
+    threads: Vec<JoinHandle<()>>,
+    tx: Sender<ThreadCommand>,
+
+    thread_control: StopControl,
+}
+
+impl Threads {
+    pub fn new() -> Self {
+        let (tx, _) = channel(0);
+
+        let mut ts = Self {
+            threads: vec![],
+            tx,
+
+            thread_control: StopControl::new(0),
+        };
+
+        ts.scale(1);
+        ts
+    }
+
+    pub fn scale(&mut self, n: u32) {
+        // If we just started, we may be scaling from 0 threads in which case we don't need to quit
+        // our existing threads.
+        if !self.threads.is_empty() {
+            self.send(ThreadCommand::Quit);
+            self.threads
+                .drain(..)
+                .for_each(|t| t.join().expect("Thread panicked"));
+        }
+
+        let (tx, rxs) = channel(n);
+
+        self.threads = rxs
+            .enumerate()
+            .map(|(thread_id, rx)| {
+                thread::spawn({
+                    move || {
+                        if std::panic::catch_unwind(move || {
+                            worker_thread_loop(rx, thread_id);
+                        })
+                        .is_err()
+                        {
+                            std::process::exit(-1);
+                        }
+                    }
+                })
+            })
+            .collect();
+
+        self.tx = tx;
+        self.thread_control = StopControl::new(n);
+
+        self.send(ThreadCommand::Ping);
+    }
+
+    fn send(&mut self, cmd: ThreadCommand) {
+        self.tx.send(cmd);
+    }
+
+    pub fn wait(&self) {
+        self.thread_control.wait_until_finished();
+    }
+
+    pub fn busy(&self) -> bool {
+        self.thread_control.is_busy()
+    }
+
+    pub fn reset(&mut self) {
+        self.send(ThreadCommand::Reset);
+    }
+
+    pub fn stop_and_wait(&self) {
+        assert!(self.thread_control.is_busy());
+
+        // Tell the threads to stop
+        self.thread_control.stop();
+
+        // Wait until all threads have stopped
+        self.thread_control.wait_until_finished();
+
+        // Reset the stop flag for the next search
+        self.thread_control.reset();
+    }
+}
+
+#[derive(Clone)]
+#[expect(clippy::large_enum_variant, reason = "No issues with these being large")]
+pub enum ThreadCommand {
+    Search {
+        game: Game,
+        time_control: TimeControl,
+        stop_control: StopControl,
+        options: EngineOptions,
+        persistent_state: Arc<PersistentState>,
+        reporter: Arc<dyn Reporter + Send + Sync>,
+    },
+    Quit,
+    Ping,
+    Reset,
+}
+
 pub struct Uci {
     game: Game,
-    persistent_state: Arc<Mutex<PersistentState>>,
-    reporter: UciReporter,
-    control: Option<StopControl>,
-    is_stopped: Arc<LockLatch>,
+    threads: Threads,
+    persistent_state: Arc<PersistentState>,
+    reporter: Arc<UciReporter>,
 
     options: Vec<UciOption>,
     engine_options: EngineOptions,
@@ -57,9 +169,7 @@ impl Uci {
     fn execute(&mut self, cmd: &UciCommand) -> Result<ExecuteResult, String> {
         match cmd {
             UciCommand::Uci => {
-                self.game = Game::new();
-                self.game.is_frc = self.engine_options.frc;
-                self.reporter.pretty_output = false;
+                self.reporter.pretty_output.store(false, Ordering::Relaxed);
 
                 self.reporter.send(&UciResponse::Id(IdParam::Name(format!(
                     "{ENGINE_NAME} {ENGINE_VERSION}"
@@ -79,6 +189,12 @@ impl Uci {
             }
             UciCommand::IsReady => self.reporter.send(&UciResponse::ReadyOk),
             UciCommand::SetOption { name, value } => {
+                if self.threads.busy() {
+                    self.reporter
+                        .generic_report("cannot set options while searching");
+                    return Ok(ExecuteResult::KeepGoing);
+                }
+
                 let Some(option) = self.options.iter().find(|o| o.name == name) else {
                     let unknown_option = format!("unknown option: {name}");
                     log::crashlog(&unknown_option);
@@ -87,29 +203,35 @@ impl Uci {
                     return Ok(ExecuteResult::KeepGoing);
                 };
 
-                let Ok(mut state_handle) = self.persistent_state.try_lock() else {
-                    self.reporter
-                        .generic_report("Unable to set options during search");
-                    return Ok(ExecuteResult::KeepGoing);
-                };
-
                 option.set(
                     value,
                     &mut self.game,
-                    &mut state_handle,
+                    &mut self.threads,
+                    &mut self.persistent_state,
                     &mut self.engine_options,
                     &mut self.reporter,
                 )?;
             }
             UciCommand::UciNewGame => {
+                if self.threads.busy() {
+                    self.reporter
+                        .generic_report("cannot start new game while searching");
+                    return Ok(ExecuteResult::KeepGoing);
+                }
+
                 self.game = Game::new();
                 self.game.is_frc = self.engine_options.frc;
-                self.is_stopped.reset();
 
-                let mut persistent_state_handle = self.persistent_state.lock().unwrap();
-                persistent_state_handle.reset();
+                self.threads.reset();
+                self.persistent_state.reset();
             }
             UciCommand::Position { position, moves } => {
+                if self.threads.busy() {
+                    self.reporter
+                        .generic_report("cannot set position while searching");
+                    return Ok(ExecuteResult::KeepGoing);
+                }
+
                 let mut game = match position {
                     commands::Position::StartPos => Game::new(),
                     commands::Position::Fen(fen) => if !self.engine_options.frc {
@@ -129,43 +251,63 @@ impl Uci {
                 self.game.is_frc = self.engine_options.frc;
             }
             UciCommand::Go { time_control } => {
+                if self.threads.busy() {
+                    self.reporter.generic_report("already searching");
+                    return Ok(ExecuteResult::KeepGoing);
+                }
+
+                if self.persistent_state.tablebase.can_probe(&self.game)
+                    && let Some((mv, eval, pv, elapsed, depth)) =
+                        probe_tb_at_root(&self.game, &self.persistent_state.tablebase, time_control)
+                {
+                    self.reporter.report_search_progress(SearchInfo {
+                        game: &self.game,
+                        pv,
+                        eval,
+                        stats: SearchStats {
+                            time: elapsed,
+                            depth,
+                            seldepth: depth,
+                            nodes: u64::from(depth),
+                            nodes_per_second: metrics::nodes_per_second(u64::from(depth), elapsed),
+                            tbhits: u64::from(depth),
+                            hashfull: 0,
+                        },
+                    });
+                    self.reporter.best_move(&self.game, mv);
+                    return Ok(ExecuteResult::KeepGoing);
+                }
+
+                self.threads.thread_control.start_search();
+                self.persistent_state.new_search();
+
                 let game = self.game.clone();
+                let persistent_state = self.persistent_state.clone();
                 let options = self.engine_options.clone();
                 let reporter = self.reporter.clone();
                 let time_control = time_control.clone();
+                let stop_control = self.threads.thread_control.clone();
 
-                let stop_control = StopControl::new();
-                self.control = Some(stop_control.clone());
-
-                let persistent_state = self.persistent_state.clone();
-                let is_stopped = self.is_stopped.clone();
-
-                let join_handle = std::thread::spawn(move || {
-                    let mut persistent_state_handle = persistent_state.lock().unwrap();
-
-                    search::search(
-                        &game,
-                        &mut persistent_state_handle,
-                        time_control,
-                        stop_control,
-                        &options,
-                        &reporter,
-                    );
-
-                    is_stopped.set();
+                self.threads.send(ThreadCommand::Search {
+                    game,
+                    time_control,
+                    stop_control,
+                    options,
+                    persistent_state,
+                    reporter,
                 });
 
                 if self.block_on_threads {
-                    join_handle.join().unwrap();
+                    self.threads.wait();
                 }
             }
             UciCommand::Stop => {
-                if let Some(c) = self.control.as_mut() {
-                    c.stop();
-                    self.is_stopped.wait();
+                if !self.threads.busy() {
+                    self.reporter.generic_report("no search to stop");
+                    return Ok(ExecuteResult::KeepGoing);
                 }
 
-                self.control = None;
+                self.threads.stop_and_wait();
             }
             UciCommand::PrintPosition => {
                 println!("{:?}", self.game.board);
@@ -173,6 +315,11 @@ impl Uci {
                 println!();
             }
             UciCommand::Move { moves } => {
+                if self.threads.busy() {
+                    self.reporter.generic_report("cannot move while searching");
+                    return Ok(ExecuteResult::KeepGoing);
+                }
+
                 let mut validated_moves = vec![];
 
                 // Validate that the moves play out correctly
@@ -351,7 +498,13 @@ impl Uci {
             }
             #[cfg(feature = "spsa")]
             UciCommand::Spsa => crate::engine::uci::spsa::print_spsa_input(),
-            UciCommand::Quit => return Ok(ExecuteResult::Exit),
+            UciCommand::Quit => {
+                if self.threads.busy() {
+                    self.threads.stop_and_wait();
+                }
+
+                return Ok(ExecuteResult::Exit);
+            }
         }
 
         Ok(ExecuteResult::KeepGoing)
@@ -440,7 +593,7 @@ pub fn uci_options() -> Vec<UciOption> {
         //
         UciOption::spin("Threads", |refs, value| {
             refs.options.threads = value.as_usize();
-            refs.state.scale_threads(refs.options.threads);
+            refs.threads.scale(refs.options.threads as u32);
         })
         .default(crate::engine::options::defaults::THREADS as i32)
         .with_bounds(1, 1024)
@@ -480,18 +633,64 @@ pub fn uci_options() -> Vec<UciOption> {
     o
 }
 
+fn worker_thread_loop(mut rx: Receiver<ThreadCommand>, id: usize) {
+    let mut thread_data = ThreadData::new(id);
+    let is_main_thread = id == 0;
+
+    loop {
+        match rx.recv(Clone::clone) {
+            ThreadCommand::Search {
+                game,
+                time_control,
+                stop_control,
+                options,
+                persistent_state,
+                reporter,
+            } => {
+                thread_data.new_search(&game);
+
+                // Only send messages from the main search thread
+                let reporter = if is_main_thread {
+                    reporter.clone()
+                } else {
+                    Arc::new(NullReporter)
+                };
+
+                // Only do time control on the main thread
+                let time_control = if is_main_thread {
+                    time_control
+                } else {
+                    TimeControl::Infinite
+                };
+
+                search(
+                    &game,
+                    &persistent_state,
+                    &mut thread_data,
+                    time_control,
+                    &stop_control,
+                    &options,
+                    &*reporter,
+                );
+            }
+            ThreadCommand::Ping => { /* pong */ }
+            ThreadCommand::Reset => {
+                thread_data.reset();
+            }
+            ThreadCommand::Quit => return,
+        }
+    }
+}
+
 pub fn uci(uci_input_mode: UciInputMode) -> Result<(), String> {
     let mut uci = Uci {
         game: Game::new(),
-        persistent_state: Arc::new(Mutex::new(PersistentState::new(
-            EngineOptions::DEFAULT.hash_size,
-        ))),
-        reporter: UciReporter {
-            pretty_output: std::io::stdin().is_terminal(),
+        threads: Threads::new(),
+        persistent_state: Arc::new(PersistentState::new(EngineOptions::DEFAULT.hash_size)),
+        reporter: Arc::new(UciReporter {
+            pretty_output: AtomicBool::new(std::io::stdin().is_terminal()),
             show_wdl: defaults::SHOW_WDL,
-        },
-        control: None,
-        is_stopped: Arc::new(LockLatch::new()),
+        }),
 
         options: uci_options(),
         engine_options: EngineOptions::DEFAULT,

@@ -8,8 +8,8 @@ use crate::{
         eval::Eval,
         options::EngineOptions,
         search::{
-            NullReporter, PersistentState, TimeControl, search, time_control::StopControl,
-            types::Depth,
+            NullReporter, PersistentState, ThreadData, TimeControl, search,
+            time_control::StopControl, types::Depth,
         },
     },
 };
@@ -22,8 +22,10 @@ fn test_expected_move(fen: &str, depth: Depth, mv: (Square, Square)) -> (Move, E
     let (best_move, eval) = search(
         &game,
         &mut persistent_state,
+        // Non-main thread so that we don't wait to stop
+        &mut ThreadData::new(1),
         TimeControl::Depth(depth),
-        StopControl::new(),
+        &StopControl::new(0),
         &EngineOptions::DEFAULT,
         &NullReporter,
     );

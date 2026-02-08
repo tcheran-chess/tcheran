@@ -1,4 +1,7 @@
-use std::time::Duration;
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::Duration,
+};
 
 use crate::{
     chess::{game::Game, moves::Move, player::Player, san},
@@ -61,9 +64,8 @@ pub(super) enum UciResponse<'uci> {
     Option(&'uci UciOption),
 }
 
-#[derive(Clone)]
 pub struct UciReporter {
-    pub pretty_output: bool,
+    pub pretty_output: AtomicBool,
     pub show_wdl: bool,
 }
 
@@ -334,7 +336,7 @@ impl Reporter for UciReporter {
     }
 
     fn report_search_progress(&self, progress: search::SearchInfo<'_>) {
-        if self.pretty_output {
+        if self.pretty_output.load(Ordering::Relaxed) {
             Self::pretty_report_search_progress(&progress);
         } else {
             self.uci_report_search_progress(&progress);
@@ -342,7 +344,7 @@ impl Reporter for UciReporter {
     }
 
     fn best_move(&self, game: &Game, mv: Move) {
-        if self.pretty_output {
+        if self.pretty_output.load(Ordering::Relaxed) {
             Self::pretty_best_move(game, mv);
         } else {
             self.uci_best_move(game, mv);

@@ -1,6 +1,5 @@
 use std::{
-    sync::{Arc, Mutex, atomic::AtomicU64},
-    thread,
+    sync::atomic::{AtomicU64, Ordering},
     time::{Duration, Instant},
 };
 
@@ -33,7 +32,8 @@ pub struct PersistentState {
     pub tt: TranspositionTable,
     pub tablebase: Tablebase,
 
-    thread_data: Vec<Arc<Mutex<ThreadData>>>,
+    pub node_counter: AtomicU64,
+    pub tbhits_counter: AtomicU64,
 }
 
 impl PersistentState {
@@ -46,42 +46,38 @@ impl PersistentState {
             tt: TranspositionTable::new(tt_size_mb),
             tablebase: tb.clone(),
 
-            thread_data: vec![Arc::new(Mutex::new(ThreadData::new()))],
+            node_counter: AtomicU64::default(),
+            tbhits_counter: AtomicU64::default(),
         }
     }
 
-    pub fn reset(&mut self) {
+    pub fn new_search(&self) {
+        self.tt.new_generation();
+        self.reset_counters();
+    }
+
+    pub fn reset(&self) {
         self.tt.reset();
-
-        for thread_data in &mut self.thread_data {
-            let mut thread_data = thread_data.lock().unwrap();
-            thread_data.reset();
-        }
+        self.reset_counters();
     }
 
-    pub fn get_thread_data(&self, thread_id: usize) -> Arc<Mutex<ThreadData>> {
-        self.thread_data[thread_id].clone()
-    }
-
-    pub fn scale_threads(&mut self, threads: usize) {
-        self.thread_data.clear();
-
-        for _ in 0..threads {
-            self.thread_data
-                .push(Arc::new(Mutex::new(ThreadData::new())));
-        }
+    fn reset_counters(&self) {
+        self.node_counter.store(0, Ordering::Relaxed);
+        self.tbhits_counter.store(0, Ordering::Relaxed);
     }
 }
 
 pub struct ThreadData {
+    pub id: usize,
     pub tables: Tables,
     pub nnue: NetworkStack,
     pub stack: SearchStack,
 }
 
 impl ThreadData {
-    pub fn new() -> Self {
+    pub fn new(id: usize) -> Self {
         Self {
+            id,
             tables: Tables::new(),
             nnue: NetworkStack::new(),
             stack: SearchStack::new(),
@@ -295,150 +291,70 @@ impl Reporter for NullReporter {
 
 pub fn search(
     game: &Game,
-    persistent_state: &mut PersistentState,
+    persistent_state: &PersistentState,
+    thread_data: &mut ThreadData,
     time_control: TimeControl,
-    stop_control: StopControl,
+    stop_control: &StopControl,
     options: &EngineOptions,
-    reporter: &impl Reporter,
+    reporter: &dyn Reporter,
 ) -> (Move, Eval) {
-    if let Some((mv, eval, pv, elapsed, depth)) =
-        probe_tb_at_root(game, &persistent_state.tablebase, &time_control)
-    {
-        reporter.report_search_progress(SearchInfo {
-            game,
-            pv,
-            eval,
-            stats: SearchStats {
-                time: elapsed,
-                depth,
-                seldepth: depth,
-                nodes: u64::from(depth),
-                nodes_per_second: util::metrics::nodes_per_second(u64::from(depth), elapsed),
-                tbhits: u64::from(depth),
-                hashfull: 0,
-            },
-        });
-        reporter.best_move(game, mv);
-        return (mv, eval);
+    let is_main_thread = thread_data.id == 0;
+
+    let (tables, stack, nnue) = thread_data.mut_refs();
+    let mut ctx = SearchContext::new(
+        game,
+        &persistent_state.tt,
+        &persistent_state.tablebase,
+        &persistent_state.node_counter,
+        &persistent_state.tbhits_counter,
+        tables,
+        stack,
+        nnue,
+        time_control,
+        stop_control.clone(),
+        options,
+    );
+
+    let result = iterative_deepening::search(
+        // Give the search its own copy of the game so we don't get one returned in a dirty state
+        // when the search aborts.
+        &mut game.clone(),
+        &mut ctx,
+        reporter,
+    );
+
+    if is_main_thread {
+        // If we're the main thread, signal for all the other threads to stop and then wait until
+        // they do.
+        stop_control.stop();
+        stop_control.wait_until_last();
     }
 
-    persistent_state.tt.new_generation();
+    stop_control.stopped();
 
-    let threads_stop_control = StopControl::new();
-    let global_node_count = AtomicU64::new(0);
-    let global_tbhits_count = AtomicU64::new(0);
-
-    let result = thread::scope(|scope| {
-        let mut threads = Vec::new();
-
-        // If we want more than one thread, spawn our other threads, sharing the transposition
-        // table but with their own copy of everything else.
-        for thread_id in 1..options.threads {
-            let thread_data = persistent_state.get_thread_data(thread_id);
-            let tt = &persistent_state.tt;
-            let tablebase = &persistent_state.tablebase;
-            let global_node_count = &global_node_count;
-            let global_tbhits_count = &global_tbhits_count;
-
-            let this_thread_stop_control = threads_stop_control.clone();
-
-            let thread = scope.spawn(move || {
-                let mut thread_data_handle =
-                    thread_data.lock().expect("Unable to lock thread data");
-
-                thread_data_handle.new_search(game);
-
-                let (tables, stack, nnue) = thread_data_handle.mut_refs();
-
-                let mut ctx = SearchContext::new(
-                    game,
-                    tt,
-                    tablebase,
-                    global_node_count,
-                    global_tbhits_count,
-                    tables,
-                    stack,
-                    nnue,
-                    TimeControl::Infinite,
-                    this_thread_stop_control,
-                    options,
-                );
-
-                iterative_deepening::search(&mut game.clone(), &mut ctx, &NullReporter);
-            });
-
-            threads.push(thread);
-        }
-
-        let main_thread_data = persistent_state.get_thread_data(0);
-        let mut main_thread_data = main_thread_data
-            .lock()
-            .expect("Unable to lock main thread data");
-
-        main_thread_data.new_search(game);
-
-        let (tables, stack, nnue) = main_thread_data.mut_refs();
-
-        let mut ctx = SearchContext::new(
+    // Always send a final info line before reporting the best move so we have useful information
+    // such as the exact number of nodes searched and the exact time used. This could be useful for
+    // debugging time issues or reproducing a bug by playing exact nodes.
+    // See https://github.com/AndyGrant/Ethereal/issues/214
+    if ctx.was_hard_stopped {
+        reporter.report_search_progress(SearchInfo {
             game,
-            &persistent_state.tt,
-            &persistent_state.tablebase,
-            &global_node_count,
-            &global_tbhits_count,
-            tables,
-            stack,
-            nnue,
-            time_control,
-            stop_control,
-            options,
-        );
-
-        let result = iterative_deepening::search(
-            // Give the search its own copy of the game so we don't get one returned in a dirty state
-            // when the search aborts.
-            &mut game.clone(),
-            &mut ctx,
-            reporter,
-        );
-
-        threads_stop_control.stop();
-        for thread in threads {
-            thread.join().expect("Thread panicked");
-        }
-
-        // Always send a final info line before reporting the best move so we have useful information
-        // such as the exact number of nodes searched and the exact time used. This could be useful for
-        // debugging time issues or reproducing a bug by playing exact nodes.
-        // See https://github.com/AndyGrant/Ethereal/issues/214
-        if ctx.was_hard_stopped {
-            reporter.report_search_progress(SearchInfo {
-                game,
-                eval: result.eval,
-                pv: result.pv.clone(),
-                stats: SearchStats::from_ctx(&ctx),
-            });
-        }
-
-        result
-    });
+            pv: result.pv.clone(),
+            eval: result.eval,
+            stats: SearchStats::from_ctx(&ctx),
+        });
+    }
 
     reporter.best_move(game, result.best_move);
+
     (result.best_move, result.eval)
 }
 
-fn probe_tb_at_root(
+pub fn probe_tb_at_root(
     game: &Game,
     tb: &Tablebase,
     time_control: &TimeControl,
 ) -> Option<(Move, Eval, PrincipalVariation, Duration, u8)> {
-    if !tb.is_enabled {
-        return None;
-    }
-
-    if game.board.occupancy().count() > tb.n_men() {
-        return None;
-    }
-
     let mut game = game.clone();
     let best_move = tb.best_move(&game)?;
 

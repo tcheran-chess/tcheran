@@ -9,7 +9,7 @@ use crate::{
 pub fn search(
     game: &mut Game,
     ctx: &mut SearchContext<'_>,
-    reporter: &impl Reporter,
+    reporter: &dyn Reporter,
 ) -> SearchResult {
     let mut pv = PrincipalVariation::new();
     let mut result: Option<SearchResult> = None;

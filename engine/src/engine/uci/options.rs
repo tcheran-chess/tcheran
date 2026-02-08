@@ -1,7 +1,12 @@
+use std::sync::Arc;
+
 use crate::{
     chess::game::Game,
     engine::{
-        eval::Eval, options::EngineOptions, search::PersistentState, uci::responses::UciReporter,
+        eval::Eval,
+        options::EngineOptions,
+        search::PersistentState,
+        uci::{Threads, responses::UciReporter},
     },
 };
 
@@ -66,6 +71,7 @@ impl SpinValue {
 
 pub struct OptionCallbackRefs<'uci> {
     pub game: &'uci mut Game,
+    pub threads: &'uci mut Threads,
     pub state: &'uci mut PersistentState,
 
     pub options: &'uci mut EngineOptions,
@@ -115,12 +121,17 @@ impl UciOption {
         &self,
         value: &str,
         game: &mut Game,
-        state: &mut PersistentState,
+        threads: &mut Threads,
+        state: &mut Arc<PersistentState>,
         options: &mut EngineOptions,
-        reporter: &mut UciReporter,
+        reporter: &mut Arc<UciReporter>,
     ) -> Result<(), String> {
+        let state = Arc::get_mut(state).expect("Unable to get unique access to state");
+        let reporter = Arc::get_mut(reporter).expect("Unable to get unique access to reporter");
+
         let mut refs = OptionCallbackRefs {
             game,
+            threads,
             state,
 
             options,

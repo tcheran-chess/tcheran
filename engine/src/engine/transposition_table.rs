@@ -1,6 +1,6 @@
 use std::{
     mem::transmute,
-    sync::atomic::{AtomicU64, Ordering},
+    sync::atomic::{AtomicU8, AtomicU64, Ordering},
 };
 
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
 
 pub struct TranspositionTable {
     data: Vec<AtomicTranspositionTableEntry>,
-    generation: u8,
+    generation: AtomicU8,
     size: usize,
 }
 
@@ -97,6 +97,11 @@ impl AtomicTranspositionTableEntry {
         }
     }
 
+    fn reset(&self) {
+        self.key.store(0, Ordering::Relaxed);
+        self.data.store(0, Ordering::Relaxed);
+    }
+
     #[expect(clippy::transmute_undefined_repr, reason = "Confirmed that this transmute works")]
     fn write(&self, entry: TranspositionTableEntry) {
         let bits =
@@ -137,19 +142,19 @@ impl TranspositionTable {
         let mut tt = Self {
             data: Vec::new(),
             size: 0,
-            generation: 0,
+            generation: AtomicU8::default(),
         };
 
         tt.resize(size_mb);
         tt
     }
 
-    pub fn reset(&mut self) {
+    pub fn reset(&self) {
         for i in 0..self.data.len() {
-            self.data[i] = AtomicTranspositionTableEntry::empty();
+            self.data[i].reset();
         }
 
-        self.generation = 0;
+        self.generation.store(0, Ordering::Relaxed);
     }
 
     pub fn resize(&mut self, size_mb: usize) {
@@ -164,12 +169,16 @@ impl TranspositionTable {
             .resize_with(number_of_entries, AtomicTranspositionTableEntry::empty);
         self.data.shrink_to_fit();
         self.size = size_mb;
-        self.generation = 0;
+        self.generation.store(0, Ordering::Relaxed);
     }
 
-    pub fn new_generation(&mut self) {
-        self.generation += 1;
-        self.generation &= BoundAndAge::AGE_MASK;
+    pub fn new_generation(&self) {
+        let mut generation = self.generation.load(Ordering::Relaxed);
+
+        generation += 1;
+        generation &= BoundAndAge::AGE_MASK;
+
+        self.generation.store(generation, Ordering::Relaxed);
     }
 
     #[expect(
@@ -190,11 +199,12 @@ impl TranspositionTable {
     pub fn occupancy(&self) -> u64 {
         let mut occupied = 0;
         let estimate_n = 1000;
+        let generation = self.generation.load(Ordering::Relaxed);
 
         for entry in self.data.iter().take(estimate_n) {
             if entry
                 .read()
-                .is_some_and(|e| e.bound_and_age.age() == self.generation)
+                .is_some_and(|e| e.bound_and_age.age() == generation)
             {
                 occupied += 1;
             }
@@ -297,7 +307,7 @@ impl TranspositionTable {
             eval: eval.0 as i16,
             depth: depth.as_u8(),
             best_move,
-            bound_and_age: BoundAndAge::new(bound, self.generation),
+            bound_and_age: BoundAndAge::new(bound, self.generation.load(Ordering::Relaxed)),
         };
 
         // !: We know the exact size of the table and will always access within the bounds.

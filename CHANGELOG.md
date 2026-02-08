@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+* Implement a proper thread pool
+
 ## [11.0]
 
 ### Note

@@ -12,6 +12,7 @@ use crate::{
         options::EngineOptions,
         params::*,
         search::{SearchContext, TimeControl, types::Depth},
+        util::n_waiter::NWaiter,
     },
 };
 
@@ -36,21 +37,48 @@ pub struct TimeStrategy {
 #[derive(Clone)]
 pub struct StopControl {
     force_stop: Arc<AtomicBool>,
+    running: NWaiter,
 }
 
 impl StopControl {
-    pub fn new() -> Self {
+    pub fn new(n: u32) -> Self {
         Self {
             force_stop: Arc::new(AtomicBool::new(false)),
+            running: NWaiter::new(n),
         }
+    }
+
+    pub fn start_search(&self) {
+        self.force_stop.store(false, Ordering::Relaxed);
+        self.running.start();
     }
 
     pub fn stop(&self) {
         self.force_stop.store(true, Ordering::Relaxed);
     }
 
+    pub fn stopped(&self) {
+        self.running.decr();
+    }
+
+    pub fn reset(&self) {
+        self.force_stop.store(false, Ordering::Relaxed);
+    }
+
+    pub fn is_busy(&self) -> bool {
+        self.running.is_busy()
+    }
+
     pub fn should_stop(&self) -> bool {
         self.force_stop.load(Ordering::Relaxed)
+    }
+
+    pub fn wait_until_last(&self) {
+        self.running.wait_until_last();
+    }
+
+    pub fn wait_until_finished(&self) {
+        self.running.wait_until_finished();
     }
 }
 

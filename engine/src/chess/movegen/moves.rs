@@ -499,9 +499,10 @@ fn generate_castle_move_for_side<const KINGSIDE: bool>(
     let (required_empty_squares, target_square, middle_square) =
         bitboards::castle_squares::<KINGSIDE>(game.player);
 
+    let required_safe_squares = target_square.bb() | middle_square.bb();
+
     if (required_empty_squares & all_pieces).is_empty()
-        && attackers::generate_attackers_of(&game.board, game.player, middle_square).is_empty()
-        && attackers::generate_attackers_of(&game.board, game.player, target_square).is_empty()
+        && (required_safe_squares & game.threats).is_empty()
     {
         f(Move::castles(king_start_square, target_square));
     }

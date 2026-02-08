@@ -1,6 +1,7 @@
 mod eval;
 pub mod nnue;
 mod player_eval;
+mod simd;
 pub mod wdl;
 mod white_eval;
 

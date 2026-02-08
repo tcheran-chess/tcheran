@@ -7,31 +7,34 @@ use crate::{
         player::Player,
         square::{File, Square, squares, squares::all::H8},
     },
-    engine::{eval::Eval, search::MAX_SEARCH_DEPTH_SIZE},
+    engine::{
+        eval::{Eval, simd},
+        search::MAX_SEARCH_DEPTH_SIZE,
+    },
 };
 
 // Network parameters
 const FEATURES: usize = 768;
-const HIDDEN_SIZE: usize = 1024;
+pub const HIDDEN_SIZE: usize = 1024;
 const OUTPUT_BUCKETS: usize = 8;
 
 // Quantization factors
-const QA: i16 = 255;
-const QB: i16 = 64;
+pub const QA: i16 = 255;
+pub const QB: i16 = 64;
 
 // Eval scaling factor
 pub const SCALE: i32 = 289;
 
 /// Container for all network parameters
 #[repr(C, align(64))]
-struct Network {
-    feature_weights: [Accumulator; FEATURES],
-    feature_bias: Accumulator,
-    output_weights: [[i16; HIDDEN_SIZE * 2]; OUTPUT_BUCKETS],
-    output_bias: [i16; OUTPUT_BUCKETS],
+pub struct Network {
+    pub feature_weights: [Accumulator; FEATURES],
+    pub feature_bias: Accumulator,
+    pub output_weights: [[i16; HIDDEN_SIZE * 2]; OUTPUT_BUCKETS],
+    pub output_bias: [i16; OUTPUT_BUCKETS],
 }
 
-static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
+pub static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
 
 #[derive(Clone)]
 struct Changes {
@@ -230,7 +233,7 @@ impl NetworkStack {
 /// A column of the feature-weights matrix.
 #[derive(Clone)]
 #[repr(C, align(64))]
-pub struct Accumulator([i16; HIDDEN_SIZE]);
+pub struct Accumulator(pub [i16; HIDDEN_SIZE]);
 
 impl Accumulator {
     pub fn refresh(&mut self, board: &Board, pov: Player) {
@@ -357,26 +360,14 @@ impl NNUE {
             Player::Black => (&self[Player::Black], &self[Player::White]),
         };
 
-        let mut output = 0;
-
         let output_bucket = Self::bucket(game);
-        let output_weights = &NETWORK.output_weights[output_bucket];
-        let output_bias = &NETWORK.output_bias[output_bucket];
-
-        for (&us, &weight) in us.0.iter().zip(&output_weights[..HIDDEN_SIZE]) {
-            let us_clamped = us.clamp(0, QA);
-            output += i32::from(us_clamped * weight) * i32::from(us_clamped);
-        }
-
-        for (&them, &weight) in them.0.iter().zip(&output_weights[HIDDEN_SIZE..]) {
-            let them_clamped = them.clamp(0, QA);
-            output += i32::from(them_clamped * weight) * i32::from(them_clamped);
-        }
+        let mut output = simd::sum_output_weights(us, them, output_bucket);
 
         // Reduce quantization from QA * QA * QB to QA * QB.
         output /= i32::from(QA);
 
         // Add bias.
+        let output_bias = &NETWORK.output_bias[output_bucket];
         output += i32::from(*output_bias);
 
         // Apply eval scale.

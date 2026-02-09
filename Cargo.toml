@@ -45,6 +45,7 @@ enum_glob_use = "allow"
 large_stack_arrays = "allow"
 new_without_default = "allow"
 upper_case_acronyms = "allow"
+if_not_else = "allow"
 
 # Generally desired, but not ideal in a couple of places where we probably
 # want to add more code later which would invalidate the refactoring.

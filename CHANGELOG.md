@@ -30,6 +30,7 @@
 
 ### Misc
 
+* Tcheran now supports Fischer Random Chess (FRC)
 * We now always report a line immediately before printing the best move
 * The 'genfens' UCI command is now implemented to support OpenBench datagen
 * tools/data now has a command to convert from .pgn to viriformat

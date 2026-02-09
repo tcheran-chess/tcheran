@@ -328,20 +328,6 @@ pub mod bitboards {
     use crate::chess::player::Player;
     use crate::chess::square::squares::all::*;
 
-    pub const fn castle_squares<const KINGSIDE: bool>(player: Player) -> (Bitboard, Square, Square) {
-        if KINGSIDE {
-            match player {
-                Player::White => (WHITE_KINGSIDE_CASTLE_REQUIRED_EMPTY_SQUARES, WHITE_KINGSIDE_CASTLE_TARGET_SQUARE, WHITE_KINGSIDE_CASTLE_MIDDLE_SQUARE),
-                Player::Black => (BLACK_KINGSIDE_CASTLE_REQUIRED_EMPTY_SQUARES, BLACK_KINGSIDE_CASTLE_TARGET_SQUARE, BLACK_KINGSIDE_CASTLE_MIDDLE_SQUARE),
-            }
-        } else {
-            match player {
-                Player::White => (WHITE_QUEENSIDE_CASTLE_REQUIRED_EMPTY_SQUARES, WHITE_QUEENSIDE_CASTLE_TARGET_SQUARE, WHITE_QUEENSIDE_CASTLE_MIDDLE_SQUARE),
-                Player::Black => (BLACK_QUEENSIDE_CASTLE_REQUIRED_EMPTY_SQUARES, BLACK_QUEENSIDE_CASTLE_TARGET_SQUARE, BLACK_QUEENSIDE_CASTLE_MIDDLE_SQUARE),
-            }
-        }
-    }
-
     pub const fn back_rank(player: Player) -> Bitboard {
         match player {
             Player::White => RANK_1,
@@ -468,22 +454,6 @@ pub mod bitboards {
         A3_BB.0 | C3_BB.0 | E3_BB.0 | G3_BB.0 |
         B2_BB.0 | D2_BB.0 | F2_BB.0 | H2_BB.0 |
         A1_BB.0 | C1_BB.0 | E1_BB.0 | G1_BB.0 );
-
-    const WHITE_KINGSIDE_CASTLE_REQUIRED_EMPTY_SQUARES: Bitboard = Bitboard::new(F1_BB.0 | G1_BB.0);
-    const BLACK_KINGSIDE_CASTLE_REQUIRED_EMPTY_SQUARES: Bitboard = Bitboard::new(F8_BB.0 | G8_BB.0);
-
-    const WHITE_KINGSIDE_CASTLE_TARGET_SQUARE: Square = G1;
-    const WHITE_KINGSIDE_CASTLE_MIDDLE_SQUARE: Square = F1;
-    const BLACK_KINGSIDE_CASTLE_TARGET_SQUARE: Square = G8;
-    const BLACK_KINGSIDE_CASTLE_MIDDLE_SQUARE: Square = F8;
-
-    const WHITE_QUEENSIDE_CASTLE_REQUIRED_EMPTY_SQUARES: Bitboard = Bitboard::new(B1_BB.0 | C1_BB.0 | D1_BB.0);
-    const BLACK_QUEENSIDE_CASTLE_REQUIRED_EMPTY_SQUARES: Bitboard = Bitboard::new(B8_BB.0 | C8_BB.0 | D8_BB.0);
-
-    const WHITE_QUEENSIDE_CASTLE_TARGET_SQUARE: Square = C1;
-    const WHITE_QUEENSIDE_CASTLE_MIDDLE_SQUARE: Square = D1;
-    const BLACK_QUEENSIDE_CASTLE_TARGET_SQUARE: Square = C8;
-    const BLACK_QUEENSIDE_CASTLE_MIDDLE_SQUARE: Square = D8;
 }
 
 #[cfg(test)]

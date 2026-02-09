@@ -12,7 +12,7 @@ use crate::{
     chess::{
         bitboard::Bitboard,
         game::Game,
-        moves::{Move, MoveListExt},
+        moves::Move,
         perft,
         piece::PieceKind,
         player::Player,
@@ -25,6 +25,7 @@ use crate::{
         search,
         search::{PersistentState, Reporter, time_control::StopControl},
         uci::{
+            UciMove,
             bench::bench,
             commands,
             commands::UciCommand,
@@ -63,7 +64,7 @@ impl UciReporter {
                     .pv
                     .iter()
                     .copied()
-                    .map(std::convert::Into::into)
+                    .map(|m| UciMove::from_move(m, progress.game.is_frc))
                     .collect(),
             ),
             time: Some(progress.stats.time),
@@ -177,8 +178,10 @@ impl UciReporter {
         println!();
     }
 
-    fn uci_best_move(mv: Move) {
-        send_response(&UciResponse::BestMove { mv: mv.into() });
+    fn uci_best_move(game: &Game, mv: Move) {
+        send_response(&UciResponse::BestMove {
+            mv: UciMove::from_move(mv, game.is_frc),
+        });
     }
 
     fn pretty_best_move(game: &Game, mv: Move) {
@@ -203,7 +206,7 @@ impl Reporter for UciReporter {
         if self.pretty_output {
             Self::pretty_best_move(game, mv);
         } else {
-            Self::uci_best_move(mv);
+            Self::uci_best_move(game, mv);
         }
     }
 }
@@ -231,6 +234,7 @@ impl Uci {
         match cmd {
             UciCommand::Uci => {
                 self.game = Game::new();
+                self.game.is_frc = self.engine_options.frc;
                 self.reporter.pretty_output = false;
 
                 send_response(&UciResponse::Id(IdParam::Name(format!(
@@ -260,10 +264,11 @@ impl Uci {
                     return Ok(ExecuteResult::KeepGoing);
                 };
 
-                option.set(value, &mut self.engine_options, &mut state_handle)?;
+                option.set(value, &mut self.engine_options, &mut state_handle, &mut self.game)?;
             }
             UciCommand::UciNewGame => {
                 self.game = Game::new();
+                self.game.is_frc = self.engine_options.frc;
                 self.is_stopped.reset();
 
                 let mut persistent_state_handle = self.persistent_state.lock().unwrap();
@@ -272,17 +277,21 @@ impl Uci {
             UciCommand::Position { position, moves } => {
                 let mut game = match position {
                     commands::Position::StartPos => Game::new(),
-                    commands::Position::Fen(fen) => {
-                        Game::from_fen(fen).map_err(|e| e.to_string())?
+                    commands::Position::Fen(fen) => if !self.engine_options.frc {
+                        Game::from_fen(fen)
+                    } else {
+                        Game::from_frc_fen(fen)
                     }
+                    .map_err(|e| e.to_string())?,
                 };
 
-                for mv in moves {
-                    let matching_move = game.moves().expect_matching(mv.src, mv.dst, mv.promotion);
-                    game.make_move(matching_move);
+                for uci_mv in moves {
+                    let mv = uci_mv.find_in_game(&game);
+                    game.make_move(mv);
                 }
 
                 self.game = game;
+                self.game.is_frc = self.engine_options.frc;
             }
             UciCommand::Go { time_control } => {
                 let game = self.game.clone();
@@ -609,6 +618,13 @@ pub fn uci_options() -> Vec<UciOption> {
                 .unwrap_or(NonZero::new(1).unwrap())
                 .get() as i32,
         )
+        .build(),
+        //
+        UciOption::check("UCI_Chess960", |refs, value| {
+            refs.options.frc = value;
+            refs.game.is_frc = value;
+        })
+        .default(false)
         .build(),
         //
         UciOption::spin("Move Overhead", |refs, value| {

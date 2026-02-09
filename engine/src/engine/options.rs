@@ -5,6 +5,7 @@ pub mod defaults {
 
     pub const HASH_SIZE: usize = 16;
     pub const THREADS: usize = 1;
+    pub const FRC: bool = false;
     pub const MOVE_OVERHEAD: Duration = Duration::from_millis(0);
     pub const SYZYGY_PATH: Option<String> = None;
 }
@@ -13,6 +14,7 @@ pub mod defaults {
 pub struct EngineOptions {
     pub hash_size: usize,
     pub threads: usize,
+    pub frc: bool,
 
     // Account for the possibility that there's some overhead making the move
     // e.g. sending the best move over the internet.
@@ -24,6 +26,7 @@ impl EngineOptions {
     pub const DEFAULT: Self = Self {
         hash_size: defaults::HASH_SIZE,
         threads: defaults::THREADS,
+        frc: defaults::FRC,
         move_overhead: defaults::MOVE_OVERHEAD,
         syzygy_path: defaults::SYZYGY_PATH,
     };

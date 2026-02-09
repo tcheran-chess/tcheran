@@ -3,7 +3,6 @@ use crate::chess::{
     moves::Move,
     piece::{PieceKind, PromotionPieceKind},
     san::constants,
-    square::squares,
 };
 
 #[derive(Debug, Eq, PartialEq)]
@@ -20,15 +19,12 @@ pub fn format_move(game: &Game, mv: Move) -> String {
 
     let piece = game.board.piece_guaranteed_at(from);
 
-    let king_start = squares::king_start(game.player);
-    if piece.kind == PieceKind::King && from == king_start {
-        let kingside_castle_dest = squares::kingside_castle_dest(game.player);
-        if to == kingside_castle_dest {
+    if mv.is_castling() {
+        if Some(to) == game.castle_rights[game.player].king_side {
             return constants::KINGSIDE_CASTLE.to_string();
         }
 
-        let queenside_castle_dest = squares::queenside_castle_dest(game.player);
-        if to == queenside_castle_dest {
+        if Some(to) == game.castle_rights[game.player].queen_side {
             return constants::QUEENSIDE_CASTLE.to_string();
         }
     }
@@ -275,8 +271,8 @@ mod tests {
     fn san_castling() {
         let fen = "1k6/8/8/8/8/8/8/R3K2R w KQ - 0 1";
 
-        test_san_string(fen, (E1, G1), "O-O");
-        test_san_string(fen, (E1, C1), "O-O-O");
+        test_san_string(fen, (E1, H1), "O-O");
+        test_san_string(fen, (E1, A1), "O-O-O");
     }
 
     #[test]

@@ -21,14 +21,6 @@ impl ToViriExt for Move {
         if let Some(promo_piece) = self.promotion() {
             ViriMove::new_with_promo(from, to, promo_piece.to_viri())
         } else if self.is_castling() {
-            let to = match to {
-                ViriSquare::G1 => ViriSquare::H1,
-                ViriSquare::G8 => ViriSquare::H8,
-                ViriSquare::C1 => ViriSquare::A1,
-                ViriSquare::C8 => ViriSquare::A8,
-                _ => unreachable!("invalid castle square"),
-            };
-
             ViriMove::new_with_flags(from, to, MoveFlags::Castle)
         } else if self.is_en_passant() {
             ViriMove::new_with_flags(from, to, MoveFlags::EnPassant)

@@ -1,4 +1,7 @@
-use crate::engine::{eval::Eval, options::EngineOptions, search::PersistentState};
+use crate::{
+    chess::game::Game,
+    engine::{eval::Eval, options::EngineOptions, search::PersistentState},
+};
 
 pub struct UciOption {
     pub name: &'static str,
@@ -62,6 +65,7 @@ impl SpinValue {
 pub struct OptionCallbackRefs<'uci> {
     pub options: &'uci mut EngineOptions,
     pub state: &'uci mut PersistentState,
+    pub game: &'uci mut Game,
 }
 
 impl UciOption {
@@ -108,12 +112,20 @@ impl UciOption {
         value: &str,
         options: &mut EngineOptions,
         state: &mut PersistentState,
+        game: &mut Game,
     ) -> Result<(), String> {
         match &self.t {
             UciOptionType::Check { set_fn, .. } => {
                 let value = value.parse::<bool>().map_err(|_| "Invalid value")?;
 
-                set_fn(&mut OptionCallbackRefs { options, state }, value);
+                set_fn(
+                    &mut OptionCallbackRefs {
+                        options,
+                        state,
+                        game,
+                    },
+                    value,
+                );
 
                 Ok(())
             }
@@ -130,21 +142,40 @@ impl UciOption {
                     return Err("Value smaller than min".to_string());
                 }
 
-                let mut refs = OptionCallbackRefs { options, state };
-                set_fn(&mut refs, SpinValue::new(value));
+                set_fn(
+                    &mut OptionCallbackRefs {
+                        options,
+                        state,
+                        game,
+                    },
+                    SpinValue::new(value),
+                );
 
                 Ok(())
             }
             UciOptionType::String { set_fn, .. } => {
                 let value = value.parse::<String>().map_err(|_| "Invalid value")?;
 
-                let mut refs = OptionCallbackRefs { options, state };
-                set_fn(&mut refs, value);
+                set_fn(
+                    &mut OptionCallbackRefs {
+                        options,
+                        state,
+                        game,
+                    },
+                    value,
+                );
 
                 Ok(())
             }
             UciOptionType::Button { set_fn } => {
-                set_fn(&mut OptionCallbackRefs { options, state }, ());
+                set_fn(
+                    &mut OptionCallbackRefs {
+                        options,
+                        state,
+                        game,
+                    },
+                    (),
+                );
 
                 Ok(())
             }

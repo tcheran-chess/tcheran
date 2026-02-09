@@ -1,6 +1,6 @@
 # <div align="center">Tcheran</div>
 
-Tcheran is a UCI chess engine developed by
+Tcheran is a UCI chess (and fischer random chess) engine developed by
 [@jgilchrist](https://github.com/jgilchrist) and written in Rust.
 
 For searching, it uses a standard alpha-beta search with many enhancements

@@ -87,13 +87,36 @@ fn format_castle_rights(game: &Game) -> String {
         black_castle_rights.king_side,
         black_castle_rights.queen_side,
     ) {
-        (false, false, false, false) => "-".to_string(),
+        (None, None, None, None) => "-".to_string(),
+        (white_king, white_queen, black_king, black_queen) if game.is_frc => format!(
+            "{}{}{}{}",
+            if let Some(white_king) = white_king {
+                white_king.file().notation_upper()
+            } else {
+                ""
+            },
+            if let Some(white_queen) = white_queen {
+                white_queen.file().notation_upper()
+            } else {
+                ""
+            },
+            if let Some(black_king) = black_king {
+                black_king.file().notation()
+            } else {
+                ""
+            },
+            if let Some(black_queen) = black_queen {
+                black_queen.file().notation()
+            } else {
+                ""
+            }
+        ),
         (white_king, white_queen, black_king, black_queen) => format!(
             "{}{}{}{}",
-            if white_king { "K" } else { "" },
-            if white_queen { "Q" } else { "" },
-            if black_king { "k" } else { "" },
-            if black_queen { "q" } else { "" }
+            if white_king.is_some() { "K" } else { "" },
+            if white_queen.is_some() { "Q" } else { "" },
+            if black_king.is_some() { "k" } else { "" },
+            if black_queen.is_some() { "q" } else { "" }
         ),
     }
 }

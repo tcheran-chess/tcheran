@@ -5,7 +5,7 @@ use crate::chess::{
     moves::{Move, MoveListExt},
     piece::{PieceKind, PromotionPieceKind},
     san::constants,
-    square::{File, Rank, Square, squares},
+    square::{File, Rank, Square},
 };
 
 enum AmbiguityResolution {
@@ -225,17 +225,25 @@ fn parse_squares(game: &Game, mv: &str) -> Result<(Square, Square), ParseError> 
 
 pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
     if mv == constants::KINGSIDE_CASTLE {
+        let kingside_castle_king_dst = game.castle_rights[game.player]
+            .king_side
+            .expect("Castle move, but no castle rights");
+
         return Ok(game.moves().expect_matching(
-            squares::king_start(game.player),
-            squares::kingside_castle_dest(game.player),
+            game.board.king_square(game.player),
+            kingside_castle_king_dst,
             None,
         ));
     }
 
     if mv == constants::QUEENSIDE_CASTLE {
+        let queenside_castle_king_dst = game.castle_rights[game.player]
+            .queen_side
+            .expect("Castle move, but no castle rights");
+
         return Ok(game.moves().expect_matching(
-            squares::king_start(game.player),
-            squares::queenside_castle_dest(game.player),
+            game.board.king_square(game.player),
+            queenside_castle_king_dst,
             None,
         ));
     }
@@ -351,8 +359,8 @@ mod tests {
     fn san_castling() {
         let fen = "1k6/8/8/8/8/8/8/R3K2R w KQ - 0 1";
 
-        test_parse_san(fen, (E1, G1), "O-O");
-        test_parse_san(fen, (E1, C1), "O-O-O");
+        test_parse_san(fen, (E1, H1), "O-O");
+        test_parse_san(fen, (E1, A1), "O-O-O");
     }
 
     #[test]

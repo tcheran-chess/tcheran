@@ -3,7 +3,7 @@ use crate::chess::{
     game::{CastleRights, Game},
     piece::Piece,
     player::Player,
-    square::{File, Rank, Square},
+    square::{File, Rank, Square, squares},
 };
 
 #[derive(Debug)]
@@ -107,17 +107,81 @@ enum FenCastleRight {
     BlackQueenside,
 }
 
-fn fen_castle_right(input: char) -> Result<FenCastleRight, ()> {
+fn standard_castle_right(input: char) -> Result<(FenCastleRight, Square), ()> {
+    use FenCastleRight::*;
+
     Ok(match input {
-        'K' => FenCastleRight::WhiteKingside,
-        'Q' => FenCastleRight::WhiteQueenside,
-        'k' => FenCastleRight::BlackKingside,
-        'q' => FenCastleRight::BlackQueenside,
+        'K' => (WhiteKingside, squares::WHITE_STANDARD_KINGSIDE_ROOK_START),
+        'Q' => (WhiteQueenside, squares::WHITE_STANDARD_QUEENSIDE_ROOK_START),
+        'k' => (BlackKingside, squares::BLACK_STANDARD_KINGSIDE_ROOK_START),
+        'q' => (BlackQueenside, squares::BLACK_STANDARD_QUEENSIDE_ROOK_START),
         _ => return Err(()),
     })
 }
 
-fn fen_castling(input: &str) -> Result<[CastleRights; Player::N], ()> {
+fn frc_castle_right(input: char, board: &Board) -> Result<(FenCastleRight, Square), ()> {
+    use FenCastleRight::*;
+
+    let back_rank = |player: Player| match player {
+        Player::White => Rank::R1,
+        Player::Black => Rank::R8,
+    };
+
+    let leftmost_rook = |player: Player| {
+        File::ALL
+            .iter()
+            .map(|f| Square::from_file_and_rank(*f, back_rank(player)))
+            .find(|s| board.rooks(player).contains(*s))
+            .ok_or(())
+    };
+
+    let rightmost_rook = |player: Player| {
+        File::ALL
+            .iter()
+            .rev()
+            .map(|f| Square::from_file_and_rank(*f, back_rank(player)))
+            .find(|s| board.rooks(player).contains(*s))
+            .ok_or(())
+    };
+
+    Ok(match input {
+        'A'..='H' => {
+            let king_file = board.king_square(Player::White).file();
+
+            let file = fen_file(input.to_ascii_lowercase())?;
+            let square = Square::from_file_and_rank(file, Rank::R1);
+
+            let right = if file < king_file {
+                WhiteQueenside
+            } else {
+                WhiteKingside
+            };
+
+            (right, square)
+        }
+        'a'..='h' => {
+            let king_file = board.king_square(Player::Black).file();
+
+            let file = fen_file(input.to_ascii_lowercase())?;
+            let square = Square::from_file_and_rank(file, Rank::R8);
+
+            let right = if file < king_file {
+                BlackQueenside
+            } else {
+                BlackKingside
+            };
+
+            (right, square)
+        }
+        'K' => (WhiteKingside, rightmost_rook(Player::White)?),
+        'Q' => (WhiteQueenside, leftmost_rook(Player::White)?),
+        'k' => (BlackKingside, rightmost_rook(Player::Black)?),
+        'q' => (BlackQueenside, leftmost_rook(Player::Black)?),
+        _ => return Err(()),
+    })
+}
+
+fn fen_castling(input: &str, frc: bool, board: &Board) -> Result<[CastleRights; Player::N], ()> {
     if input == "-" {
         return Ok([CastleRights::none(), CastleRights::none()]);
     }
@@ -126,15 +190,36 @@ fn fen_castling(input: &str) -> Result<[CastleRights; Player::N], ()> {
     let mut black_castle_rights = CastleRights::none();
 
     for c in input.chars() {
-        match fen_castle_right(c)? {
-            FenCastleRight::WhiteKingside => white_castle_rights.king_side = true,
-            FenCastleRight::WhiteQueenside => white_castle_rights.queen_side = true,
-            FenCastleRight::BlackKingside => black_castle_rights.king_side = true,
-            FenCastleRight::BlackQueenside => black_castle_rights.queen_side = true,
+        let (right, square) = if !frc {
+            standard_castle_right(c)?
+        } else {
+            frc_castle_right(c, board)?
+        };
+
+        match right {
+            FenCastleRight::WhiteKingside => &mut white_castle_rights.king_side,
+            FenCastleRight::WhiteQueenside => &mut white_castle_rights.queen_side,
+            FenCastleRight::BlackKingside => &mut black_castle_rights.king_side,
+            FenCastleRight::BlackQueenside => &mut black_castle_rights.queen_side,
         }
+        .replace(square);
     }
 
     Ok([white_castle_rights, black_castle_rights])
+}
+
+fn fen_file(input: char) -> Result<File, ()> {
+    Ok(match input {
+        'a' => File::A,
+        'b' => File::B,
+        'c' => File::C,
+        'd' => File::D,
+        'e' => File::E,
+        'f' => File::F,
+        'g' => File::G,
+        'h' => File::H,
+        _ => return Err(()),
+    })
 }
 
 fn fen_square(input: &str) -> Result<Square, ()> {
@@ -146,17 +231,7 @@ fn fen_square(input: &str) -> Result<Square, ()> {
     let file = chars.next().unwrap();
     let rank = chars.next().unwrap();
 
-    let file = match file {
-        'a' => File::A,
-        'b' => File::B,
-        'c' => File::C,
-        'd' => File::D,
-        'e' => File::E,
-        'f' => File::F,
-        'g' => File::G,
-        'h' => File::H,
-        _ => return Err(()),
-    };
+    let file = fen_file(file)?;
 
     let rank = match rank {
         '1' => Rank::R1,
@@ -195,7 +270,7 @@ fn plies_from_fullmove_number(fullmove_number: u32, player: Player) -> u32 {
 }
 
 #[rustfmt::skip]
-pub fn parse(input: &str) -> Result<Game, ParseError> {
+pub fn parse(input: &str, frc: bool) -> Result<Game, ParseError> {
     let mut tokens = input.split_whitespace();
 
     let Some(position) = tokens.next() else { return Err(ParseError::InvalidPosition); };
@@ -205,7 +280,7 @@ pub fn parse(input: &str) -> Result<Game, ParseError> {
     let player = fen_color(player).map_err(|()| ParseError::InvalidPlayer)?;
 
     let Some(castle_rights) = tokens.next() else { return Err(ParseError::InvalidCastling); };
-    let castle_rights = fen_castling(castle_rights).map_err(|()| ParseError::InvalidCastling)?;
+    let castle_rights = fen_castling(castle_rights, frc, &board).map_err(|()| ParseError::InvalidCastling)?;
 
     let Some(en_passant_target) = tokens.next() else { return Err(ParseError::InvalidEnPassantTarget); };
     let en_passant_target = fen_en_passant_target(en_passant_target).map_err(|()| ParseError::InvalidEnPassantTarget)?;
@@ -239,6 +314,7 @@ pub fn parse(input: &str) -> Result<Game, ParseError> {
         en_passant_target,
         halfmove_clock,
         plies,
+        frc,
     ))
 }
 
@@ -252,7 +328,7 @@ mod tests {
     fn parse_startpos() {
         crate::init();
 
-        let game_result = parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        let game_result = parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", false);
         assert!(game_result.is_ok());
 
         let game = game_result.unwrap();
@@ -280,7 +356,8 @@ mod tests {
         crate::init();
 
         assert!(
-            parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1").is_ok()
+            parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", false)
+                .is_ok()
         );
     }
 
@@ -288,7 +365,20 @@ mod tests {
     fn parse_kiwipete_without_halfmove_and_fullmove() {
         crate::init();
 
-        assert!(parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ").is_ok());
+        assert!(
+            parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ", false)
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn parse_simple_frc() {
+        crate::init();
+
+        assert!(
+            parse("rnbq1rk1/pp2bppp/2pppn2/8/8/1PN1P1Q1/P1PPBPPP/R1B1K1NR b HA - 0 7", true)
+                .is_ok()
+        );
     }
 
     #[test]

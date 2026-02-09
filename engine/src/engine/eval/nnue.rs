@@ -1,11 +1,12 @@
 use crate::{
     chess::{
+        arrayvec::ArrayVec,
         board::Board,
         game::Game,
         moves::Move,
-        piece::{Piece, PieceKind, PromotionPieceKind},
+        piece::{Piece, PieceKind},
         player::Player,
-        square::{File, Square, squares, squares::all::H8},
+        square::{File, Square, squares::all::*},
     },
     engine::{
         eval::{Eval, simd},
@@ -36,21 +37,44 @@ pub struct Network {
 
 pub static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
 
-#[derive(Clone)]
-struct Changes {
+#[derive(Debug, Clone)]
+pub struct NNUEChanges {
+    pub adds: ArrayVec<NNUEChange, 2>,
+    pub subs: ArrayVec<NNUEChange, 2>,
     pub mv: Move,
     pub moved_piece: Piece,
-    pub captured_piece: Option<Piece>,
 }
 
-impl Changes {
-    pub const fn uninit() -> Self {
+#[derive(Debug, Clone, Copy)]
+pub struct NNUEChange {
+    pub piece: Piece,
+    pub square: Square,
+}
+
+impl NNUEChanges {
+    pub fn uninit() -> Self {
         Self {
-            // Arbitrarily chosen - these values will never be read
+            adds: ArrayVec::new(),
+            subs: ArrayVec::new(),
+
+            // Values chosen arbitrarily since they will always be overwritten
             mv: Move::quiet(H8, H8),
-            moved_piece: Piece::WHITE_KING,
-            captured_piece: None,
+            moved_piece: Piece::WHITE_PAWN,
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.adds.clear();
+        self.subs.clear();
+
+        self.mv = Move::quiet(H8, H8);
+        self.moved_piece = Piece::WHITE_PAWN;
+    }
+}
+
+impl NNUEChange {
+    pub fn new(square: Square, piece: Piece) -> Self {
+        Self { piece, square }
     }
 }
 
@@ -62,7 +86,7 @@ pub struct NetworkStack {
 #[derive(Clone)]
 pub struct NetworkStackEntry {
     pub network: NNUE,
-    changes: Changes,
+    changes: NNUEChanges,
     correct: [bool; Player::N],
 }
 
@@ -72,7 +96,7 @@ impl NetworkStack {
             stack: vec![
                 NetworkStackEntry {
                     network: NNUE::default(),
-                    changes: Changes::uninit(),
+                    changes: NNUEChanges::uninit(),
                     correct: [false; Player::N],
                 };
                 MAX_SEARCH_DEPTH_SIZE
@@ -87,14 +111,13 @@ impl NetworkStack {
         self.current_idx = 0;
     }
 
-    pub fn push(&mut self, board: &Board, mv: Move) {
+    pub fn next_changes(&mut self) -> &mut NNUEChanges {
         self.current_idx += 1;
 
-        let current_entry = self.current_entry();
-        current_entry.changes.mv = mv;
-        current_entry.changes.moved_piece = board.piece_guaranteed_at(mv.src());
-        current_entry.changes.captured_piece = board.piece_at(mv.dst());
-        current_entry.correct = [false; Player::N];
+        self.stack[self.current_idx].changes.clear();
+        self.stack[self.current_idx].correct = [false; Player::N];
+
+        &mut self.stack[self.current_idx].changes
     }
 
     pub fn pop(&mut self) {
@@ -177,55 +200,41 @@ impl NetworkStack {
         king: Square,
         pov: Player,
     ) {
-        let mv = entry.changes.mv;
-        let moved_piece = entry.changes.moved_piece;
-        let captured_piece = entry.changes.captured_piece;
-        let player = moved_piece.player;
+        match (entry.changes.adds.as_slice(), entry.changes.subs.as_slice()) {
+            ([add1], [sub1]) => {
+                let add1 = nnue_index(add1.piece, add1.square, king, pov);
+                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
+                NNUE::add1_sub1(&previous_entry.network[pov], &mut entry.network[pov], add1, sub1);
+            }
+            ([add1], [sub1, sub2]) => {
+                let add1 = nnue_index(add1.piece, add1.square, king, pov);
+                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
+                let sub2 = nnue_index(sub2.piece, sub2.square, king, pov);
 
-        let moved_piece_at_dst = Piece::new(
-            player,
-            mv.promotion()
-                .map_or(moved_piece.kind, PromotionPieceKind::piece),
-        );
+                NNUE::add1_sub2(
+                    &previous_entry.network[pov],
+                    &mut entry.network[pov],
+                    add1,
+                    sub1,
+                    sub2,
+                );
+            }
+            ([add1, add2], [sub1, sub2]) => {
+                let add1 = nnue_index(add1.piece, add1.square, king, pov);
+                let add2 = nnue_index(add2.piece, add2.square, king, pov);
+                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
+                let sub2 = nnue_index(sub2.piece, sub2.square, king, pov);
 
-        let add1 = nnue_index(moved_piece_at_dst, mv.dst(), king, pov);
-        let sub1 = nnue_index(moved_piece, mv.src(), king, pov);
-
-        if mv.is_castling() {
-            let (rook_from, rook_to) = squares::castle_squares(player, mv.dst())
-                .expect("Move should have castling squares");
-            let rook = Piece::new(moved_piece.player, PieceKind::Rook);
-
-            let add2 = nnue_index(rook, rook_to, king, pov);
-            let sub2 = nnue_index(rook, rook_from, king, pov);
-
-            NNUE::add2_sub2(
-                &previous_entry.network[pov],
-                &mut entry.network[pov],
-                add1,
-                add2,
-                sub1,
-                sub2,
-            );
-        } else if mv.is_capture() {
-            let sub2 = if mv.is_en_passant() {
-                let en_passant_capture_square = mv.dst().backward(player);
-                let taken_pawn = Piece::new(player.other(), PieceKind::Pawn);
-                nnue_index(taken_pawn, en_passant_capture_square, king, pov)
-            } else {
-                let taken_piece = captured_piece.expect("Move should have captured piece");
-                nnue_index(taken_piece, mv.dst(), king, pov)
-            };
-
-            NNUE::add1_sub2(
-                &previous_entry.network[pov],
-                &mut entry.network[pov],
-                add1,
-                sub1,
-                sub2,
-            );
-        } else {
-            NNUE::add1_sub1(&previous_entry.network[pov], &mut entry.network[pov], add1, sub1);
+                NNUE::add2_sub2(
+                    &previous_entry.network[pov],
+                    &mut entry.network[pov],
+                    add1,
+                    add2,
+                    sub1,
+                    sub2,
+                );
+            }
+            (_, _) => unreachable!(),
         }
     }
 }

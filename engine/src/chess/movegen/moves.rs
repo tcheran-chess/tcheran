@@ -1,7 +1,7 @@
 use crate::chess::{
     bitboard::{Bitboard, bitboards},
     game::Game,
-    movegen::{attackers, tables},
+    movegen::{attackers, tables, tables::between},
     moves::Move,
     piece::{Piece, PieceKind, PromotionPieceKind},
     square::{Square, squares},
@@ -480,31 +480,93 @@ fn generate_king_quiets(game: &Game, king: Square, all_pieces: Bitboard, f: &mut
 fn generate_castles(game: &Game, all_pieces: Bitboard, f: &mut impl FnMut(Move)) {
     let castle_rights_for_player = game.castle_rights[game.player];
 
-    if castle_rights_for_player.king_side {
-        generate_castle_move_for_side::<true>(game, all_pieces, f);
-    }
+    if !game.is_frc {
+        if let Some(kingside_dst) = castle_rights_for_player.king_side {
+            generate_castle_move_for_side(
+                game,
+                all_pieces,
+                f,
+                kingside_dst,
+                squares::kingside_king_castle_end(game.player),
+            );
+        }
 
-    if castle_rights_for_player.queen_side {
-        generate_castle_move_for_side::<false>(game, all_pieces, f);
+        if let Some(queenside_dst) = castle_rights_for_player.queen_side {
+            generate_castle_move_for_side(
+                game,
+                all_pieces,
+                f,
+                queenside_dst,
+                squares::queenside_king_castle_end(game.player),
+            );
+        }
+    } else {
+        if let Some(kingside_dst) = castle_rights_for_player.king_side {
+            generate_frc_castle_move_for_side(
+                game,
+                all_pieces,
+                f,
+                kingside_dst,
+                squares::kingside_rook_castle_end(game.player),
+                squares::kingside_king_castle_end(game.player),
+            );
+        }
+
+        if let Some(queenside_dst) = castle_rights_for_player.queen_side {
+            generate_frc_castle_move_for_side(
+                game,
+                all_pieces,
+                f,
+                queenside_dst,
+                squares::queenside_rook_castle_end(game.player),
+                squares::queenside_king_castle_end(game.player),
+            );
+        }
     }
 }
 
-fn generate_castle_move_for_side<const KINGSIDE: bool>(
+fn generate_castle_move_for_side(
     game: &Game,
     all_pieces: Bitboard,
     f: &mut impl FnMut(Move),
+    rook: Square,
+    king_dst: Square,
 ) {
-    let king_start_square = squares::king_start(game.player);
+    let king = game.board.king_square(game.player);
 
-    let (required_empty_squares, target_square, middle_square) =
-        bitboards::castle_squares::<KINGSIDE>(game.player);
-
-    let required_safe_squares = target_square.bb() | middle_square.bb();
+    let required_empty_squares = between(king, rook);
+    let required_safe_squares = between(king, king_dst) | king_dst.bb();
 
     if (required_empty_squares & all_pieces).is_empty()
         && (required_safe_squares & game.threats).is_empty()
     {
-        f(Move::castles(king_start_square, target_square));
+        f(Move::castles(king, rook));
+    }
+}
+
+fn generate_frc_castle_move_for_side(
+    game: &Game,
+    all_pieces: Bitboard,
+    f: &mut impl FnMut(Move),
+    rook: Square,
+    rook_dst: Square,
+    king_dst: Square,
+) {
+    if game.orthogonal_pins.contains(rook) {
+        return;
+    }
+
+    let king = game.board.king_square(game.player);
+
+    let required_safe_squares = between(king, king_dst) | king.bb() | king_dst.bb();
+    let required_empty_squares = required_safe_squares | between(king, rook) | rook_dst.bb();
+
+    let blockers = all_pieces ^ king.bb() ^ rook.bb();
+
+    if (required_empty_squares & blockers).is_empty()
+        && (required_safe_squares & game.threats).is_empty()
+    {
+        f(Move::castles(king, rook));
     }
 }
 
@@ -591,5 +653,13 @@ mod tests {
             "5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28",
             (G4, F3),
         );
+    }
+
+    #[test]
+    fn test_castling_bug_20260209() {
+        should_not_allow_move(
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q2/PPP1BPpP/R1B1K2R w KQkq - 0 2",
+            (E1, A1),
+        )
     }
 }

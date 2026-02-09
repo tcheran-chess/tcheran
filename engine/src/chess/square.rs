@@ -74,6 +74,19 @@ impl File {
         }
     }
 
+    pub const fn notation_upper(self) -> &'static str {
+        match self {
+            Self::A => "A",
+            Self::B => "B",
+            Self::C => "C",
+            Self::D => "D",
+            Self::E => "E",
+            Self::F => "F",
+            Self::G => "G",
+            Self::H => "H",
+        }
+    }
+
     pub fn bitboard(self) -> Bitboard {
         match self {
             Self::A => bitboards::A_FILE,
@@ -346,77 +359,38 @@ pub mod squares {
     use self::all::*;
     use crate::chess::{player::Player, square::Square};
 
-    pub const fn king_start(player: Player) -> Square {
+    pub const WHITE_STANDARD_KINGSIDE_ROOK_START: Square = H1;
+    pub const WHITE_STANDARD_QUEENSIDE_ROOK_START: Square = A1;
+    pub const BLACK_STANDARD_KINGSIDE_ROOK_START: Square = H8;
+    pub const BLACK_STANDARD_QUEENSIDE_ROOK_START: Square = A8;
+
+    pub const fn kingside_king_castle_end(player: Player) -> Square {
         match player {
-            Player::White => INIT_WHITE_KING,
-            Player::Black => INIT_BLACK_KING,
+            Player::White => G1,
+            Player::Black => G8,
         }
     }
 
-    pub const fn kingside_rook_start(player: Player) -> Square {
+    pub const fn queenside_king_castle_end(player: Player) -> Square {
         match player {
-            Player::White => H1,
-            Player::Black => H8,
+            Player::White => C1,
+            Player::Black => C8,
         }
     }
 
-    pub const fn queenside_rook_start(player: Player) -> Square {
-        match player {
-            Player::White => A1,
-            Player::Black => A8,
-        }
-    }
-
-    pub fn castle_squares(player: Player, king_moved_to: Square) -> Option<(Square, Square)> {
-        let kingside_castle_dest = kingside_castle_dest(player);
-        let queenside_castle_dest = queenside_castle_dest(player);
-
-        match king_moved_to {
-            s if s == kingside_castle_dest => {
-                Some((kingside_rook_start(player), kingside_rook_castle_end(player)))
-            }
-            s if s == queenside_castle_dest => {
-                Some((queenside_rook_start(player), queenside_rook_castle_end(player)))
-            }
-            _ => None,
-        }
-    }
-
-    pub const fn kingside_castle_dest(player: Player) -> Square {
-        match player {
-            Player::White => WHITE_KINGSIDE_CASTLE_SQUARE,
-            Player::Black => BLACK_KINGSIDE_CASTLE_SQUARE,
-        }
-    }
-
-    const fn kingside_rook_castle_end(player: Player) -> Square {
+    pub const fn kingside_rook_castle_end(player: Player) -> Square {
         match player {
             Player::White => F1,
             Player::Black => F8,
         }
     }
 
-    pub const fn queenside_castle_dest(player: Player) -> Square {
-        match player {
-            Player::White => WHITE_QUEENSIDE_CASTLE_SQUARE,
-            Player::Black => BLACK_QUEENSIDE_CASTLE_SQUARE,
-        }
-    }
-
-    const fn queenside_rook_castle_end(player: Player) -> Square {
+    pub const fn queenside_rook_castle_end(player: Player) -> Square {
         match player {
             Player::White => D1,
             Player::Black => D8,
         }
     }
-
-    pub const INIT_WHITE_KING: Square = E1;
-    pub const WHITE_KINGSIDE_CASTLE_SQUARE: Square = G1;
-    pub const WHITE_QUEENSIDE_CASTLE_SQUARE: Square = C1;
-
-    pub const INIT_BLACK_KING: Square = E8;
-    pub const BLACK_KINGSIDE_CASTLE_SQUARE: Square = G8;
-    pub const BLACK_QUEENSIDE_CASTLE_SQUARE: Square = C8;
 
     pub mod all {
         use super::super::*;

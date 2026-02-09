@@ -125,6 +125,10 @@ impl Tablebase {
                 _ => None,
             };
 
+            // Note that _technically_ castling could be the best move in a 7-man position.
+            // However, the syzygy tablebases discount this because it's effectively impossible in a
+            // normal game, so the fact that expect_matching won't deal correctly with castling moves
+            // where the destination square isn't 'captures rook' doesn't matter here.
             let matching_move = game.moves().expect_matching(from, to, promotion);
 
             Some(matching_move)

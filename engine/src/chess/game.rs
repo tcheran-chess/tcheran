@@ -1,17 +1,20 @@
-use crate::chess::{
-    bitboard::{Bitboard, bitboards},
-    board::Board,
-    fen,
-    movegen::{
-        generate_legal_moves, tables,
-        tables::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
+use crate::{
+    chess::{
+        bitboard::{Bitboard, bitboards},
+        board::Board,
+        fen,
+        movegen::{
+            generate_legal_moves, tables,
+            tables::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
+        },
+        moves::{Move, MoveList},
+        piece::{Piece, PieceKind},
+        player::Player,
+        square::{Square, squares},
+        zobrist,
+        zobrist::ZobristHash,
     },
-    moves::{Move, MoveList},
-    piece::{Piece, PieceKind},
-    player::Player,
-    square::{Square, squares},
-    zobrist,
-    zobrist::ZobristHash,
+    engine::eval::nnue::{NNUEChange, NNUEChanges},
 };
 
 #[derive(Debug, Copy, Clone)]
@@ -26,38 +29,51 @@ impl CastleRightsSide {
 
 #[derive(Copy, Clone, Debug)]
 pub struct CastleRights {
-    pub king_side: bool,
-    pub queen_side: bool,
+    pub king_side: Option<Square>,
+    pub queen_side: Option<Square>,
 }
 
 impl CastleRights {
     pub const fn none() -> Self {
         Self {
-            king_side: false,
-            queen_side: false,
+            king_side: None,
+            queen_side: None,
         }
     }
 
     pub fn can_castle_to_side(self, side: CastleRightsSide) -> bool {
         match side {
-            CastleRightsSide::Kingside => self.king_side,
-            CastleRightsSide::Queenside => self.queen_side,
+            CastleRightsSide::Kingside => self.king_side.is_some(),
+            CastleRightsSide::Queenside => self.queen_side.is_some(),
         }
+    }
+
+    pub fn castle_dst_squares(self, player: Player, to: Square) -> Option<(Square, Square)> {
+        if let Some(king_side) = self.king_side
+            && to == king_side
+        {
+            return Some((
+                squares::kingside_king_castle_end(player),
+                squares::kingside_rook_castle_end(player),
+            ));
+        }
+
+        if let Some(queen_side) = self.queen_side
+            && to == queen_side
+        {
+            return Some((
+                squares::queenside_king_castle_end(player),
+                squares::queenside_rook_castle_end(player),
+            ));
+        }
+
+        None
     }
 
     pub fn remove_rights(&mut self, side: CastleRightsSide) {
         match side {
-            CastleRightsSide::Kingside => self.king_side = false,
-            CastleRightsSide::Queenside => self.queen_side = false,
-        }
-    }
-}
-
-impl Default for CastleRights {
-    fn default() -> Self {
-        Self {
-            king_side: true,
-            queen_side: true,
+            CastleRightsSide::Kingside => self.king_side = None,
+            CastleRightsSide::Queenside => self.queen_side = None,
         }
     }
 }
@@ -79,6 +95,7 @@ impl<T> std::ops::IndexMut<CastleRightsSide> for [T; CastleRightsSide::N] {
 #[derive(Debug, Clone)]
 pub struct History {
     pub mv: Option<Move>,
+    pub moved: Option<Piece>,
     pub captured: Option<Piece>,
     pub castle_rights: [CastleRights; Player::N],
     pub en_passant_target: Option<Square>,
@@ -127,6 +144,8 @@ pub struct Game {
     pub orthogonal_pins: Bitboard,
     pub diagonal_pins: Bitboard,
     pub threats: Bitboard,
+
+    pub is_frc: bool,
 }
 
 impl Game {
@@ -141,6 +160,7 @@ impl Game {
         en_passant_target: Option<Square>,
         halfmove_clock: u32,
         plies: u32,
+        is_frc: bool,
     ) -> Self {
         let mut game = Self {
             board,
@@ -162,6 +182,8 @@ impl Game {
             non_pawn_hash: [ZobristHash::uninit(); Player::N],
 
             history: Vec::new(),
+
+            is_frc,
         };
 
         game.hash = zobrist::hash(&game);
@@ -180,7 +202,11 @@ impl Game {
     }
 
     pub fn from_fen(fen: &str) -> Result<Self, fen::ParseError> {
-        fen::parse(fen)
+        fen::parse(fen, false)
+    }
+
+    pub fn from_frc_fen(fen: &str) -> Result<Self, fen::ParseError> {
+        fen::parse(fen, true)
     }
 
     pub fn to_fen(&self) -> String {
@@ -287,15 +313,17 @@ impl Game {
         self.checkers.any()
     }
 
-    fn set_at(&mut self, sq: Square, piece: Piece) {
+    fn set_at(&mut self, sq: Square, piece: Piece, nnue_changes: &mut NNUEChanges) {
         self.board.set_at(sq, piece);
         self.toggle_piece_in_hashes(sq, piece);
+        nnue_changes.adds.push(NNUEChange::new(sq, piece));
     }
 
-    fn remove_at(&mut self, sq: Square) -> Piece {
+    fn remove_at(&mut self, sq: Square, nnue_changes: &mut NNUEChanges) -> Piece {
         let removed_piece = self.board.piece_guaranteed_at(sq);
         self.board.remove_at(sq);
         self.toggle_piece_in_hashes(sq, removed_piece);
+        nnue_changes.subs.push(NNUEChange::new(sq, removed_piece));
 
         removed_piece
     }
@@ -416,17 +444,26 @@ impl Game {
     }
 
     pub fn make_move(&mut self, mv: Move) {
+        self.make_move_nnue(mv, &mut NNUEChanges::uninit());
+    }
+
+    pub fn make_move_nnue(&mut self, mv: Move, nnue_changes: &mut NNUEChanges) {
         let from = mv.src();
         let to = mv.dst();
         let player = self.player;
         let other_player = player.other();
 
+        let moved_piece = self.board.piece_guaranteed_at(from);
         let maybe_captured_piece = self.board.piece_at(to);
+
+        nnue_changes.moved_piece = moved_piece;
+        nnue_changes.mv = mv;
 
         // Capture the irreversible aspects of the position so that they can be restored
         // if we undo this move.
         let history = History {
             mv: Some(mv),
+            moved: Some(moved_piece),
             captured: maybe_captured_piece,
             castle_rights: self.castle_rights,
             en_passant_target: self.en_passant_target,
@@ -446,17 +483,20 @@ impl Game {
 
         self.history.push(history);
 
-        let moved_piece = self.remove_at(from);
+        self.remove_at(from, nnue_changes);
 
         if maybe_captured_piece.is_some() {
-            self.remove_at(to);
+            self.remove_at(to, nnue_changes);
         }
 
+        // Move the piece to the destination, unless we're castling.
+        // If we're castling, the destination square is the rook's square, which is not where the king
+        // ends up. We'll move it to the right square later on.
         if let Some(promoted_to) = mv.promotion() {
             let promoted_piece = Piece::new(player, promoted_to.piece());
-            self.set_at(to, promoted_piece);
-        } else {
-            self.set_at(to, moved_piece);
+            self.set_at(to, promoted_piece, nnue_changes);
+        } else if !mv.is_castling() {
+            self.set_at(to, moved_piece, nnue_changes);
         }
 
         // If we moved a pawn to the en passant target, this was an en passant capture, so we
@@ -464,7 +504,7 @@ impl Game {
         if mv.is_en_passant() {
             // Remove the piece behind the square the pawn just moved to
             let capture_square = to.backward(player);
-            self.remove_at(capture_square);
+            self.remove_at(capture_square, nnue_changes);
         }
 
         let new_en_passant_target = if mv.is_double_push() {
@@ -493,31 +533,35 @@ impl Game {
         self.en_passant_target = new_en_passant_target;
 
         if mv.is_castling()
-            && let Some((rook_from, rook_to)) = squares::castle_squares(player, to)
+            && let Some((king_to, rook_to)) =
+                self.castle_rights[player].castle_dst_squares(player, to)
         {
-            let rook = self.remove_at(rook_from);
-            self.set_at(rook_to, rook);
+            self.set_at(king_to, moved_piece, nnue_changes);
+
+            // The rook was 'captured'
+            self.set_at(rook_to, maybe_captured_piece.unwrap(), nnue_changes);
         }
 
-        // Check if we lost castle rights.
-        // If we moved the king, we lose all rights to castle.
-        // If we moved one of our rooks, we lose rights to castle on that side.
-        if moved_piece.kind == PieceKind::King && from == squares::king_start(player) {
+        // If we moved the king, we lose castle rights
+        if moved_piece.kind == PieceKind::King {
             self.try_remove_castle_rights(player, CastleRightsSide::Kingside);
             self.try_remove_castle_rights(player, CastleRightsSide::Queenside);
         } else if moved_piece.kind == PieceKind::Rook {
-            if from == squares::kingside_rook_start(player) {
+            // If we moved one of our rooks, we lose rights to castle on that side.
+            if Some(from) == self.castle_rights[player].king_side {
                 self.try_remove_castle_rights(player, CastleRightsSide::Kingside);
-            } else if from == squares::queenside_rook_start(player) {
+            } else if Some(from) == self.castle_rights[player].queen_side {
                 self.try_remove_castle_rights(player, CastleRightsSide::Queenside);
             }
         }
 
         // Check if we removed our enemy's ability to castle, i.e. if we took one of their rooks
-        if maybe_captured_piece.is_some() {
-            if to == squares::kingside_rook_start(other_player) {
+        if let Some(captured_piece) = maybe_captured_piece
+            && captured_piece.kind == PieceKind::Rook
+        {
+            if Some(to) == self.castle_rights[other_player].king_side {
                 self.try_remove_castle_rights(other_player, CastleRightsSide::Kingside);
-            } else if to == squares::queenside_rook_start(other_player) {
+            } else if Some(to) == self.castle_rights[other_player].queen_side {
                 self.try_remove_castle_rights(other_player, CastleRightsSide::Queenside);
             }
         }
@@ -544,6 +588,7 @@ impl Game {
         // if we undo this move.
         let history = History {
             mv: None,
+            moved: None,
             captured: None,
             castle_rights: self.castle_rights,
             en_passant_target: self.en_passant_target,
@@ -606,11 +651,11 @@ impl Game {
 
         // Undo castling, if we castled
         if mv.is_castling()
-            && let Some((rook_from, rook_to)) = squares::castle_squares(player, to)
+            && let Some((king_to, rook_to)) =
+                self.castle_rights[player].castle_dst_squares(player, to)
         {
+            self.board.remove_at(king_to);
             self.board.remove_at(rook_to);
-            self.board
-                .set_at(rook_from, Piece::new(player, PieceKind::Rook));
         }
 
         // Replace the pawn taken by en-passant capture
@@ -621,18 +666,16 @@ impl Game {
                 .set_at(capture_square, Piece::new(other_player, PieceKind::Pawn));
         }
 
-        let moved_piece = self.board.piece_guaranteed_at(to);
-        self.board.remove_at(to);
+        // If we castled, the piece we moved doesn't end up on the 'to' square.
+        if !mv.is_castling() {
+            self.board.remove_at(to);
+        }
 
         if let Some(captured_piece) = history.captured {
             self.board.set_at(to, captured_piece);
         }
 
-        if mv.promotion().is_some() {
-            self.board.set_at(from, Piece::new(player, PieceKind::Pawn));
-        } else {
-            self.board.set_at(from, moved_piece);
-        }
+        self.board.set_at(from, history.moved.unwrap());
     }
 
     pub fn undo_null_move(&mut self) {
@@ -664,7 +707,7 @@ impl Game {
 
         if let Some(promotion) = mv.promotion() {
             key.toggle_piece_on_square(mv.dst(), Piece::new(moved_piece.player, promotion.piece()));
-        } else {
+        } else if !mv.is_castling() {
             key.toggle_piece_on_square(mv.dst(), moved_piece);
         }
 

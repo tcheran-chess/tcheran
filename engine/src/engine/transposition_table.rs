@@ -258,11 +258,11 @@ impl TranspositionTable {
             return eval;
         }
 
-        if eval.mating() {
+        if eval.is_win() {
             return Eval(eval.0 + i32::from(plies));
         }
 
-        if eval.being_mated() {
+        if eval.is_loss() {
             return Eval(eval.0 - i32::from(plies));
         }
 
@@ -274,11 +274,11 @@ impl TranspositionTable {
             return eval;
         }
 
-        if eval.mating() {
+        if eval.is_win() {
             return Eval(eval.0 - i32::from(plies));
         }
 
-        if eval.being_mated() {
+        if eval.is_loss() {
             return Eval(eval.0 + i32::from(plies));
         }
 

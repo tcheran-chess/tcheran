@@ -24,9 +24,19 @@ pub(super) enum InfoScore {
 }
 
 impl InfoScore {
+    const TB_DISPLAY_SCORE: i32 = 20000;
+
     pub fn from(eval: Eval, game: &Game) -> Self {
-        if let Some(nmoves) = eval.is_mate_in_moves() {
-            Self::Mate(nmoves)
+        if eval.is_decisive() {
+            if eval.is_tb() {
+                Self::Centipawns(if eval.is_win() {
+                    Self::TB_DISPLAY_SCORE
+                } else {
+                    -Self::TB_DISPLAY_SCORE
+                })
+            } else {
+                Self::Mate(eval.moves_to_mate())
+            }
         } else {
             let normalized_eval = wdl::normalize(eval, &game.board);
             Self::Centipawns(normalized_eval.0)

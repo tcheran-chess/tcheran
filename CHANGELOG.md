@@ -4,6 +4,10 @@
 
 * Implement a proper thread pool
 
+#### Misc
+
+* Tablebase scores are now reported in tablebase positions instead of incorrect mate scores
+
 ## [11.0]
 
 ### Note

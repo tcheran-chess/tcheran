@@ -426,9 +426,9 @@ pub fn probe_tb_at_root(
     let elapsed = start_time.elapsed();
     let depth = pv.len();
     let eval = eval.unwrap_or_else(|| match tb_score {
-        Wdl::Win => Eval::mate_in(1),
+        Wdl::Win => Eval::tb_mate_in(MAX_SEARCH_DEPTH),
         Wdl::Draw => Eval::DRAW,
-        Wdl::Loss => Eval::mated_in(1),
+        Wdl::Loss => Eval::tb_mated_in(MAX_SEARCH_DEPTH),
     });
 
     Some((best_move, eval, pv, elapsed, depth))

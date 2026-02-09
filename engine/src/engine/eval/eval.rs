@@ -23,5 +23,5 @@ pub fn eval(nnue: &mut NetworkStack, game: &Game) -> Eval {
     #[cfg(not(feature = "datagen"))]
     let eval = scale_eval(eval, game);
 
-    eval
+    eval.clamp_to_non_mate()
 }

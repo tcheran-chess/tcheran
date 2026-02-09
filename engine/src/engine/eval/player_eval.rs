@@ -15,15 +15,19 @@ use crate::{chess::player::Player, engine::eval::WhiteEval};
 pub struct Eval(pub i32);
 
 impl Eval {
-    pub const MAX: Self = Self(i16::MAX as i32);
-    pub const MIN: Self = Self(i16::MIN as i32 + 1);
-    pub const NONE: Self = Self(i16::MIN as i32);
+    pub const MAX: Self = Self(Self::MATE + 1);
+    pub const MIN: Self = Self(Self::MATED - 1);
+    pub const NONE: Self = Self(Self::MATED - 2);
     pub const DRAW: Self = Self(0);
 
     const MATE: i32 = 32000;
     const MATED: i32 = -Self::MATE;
-    const MATE_THRESHOLD: i32 = Self::MATE - 100;
-    const MATED_THRESHOLD: i32 = -Self::MATE_THRESHOLD;
+
+    const TB_MATE: i32 = 31000;
+    const TB_MATED: i32 = -Self::TB_MATE;
+
+    const MAX_EVAL: i32 = 30000;
+    const MIN_EVAL: i32 = -Self::MAX_EVAL;
 
     pub const fn new(eval: i32) -> Self {
         Self(eval)
@@ -33,39 +37,51 @@ impl Eval {
         Self(Self::MATE - i32::from(ply))
     }
 
+    pub fn tb_mate_in(ply: u8) -> Self {
+        Self(Self::TB_MATE - i32::from(ply))
+    }
+
     pub fn mated_in(ply: u8) -> Self {
-        Self(-Self::MATE + i32::from(ply))
+        Self(Self::MATED + i32::from(ply))
+    }
+
+    pub fn tb_mated_in(ply: u8) -> Self {
+        Self(Self::TB_MATED + i32::from(ply))
     }
 
     #[inline]
-    pub fn is_mate(self) -> bool {
-        self.mating() || self.being_mated()
+    pub fn is_decisive(self) -> bool {
+        self.is_win() || self.is_loss()
     }
 
     #[inline]
-    pub fn mating(self) -> bool {
-        self.0 >= Self::MATE_THRESHOLD
+    pub fn is_tb(self) -> bool {
+        (self.is_win() && self.0 <= Self::TB_MATE) || (self.is_loss() && self.0 >= Self::TB_MATED)
     }
 
     #[inline]
-    pub fn being_mated(self) -> bool {
-        self.0 <= Self::MATED_THRESHOLD
+    pub fn is_win(self) -> bool {
+        self.0 > Self::MAX_EVAL
     }
 
-    pub fn is_mate_in_moves(self) -> Option<i32> {
-        if self.mating() {
-            return Some((Self::MATE - self.0 + 1) / 2);
+    #[inline]
+    pub fn is_loss(self) -> bool {
+        self.0 < Self::MIN_EVAL
+    }
+
+    #[inline]
+    pub fn moves_to_mate(self) -> i32 {
+        assert!(self.is_decisive() && !self.is_tb());
+
+        if self.is_win() {
+            (Self::MATE - self.0 + 1) / 2
+        } else {
+            (Self::MATED - self.0) / 2
         }
-
-        if self.being_mated() {
-            return Some((Self::MATED - self.0) / 2);
-        }
-
-        None
     }
 
     pub fn clamp_to_non_mate(self) -> Self {
-        self.clamp(Self(Self::MATED_THRESHOLD + 1), Self(Self::MATE_THRESHOLD - 1))
+        self.clamp(Self(Self::MIN_EVAL), Self(Self::MAX_EVAL))
     }
 
     pub fn to_white_eval(self, player: Player) -> WhiteEval {

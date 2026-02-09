@@ -85,7 +85,7 @@ pub fn quiescence(
     };
 
     if eval >= beta {
-        return if !eval.is_mate() && !beta.is_mate() {
+        return if !eval.is_decisive() && !beta.is_decisive() {
             (eval + beta) / 2
         } else {
             eval
@@ -106,7 +106,7 @@ pub fn quiescence(
         moves_tried += 1;
 
         // As long as we've found a move that gets us out of mate, we can stop looking at other quiets
-        if mv.is_quiet() && !best_score.being_mated() {
+        if mv.is_quiet() && !best_score.is_loss() {
             moves.yield_only_tacticals();
             continue;
         }

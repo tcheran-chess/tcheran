@@ -39,7 +39,7 @@ pub fn normalize(eval: Eval, board: &Board) -> Eval {
         return eval;
     }
 
-    if eval.is_mate() {
+    if eval.is_decisive() {
         return eval;
     }
 
@@ -50,11 +50,11 @@ pub fn normalize(eval: Eval, board: &Board) -> Eval {
 }
 
 pub fn wdl(eval: Eval, board: &Board) -> WdlProbabilities {
-    if eval.mating() {
+    if eval.is_win() {
         return WdlProbabilities::DEFINITELY_WINNING;
     }
 
-    if eval.being_mated() {
+    if eval.is_loss() {
         return WdlProbabilities::DEFINITELY_LOSING;
     }
 

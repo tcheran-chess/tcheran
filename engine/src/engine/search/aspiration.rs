@@ -68,7 +68,7 @@ pub fn aspiration_search(
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
-    let mut window = if depth < aspiration_min_depth() || eval.is_some_and(Eval::is_mate) {
+    let mut window = if depth < aspiration_min_depth() || eval.is_some_and(Eval::is_decisive) {
         Window::no_window()
     } else {
         Window::around(

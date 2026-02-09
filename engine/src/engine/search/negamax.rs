@@ -99,19 +99,21 @@ pub fn negamax(
         previous_best_move = tt_entry.best_move;
     }
 
+    let (mut syzygy_min, mut syzygy_max) = (Eval::mated_in(0), Eval::mate_in(0));
+
     let tb_cardinality = ctx.tablebase.n_men();
     if !is_root && excluded_mv.is_none() && tb_cardinality > 0 {
         let piece_count = game.board.occupancy().count();
 
-        if (piece_count < tb_cardinality || (piece_count <= tb_cardinality && depth >= 1))
+        if piece_count <= tb_cardinality
             && let Some(wdl) = ctx.tablebase.wdl(game)
         {
             ctx.tbhits.incr();
 
             let score = match wdl {
-                Wdl::Win => Eval::mate_in(plies),
+                Wdl::Win => Eval::tb_mate_in(plies),
                 Wdl::Draw => Eval::DRAW,
-                Wdl::Loss => Eval::mated_in(plies),
+                Wdl::Loss => Eval::tb_mated_in(plies),
             };
 
             let tb_bound = match wdl {
@@ -130,8 +132,15 @@ pub fn negamax(
                 return score;
             }
 
-            if is_pv && tb_bound == NodeBound::Lower {
-                alpha = alpha.max(score);
+            if is_pv {
+                if tb_bound == NodeBound::Upper {
+                    syzygy_max = score;
+                }
+
+                if tb_bound == NodeBound::Lower {
+                    alpha = alpha.max(score);
+                    syzygy_min = score;
+                }
             }
         }
     }
@@ -183,7 +192,7 @@ pub fn negamax(
         && depth <= reverse_futility_prune_depth()
         && eval - depth * reverse_futility_prune_margin_per_ply() > beta
     {
-        return if !eval.is_mate() && !beta.is_mate() {
+        return if !eval.is_decisive() && !beta.is_decisive() {
             beta + (eval - beta) / 3
         } else {
             eval
@@ -260,7 +269,7 @@ pub fn negamax(
                 && excluded_mv.is_none()
                 && entry.bound != NodeBound::Upper
                 && entry.depth >= depth - singular_extension_entry_depth_delta()
-                && !entry.score.is_mate()
+                && !entry.score.is_decisive()
         })
         .and_then(|entry| entry.best_move);
 
@@ -286,7 +295,7 @@ pub fn negamax(
                 extension = 2;
                 ctx.stack.get(plies).double_extensions += 1;
             }
-        } else if !is_pv && !value.is_mate() && value >= beta {
+        } else if !is_pv && !value.is_decisive() && value >= beta {
             return value;
         } else if tt_score >= beta {
             extension = -1;
@@ -331,7 +340,7 @@ pub fn negamax(
             && number_of_legal_moves > 0
             && !is_root
             && !is_pv
-            && !best_score.being_mated()
+            && !best_score.is_loss()
         {
             let lmr_depth = depth - lmr_reduction(depth, number_of_legal_moves);
 
@@ -361,7 +370,7 @@ pub fn negamax(
             && !in_check
             && number_of_legal_moves >= lmp_moves
             && moves.stage > GenStage::Killer
-            && !best_score.is_mate()
+            && !best_score.is_decisive()
         {
             moves.yield_only_tacticals();
         }
@@ -514,6 +523,8 @@ pub fn negamax(
             Eval::DRAW
         };
     }
+
+    best_score = best_score.clamp(syzygy_min, syzygy_max);
 
     if excluded_mv.is_none() {
         if tt_node_bound == NodeBound::Lower

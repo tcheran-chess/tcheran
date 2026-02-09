@@ -80,8 +80,6 @@ pub fn quiescence(
 
     let eval = if in_check {
         Eval::MIN
-    } else if raw_eval == Eval::NONE {
-        Eval::NONE
     } else {
         (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate()
     };

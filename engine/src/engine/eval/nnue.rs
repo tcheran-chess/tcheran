@@ -355,11 +355,7 @@ impl NNUE {
     }
 
     pub fn evaluate(&self, player: Player, game: &Game) -> Eval {
-        let (us, them) = match player {
-            Player::White => (&self[Player::White], &self[Player::Black]),
-            Player::Black => (&self[Player::Black], &self[Player::White]),
-        };
-
+        let (us, them) = (&self[player], &self[player.other()]);
         let output_bucket = Self::bucket(game);
         let mut output = simd::sum_output_weights(us, them, output_bucket);
 

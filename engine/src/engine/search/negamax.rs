@@ -293,7 +293,7 @@ pub fn negamax(
 
     let mut tt_node_bound = NodeBound::Upper;
     let mut best_move = None;
-    let mut best_eval = Eval::MIN;
+    let mut best_score = Eval::MIN;
 
     let mut moves = MovePicker::new(previous_best_move);
     let mut number_of_legal_moves = 0;
@@ -327,7 +327,7 @@ pub fn negamax(
             && number_of_legal_moves > 0
             && !is_root
             && !is_pv
-            && !best_eval.being_mated()
+            && !best_score.being_mated()
         {
             let lmr_depth = depth - lmr_reduction(depth, number_of_legal_moves);
 
@@ -357,7 +357,7 @@ pub fn negamax(
             && !in_check
             && number_of_legal_moves >= lmp_moves
             && moves.stage > GenStage::Killer
-            && !best_eval.is_mate()
+            && !best_score.is_mate()
         {
             moves.yield_only_tacticals();
         }
@@ -472,8 +472,8 @@ pub fn negamax(
             return Eval::MIN;
         }
 
-        if move_score > best_eval {
-            best_eval = move_score;
+        if move_score > best_score {
+            best_score = move_score;
 
             if move_score > alpha {
                 alpha = move_score;
@@ -538,15 +538,15 @@ pub fn negamax(
 
         if !(in_check
             || best_move.is_some_and(|m| m.is_capture() || m.is_promotion())
-            || tt_node_bound == NodeBound::Lower && best_eval <= eval
-            || tt_node_bound == NodeBound::Upper && best_eval >= eval)
+            || tt_node_bound == NodeBound::Lower && best_score <= eval
+            || tt_node_bound == NodeBound::Upper && best_score >= eval)
         {
-            ctx.tables.corrhist.update(game, depth, best_eval - eval);
+            ctx.tables.corrhist.update(game, depth, best_score - eval);
         }
 
         ctx.tt
-            .insert(game.hash, tt_node_bound, best_move, best_eval, raw_eval, depth, plies);
+            .insert(game.hash, tt_node_bound, best_move, best_score, raw_eval, depth, plies);
     }
 
-    best_eval
+    best_score
 }

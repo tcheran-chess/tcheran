@@ -99,7 +99,7 @@ pub fn quiescence(
         node_bound = NodeBound::Exact;
     }
 
-    let mut best_eval = eval;
+    let mut best_score = eval;
     let mut best_move = None;
     let mut moves_tried = 0;
 
@@ -108,7 +108,7 @@ pub fn quiescence(
         moves_tried += 1;
 
         // As long as we've found a move that gets us out of mate, we can stop looking at other quiets
-        if mv.is_quiet() && !best_eval.being_mated() {
+        if mv.is_quiet() && !best_score.being_mated() {
             moves.yield_only_tacticals();
             continue;
         }
@@ -129,8 +129,8 @@ pub fn quiescence(
             return Eval::MIN;
         }
 
-        if move_score > best_eval {
-            best_eval = move_score;
+        if move_score > best_score {
+            best_score = move_score;
 
             if move_score > alpha {
                 best_move = Some(mv);
@@ -151,7 +151,7 @@ pub fn quiescence(
     }
 
     ctx.tt
-        .insert(game.hash, node_bound, best_move, best_eval, raw_eval, Depth::new(0), plies);
+        .insert(game.hash, node_bound, best_move, best_score, raw_eval, Depth::new(0), plies);
 
-    best_eval
+    best_score
 }

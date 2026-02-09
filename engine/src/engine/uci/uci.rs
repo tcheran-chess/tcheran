@@ -589,17 +589,17 @@ pub enum UciInputMode {
 #[expect(clippy::cast_possible_wrap, reason = "Default values are too small to be wrapped")]
 pub fn uci_options() -> Vec<UciOption> {
     let options = vec![
-        UciOption::spin("Hash", |options, state, value| {
-            options.hash_size = value.as_usize();
-            state.tt.resize(options.hash_size);
+        UciOption::spin("Hash", |refs, value| {
+            refs.options.hash_size = value.as_usize();
+            refs.state.tt.resize(refs.options.hash_size);
         })
         .default(crate::engine::options::defaults::HASH_SIZE as i32)
         .with_bounds(0, 1024 * 1024)
         .build(),
         //
-        UciOption::spin("Threads", |options, state, value| {
-            options.threads = value.as_usize();
-            state.scale_threads(options.threads);
+        UciOption::spin("Threads", |refs, value| {
+            refs.options.threads = value.as_usize();
+            refs.state.scale_threads(refs.options.threads);
         })
         .default(crate::engine::options::defaults::THREADS as i32)
         .with_bounds(
@@ -610,15 +610,15 @@ pub fn uci_options() -> Vec<UciOption> {
         )
         .build(),
         //
-        UciOption::spin("Move Overhead", |options, _state, value| {
-            options.move_overhead = Duration::from_millis(value.as_u64());
+        UciOption::spin("Move Overhead", |refs, value| {
+            refs.options.move_overhead = Duration::from_millis(value.as_u64());
         })
         .default(crate::engine::options::defaults::MOVE_OVERHEAD.as_millis() as i32)
         .with_bounds(0, 1000)
         .build(),
         //
-        UciOption::string("SyzygyPath", |_options, state, value| {
-            state.tablebase.set_paths(&value);
+        UciOption::string("SyzygyPath", |refs, value| {
+            refs.state.tablebase.set_paths(&value);
         })
         .default(String::new())
         .build(),

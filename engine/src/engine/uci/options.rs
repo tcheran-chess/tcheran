@@ -5,7 +5,7 @@ pub struct UciOption {
     pub t: UciOptionType,
 }
 
-type SetFn<T> = Box<dyn Fn(&mut EngineOptions, &mut PersistentState, T)>;
+type SetFn<T> = Box<dyn Fn(&mut OptionCallbackRefs<'_>, T)>;
 
 pub enum UciOptionType {
     Check {
@@ -66,10 +66,15 @@ impl SpinValue {
     }
 }
 
+pub struct OptionCallbackRefs<'uci> {
+    pub options: &'uci mut EngineOptions,
+    pub state: &'uci mut PersistentState,
+}
+
 impl UciOption {
     pub fn spin(
         name: &'static str,
-        f: impl Fn(&mut EngineOptions, &mut PersistentState, SpinValue) + 'static,
+        f: impl Fn(&mut OptionCallbackRefs<'_>, SpinValue) + 'static,
     ) -> UciSpinOptionBuilder {
         UciSpinOptionBuilder {
             name,
@@ -85,7 +90,7 @@ impl UciOption {
 
     pub fn string(
         name: &'static str,
-        f: impl Fn(&mut EngineOptions, &mut PersistentState, String) + 'static,
+        f: impl Fn(&mut OptionCallbackRefs<'_>, String) + 'static,
     ) -> UciStringOptionBuilder {
         UciStringOptionBuilder {
             name,
@@ -118,7 +123,9 @@ impl UciOption {
                     return Err("Value smaller than min".to_string());
                 }
 
-                set_fn(options, state, SpinValue::new(value));
+                let mut refs = OptionCallbackRefs { options, state };
+                set_fn(&mut refs, SpinValue::new(value));
+
                 Ok(())
             }
             UciOptionType::Combo { set_fn: _, .. } => {
@@ -127,7 +134,9 @@ impl UciOption {
             UciOptionType::String { set_fn, .. } => {
                 let value = value.parse::<String>().map_err(|_| "Invalid value")?;
 
-                set_fn(options, state, value);
+                let mut refs = OptionCallbackRefs { options, state };
+                set_fn(&mut refs, value);
+
                 Ok(())
             }
             UciOptionType::Button { set_fn: _ } => {

@@ -16,8 +16,8 @@ const HIDDEN_SIZE: usize = 1024;
 const OUTPUT_BUCKETS: usize = 8;
 
 // Quantization factors
-const QA: i32 = 255;
-const QB: i32 = 64;
+const QA: i16 = 255;
+const QB: i16 = 64;
 
 // Eval scaling factor
 pub const SCALE: i32 = 289;
@@ -363,16 +363,18 @@ impl NNUE {
         let output_weights = &NETWORK.output_weights[output_bucket];
         let output_bias = &NETWORK.output_bias[output_bucket];
 
-        for (&value, &weight) in us.0.iter().zip(&output_weights[..HIDDEN_SIZE]) {
-            output += screlu(value) * i32::from(weight);
+        for (&us, &weight) in us.0.iter().zip(&output_weights[..HIDDEN_SIZE]) {
+            let us_clamped = us.clamp(0, QA);
+            output += i32::from(us_clamped * weight) * i32::from(us_clamped);
         }
 
-        for (&value, &weight) in them.0.iter().zip(&output_weights[HIDDEN_SIZE..]) {
-            output += screlu(value) * i32::from(weight);
+        for (&them, &weight) in them.0.iter().zip(&output_weights[HIDDEN_SIZE..]) {
+            let them_clamped = them.clamp(0, QA);
+            output += i32::from(them_clamped * weight) * i32::from(them_clamped);
         }
 
         // Reduce quantization from QA * QA * QB to QA * QB.
-        output /= QA;
+        output /= i32::from(QA);
 
         // Add bias.
         output += i32::from(*output_bias);
@@ -381,7 +383,7 @@ impl NNUE {
         output *= SCALE;
 
         // Remove quantisation altogether.
-        output /= QA * QB;
+        output /= i32::from(QA) * i32::from(QB);
 
         Eval(output)
     }
@@ -420,10 +422,4 @@ fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
     let king_flip = 7 * u8::from(king.file().idx() >= 4);
 
     (c ^ pov as usize) * COLOR_STRIDE + p * PIECE_STRIDE + (square_idx ^ king_flip) as usize
-}
-
-fn screlu(value: i16) -> i32 {
-    let v = i32::from(value).clamp(0, QA);
-
-    v * v
 }

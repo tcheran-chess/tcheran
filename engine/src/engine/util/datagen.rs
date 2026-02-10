@@ -31,16 +31,20 @@ fn random_starting_position(rand: &mut impl Rng) -> Result<Game, ()> {
         };
 
         game.make_move(*random_move);
+
+        if game.is_draw(0) {
+            log::crashlog(format!(
+                "Datagen generated a drawn starting position: {}",
+                game.to_fen()
+            ));
+
+            return Err(());
+        }
     }
 
     // The last move we made may have ended the game.
     let moves = game.moves();
     if moves.is_empty() {
-        return Err(());
-    }
-
-    if game.is_draw() {
-        log::crashlog(format!("Datagen generated a drawn starting position: {}", game.to_fen()));
         return Err(());
     }
 

@@ -20,11 +20,6 @@ pub enum UciOptionType {
 
         spsa_step: Option<f64>,
     },
-    Combo {
-        default: &'static str,
-        values: Vec<&'static str>,
-        set_fn: SetFn<String>,
-    },
     String {
         default: String,
         set_fn: SetFn<String>,
@@ -72,6 +67,18 @@ pub struct OptionCallbackRefs<'uci> {
 }
 
 impl UciOption {
+    pub fn check(
+        name: &'static str,
+        f: impl Fn(&mut OptionCallbackRefs<'_>, bool) + 'static,
+    ) -> UciCheckOptionBuilder {
+        UciCheckOptionBuilder {
+            name,
+            set_fn: Box::new(f),
+
+            default: None,
+        }
+    }
+
     pub fn spin(
         name: &'static str,
         f: impl Fn(&mut OptionCallbackRefs<'_>, SpinValue) + 'static,
@@ -107,8 +114,12 @@ impl UciOption {
         state: &mut PersistentState,
     ) -> Result<(), String> {
         match &self.t {
-            UciOptionType::Check { set_fn: _, .. } => {
-                todo!()
+            UciOptionType::Check { set_fn, .. } => {
+                let value = value.parse::<bool>().map_err(|_| "Invalid value")?;
+
+                set_fn(&mut OptionCallbackRefs { options, state }, value);
+
+                Ok(())
             }
             UciOptionType::Spin {
                 min, max, set_fn, ..
@@ -128,9 +139,6 @@ impl UciOption {
 
                 Ok(())
             }
-            UciOptionType::Combo { set_fn: _, .. } => {
-                todo!()
-            }
             UciOptionType::String { set_fn, .. } => {
                 let value = value.parse::<String>().map_err(|_| "Invalid value")?;
 
@@ -139,9 +147,40 @@ impl UciOption {
 
                 Ok(())
             }
-            UciOptionType::Button { set_fn: _ } => {
-                todo!()
+            UciOptionType::Button { set_fn } => {
+                set_fn(&mut OptionCallbackRefs { options, state }, ());
+
+                Ok(())
             }
+        }
+    }
+}
+
+pub struct UciCheckOptionBuilder {
+    name: &'static str,
+    set_fn: SetFn<bool>,
+
+    default: Option<bool>,
+}
+
+impl UciCheckOptionBuilder {
+    pub fn default(mut self, value: bool) -> Self {
+        self.default = Some(value);
+        self
+    }
+
+    pub fn build(self) -> UciOption {
+        let default = self
+            .default
+            .unwrap_or_else(|| panic!("No default value provided for {}", self.name));
+
+        UciOption {
+            name: self.name,
+            t: UciOptionType::Check {
+                default,
+
+                set_fn: self.set_fn,
+            },
         }
     }
 }

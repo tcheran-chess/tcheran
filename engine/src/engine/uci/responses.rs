@@ -160,9 +160,6 @@ impl std::fmt::Display for UciResponse<'_> {
                     } => {
                         write!(f, " type spin default {default} min {min} max {max}")?;
                     }
-                    UciOptionType::Combo { default, .. } => {
-                        write!(f, " type combo default {default}")?;
-                    }
                     UciOptionType::String { default, .. } => {
                         write!(f, " type string default {default}")?;
                     }

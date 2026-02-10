@@ -522,8 +522,7 @@ impl Game {
             }
         }
 
-        let should_reset_halfmove_clock =
-            maybe_captured_piece.is_some() || moved_piece.kind == PieceKind::Pawn;
+        let should_reset_halfmove_clock = mv.is_capture() || moved_piece.kind == PieceKind::Pawn;
 
         if should_reset_halfmove_clock {
             self.halfmove_clock = 0;

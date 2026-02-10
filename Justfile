@@ -145,7 +145,7 @@ playoff-elo new baseline rounds concurrency tc:
 		-ratinginterval {{concurrency}} \
 		-concurrency {{concurrency}} \
 		-rounds {{rounds}} -repeat \
-		-pgnout "./bins/$(basename {{new}})-vs-$(basename {{baseline}})-{{tc}}.pgn" \
+		-pgnout file="./bins/$(basename {{new}})-vs-$(basename {{baseline}})-{{tc}}.pgn" \
 		-each \
 			proto=uci \
 			tc={{tc}}

@@ -231,6 +231,7 @@ impl Uci {
         match cmd {
             UciCommand::Uci => {
                 self.game = Game::new();
+                self.reporter.pretty_output = false;
 
                 send_response(&UciResponse::Id(IdParam::Name(format!(
                     "{ENGINE_NAME} {ENGINE_VERSION}"

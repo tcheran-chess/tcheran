@@ -451,7 +451,7 @@ fn probe_tb_at_root<'s>(
 
         // Check if this move terminated the game, and return an appropriate score
         let legal_moves = game.moves();
-        let king_in_check = game.is_king_in_check();
+        let king_in_check = game.in_check();
 
         if legal_moves.is_empty() {
             eval = Some(if king_in_check {

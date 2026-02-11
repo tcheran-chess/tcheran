@@ -31,7 +31,7 @@ pub fn quiescence(
         return Eval::DRAW;
     }
 
-    let in_check = game.is_king_in_check();
+    let in_check = game.in_check();
 
     if plies == MAX_SEARCH_DEPTH {
         return if in_check {

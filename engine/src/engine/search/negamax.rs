@@ -49,7 +49,7 @@ pub fn negamax(
 
     // Check extension: If we're about to finish searching, but we are in check, we
     // should keep going.
-    let in_check = game.is_king_in_check();
+    let in_check = game.in_check();
     if in_check {
         depth += 1;
     }
@@ -504,7 +504,7 @@ pub fn negamax(
             return alpha;
         }
 
-        return if game.is_king_in_check() {
+        return if game.in_check() {
             Eval::mated_in(plies)
         } else {
             Eval::DRAW

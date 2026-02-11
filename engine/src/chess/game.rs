@@ -309,7 +309,7 @@ impl Game {
     }
 
     #[inline(always)]
-    pub fn is_king_in_check(&self) -> bool {
+    pub fn in_check(&self) -> bool {
         self.checkers.any()
     }
 

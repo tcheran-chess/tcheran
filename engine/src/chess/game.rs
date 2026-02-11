@@ -448,8 +448,8 @@ impl Game {
     }
 
     pub fn make_move_nnue(&mut self, mv: Move, nnue_changes: &mut NNUEChanges) {
-        let from = mv.src();
-        let to = mv.dst();
+        let from = mv.from();
+        let to = mv.to();
         let player = self.player;
         let other_player = player.other();
 
@@ -626,8 +626,8 @@ impl Game {
     pub fn undo_move(&mut self) {
         let history = self.history.pop().unwrap();
         let mv = history.mv.unwrap();
-        let from = mv.src();
-        let to = mv.dst();
+        let from = mv.from();
+        let to = mv.to();
 
         // The player that made this move is the one whose turn it was before
         // we start undoing the move.
@@ -700,19 +700,19 @@ impl Game {
     pub fn approx_zobrist_after(&self, mv: Move) -> ZobristHash {
         let mut key = self.hash;
 
-        let moved_piece = self.board.piece_guaranteed_at(mv.src());
-        let captured_piece = self.board.piece_at(mv.dst());
+        let moved_piece = self.board.piece_guaranteed_at(mv.from());
+        let captured_piece = self.board.piece_at(mv.to());
 
-        key.toggle_piece_on_square(mv.src(), moved_piece);
+        key.toggle_piece_on_square(mv.from(), moved_piece);
 
         if let Some(promotion) = mv.promotion() {
-            key.toggle_piece_on_square(mv.dst(), Piece::new(moved_piece.player, promotion.piece()));
+            key.toggle_piece_on_square(mv.to(), Piece::new(moved_piece.player, promotion.piece()));
         } else if !mv.is_castling() {
-            key.toggle_piece_on_square(mv.dst(), moved_piece);
+            key.toggle_piece_on_square(mv.to(), moved_piece);
         }
 
         if let Some(captured_piece) = captured_piece {
-            key.toggle_piece_on_square(mv.dst(), captured_piece);
+            key.toggle_piece_on_square(mv.to(), captured_piece);
         }
 
         if let Some(ep_target) = self.en_passant_target {
@@ -720,7 +720,7 @@ impl Game {
         }
 
         if mv.is_double_push() {
-            let ep_square = mv.dst().backward(self.player);
+            let ep_square = mv.to().backward(self.player);
             key.toggle_en_passant(ep_square);
         }
 

@@ -113,7 +113,7 @@ pub fn quiescence(
 
         ctx.tt.prefetch(game.approx_zobrist_after(mv));
 
-        ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.src())));
+        ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.from())));
 
         game.make_move_nnue(mv, ctx.nnue.next_changes());
 

@@ -9,8 +9,8 @@ pub type MoveList = ArrayVec<Move, MAX_LEGAL_MOVES>;
 pub trait MoveListExt {
     fn expect_matching(
         &self,
-        src: Square,
-        dst: Square,
+        from: Square,
+        to: Square,
         promotion: Option<PromotionPieceKind>,
     ) -> Move;
 }
@@ -18,14 +18,14 @@ pub trait MoveListExt {
 impl MoveListExt for ArrayVec<Move, MAX_LEGAL_MOVES> {
     fn expect_matching(
         &self,
-        src: Square,
-        dst: Square,
+        from: Square,
+        to: Square,
         promotion: Option<PromotionPieceKind>,
     ) -> Move {
         for i in 0..self.len() {
             let mv = *self.get(i);
 
-            if mv.src() == src && mv.dst() == dst && mv.promotion() == promotion {
+            if mv.from() == from && mv.to() == to && mv.promotion() == promotion {
                 return mv;
             }
         }
@@ -61,8 +61,8 @@ impl MoveListExt for ArrayVec<Move, MAX_LEGAL_MOVES> {
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub struct Move(NonZeroU16);
 
-const SRC_MASK: u16 = 0b0000_0000_0011_1111;
-const DST_MASK: u16 = 0b0000_1111_1100_0000;
+const FROM_MASK: u16 = 0b0000_0000_0011_1111;
+const TO_MASK: u16 = 0b0000_1111_1100_0000;
 
 #[repr(u8)]
 #[derive(PartialEq, Eq)]
@@ -100,53 +100,53 @@ const fn flag_bits(f1: bool, f2: bool) -> u8 {
     ((f1 as u8) << 2) | ((f2 as u8) << 3)
 }
 
-const DST_SHIFT: usize = 6;
+const TO_SHIFT: usize = 6;
 const FLAGS_SHIFT: usize = 12;
 
 impl Move {
     #[inline]
-    const fn new(src: Square, dst: Square, flags: Flags) -> Self {
+    const fn new(from: Square, to: Square, flags: Flags) -> Self {
         // It's impossible for us to create a move with '0' data. In order to do that
         // we'd need both the source and destination squares to be A1 (0).
         Self(unsafe {
             NonZeroU16::new_unchecked(
-                (src.idx() as u16)
-                    | (dst.idx() as u16) << DST_SHIFT
+                (from.idx() as u16)
+                    | (to.idx() as u16) << TO_SHIFT
                     | ((flags as u16) << FLAGS_SHIFT),
             )
         })
     }
 
     #[inline]
-    pub const fn quiet(src: Square, dst: Square) -> Self {
-        Self::new(src, dst, Flags::Quiet)
+    pub const fn quiet(from: Square, to: Square) -> Self {
+        Self::new(from, to, Flags::Quiet)
     }
 
     #[inline]
-    pub const fn double_push(src: Square, dst: Square) -> Self {
-        Self::new(src, dst, Flags::DoublePush)
+    pub const fn double_push(from: Square, to: Square) -> Self {
+        Self::new(from, to, Flags::DoublePush)
     }
 
     #[inline]
-    pub const fn capture(src: Square, dst: Square) -> Self {
-        Self::new(src, dst, Flags::Capture)
+    pub const fn capture(from: Square, to: Square) -> Self {
+        Self::new(from, to, Flags::Capture)
     }
 
     #[inline]
-    pub const fn castles(src: Square, dst: Square) -> Self {
-        Self::new(src, dst, Flags::Castle)
+    pub const fn castles(from: Square, to: Square) -> Self {
+        Self::new(from, to, Flags::Castle)
     }
 
     #[inline]
-    pub const fn en_passant(src: Square, dst: Square) -> Self {
-        Self::new(src, dst, Flags::EnPassant)
+    pub const fn en_passant(from: Square, to: Square) -> Self {
+        Self::new(from, to, Flags::EnPassant)
     }
 
     #[inline]
-    pub const fn quiet_promotion(src: Square, dst: Square, promotion: PromotionPieceKind) -> Self {
+    pub const fn quiet_promotion(from: Square, to: Square, promotion: PromotionPieceKind) -> Self {
         Self::new(
-            src,
-            dst,
+            from,
+            to,
             match promotion {
                 PromotionPieceKind::Bishop => Flags::PromoteToBishop,
                 PromotionPieceKind::Knight => Flags::PromoteToKnight,
@@ -158,13 +158,13 @@ impl Move {
 
     #[inline]
     pub const fn capture_promotion(
-        src: Square,
-        dst: Square,
+        from: Square,
+        to: Square,
         promotion: PromotionPieceKind,
     ) -> Self {
         Self::new(
-            src,
-            dst,
+            from,
+            to,
             match promotion {
                 PromotionPieceKind::Bishop => Flags::CaptureAndPromoteToBishop,
                 PromotionPieceKind::Knight => Flags::CaptureAndPromoteToKnight,
@@ -180,13 +180,13 @@ impl Move {
     }
 
     #[inline]
-    pub fn src(self) -> Square {
-        Square::from_index((self.data() & SRC_MASK) as u8)
+    pub fn from(self) -> Square {
+        Square::from_index((self.data() & FROM_MASK) as u8)
     }
 
     #[inline]
-    pub fn dst(self) -> Square {
-        Square::from_index(((self.data() & DST_MASK) >> DST_SHIFT) as u8)
+    pub fn to(self) -> Square {
+        Square::from_index(((self.data() & TO_MASK) >> TO_SHIFT) as u8)
     }
 
     #[inline]
@@ -243,8 +243,8 @@ impl std::fmt::Debug for Move {
         write!(
             f,
             "{}{}{}",
-            self.src().notation(),
-            self.dst().notation(),
+            self.from().notation(),
+            self.to().notation(),
             match self.promotion() {
                 Some(piece) => match piece {
                     PromotionPieceKind::Knight => "n",
@@ -276,8 +276,8 @@ mod tests {
     #[test]
     fn test_quiet() {
         let mv = Move::quiet(A1, B1);
-        assert_eq!(mv.src(), A1);
-        assert_eq!(mv.dst(), B1);
+        assert_eq!(mv.from(), A1);
+        assert_eq!(mv.to(), B1);
         assert!(mv.is_quiet());
         assert!(mv.promotion().is_none());
         assert!(!mv.is_capture());
@@ -288,8 +288,8 @@ mod tests {
     #[test]
     fn test_double_push() {
         let mv = Move::double_push(A2, A4);
-        assert_eq!(mv.src(), A2);
-        assert_eq!(mv.dst(), A4);
+        assert_eq!(mv.from(), A2);
+        assert_eq!(mv.to(), A4);
         assert!(mv.is_quiet());
         assert!(mv.promotion().is_none());
         assert!(!mv.is_capture());

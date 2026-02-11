@@ -116,7 +116,7 @@ impl Board {
             return Some(PieceKind::Pawn);
         }
 
-        Some(self.piece_guaranteed_at(mv.dst()).kind)
+        Some(self.piece_guaranteed_at(mv.to()).kind)
     }
 
     #[inline(always)]

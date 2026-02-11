@@ -71,8 +71,8 @@ mod tests {
         pv_4.push(Move::quiet(E1, F1), &pv_3);
 
         assert_eq!(pv_4.len(), 3);
-        assert_eq!(pv_4.0.get(0).src(), E1);
-        assert_eq!(pv_4.0.get(1).src(), C1);
-        assert_eq!(pv_4.0.get(2).src(), A1);
+        assert_eq!(pv_4.0.get(0).from(), E1);
+        assert_eq!(pv_4.0.get(1).from(), C1);
+        assert_eq!(pv_4.0.get(2).from(), A1);
     }
 }

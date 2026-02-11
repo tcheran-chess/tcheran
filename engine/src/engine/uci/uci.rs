@@ -356,8 +356,8 @@ impl Uci {
                                 .moves()
                                 .into_iter()
                                 .find(|m| {
-                                    m.src() == uci_move.src
-                                        && m.dst() == uci_move.dst
+                                    m.from() == uci_move.from
+                                        && m.to() == uci_move.to
                                         && m.promotion() == uci_move.promotion
                                 })
                                 .copied();

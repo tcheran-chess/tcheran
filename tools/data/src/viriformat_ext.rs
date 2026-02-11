@@ -15,8 +15,8 @@ impl ToViriExt for Move {
     fn to_viri(self) -> Self::Output {
         use viriformat::chess::chessmove::MoveFlags;
 
-        let from = self.src().to_viri();
-        let to = self.dst().to_viri();
+        let from = self.from().to_viri();
+        let to = self.to().to_viri();
 
         if let Some(promo_piece) = self.promotion() {
             ViriMove::new_with_promo(from, to, promo_piece.to_viri())

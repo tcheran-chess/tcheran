@@ -101,17 +101,17 @@ impl QuietHistoryTable {
     }
 
     pub fn get(&self, game: &Game, mv: Move) -> i32 {
-        let from_threatened = usize::from(game.threats.contains(mv.src()));
-        let to_threatened = usize::from(game.threats.contains(mv.dst()));
+        let from_threatened = usize::from(game.threats.contains(mv.from()));
+        let to_threatened = usize::from(game.threats.contains(mv.to()));
 
-        self.0[game.player][mv.src()][mv.dst()][from_threatened][to_threatened].get()
+        self.0[game.player][mv.from()][mv.to()][from_threatened][to_threatened].get()
     }
 
     fn update_for_move(&mut self, game: &Game, mv: Move, bonus: i32) {
-        let from_threatened = usize::from(game.threats.contains(mv.src()));
-        let to_threatened = usize::from(game.threats.contains(mv.dst()));
+        let from_threatened = usize::from(game.threats.contains(mv.from()));
+        let to_threatened = usize::from(game.threats.contains(mv.to()));
 
-        self.0[game.player][mv.src()][mv.dst()][from_threatened][to_threatened].update(bonus);
+        self.0[game.player][mv.from()][mv.to()][from_threatened][to_threatened].update(bonus);
     }
 
     pub fn update(&mut self, game: &Game, mv: Move, depth: Depth, other_quiets_tried: &MoveList) {
@@ -139,22 +139,22 @@ impl CaptureHistoryTable {
     }
 
     pub fn get(&self, game: &Game, mv: Move) -> i32 {
-        let capturing_piece = game.board.piece_guaranteed_at(mv.src());
-        let capture_square = mv.dst();
+        let capturing_piece = game.board.piece_guaranteed_at(mv.from());
+        let capture_square = mv.to();
         let captured_piece = game.board.captured_piece(mv).expect("Move was a capture");
-        let from_threatened = usize::from(game.threats.contains(mv.src()));
-        let to_threatened = usize::from(game.threats.contains(mv.dst()));
+        let from_threatened = usize::from(game.threats.contains(mv.from()));
+        let to_threatened = usize::from(game.threats.contains(mv.to()));
 
         self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened]
             .get()
     }
 
     fn update_for_move(&mut self, mv: Move, game: &Game, bonus: i32) {
-        let capturing_piece = game.board.piece_guaranteed_at(mv.src());
-        let capture_square = mv.dst();
+        let capturing_piece = game.board.piece_guaranteed_at(mv.from());
+        let capture_square = mv.to();
         let captured_piece = game.board.captured_piece(mv).expect("Move was a capture");
-        let from_threatened = usize::from(game.threats.contains(mv.src()));
-        let to_threatened = usize::from(game.threats.contains(mv.dst()));
+        let from_threatened = usize::from(game.threats.contains(mv.from()));
+        let to_threatened = usize::from(game.threats.contains(mv.to()));
 
         self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened]
             .update(bonus);
@@ -197,8 +197,8 @@ impl ContHistTable {
         previous_moved_to: Square,
         mv: Move,
     ) -> i32 {
-        let moved = game.board.piece_guaranteed_at(mv.src());
-        self.0[previous_piece_moved][previous_moved_to][moved][mv.dst()].get()
+        let moved = game.board.piece_guaranteed_at(mv.from());
+        self.0[previous_piece_moved][previous_moved_to][moved][mv.to()].get()
     }
 
     pub fn get(&self, game: &Game, stack: &SearchStack, plies: u8, mv: Move) -> i32 {
@@ -209,7 +209,7 @@ impl ContHistTable {
                     .get_prev(plies, i)
                     .and_then(|s| s.mv)
                     .map_or(0, |(prev_move, prev_moved)| {
-                        self.get_ply(game, prev_moved, prev_move.dst(), mv)
+                        self.get_ply(game, prev_moved, prev_move.to(), mv)
                     })
             })
             .sum::<i32>()
@@ -237,16 +237,16 @@ impl ContHistTable {
     ) {
         let bonus = continuation_history_bonus(depth);
 
-        let moved = game.board.piece_guaranteed_at(mv.src());
-        self.update_for_move(previous_piece_moved, previous_move.dst(), moved, mv.dst(), bonus);
+        let moved = game.board.piece_guaranteed_at(mv.from());
+        self.update_for_move(previous_piece_moved, previous_move.to(), moved, mv.to(), bonus);
 
         for quiet_tried in quiets_tried {
-            let try_moved = game.board.piece_guaranteed_at(quiet_tried.src());
+            let try_moved = game.board.piece_guaranteed_at(quiet_tried.from());
             self.update_for_move(
                 previous_piece_moved,
-                previous_move.dst(),
+                previous_move.to(),
                 try_moved,
-                quiet_tried.dst(),
+                quiet_tried.to(),
                 -bonus,
             );
         }

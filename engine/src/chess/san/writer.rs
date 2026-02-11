@@ -14,8 +14,8 @@ enum AmbiguityResolution {
 }
 
 pub fn format_move(game: &Game, mv: Move) -> String {
-    let from = mv.src();
-    let to = mv.dst();
+    let from = mv.from();
+    let to = mv.to();
 
     let piece = game.board.piece_guaranteed_at(from);
 
@@ -91,8 +91,8 @@ pub fn format_move(game: &Game, mv: Move) -> String {
 }
 
 fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
-    let from = mv.src();
-    let to = mv.dst();
+    let from = mv.from();
+    let to = mv.to();
 
     let piece = game.board.piece_guaranteed_at(from);
     if piece.kind == PieceKind::Pawn || piece.kind == PieceKind::King {
@@ -106,10 +106,10 @@ fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
             // A move is potentially ambiguous if:
 
             // It moves to the same square our move
-            m.dst() == to &&
+            m.to() == to &&
 
                 // The kind of piece being moved is the same
-                game.board.piece_guaranteed_at(m.src()).kind == piece.kind &&
+                game.board.piece_guaranteed_at(m.from()).kind == piece.kind &&
 
                 // It's not the exact same move
                 *m != mv
@@ -119,11 +119,11 @@ fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
 
     let ambiguity_by_file = potentially_ambiguous_moves
         .iter()
-        .any(|m| m.src().file() == mv.src().file());
+        .any(|m| m.from().file() == mv.from().file());
 
     let ambiguity_by_rank = potentially_ambiguous_moves
         .iter()
-        .any(|m| m.src().rank() == mv.src().rank());
+        .any(|m| m.from().rank() == mv.from().rank());
 
     match (ambiguity_by_file, ambiguity_by_rank) {
         (false, false) => AmbiguityResolution::None,
@@ -147,8 +147,8 @@ mod tests {
         crate::init();
 
         let game = Game::from_fen(fen).unwrap();
-        let (src, dst) = mv;
-        let mv = game.moves().expect_matching(src, dst, None);
+        let (from, to) = mv;
+        let mv = game.moves().expect_matching(from, to, None);
         let san = format_move(&game, mv);
 
         assert_eq!(&san, expected_san);
@@ -162,8 +162,8 @@ mod tests {
         crate::init();
 
         let game = Game::from_fen(fen).unwrap();
-        let (src, dst, promotion) = mv;
-        let mv = game.moves().expect_matching(src, dst, Some(promotion));
+        let (from, to, promotion) = mv;
+        let mv = game.moves().expect_matching(from, to, Some(promotion));
         let san = format_move(&game, mv);
 
         assert_eq!(&san, expected_san);

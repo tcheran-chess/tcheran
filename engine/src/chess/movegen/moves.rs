@@ -582,7 +582,7 @@ mod tests {
         let mut movelist = MoveList::new();
         generate_legal_moves(&game, |m| movelist.push(m));
 
-        assert!(movelist.iter().any(|m| (m.src(), m.dst()) == mv));
+        assert!(movelist.iter().any(|m| (m.from(), m.to()) == mv));
     }
 
     #[inline(always)]
@@ -592,7 +592,7 @@ mod tests {
         let mut movelist = MoveList::new();
         generate_legal_moves(&game, |m| movelist.push(m));
 
-        assert!(movelist.iter().all(|m| (m.src(), m.dst()) != mv));
+        assert!(movelist.iter().all(|m| (m.from(), m.to()) != mv));
     }
 
     #[test]

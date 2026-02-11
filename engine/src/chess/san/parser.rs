@@ -19,9 +19,9 @@ impl AmbiguityResolution {
     fn satisfied_by(&self, mv: Move) -> bool {
         match self {
             Self::None => true,
-            Self::File(file) => mv.src().file() == *file,
-            Self::Rank(rank) => mv.src().rank() == *rank,
-            Self::Exact(file, rank) => mv.src().file() == *file && mv.src().rank() == *rank,
+            Self::File(file) => mv.from().file() == *file,
+            Self::Rank(rank) => mv.from().rank() == *rank,
+            Self::Exact(file, rank) => mv.from().file() == *file && mv.from().rank() == *rank,
         }
     }
 }
@@ -120,19 +120,19 @@ fn parse_piece(c: char) -> Option<PieceKind> {
     }
 }
 
-fn parse_source_square(game: &Game, src: &str, dst: Square) -> Result<Square, ParseError> {
+fn parse_from_square(game: &Game, from: &str, to: Square) -> Result<Square, ParseError> {
     let piece_moves: Vec<(PieceKind, Move)> = game
         .moves()
         .iter()
-        .map(|mv| (game.board.piece_guaranteed_at(mv.src()).kind, *mv))
+        .map(|mv| (game.board.piece_guaranteed_at(mv.from()).kind, *mv))
         .collect();
 
     // Pawn move
-    if src.is_empty() {
+    if from.is_empty() {
         let matching_source_squares: HashSet<Square> = piece_moves
             .into_iter()
-            .filter(|&(piece, mv)| piece == PieceKind::Pawn && mv.dst() == dst)
-            .map(|(_, mv)| mv.src())
+            .filter(|&(piece, mv)| piece == PieceKind::Pawn && mv.to() == to)
+            .map(|(_, mv)| mv.from())
             .collect();
 
         if matching_source_squares.len() != 1 {
@@ -142,8 +142,8 @@ fn parse_source_square(game: &Game, src: &str, dst: Square) -> Result<Square, Pa
         return Ok(*matching_source_squares.iter().next().unwrap());
     }
 
-    let src_chars: Vec<char> = src.chars().collect();
-    let (first_char, rest) = src_chars.split_first().unwrap();
+    let from_chars: Vec<char> = from.chars().collect();
+    let (first_char, rest) = from_chars.split_first().unwrap();
 
     if let Some(moved_piece) = parse_piece(*first_char) {
         let ambiguity_resolution = parse_ambiguity_resolution(rest)?;
@@ -151,9 +151,9 @@ fn parse_source_square(game: &Game, src: &str, dst: Square) -> Result<Square, Pa
         let matching_source_squares: Vec<Square> = piece_moves
             .into_iter()
             .filter(|&(piece, mv)| {
-                piece == moved_piece && mv.dst() == dst && ambiguity_resolution.satisfied_by(mv)
+                piece == moved_piece && mv.to() == to && ambiguity_resolution.satisfied_by(mv)
             })
-            .map(|(_, mv)| mv.src())
+            .map(|(_, mv)| mv.from())
             .collect();
 
         if matching_source_squares.len() != 1 {
@@ -163,16 +163,16 @@ fn parse_source_square(game: &Game, src: &str, dst: Square) -> Result<Square, Pa
         return Ok(*matching_source_squares.first().unwrap());
     }
 
-    let ambiguity_resolution = parse_ambiguity_resolution(&src_chars)?;
+    let ambiguity_resolution = parse_ambiguity_resolution(&from_chars)?;
 
     // If the SAN didn't specify the piece that was going to be moved but rather the square, then
     // we moved a pawn, so restrict to pawn moves only.
     let matching_source_squares: Vec<Square> = piece_moves
         .into_iter()
         .filter(|&(piece, mv)| {
-            piece == PieceKind::Pawn && mv.dst() == dst && ambiguity_resolution.satisfied_by(mv)
+            piece == PieceKind::Pawn && mv.to() == to && ambiguity_resolution.satisfied_by(mv)
         })
-        .map(|(_, mv)| mv.src())
+        .map(|(_, mv)| mv.from())
         .collect::<HashSet<_>>()
         .into_iter()
         .collect();
@@ -184,7 +184,7 @@ fn parse_source_square(game: &Game, src: &str, dst: Square) -> Result<Square, Pa
     Ok(*matching_source_squares.first().unwrap())
 }
 
-fn parse_destination_square(sq: &str) -> Result<Square, ParseError> {
+fn parse_to_square(sq: &str) -> Result<Square, ParseError> {
     assert_eq!(sq.len(), 2);
 
     let mut chars = sq.chars();
@@ -195,23 +195,23 @@ fn parse_destination_square(sq: &str) -> Result<Square, ParseError> {
 }
 
 fn parse_move_squares(game: &Game, mv: &str) -> Result<(Square, Square), ParseError> {
-    let (src, dst) = mv.split_at(mv.len() - 2);
+    let (from, to) = mv.split_at(mv.len() - 2);
 
-    let dst = parse_destination_square(dst)?;
-    let src = parse_source_square(game, src, dst)?;
+    let to = parse_to_square(to)?;
+    let from = parse_from_square(game, from, to)?;
 
-    Ok((src, dst))
+    Ok((from, to))
 }
 
 fn parse_capture_squares(game: &Game, mv: &str) -> Result<(Square, Square), ParseError> {
-    let (src, dst) = mv
+    let (from, to) = mv
         .split_once(constants::CAPTURE)
         .ok_or(ParseError::NoXInCaptureMove)?;
 
-    let dst = parse_destination_square(dst)?;
-    let src = parse_source_square(game, src, dst)?;
+    let to = parse_to_square(to)?;
+    let from = parse_from_square(game, from, to)?;
 
-    Ok((src, dst))
+    Ok((from, to))
 }
 
 fn parse_squares(game: &Game, mv: &str) -> Result<(Square, Square), ParseError> {
@@ -262,9 +262,9 @@ pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
         (mv, None)
     };
 
-    let (src, dst) = parse_squares(game, mv)?;
+    let (from, to) = parse_squares(game, mv)?;
 
-    Ok(game.moves().expect_matching(src, dst, promotion))
+    Ok(game.moves().expect_matching(from, to, promotion))
 }
 
 #[cfg(test)]

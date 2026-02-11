@@ -165,8 +165,8 @@ impl NetworkStack {
             // If the king crossed over the middle of the board, the board either becomes, or stops being
             // mirrored and will require a full refresh.
             if entry.changes.moved_piece.kind == PieceKind::King {
-                let from_file = entry.changes.mv.src().file().idx();
-                let to_file = entry.changes.mv.dst().file().idx();
+                let from_file = entry.changes.mv.from().file().idx();
+                let to_file = entry.changes.mv.to().file().idx();
 
                 let crossed_mirroring_boundary = (from_file <= File::D.idx()
                     && to_file >= File::E.idx())

@@ -363,7 +363,7 @@ pub fn negamax(
         }
 
         let nodes_before = ctx.nodes.get();
-        ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.src())));
+        ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.from())));
 
         game.make_move_nnue(mv, ctx.nnue.next_changes());
         number_of_legal_moves += 1;

@@ -8,8 +8,8 @@ use crate::chess::{
 
 #[derive(PartialEq, Eq, Clone, Copy)]
 pub struct UciMove {
-    pub src: Square,
-    pub dst: Square,
+    pub from: Square,
+    pub to: Square,
     pub promotion: Option<PromotionPieceKind>,
 }
 
@@ -17,8 +17,8 @@ impl UciMove {
     pub fn notation(self) -> String {
         format!(
             "{}{}{}",
-            self.src.notation(),
-            self.dst.notation(),
+            self.from.notation(),
+            self.to.notation(),
             match self.promotion {
                 Some(piece) => match piece {
                     PromotionPieceKind::Knight => "n",
@@ -38,32 +38,32 @@ impl UciMove {
             // If the move is castling, it's represented internally as 'captures rook'
             // in standard chess, so account for that.
             if !is_frc && mv.is_castling() {
-                if self.dst == squares::kingside_king_castle_end(Player::White)
-                    && mv.dst() == squares::WHITE_STANDARD_KINGSIDE_ROOK_START
+                if self.to == squares::kingside_king_castle_end(Player::White)
+                    && mv.to() == squares::WHITE_STANDARD_KINGSIDE_ROOK_START
                 {
                     return mv;
                 }
 
-                if self.dst == squares::queenside_king_castle_end(Player::White)
-                    && mv.dst() == squares::WHITE_STANDARD_QUEENSIDE_ROOK_START
+                if self.to == squares::queenside_king_castle_end(Player::White)
+                    && mv.to() == squares::WHITE_STANDARD_QUEENSIDE_ROOK_START
                 {
                     return mv;
                 }
 
-                if self.dst == squares::kingside_king_castle_end(Player::Black)
-                    && mv.dst() == squares::BLACK_STANDARD_KINGSIDE_ROOK_START
+                if self.to == squares::kingside_king_castle_end(Player::Black)
+                    && mv.to() == squares::BLACK_STANDARD_KINGSIDE_ROOK_START
                 {
                     return mv;
                 }
 
-                if self.dst == squares::queenside_king_castle_end(Player::Black)
-                    && mv.dst() == squares::BLACK_STANDARD_QUEENSIDE_ROOK_START
+                if self.to == squares::queenside_king_castle_end(Player::Black)
+                    && mv.to() == squares::BLACK_STANDARD_QUEENSIDE_ROOK_START
                 {
                     return mv;
                 }
             }
 
-            if mv.src() == self.src && mv.dst() == self.dst && mv.promotion() == self.promotion {
+            if mv.from() == self.from && mv.to() == self.to && mv.promotion() == self.promotion {
                 return mv;
             }
         }
@@ -72,10 +72,10 @@ impl UciMove {
     }
 
     pub fn from_move(mv: Move, is_frc: bool) -> Self {
-        let mut dst = mv.dst();
+        let mut to = mv.to();
 
         if !is_frc && mv.is_castling() {
-            dst = match mv.dst() {
+            to = match mv.to() {
                 squares::WHITE_STANDARD_KINGSIDE_ROOK_START => {
                     squares::kingside_king_castle_end(Player::White)
                 }
@@ -88,13 +88,13 @@ impl UciMove {
                 squares::BLACK_STANDARD_QUEENSIDE_ROOK_START => {
                     squares::queenside_king_castle_end(Player::Black)
                 }
-                _ => dst,
+                _ => to,
             };
         }
 
         Self {
-            src: mv.src(),
-            dst,
+            from: mv.from(),
+            to,
             promotion: mv.promotion(),
         }
     }

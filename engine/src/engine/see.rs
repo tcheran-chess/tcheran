@@ -31,8 +31,8 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
         return true;
     }
 
-    let from = mv.src();
-    let to = mv.dst();
+    let from = mv.from();
+    let to = mv.to();
     let board = &game.board;
     let moved_piece = board.piece_guaranteed_at(from);
 

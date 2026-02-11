@@ -199,7 +199,7 @@ impl TimeStrategy {
     }
 
     pub fn update_nodes_used(&mut self, mv: Move, nodes_used: u64) {
-        self.nodes_used[mv.src()][mv.dst()] += nodes_used;
+        self.nodes_used[mv.from()][mv.to()] += nodes_used;
     }
 
     #[expect(clippy::cast_precision_loss, reason = "Time management calculations can be approx")]
@@ -216,7 +216,7 @@ impl TimeStrategy {
             scale *= BEST_MOVE_STABILITY_TIME_MULTIPLIERS[self.best_move_stability];
         }
 
-        let nodes_for_best_move = self.nodes_used[best_move.src()][best_move.dst()];
+        let nodes_for_best_move = self.nodes_used[best_move.from()][best_move.to()];
         let fraction_used_for_best_move = nodes_for_best_move as f32 / nodes_visited as f32;
         let node_scale_adjustment = fraction_used_for_best_move
             .mul_add(-node_tm_multiplier(), node_tm_base())

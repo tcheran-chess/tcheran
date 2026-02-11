@@ -71,8 +71,8 @@ fn uci_promotion(input: &str) -> Result<PromotionPieceKind, ()> {
 pub fn uci_move(input: &str) -> Result<UciMove, ()> {
     Ok(match input.len() {
         len @ 4..=5 => {
-            let src = input.get(0..=1).map_or(Err(()), uci_square)?;
-            let dst = input.get(2..=3).map_or(Err(()), uci_square)?;
+            let from = input.get(0..=1).map_or(Err(()), uci_square)?;
+            let to = input.get(2..=3).map_or(Err(()), uci_square)?;
 
             let promotion = if len == 5 {
                 let p = input.get(4..=4).unwrap();
@@ -82,8 +82,8 @@ pub fn uci_move(input: &str) -> Result<UciMove, ()> {
             };
 
             UciMove {
-                src,
-                dst,
+                from,
+                to,
                 promotion,
             }
         }

@@ -28,7 +28,7 @@ fn test_expected_move(fen: &str, depth: Depth, mv: (Square, Square)) -> (Move, E
         &NullReporter,
     );
 
-    assert_eq!((best_move.src(), best_move.dst()), mv);
+    assert_eq!((best_move.from(), best_move.to()), mv);
     (best_move, eval)
 }
 

@@ -36,7 +36,7 @@ macro_rules! parameters {
             pub fn spsa_params() -> Vec<crate::engine::uci::options::UciOption> {
                 vec![
                     $(
-                        crate::engine::uci::options::UciOption::spin(stringify!($name), |_options, _state, value| {
+                        crate::engine::uci::options::UciOption::spin(stringify!($name), |_refs, value| {
                           unsafe { values::$name = value.into() };
                           crate::engine::tuning::on_option_change()
                        })

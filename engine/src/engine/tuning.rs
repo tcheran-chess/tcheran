@@ -1,7 +1,7 @@
 macro_rules! parameters {
     (
         $(
-            ($name:ident, $ty:ty, $default:expr, $min:expr, $max:expr, $step:expr)
+            ($name:ident, $ty:ty, $default:expr, $min:expr, $max:expr)
         ),* $(,)?
     ) => {
         #[cfg(not(feature = "spsa"))]
@@ -42,7 +42,6 @@ macro_rules! parameters {
                        })
                        .default($default)
                        .with_bounds($min, $max)
-                       .with_spsa_step($step)
                        .build(),
                     )*
                 ]

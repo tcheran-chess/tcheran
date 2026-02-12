@@ -17,8 +17,6 @@ pub enum UciOptionType {
         min: i32,
         max: i32,
         set_fn: SetFn<SpinValue>,
-
-        spsa_step: Option<f64>,
     },
     String {
         default: String,
@@ -90,8 +88,6 @@ impl UciOption {
             default: None,
             min: None,
             max: None,
-
-            spsa_step: None,
         }
     }
 
@@ -192,8 +188,6 @@ pub struct UciSpinOptionBuilder {
     default: Option<i32>,
     min: Option<i32>,
     max: Option<i32>,
-
-    spsa_step: Option<f64>,
 }
 
 impl From<SpinValue> for i32 {
@@ -244,11 +238,6 @@ impl UciSpinOptionBuilder {
         self
     }
 
-    pub fn with_spsa_step(mut self, step: f64) -> Self {
-        self.spsa_step = Some(step);
-        self
-    }
-
     pub fn build(self) -> UciOption {
         let default = self
             .default
@@ -268,8 +257,6 @@ impl UciSpinOptionBuilder {
                 max,
 
                 set_fn: self.set_fn,
-
-                spsa_step: self.spsa_step,
             },
         }
     }

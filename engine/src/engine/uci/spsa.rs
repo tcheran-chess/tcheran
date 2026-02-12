@@ -10,12 +10,11 @@ pub fn print_spsa_input() {
                 min,
                 max,
                 set_fn: _,
-
-                spsa_step,
             } => {
-                let spsa_step = spsa_step.unwrap_or_else(|| panic!("No SPSA step set for {name}"));
+                let c_end = (max as f64 - min as f64) / 20.0;
+                let r_end = 0.002 / (c_end.min(0.5) / 0.5);
 
-                println!("{name}, int, {default}, {min}, {max}, {spsa_step:.1}, 0.002");
+                println!("{name}, int, {default}, {min}, {max}, {c_end:.2}, {r_end}");
             }
             _ => panic!("Invalid SPSA option: {name}"),
         }

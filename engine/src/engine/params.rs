@@ -3,53 +3,53 @@ use crate::engine::tuning::{non_tunable_parameters, parameters};
 #[rustfmt::skip]
 parameters!(
     // Search
-    (reverse_futility_prune_margin_per_ply, i32, 150, 16, 256, 10.0),
+    (reverse_futility_prune_margin_per_ply, i32, 150, 16, 256),
 
-    (razoring_margin, i32, 315, 8, 512, 10.0),
+    (razoring_margin, i32, 315, 8, 512),
 
-    (futility_prune_max_move_value, i32, 135, 8, 256, 10.0),
+    (futility_prune_max_move_value, i32, 135, 8, 256),
 
-    (see_quiet_margin, i32, -30, -256, -8, 5.0),
-    (see_capture_margin, i32, -100, -256, -8, 5.0),
-    (see_prune_history_divisor, i32, 32, 8, 128, 6.0),
+    (see_quiet_margin, i32, -30, -256, -8),
+    (see_capture_margin, i32, -100, -256, -8),
+    (see_prune_history_divisor, i32, 32, 8, 128),
 
-    (lmr_base, i32, 75, 16, 256, 8.0),
-    (lmr_factor, i32, 225, 64, 1028, 16.0),
+    (lmr_base, i32, 75, 16, 256),
+    (lmr_factor, i32, 225, 64, 1028),
 
-    (lmr_cut_node_factor, u32, 1024, 128, 2048, 64.0),
-    (lmr_is_not_pv_factor, u32, 1024, 128, 2048, 64.0),
-    (lmr_many_fail_highs_factor, u32, 1024, 128, 2048, 64.0),
-    (lmr_in_check_factor, u32, 1024, 128, 2048, 64.0),
+    (lmr_cut_node_factor, u32, 1024, 128, 2048),
+    (lmr_is_not_pv_factor, u32, 1024, 128, 2048),
+    (lmr_many_fail_highs_factor, u32, 1024, 128, 2048),
+    (lmr_in_check_factor, u32, 1024, 128, 2048),
 
     // Eval
-    (material_scale_base, i32, 950, 512, 1024, 20.0),
-    (material_scale_divisor, i32, 32, 16, 128, 2.0),
+    (material_scale_base, i32, 950, 512, 1024),
+    (material_scale_divisor, i32, 32, 16, 128),
 
     // SEE
-    (see_pawn_value, i32, 100, 4, 4096, 16.0),
-    (see_knight_value, i32, 300, 4, 4096, 16.0),
-    (see_bishop_value, i32, 300, 4, 4096, 16.0),
-    (see_rook_value, i32, 500, 4, 4096, 16.0),
-    (see_queen_value, i32, 900, 4, 4096, 16.0),
+    (see_pawn_value, i32, 100, 4, 4096),
+    (see_knight_value, i32, 300, 4, 4096),
+    (see_bishop_value, i32, 300, 4, 4096),
+    (see_rook_value, i32, 500, 4, 4096),
+    (see_queen_value, i32, 900, 4, 4096),
 
     // History
-    (quiet_history_max_bonus, i32, 1600, 1, 4096, 256.0),
-    (quiet_history_factor, i32, 350, 1, 2048, 32.0),
-    (quiet_history_offset, i32, 350, 1, 2048, 32.0),
+    (quiet_history_max_bonus, i32, 1600, 1, 4096),
+    (quiet_history_factor, i32, 350, 1, 2048),
+    (quiet_history_offset, i32, 350, 1, 2048),
 
-    (capture_history_max_bonus, i32, 1600, 1, 4096, 256.0),
-    (capture_history_factor, i32, 350, 1, 2048, 32.0),
-    (capture_history_offset, i32, 350, 1, 2048, 32.0),
+    (capture_history_max_bonus, i32, 1600, 1, 4096),
+    (capture_history_factor, i32, 350, 1, 2048),
+    (capture_history_offset, i32, 350, 1, 2048),
 
-    (continuation_history_max_bonus, i32, 1600, 1, 4096, 256.0),
-    (continuation_history_factor, i32, 350, 1, 2048, 32.0),
-    (continuation_history_offset, i32, 350, 1, 2048, 32.0),
+    (continuation_history_max_bonus, i32, 1600, 1, 4096),
+    (continuation_history_factor, i32, 350, 1, 2048),
+    (continuation_history_offset, i32, 350, 1, 2048),
 
-    (pawn_correction_history_weight, i32, 128, 48, 256, 8.0),
-    (major_correction_history_weight, i32, 128, 48, 256, 8.0),
-    (minor_correction_history_weight, i32, 128, 48, 256, 8.0),
-    (non_pawn_correction_history_weight, i32, 128, 48, 256, 8.0),
-    (threat_correction_history_weight, i32, 128, 48, 256, 8.0),
+    (pawn_correction_history_weight, i32, 128, 48, 256),
+    (major_correction_history_weight, i32, 128, 48, 256),
+    (minor_correction_history_weight, i32, 128, 48, 256),
+    (non_pawn_correction_history_weight, i32, 128, 48, 256),
+    (threat_correction_history_weight, i32, 128, 48, 256),
 );
 
 #[rustfmt::skip]

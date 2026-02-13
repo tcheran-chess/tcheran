@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [11.0]
+
 * Network #11, trained with an entirely new 5k soft node dataset (23.37 +- 8.61)
 * Use capture history as the SEE threshold during move picking (13.97 +- 6.76)
 * Time management tweaks - base hard time on the total time and allow using more of the total time (22.35 +- 8.36 STC, 12.20 +- 5.91 LTC)
@@ -406,7 +408,8 @@ Initial release with the following major features:
     * Tapered midgame vs. endgame evaluation
     * Incremental updates
 
-[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v10.0...HEAD
+[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v11.0...HEAD
+[11.0]: https://github.com/jgilchrist/chess-engine/compare/v10.0..v11.0
 [10.0]: https://github.com/jgilchrist/chess-engine/compare/v9.0..v10.0
 [9.0]: https://github.com/jgilchrist/chess-engine/compare/v8.0..v9.0
 [8.0]: https://github.com/jgilchrist/chess-engine/compare/v7.0..v8.0

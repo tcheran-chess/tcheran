@@ -10,7 +10,7 @@ members = [
 default-members = ["engine"]
 
 [workspace.package]
-version = "11.0.0-dev"
+version = "11.0.0"
 edition = "2024"
 rust-version = "1.93"
 

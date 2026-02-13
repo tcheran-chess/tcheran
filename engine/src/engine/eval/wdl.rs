@@ -2,11 +2,11 @@
 
 use crate::{chess::board::Board, engine::eval::Eval};
 
-const AS: [f64; 4] = [-107.49047430, 356.30217087, -499.48917806, 471.32182441];
-const BS: [f64; 4] = [22.03400821, -69.28420619, 100.06830458, 38.63713804];
+const AS: [f64; 4] = [-33.91949376, 78.27279538, -140.19845918, 296.32468200];
+const BS: [f64; 4] = [-0.13206392, 10.40258210, 18.27140769, 37.39334351];
 
 #[expect(unused, reason = "Here for reference")]
-const NORMALIZE_TO_PAWN_VALUE: i32 = 221;
+const NORMALIZE_TO_PAWN_VALUE: i32 = 200;
 
 fn material(board: &Board) -> i32 {
     i32::from(board.all_pawns().count())

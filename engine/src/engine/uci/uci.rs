@@ -2,7 +2,6 @@
 
 use std::{
     io::{BufRead, IsTerminal},
-    num::NonZero,
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
@@ -434,12 +433,7 @@ pub fn uci_options() -> Vec<UciOption> {
             refs.state.scale_threads(refs.options.threads);
         })
         .default(crate::engine::options::defaults::THREADS as i32)
-        .with_bounds(
-            1,
-            std::thread::available_parallelism()
-                .unwrap_or(NonZero::new(1).unwrap())
-                .get() as i32,
-        )
+        .with_bounds(1, 1024)
         .build(),
         //
         UciOption::check("UCI_Chess960", |refs, value| {

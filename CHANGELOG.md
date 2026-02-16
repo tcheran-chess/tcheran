@@ -2,13 +2,12 @@
 
 ## [Unreleased]
 
-### Misc
-
-* Fixed a bug that caused the engine to crash when reaching any tablebase position
-* The engine no longer crashes when passed UCI options is doesn't recognise.
-* UCI_ShowWDL is now a supported option.
-
 ## [11.0]
+
+### Note
+
+**11.0 was re-released with a fix for a critical bug that caused the engine to
+crash whenever it entered a tablebase position at the root.**
 
 * Network #11, trained with an entirely new 5k soft node dataset (23.37 +- 8.61)
 * Use capture history as the SEE threshold during move picking (13.97 +- 6.76)
@@ -44,6 +43,8 @@
 * tools/data now has a command to convert from .pgn to viriformat
 * The max thread count is now always 1024 rather than being detected
 * The minimum required Rust version is now 1.93
+* The engine no longer crashes when passed UCI options is doesn't recognise.
+* UCI_ShowWDL is now a supported option.
 
 ## [10.0]
 

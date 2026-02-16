@@ -142,9 +142,7 @@ impl TimeStrategy {
             TimeControl::Clocks { .. } => self.elapsed() < self.soft_stop.mul_f32(self.scale),
             TimeControl::ExactTime { time, .. } => self.elapsed() < time,
             TimeControl::Depth(d) => d >= depth,
-            TimeControl::Nodes { soft, .. } => {
-                soft.is_none() || soft.is_some_and(|s| ctx.nodes.get() <= s)
-            }
+            TimeControl::Nodes { soft, .. } => soft.is_none_or(|s| ctx.nodes.get() <= s),
         }
     }
 

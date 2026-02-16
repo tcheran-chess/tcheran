@@ -424,8 +424,8 @@ pub fn search(
     (result.best_move, result.eval)
 }
 
-fn probe_tb_at_root<'s>(
-    game: &'s Game,
+fn probe_tb_at_root(
+    game: &Game,
     tb: &Tablebase,
     time_control: &TimeControl,
 ) -> Option<(Move, Eval, PrincipalVariation, Duration, u8)> {

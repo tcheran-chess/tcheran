@@ -10,7 +10,7 @@ use crate::{
     },
     engine::{
         eval::{Eval, simd},
-        search::MAX_SEARCH_DEPTH_SIZE,
+        search::MAX_PLIES_ARRAY_SIZE,
     },
 };
 
@@ -99,7 +99,7 @@ impl NetworkStack {
                     changes: NNUEChanges::uninit(),
                     correct: [false; Player::N],
                 };
-                MAX_SEARCH_DEPTH_SIZE
+                MAX_PLIES_ARRAY_SIZE
             ],
             current_idx: 0,
         }

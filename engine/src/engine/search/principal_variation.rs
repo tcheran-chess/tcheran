@@ -1,10 +1,10 @@
 use crate::{
     chess::{arrayvec::ArrayVec, moves::Move},
-    engine::search::MAX_SEARCH_DEPTH_SIZE,
+    engine::search::MAX_PLIES_ARRAY_SIZE,
 };
 
 #[derive(Clone)]
-pub struct PrincipalVariation(ArrayVec<Move, MAX_SEARCH_DEPTH_SIZE>);
+pub struct PrincipalVariation(ArrayVec<Move, MAX_PLIES_ARRAY_SIZE>);
 
 impl PrincipalVariation {
     #[inline]

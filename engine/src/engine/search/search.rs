@@ -24,7 +24,10 @@ use crate::{
 };
 
 pub const MAX_SEARCH_DEPTH: u8 = u8::MAX - 1;
-pub const MAX_SEARCH_DEPTH_SIZE: usize = MAX_SEARCH_DEPTH as usize;
+
+// Size used for arrays that are indexed by ply. Add one extra above MAX_PLIES_SIZE for safety
+// when we perform operations on 'the next ply'.
+pub const MAX_PLIES_ARRAY_SIZE: usize = MAX_SEARCH_DEPTH as usize + 1;
 
 pub struct PersistentState {
     pub tt: TranspositionTable,
@@ -151,11 +154,11 @@ impl<'s> SearchContext<'s> {
     }
 }
 
-pub struct SearchStack([SearchStackEntry; MAX_SEARCH_DEPTH_SIZE + 1]);
+pub struct SearchStack([SearchStackEntry; MAX_PLIES_ARRAY_SIZE]);
 
 impl SearchStack {
     pub const fn new() -> Self {
-        Self([const { SearchStackEntry::new() }; MAX_SEARCH_DEPTH_SIZE + 1])
+        Self([const { SearchStackEntry::new() }; MAX_PLIES_ARRAY_SIZE])
     }
 
     pub fn get(&mut self, plies: u8) -> &mut SearchStackEntry {

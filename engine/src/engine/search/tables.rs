@@ -18,7 +18,7 @@ use crate::{
     engine::{
         eval::Eval,
         params::*,
-        search::{MAX_SEARCH_DEPTH_SIZE, SearchStack, types::Depth},
+        search::{MAX_PLIES_ARRAY_SIZE, SearchStack, types::Depth},
     },
 };
 
@@ -62,11 +62,11 @@ impl Tables {
     }
 }
 
-pub struct KillersTable([Option<Move>; MAX_SEARCH_DEPTH_SIZE]);
+pub struct KillersTable([Option<Move>; MAX_PLIES_ARRAY_SIZE]);
 
 impl KillersTable {
     pub const fn new() -> Self {
-        Self([None; MAX_SEARCH_DEPTH_SIZE])
+        Self([None; MAX_PLIES_ARRAY_SIZE])
     }
 
     pub fn get(&self, plies: u8) -> Option<Move> {

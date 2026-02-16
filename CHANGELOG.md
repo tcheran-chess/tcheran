@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Misc
+
+* The engine no longer crashes when passed UCI options is doesn't recognise.
+* UCI_ShowWDL is now a supported option.
+
 ## [11.0]
 
 * Network #11, trained with an entirely new 5k soft node dataset (23.37 +- 8.61)

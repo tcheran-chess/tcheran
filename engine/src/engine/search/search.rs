@@ -296,10 +296,23 @@ pub fn search(
     options: &EngineOptions,
     reporter: &impl Reporter,
 ) -> (Move, Eval) {
-    if let Some((mv, eval, info)) =
+    if let Some((mv, eval, pv, elapsed, depth)) =
         probe_tb_at_root(game, &persistent_state.tablebase, &time_control)
     {
-        reporter.report_search_progress(info);
+        reporter.report_search_progress(SearchInfo {
+            game,
+            pv,
+            eval,
+            stats: SearchStats {
+                time: elapsed,
+                depth,
+                seldepth: depth,
+                nodes: u64::from(depth),
+                nodes_per_second: util::metrics::nodes_per_second(u64::from(depth), elapsed),
+                tbhits: u64::from(depth),
+                hashfull: 0,
+            },
+        });
         reporter.best_move(game, mv);
         return (mv, eval);
     }
@@ -412,7 +425,7 @@ fn probe_tb_at_root<'s>(
     game: &'s Game,
     tb: &Tablebase,
     time_control: &TimeControl,
-) -> Option<(Move, Eval, SearchInfo<'s>)> {
+) -> Option<(Move, Eval, PrincipalVariation, Duration, u8)> {
     if !tb.is_enabled {
         return None;
     }
@@ -421,7 +434,8 @@ fn probe_tb_at_root<'s>(
         return None;
     }
 
-    let best_move = tb.best_move(game)?;
+    let mut game = game.clone();
+    let best_move = tb.best_move(&game)?;
 
     let start_time = match time_control {
         TimeControl::Clocks { start_time, .. } | TimeControl::ExactTime { start_time, .. } => {
@@ -431,33 +445,32 @@ fn probe_tb_at_root<'s>(
     };
 
     let player = game.player;
-    let mut g = game.clone();
 
     let mut pv = PrincipalVariation::new();
 
     let tb_score = tb
-        .wdl(game)
+        .wdl(&game)
         .expect("In tablebase position, but unable to get tablebase score");
 
     let mut eval = None;
 
     for _ in 0..MAX_SEARCH_DEPTH {
         let tablebase_move = tb
-            .best_move(&g)
+            .best_move(&game)
             .expect("In tablebase position, but unable to get tablebase move");
 
         pv.append(tablebase_move);
-        g.make_move(tablebase_move);
+        game.make_move(tablebase_move);
 
         // Check if this move terminated the game, and return an appropriate score
-        let legal_moves = g.moves();
-        let king_in_check = g.in_check();
+        let legal_moves = game.moves();
+        let king_in_check = game.in_check();
 
         if legal_moves.is_empty() {
             eval = Some(if king_in_check {
                 let plies = pv.len();
 
-                if g.player == player {
+                if game.player == player {
                     Eval::mated_in(plies)
                 } else {
                     Eval::mate_in(plies)
@@ -478,22 +491,5 @@ fn probe_tb_at_root<'s>(
         Wdl::Loss => Eval::mated_in(1),
     });
 
-    Some((
-        best_move,
-        eval,
-        SearchInfo {
-            game,
-            pv: pv.clone(),
-            eval,
-            stats: SearchStats {
-                time: elapsed,
-                depth,
-                seldepth: depth,
-                nodes: u64::from(depth),
-                nodes_per_second: util::metrics::nodes_per_second(u64::from(depth), elapsed),
-                tbhits: 1,
-                hashfull: 0,
-            },
-        },
-    ))
+    Some((best_move, eval, pv, elapsed, depth))
 }

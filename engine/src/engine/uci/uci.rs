@@ -29,7 +29,7 @@ use crate::{
             commands::UciCommand,
             options::UciOption,
             parser,
-            responses::{IdParam, UciReporter, UciResponse, send_response},
+            responses::{IdParam, UciReporter, UciResponse},
         },
         util,
         util::{log, sync::LockLatch},
@@ -62,22 +62,23 @@ impl Uci {
                 self.game.is_frc = self.engine_options.frc;
                 self.reporter.pretty_output = false;
 
-                send_response(&UciResponse::Id(IdParam::Name(format!(
+                self.reporter.send(&UciResponse::Id(IdParam::Name(format!(
                     "{ENGINE_NAME} {ENGINE_VERSION}"
                 ))));
-                send_response(&UciResponse::Id(IdParam::Author("Jonathan Gilchrist")));
+                self.reporter
+                    .send(&UciResponse::Id(IdParam::Author("Jonathan Gilchrist")));
 
                 // Options
                 for option in &self.options {
-                    send_response(&UciResponse::Option(option));
+                    self.reporter.send(&UciResponse::Option(option));
                 }
 
-                send_response(&UciResponse::UciOk);
+                self.reporter.send(&UciResponse::UciOk);
             }
             UciCommand::Debug(on) => {
                 self.debug = *on;
             }
-            UciCommand::IsReady => send_response(&UciResponse::ReadyOk),
+            UciCommand::IsReady => self.reporter.send(&UciResponse::ReadyOk),
             UciCommand::SetOption { name, value } => {
                 let Some(option) = self.options.iter().find(|o| o.name == name) else {
                     let unknown_option = format!("unknown option: {name}");

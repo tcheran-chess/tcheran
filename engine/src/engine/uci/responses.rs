@@ -1,4 +1,4 @@
-use std::{fmt::Formatter, time::Duration};
+use std::time::Duration;
 
 use crate::{
     chess::{game::Game, moves::Move, player::Player, san},
@@ -13,10 +13,6 @@ use crate::{
         util::{metrics, metrics::UnitPrefix},
     },
 };
-
-pub(super) fn send_response(response: &UciResponse<'_>) {
-    println!("{response}");
-}
 
 #[derive(Debug)]
 pub(super) enum InfoScore {
@@ -65,122 +61,6 @@ pub(super) enum UciResponse<'uci> {
     Option(&'uci UciOption),
 }
 
-impl std::fmt::Display for UciResponse<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Id(i) => match i {
-                IdParam::Name(name) => write!(f, "id name {name}")?,
-                IdParam::Author(author) => write!(f, "id author {author}")?,
-            },
-            Self::UciOk => write!(f, "uciok")?,
-            Self::ReadyOk => write!(f, "readyok")?,
-            Self::BestMove { mv } => {
-                write!(f, "bestmove {}", mv.notation())?;
-            }
-            Self::Info(InfoFields {
-                depth,
-                seldepth,
-                time,
-                nodes,
-                pv,
-                score,
-                wdl,
-                hashfull,
-                nps,
-                tbhits,
-                string,
-            }) => {
-                write!(f, "info")?;
-
-                if let Some(depth) = depth {
-                    write!(f, " depth {depth}")?;
-                }
-
-                if let Some(seldepth) = seldepth {
-                    write!(f, " seldepth {seldepth}")?;
-                }
-
-                if let Some(score) = score {
-                    match score {
-                        InfoScore::Centipawns(centipawns) => {
-                            write!(f, " score cp {centipawns}")?;
-                        }
-                        InfoScore::Mate(turns) => {
-                            write!(f, " score mate {turns}")?;
-                        }
-                    }
-                }
-
-                if let Some(wdl) = wdl {
-                    #[expect(clippy::cast_possible_truncation, reason = "Approximate calculation")]
-                    let format_wdl = |n: f64| (1000.0 * n).round() as i32;
-                    write!(
-                        f,
-                        " wdl {} {} {}",
-                        format_wdl(wdl.win),
-                        format_wdl(wdl.draw),
-                        format_wdl(wdl.loss)
-                    )?;
-                }
-
-                if let Some(time) = time {
-                    write!(f, " time {}", time.as_millis())?;
-                }
-
-                if let Some(nodes) = nodes {
-                    write!(f, " nodes {nodes}")?;
-                }
-
-                if let Some(nps) = nps {
-                    write!(f, " nps {nps}")?;
-                }
-
-                if let Some(hashfull) = hashfull {
-                    write!(f, " hashfull {hashfull}")?;
-                }
-
-                if let Some(tbhits) = tbhits {
-                    write!(f, " tbhits {tbhits}")?;
-                }
-
-                if let Some(pv) = pv {
-                    write!(f, " pv")?;
-
-                    for mv in pv {
-                        write!(f, " {}", mv.notation())?;
-                    }
-                }
-
-                if let Some(s) = string {
-                    write!(f, " string {s}")?;
-                }
-            }
-            Self::Option(option) => {
-                write!(f, "option name {}", option.name)?;
-
-                match &option.t {
-                    UciOptionType::Check { default, .. } => {
-                        write!(f, " type check default {default}")?;
-                    }
-                    UciOptionType::Spin {
-                        default, min, max, ..
-                    } => {
-                        write!(f, " type spin default {default} min {min} max {max}")?;
-                    }
-                    UciOptionType::String { default, .. } => {
-                        write!(f, " type string default {default}")?;
-                    }
-                    UciOptionType::Button { .. } => {
-                        write!(f, " type button")?;
-                    }
-                }
-            }
-        }
-
-        Ok(())
-    }
-}
-
 #[derive(Clone)]
 pub struct UciReporter {
     pub pretty_output: bool,
@@ -196,8 +76,121 @@ mod colors {
 }
 
 impl UciReporter {
-    fn uci_report_search_progress(progress: &search::SearchInfo<'_>) {
-        send_response(&UciResponse::Info(InfoFields {
+    pub(super) fn send(&self, msg: &UciResponse<'_>) {
+        match msg {
+            UciResponse::Id(i) => match i {
+                IdParam::Name(name) => print!("id name {name}"),
+                IdParam::Author(author) => print!("id author {author}"),
+            },
+            UciResponse::UciOk => print!("uciok"),
+            UciResponse::ReadyOk => print!("readyok"),
+            UciResponse::BestMove { mv } => {
+                print!("bestmove {}", mv.notation());
+            }
+            UciResponse::Info(InfoFields {
+                depth,
+                seldepth,
+                time,
+                nodes,
+                pv,
+                score,
+                wdl,
+                hashfull,
+                nps,
+                tbhits,
+                string,
+            }) => {
+                print!("info");
+
+                if let Some(depth) = depth {
+                    print!(" depth {depth}");
+                }
+
+                if let Some(seldepth) = seldepth {
+                    print!(" seldepth {seldepth}");
+                }
+
+                if let Some(score) = score {
+                    match score {
+                        InfoScore::Centipawns(centipawns) => {
+                            print!(" score cp {centipawns}");
+                        }
+                        InfoScore::Mate(turns) => {
+                            print!(" score mate {turns}");
+                        }
+                    }
+                }
+
+                if let Some(wdl) = wdl {
+                    #[expect(clippy::cast_possible_truncation, reason = "Approximate calculation")]
+                    let format_wdl = |n: f64| (1000.0 * n).round() as i32;
+                    print!(
+                        " wdl {} {} {}",
+                        format_wdl(wdl.win),
+                        format_wdl(wdl.draw),
+                        format_wdl(wdl.loss)
+                    );
+                }
+
+                if let Some(time) = time {
+                    print!(" time {}", time.as_millis());
+                }
+
+                if let Some(nodes) = nodes {
+                    print!(" nodes {nodes}");
+                }
+
+                if let Some(nps) = nps {
+                    print!(" nps {nps}");
+                }
+
+                if let Some(hashfull) = hashfull {
+                    print!(" hashfull {hashfull}");
+                }
+
+                if let Some(tbhits) = tbhits {
+                    print!(" tbhits {tbhits}");
+                }
+
+                if let Some(pv) = pv {
+                    print!(" pv");
+
+                    for mv in pv {
+                        print!(" {}", mv.notation());
+                    }
+                }
+
+                if let Some(s) = string {
+                    print!(" string {s}");
+                }
+            }
+            UciResponse::Option(option) => {
+                print!("option name {}", option.name);
+
+                match &option.t {
+                    UciOptionType::Check { default, .. } => {
+                        print!(" type check default {default}");
+                    }
+                    UciOptionType::Spin {
+                        default, min, max, ..
+                    } => {
+                        print!(" type spin default {default} min {min} max {max}");
+                    }
+                    UciOptionType::String { default, .. } => {
+                        print!(" type string default {default}");
+                    }
+                    UciOptionType::Button { .. } => {
+                        print!(" type button");
+                    }
+                }
+            }
+        }
+
+        println!();
+    }
+
+    fn uci_report_search_progress(&self, progress: &search::SearchInfo<'_>) {
+        self.send(&UciResponse::Info(InfoFields {
             depth: Some(progress.stats.depth),
             seldepth: Some(progress.stats.seldepth),
             score: Some(InfoScore::from(progress.eval, progress.game)),
@@ -321,8 +314,8 @@ impl UciReporter {
         println!();
     }
 
-    fn uci_best_move(game: &Game, mv: Move) {
-        send_response(&UciResponse::BestMove {
+    fn uci_best_move(&self, game: &Game, mv: Move) {
+        self.send(&UciResponse::BestMove {
             mv: UciMove::from_move(mv, game.is_frc),
         });
     }
@@ -341,7 +334,7 @@ impl Reporter for UciReporter {
         if self.pretty_output {
             Self::pretty_report_search_progress(&progress);
         } else {
-            Self::uci_report_search_progress(&progress);
+            self.uci_report_search_progress(&progress);
         }
     }
 
@@ -349,7 +342,7 @@ impl Reporter for UciReporter {
         if self.pretty_output {
             Self::pretty_best_move(game, mv);
         } else {
-            Self::uci_best_move(game, mv);
+            self.uci_best_move(game, mv);
         }
     }
 }

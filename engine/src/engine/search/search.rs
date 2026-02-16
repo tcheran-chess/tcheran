@@ -443,21 +443,21 @@ fn probe_tb_at_root<'s>(
 
     for _ in 0..MAX_SEARCH_DEPTH {
         let tablebase_move = tb
-            .best_move(game)
+            .best_move(&g)
             .expect("In tablebase position, but unable to get tablebase move");
 
         pv.append(tablebase_move);
         g.make_move(tablebase_move);
 
         // Check if this move terminated the game, and return an appropriate score
-        let legal_moves = game.moves();
-        let king_in_check = game.in_check();
+        let legal_moves = g.moves();
+        let king_in_check = g.in_check();
 
         if legal_moves.is_empty() {
             eval = Some(if king_in_check {
                 let plies = pv.len();
 
-                if game.player == player {
+                if g.player == player {
                     Eval::mated_in(plies)
                 } else {
                     Eval::mate_in(plies)

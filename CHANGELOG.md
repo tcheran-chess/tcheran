@@ -4,6 +4,7 @@
 
 ### Misc
 
+* Fixed a bug that caused the engine to crash when reaching any tablebase position
 * The engine no longer crashes when passed UCI options is doesn't recognise.
 * UCI_ShowWDL is now a supported option.
 

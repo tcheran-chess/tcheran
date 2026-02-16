@@ -80,7 +80,11 @@ impl Uci {
             UciCommand::IsReady => send_response(&UciResponse::ReadyOk),
             UciCommand::SetOption { name, value } => {
                 let Some(option) = self.options.iter().find(|o| o.name == name) else {
-                    return Err(format!("Unknown option: {name}"));
+                    let unknown_option = format!("unknown option: {name}");
+                    log::crashlog(&unknown_option);
+                    self.reporter.generic_report(&unknown_option);
+
+                    return Ok(ExecuteResult::KeepGoing);
                 };
 
                 let Ok(mut state_handle) = self.persistent_state.try_lock() else {

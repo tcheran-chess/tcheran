@@ -1,6 +1,8 @@
 use crate::{
     chess::game::Game,
-    engine::{eval::Eval, options::EngineOptions, search::PersistentState},
+    engine::{
+        eval::Eval, options::EngineOptions, search::PersistentState, uci::responses::UciReporter,
+    },
 };
 
 pub struct UciOption {
@@ -66,6 +68,7 @@ pub struct OptionCallbackRefs<'uci> {
     pub options: &'uci mut EngineOptions,
     pub state: &'uci mut PersistentState,
     pub game: &'uci mut Game,
+    pub reporter: &'uci mut UciReporter,
 }
 
 impl UciOption {
@@ -113,6 +116,7 @@ impl UciOption {
         options: &mut EngineOptions,
         state: &mut PersistentState,
         game: &mut Game,
+        reporter: &mut UciReporter,
     ) -> Result<(), String> {
         match &self.t {
             UciOptionType::Check { set_fn, .. } => {
@@ -123,6 +127,7 @@ impl UciOption {
                         options,
                         state,
                         game,
+                        reporter,
                     },
                     value,
                 );
@@ -147,6 +152,7 @@ impl UciOption {
                         options,
                         state,
                         game,
+                        reporter,
                     },
                     SpinValue::new(value),
                 );
@@ -161,6 +167,7 @@ impl UciOption {
                         options,
                         state,
                         game,
+                        reporter,
                     },
                     value,
                 );
@@ -173,6 +180,7 @@ impl UciOption {
                         options,
                         state,
                         game,
+                        reporter,
                     },
                     (),
                 );

@@ -20,7 +20,7 @@ use crate::{
     },
     engine::{
         eval::{WhiteEval, nnue::NNUE, wdl},
-        options::EngineOptions,
+        options::{EngineOptions, defaults},
         search,
         search::{PersistentState, Reporter, time_control::StopControl},
         uci::{
@@ -94,7 +94,13 @@ impl Uci {
                     return Ok(ExecuteResult::KeepGoing);
                 };
 
-                option.set(value, &mut self.engine_options, &mut state_handle, &mut self.game)?;
+                option.set(
+                    value,
+                    &mut self.engine_options,
+                    &mut state_handle,
+                    &mut self.game,
+                    &mut self.reporter,
+                )?;
             }
             UciCommand::UciNewGame => {
                 self.game = Game::new();
@@ -448,6 +454,12 @@ pub fn uci_options() -> Vec<UciOption> {
         .default(false)
         .build(),
         //
+        UciOption::check("UCI_ShowWDL", |refs, value| {
+            refs.reporter.show_wdl = value;
+        })
+        .default(crate::engine::options::defaults::SHOW_WDL)
+        .build(),
+        //
         UciOption::spin("Move Overhead", |refs, value| {
             refs.options.move_overhead = Duration::from_millis(value.as_u64());
         })
@@ -475,6 +487,7 @@ pub fn uci(uci_input_mode: UciInputMode) -> Result<(), String> {
         is_stopped: Arc::new(LockLatch::new()),
         reporter: UciReporter {
             pretty_output: std::io::stdin().is_terminal(),
+            show_wdl: defaults::SHOW_WDL,
         },
         debug: false,
         persistent_state: Arc::new(Mutex::new(PersistentState::new(

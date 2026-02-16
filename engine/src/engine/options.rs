@@ -8,6 +8,7 @@ pub mod defaults {
     pub const FRC: bool = false;
     pub const MOVE_OVERHEAD: Duration = Duration::from_millis(0);
     pub const SYZYGY_PATH: Option<String> = None;
+    pub const SHOW_WDL: bool = true;
 }
 
 #[derive(Debug, Clone)]

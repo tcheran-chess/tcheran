@@ -64,6 +64,7 @@ pub(super) enum UciResponse<'uci> {
 #[derive(Clone)]
 pub struct UciReporter {
     pub pretty_output: bool,
+    pub show_wdl: bool,
 }
 
 mod colors {
@@ -121,7 +122,9 @@ impl UciReporter {
                     }
                 }
 
-                if let Some(wdl) = wdl {
+                if let Some(wdl) = wdl
+                    && self.show_wdl
+                {
                     #[expect(clippy::cast_possible_truncation, reason = "Approximate calculation")]
                     let format_wdl = |n: f64| (1000.0 * n).round() as i32;
                     print!(

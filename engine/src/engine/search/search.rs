@@ -118,6 +118,7 @@ pub struct SearchContext<'s> {
     pub max_depth_reached: u8,
     pub completed_depth: Depth,
     pub root_depth: Depth,
+    pub was_hard_stopped: bool,
     pub nodes: BufferedAtomicU64<'s>,
     pub tbhits: BufferedAtomicU64<'s>,
 }
@@ -148,6 +149,7 @@ impl<'s> SearchContext<'s> {
             max_depth_reached: 0,
             completed_depth: Depth::ZERO,
             root_depth: Depth::ZERO,
+            was_hard_stopped: false,
             nodes: BufferedAtomicU64::new(node_counter),
             tbhits: BufferedAtomicU64::new(tbhits_counter),
         }
@@ -408,12 +410,14 @@ pub fn search(
         // such as the exact number of nodes searched and the exact time used. This could be useful for
         // debugging time issues or reproducing a bug by playing exact nodes.
         // See https://github.com/AndyGrant/Ethereal/issues/214
-        reporter.report_search_progress(SearchInfo {
-            game,
-            eval: result.eval,
-            pv: result.pv.clone(),
-            stats: SearchStats::from_ctx(&ctx),
-        });
+        if ctx.was_hard_stopped {
+            reporter.report_search_progress(SearchInfo {
+                game,
+                eval: result.eval,
+                pv: result.pv.clone(),
+                stats: SearchStats::from_ctx(&ctx),
+            });
+        }
 
         result
     });

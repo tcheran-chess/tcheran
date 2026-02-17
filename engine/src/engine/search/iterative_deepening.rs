@@ -29,6 +29,7 @@ pub fn search(
         let eval = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
 
         if ctx.time_control.stopped() {
+            ctx.was_hard_stopped = true;
             break;
         }
 

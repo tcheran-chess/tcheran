@@ -404,8 +404,6 @@ pub fn search(
             thread.join().expect("Thread panicked");
         }
 
-        let result = result.expect("Should always have a result");
-
         // Always send a final info line before reporting the best move so we have useful information
         // such as the exact number of nodes searched and the exact time used. This could be useful for
         // debugging time issues or reproducing a bug by playing exact nodes.

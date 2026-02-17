@@ -10,7 +10,7 @@ pub fn search(
     game: &mut Game,
     ctx: &mut SearchContext<'_>,
     reporter: &impl Reporter,
-) -> Option<SearchResult> {
+) -> SearchResult {
     let mut pv = PrincipalVariation::new();
     let mut result: Option<SearchResult> = None;
 
@@ -54,5 +54,5 @@ pub fn search(
         });
     }
 
-    result
+    result.expect("Should always end iterative deepening with a result")
 }

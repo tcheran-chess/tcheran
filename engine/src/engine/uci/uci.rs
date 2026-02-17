@@ -37,21 +37,20 @@ use crate::{
 };
 
 pub struct Uci {
+    game: Game,
+    persistent_state: Arc<Mutex<PersistentState>>,
+    reporter: UciReporter,
     control: Option<StopControl>,
     is_stopped: Arc<LockLatch>,
-    reporter: UciReporter,
-    debug: bool,
-    game: Game,
-    engine_options: EngineOptions,
 
     options: Vec<UciOption>,
-
-    persistent_state: Arc<Mutex<PersistentState>>,
+    engine_options: EngineOptions,
 
     // If we're running without using stdin (i.e. passing the UCI commands as command line
     // args) then we need to block on anything taking place on other threads, otherwise we'll
     // exit immediately as the search takes place on another thread.
     block_on_threads: bool,
+    debug: bool,
 }
 
 impl Uci {
@@ -96,9 +95,9 @@ impl Uci {
 
                 option.set(
                     value,
-                    &mut self.engine_options,
-                    &mut state_handle,
                     &mut self.game,
+                    &mut state_handle,
+                    &mut self.engine_options,
                     &mut self.reporter,
                 )?;
             }
@@ -483,26 +482,25 @@ pub fn uci_options() -> Vec<UciOption> {
 
 pub fn uci(uci_input_mode: UciInputMode) -> Result<(), String> {
     let mut uci = Uci {
-        control: None,
-        is_stopped: Arc::new(LockLatch::new()),
+        game: Game::new(),
+        persistent_state: Arc::new(Mutex::new(PersistentState::new(
+            EngineOptions::DEFAULT.hash_size,
+        ))),
         reporter: UciReporter {
             pretty_output: std::io::stdin().is_terminal(),
             show_wdl: defaults::SHOW_WDL,
         },
-        debug: false,
-        persistent_state: Arc::new(Mutex::new(PersistentState::new(
-            EngineOptions::DEFAULT.hash_size,
-        ))),
-
-        game: Game::new(),
-        engine_options: EngineOptions::DEFAULT,
+        control: None,
+        is_stopped: Arc::new(LockLatch::new()),
 
         options: uci_options(),
+        engine_options: EngineOptions::DEFAULT,
 
         block_on_threads: match uci_input_mode {
             UciInputMode::Stdin => false,
             UciInputMode::Commands(_) => true,
         },
+        debug: false,
     };
 
     uci.main_loop(uci_input_mode)

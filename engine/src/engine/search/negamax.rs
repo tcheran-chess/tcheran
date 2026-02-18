@@ -258,7 +258,11 @@ pub fn negamax(
         }
 
         if null_score >= beta {
-            return null_score;
+            return if null_score.is_decisive() {
+                beta
+            } else {
+                null_score
+            };
         }
     }
 

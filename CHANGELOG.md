@@ -7,6 +7,7 @@
 * SPSA tune - 1077 iters at 20.0+0.20 (4.06 +- 3.05)
 * Implement a proper thread pool
 * Add mate distance pruning
+* Stop returning mate scores from NMP
 
 #### Misc
 

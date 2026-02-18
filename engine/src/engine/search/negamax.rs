@@ -183,7 +183,11 @@ pub fn negamax(
         && depth <= reverse_futility_prune_depth()
         && eval - depth * reverse_futility_prune_margin_per_ply() > beta
     {
-        return beta + (eval - beta) / 3;
+        return if !eval.is_mate() && !beta.is_mate() {
+            beta + (eval - beta) / 3
+        } else {
+            eval
+        };
     }
 
     // Razoring

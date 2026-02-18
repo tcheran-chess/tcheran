@@ -10,12 +10,8 @@ use std::{
 use crate::{
     chess::{game::Game, moves::Move},
     engine::{
-        options::EngineOptions,
         search,
-        search::{
-            PersistentState, Reporter, SearchInfo, ThreadData, TimeControl,
-            time_control::StopControl, types::Depth,
-        },
+        search::{PersistentState, Reporter, SearchInfo, TimeControl, types::Depth},
     },
 };
 
@@ -147,18 +143,12 @@ pub fn bench(depth: Option<Depth>) -> (u64, Duration) {
     for position in POSITIONS {
         let bench_reporter = Box::new(BenchReporter::new());
         let game = Game::from_fen(position).unwrap();
-
-        let persistent_state = PersistentState::new(16);
         let now = Instant::now();
 
-        search::search(
+        search::st_search(
             &game,
-            &persistent_state,
-            // Non-main thread so that we don't wait to finish
-            &mut ThreadData::new(1),
+            &PersistentState::new(16),
             TimeControl::Depth(depth),
-            &StopControl::new(0),
-            &EngineOptions::DEFAULT,
             &*bench_reporter,
         );
 

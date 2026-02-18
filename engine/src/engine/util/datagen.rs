@@ -6,7 +6,7 @@ use crate::{
         eval::wdl,
         options::EngineOptions,
         search::{
-            NullReporter, PersistentState, ThreadData, TimeControl, search,
+            NullReporter, PersistentState, ThreadData, TimeControl, search, st_search,
             time_control::StopControl,
         },
         util::log,
@@ -66,19 +66,13 @@ fn acceptable_starting_position(rand: &mut impl Rng, state: &mut PersistentState
         state.reset();
 
         // Do a quick search to ensure that we haven't landed in a completely broken (won/lost) position.
-        let persistent_state = PersistentState::new(4);
-
-        let (_, eval) = search(
+        let (_, eval) = st_search(
             &game,
-            &persistent_state,
-            // Non-main so that we don't wait to finish
-            &mut ThreadData::new(1),
+            &PersistentState::new(4),
             TimeControl::Nodes {
                 soft: Some(20000),
                 hard: Some(20000 * 8),
             },
-            &StopControl::new(0),
-            &EngineOptions::DEFAULT,
             &NullReporter,
         );
 

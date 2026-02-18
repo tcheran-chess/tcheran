@@ -6,29 +6,16 @@ use crate::{
     },
     engine::{
         eval::Eval,
-        options::EngineOptions,
-        search::{
-            NullReporter, PersistentState, ThreadData, TimeControl, search,
-            time_control::StopControl, types::Depth,
-        },
+        search::{NullReporter, PersistentState, TimeControl, st_search, types::Depth},
     },
 };
 
 fn test_expected_move(fen: &str, depth: Depth, mv: (Square, Square)) -> (Move, Eval) {
     crate::init();
     let game = Game::from_fen(fen).unwrap();
-    let mut persistent_state = PersistentState::new(16);
 
-    let (best_move, eval) = search(
-        &game,
-        &mut persistent_state,
-        // Non-main thread so that we don't wait to stop
-        &mut ThreadData::new(1),
-        TimeControl::Depth(depth),
-        &StopControl::new(0),
-        &EngineOptions::DEFAULT,
-        &NullReporter,
-    );
+    let (best_move, eval) =
+        st_search(&game, &PersistentState::new(16), TimeControl::Depth(depth), &NullReporter);
 
     assert_eq!((best_move.from(), best_move.to()), mv);
     (best_move, eval)

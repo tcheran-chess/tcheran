@@ -350,6 +350,25 @@ pub fn search(
     (result.best_move, result.eval)
 }
 
+// Simple single-threaded search used by utilities like bench, tests and datagen
+pub fn st_search(
+    game: &Game,
+    persistent_state: &PersistentState,
+    time_control: TimeControl,
+    reporter: &dyn Reporter,
+) -> (Move, Eval) {
+    search(
+        game,
+        persistent_state,
+        // Non-main thread ID so that we don't wait to finish
+        &mut ThreadData::new(1),
+        time_control,
+        &StopControl::new(0),
+        &EngineOptions::DEFAULT,
+        reporter,
+    )
+}
+
 pub fn probe_tb_at_root(
     game: &Game,
     tb: &Tablebase,

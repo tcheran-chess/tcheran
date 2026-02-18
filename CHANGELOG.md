@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 * Implement a proper thread pool
+* Add mate distance pruning
 
 #### Misc
 

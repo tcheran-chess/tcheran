@@ -24,7 +24,7 @@ use crate::{
 pub fn negamax(
     game: &mut Game,
     mut alpha: Eval,
-    beta: Eval,
+    mut beta: Eval,
     mut depth: Depth,
     plies: u8,
     cut_node: bool,
@@ -74,6 +74,14 @@ pub fn negamax(
             } else {
                 eval::eval(ctx.nnue, game)
             };
+        }
+
+        // Mate distance pruning
+        alpha = alpha.max(Eval::mated_in(plies));
+        beta = beta.min(Eval::mate_in(plies + 1));
+
+        if alpha >= beta {
+            return alpha;
         }
     }
 

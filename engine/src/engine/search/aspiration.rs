@@ -41,6 +41,10 @@ impl Window {
         }
     }
 
+    pub fn is_in_use(&self) -> bool {
+        self.width.0 > 0
+    }
+
     pub fn widen_down(&mut self, eval: Eval) {
         self.beta = (self.alpha + self.beta) / 2;
         self.alpha = clamp_alpha(eval - self.width);
@@ -64,7 +68,7 @@ pub fn aspiration_search(
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
-    let mut window = if depth < aspiration_min_depth() {
+    let mut window = if depth < aspiration_min_depth() || eval.is_some_and(Eval::is_mate) {
         Window::no_window()
     } else {
         Window::around(
@@ -83,10 +87,10 @@ pub fn aspiration_search(
             return Eval::MIN;
         }
 
-        if eval <= window.alpha {
+        if window.is_in_use() && eval <= window.alpha {
             window.widen_down(eval);
             reduction = 0;
-        } else if eval >= window.beta {
+        } else if window.is_in_use() && eval >= window.beta {
             window.widen_up(eval);
             reduction += 1;
         } else {

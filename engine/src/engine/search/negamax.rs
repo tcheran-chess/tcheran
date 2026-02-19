@@ -337,12 +337,12 @@ pub fn negamax(
         node_pv.clear();
 
         // Futility pruning
-        if number_of_legal_moves > 0
-            && !is_pv
+        if !is_pv
             && !mv.is_capture()
             && !in_check
             && depth <= futility_prune_depth()
             && eval + futility_prune_max_move_value() < alpha
+            && !best_score.is_loss()
         {
             continue;
         }

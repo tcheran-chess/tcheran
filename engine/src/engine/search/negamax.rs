@@ -345,7 +345,6 @@ pub fn negamax(
 
         if depth <= see_prune_depth()
             && moves.stage > GenStage::GoodTacticals
-            && number_of_legal_moves > 0
             && !is_root
             && !is_pv
             && !best_score.is_loss()

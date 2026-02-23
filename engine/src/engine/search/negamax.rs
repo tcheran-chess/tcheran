@@ -409,7 +409,7 @@ pub fn negamax(
                 ctx,
             )
         } else {
-            let reduction = if depth >= lmr_depth() && number_of_legal_moves >= lmr_move_threshold()
+            let reduction = if depth >= lmr_depth() && number_of_legal_moves >= lmr_move_threshold() as usize
             {
                 let mut reduction =
                     DepthReduction::new(lmr_reduction(depth, number_of_legal_moves));
@@ -426,13 +426,6 @@ pub fn negamax(
 
                 // Reducing less:
                 reduction.reduce_less_if(in_check, lmr_in_check_factor());
-
-                // Added to account for the fact that we previously did a separate calculation for
-                // reduced_depth which didn't include the -1 from search_depth. However I prefer
-                // that the -1 is 'built in' - then the reduction is an _additional_ reduction based
-                // on other criteria. To match the previous behaviour in practice, we need to reverse
-                // the -1 here. It should hopefully be possible to simplify this out in a future change.
-                reduction.reduce_less_if(true, 1024);
 
                 reduction.value()
             } else {

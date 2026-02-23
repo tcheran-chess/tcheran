@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+* SPSA tune - 938 iters at 20.0+0.20 (24.36 +- 8.47)
 * SPSA tune - 3580 iters at 20.0+0.20 (16.55 +- 7.10)
 * Implement a proper thread pool
 * Add mate distance pruning

@@ -69,11 +69,19 @@ macro_rules! non_tunable_parameters {
 
 #[cfg(feature = "spsa")]
 pub fn on_option_change() {
+    use super::params::*;
+
     // Re-initialise the LMR table, which depends on parameters
     crate::engine::search::tables::lmr_table::init();
 
     // Re-initialise the SEE piece value array since it contains multiple parameters
-    crate::engine::see::init_see_values();
+    crate::engine::see::init_see_values(
+        see_pawn_value(),
+        see_knight_value(),
+        see_bishop_value(),
+        see_rook_value(),
+        see_queen_value(),
+    );
 }
 
 pub(crate) use non_tunable_parameters;

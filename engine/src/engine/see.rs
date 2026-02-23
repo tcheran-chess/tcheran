@@ -16,13 +16,19 @@ pub const fn see_value(piece_kind: PieceKind) -> Eval {
     Eval(unsafe { SEE_VALUES[piece_kind as usize] })
 }
 
-pub fn init_see_values() {
+pub fn init_see_values(
+    pawn_value: i32,
+    knight_value: i32,
+    bishop_value: i32,
+    rook_value: i32,
+    queen_value: i32,
+) {
     unsafe {
-        SEE_VALUES[PieceKind::Pawn] = see_pawn_value();
-        SEE_VALUES[PieceKind::Knight] = see_knight_value();
-        SEE_VALUES[PieceKind::Bishop] = see_bishop_value();
-        SEE_VALUES[PieceKind::Rook] = see_rook_value();
-        SEE_VALUES[PieceKind::Queen] = see_queen_value();
+        SEE_VALUES[PieceKind::Pawn] = pawn_value;
+        SEE_VALUES[PieceKind::Knight] = knight_value;
+        SEE_VALUES[PieceKind::Bishop] = bishop_value;
+        SEE_VALUES[PieceKind::Rook] = rook_value;
+        SEE_VALUES[PieceKind::Queen] = queen_value;
     }
 }
 
@@ -148,8 +154,13 @@ mod tests {
         square::{Square, squares::all::*},
     };
 
+    fn use_basic_see_values() {
+        super::init_see_values(100, 300, 300, 500, 900);
+    }
+
     fn should_be_good_capture(fen: &str, mv: (Square, Square)) {
         crate::init();
+        use_basic_see_values();
 
         let game = Game::from_fen(fen).unwrap();
         let mv = game.moves().expect_matching(mv.0, mv.1, None);
@@ -159,6 +170,7 @@ mod tests {
 
     fn should_be_bad_capture(fen: &str, mv: (Square, Square)) {
         crate::init();
+        use_basic_see_values();
 
         let game = Game::from_fen(fen).unwrap();
         let mv = game.moves().expect_matching(mv.0, mv.1, None);
@@ -201,6 +213,7 @@ mod tests {
         ];
 
         crate::init();
+        use_basic_see_values();
 
         for (fen, ucimv, threshold, result) in SEE_SUITE {
             println!("{fen}");
@@ -217,6 +230,7 @@ mod tests {
     #[test]
     fn test_see_starzix() {
         crate::init();
+        use_basic_see_values();
 
         #[rustfmt::skip]
         let suite: Vec<(&str, &str, i32, bool)> = vec![

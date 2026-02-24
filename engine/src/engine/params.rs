@@ -3,18 +3,43 @@ use crate::engine::tuning::{non_tunable_parameters, parameters};
 #[rustfmt::skip]
 parameters!(
     // Search
+    (aspiration_window_size, i32, 15, 10, 30),
+    (aspiration_min_depth, u8, 5, 3, 10),
+
+    // Whole node techniques
     (reverse_futility_prune_margin_per_ply, i32, 155, 16, 256),
+    (reverse_futility_prune_depth, u8, 4, 2, 10),
 
     (razoring_margin, i32, 355, 8, 512),
+    (razoring_depth, u8, 4, 2, 10),
 
+    (null_move_pruning_base_reduction, u8, 4, 2, 10),
+    (null_move_pruning_reduction_factor, u8, 4, 2, 10),
+
+    (iir_depth, u8, 4, 2, 10),
+
+    (singular_extension_depth, u8, 5, 2, 10),
+    (singular_extension_entry_depth_delta, u8, 3, 2, 10),
+    (singular_extension_margin, i32, 2, 2, 10),
+    (double_extension_margin, i32, 17, 2, 32),
+    (double_extension_max, u8, 4, 2, 10),
+
+    // Move loop techniques
     (futility_prune_max_move_value, i32, 123, 8, 256),
+    (futility_prune_depth, u8, 1, 0, 6),
 
     (see_quiet_margin, i32, -46, -256, -8),
     (see_capture_margin, i32, -203, -256, -8),
     (see_prune_history_divisor, i32, 12, 8, 128),
+    (see_prune_depth, u8, 10, 2, 16),
+
+    (lmp_depth, u8, 2, 1, 10),
+    (lmp_move_threshold, u8, 5, 2, 16),
 
     (lmr_base, i32, 40, 16, 256),
     (lmr_factor, i32, 234, 64, 1028),
+    (lmr_depth, u8, 3, 1, 8),
+    (lmr_move_threshold, usize, 3, 2, 16),
 
     (lmr_cut_node_factor, u32, 492, 128, 2048),
     (lmr_is_not_pv_factor, u32, 1179, 128, 2048),
@@ -54,37 +79,6 @@ parameters!(
 
 #[rustfmt::skip]
 non_tunable_parameters!(
-    // Search
-    (aspiration_window_size, i32, 15),
-    (aspiration_min_depth, u8, 5),
-
-    (reverse_futility_prune_depth, u8, 4),
-
-    (razoring_depth, u8, 4),
-    (razoring_max_alpha, i32, 2000),
-
-    (null_move_pruning_base_reduction, u8, 4),
-    (null_move_pruning_reduction_factor, u8, 4),
-
-    (iir_depth, u8, 4),
-
-    (singular_extension_depth, u8, 5),
-    (singular_extension_entry_depth_delta, u8, 3),
-    (singular_extension_margin, i32, 2),
-    (double_extension_margin, i32, 17),
-
-    (double_extension_max, u8, 4),
-
-    (futility_prune_depth, u8, 1),
-
-    (see_prune_depth, u8, 10),
-
-    (lmp_depth, u8, 2),
-    (lmp_move_threshold, u8, 5),
-
-    (lmr_depth, u8, 3),
-    (lmr_move_threshold, usize, 3),
-
     // Time Management
     (max_time_per_move, f32, 0.9),
     (default_moves_to_go, u32, 20),

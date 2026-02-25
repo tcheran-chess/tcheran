@@ -108,6 +108,7 @@ pub struct History {
     pub non_pawn_hash: [ZobristHash; Player::N],
 
     pub checkers: Bitboard,
+    pub pinned: [Bitboard; Player::N],
     pub orthogonal_pins: Bitboard,
     pub diagonal_pins: Bitboard,
     pub threats: Bitboard,
@@ -141,6 +142,7 @@ pub struct Game {
     pub history: Vec<History>,
 
     pub checkers: Bitboard,
+    pub pinned: [Bitboard; Player::N],
     pub orthogonal_pins: Bitboard,
     pub diagonal_pins: Bitboard,
     pub threats: Bitboard,
@@ -171,6 +173,7 @@ impl Game {
             plies,
 
             checkers: Bitboard::EMPTY,
+            pinned: [Bitboard::EMPTY; Player::N],
             orthogonal_pins: Bitboard::EMPTY,
             diagonal_pins: Bitboard::EMPTY,
             threats: Bitboard::EMPTY,
@@ -400,45 +403,52 @@ impl Game {
 
     fn update_checks_and_pins(&mut self) {
         self.checkers = Bitboard::EMPTY;
+        self.pinned = [Bitboard::EMPTY; Player::N];
         self.orthogonal_pins = Bitboard::EMPTY;
         self.diagonal_pins = Bitboard::EMPTY;
 
         let our_king = self.board.king_square(self.player);
         let them = self.player.other();
 
-        let our_pieces = self.board.occupancy_for(self.player);
-        let their_pieces = self.board.occupancy_for(them);
-
         self.checkers |= pawn_attacks(our_king, self.player) & self.board.pawns(them);
         self.checkers |= knight_attacks(our_king) & self.board.knights(them);
 
-        let their_orthogonal_sliders = self.board.orthogonal_sliders(them);
-        let their_diagonal_sliders = self.board.diagonal_sliders(them);
+        let all_diagonal_sliders = self.board.all_diagonal_sliders();
+        let all_orthogonal_sliders = self.board.all_orthogonal_sliders();
 
-        let potential_orthogonal_pinners =
-            rook_attacks(our_king, their_pieces) & their_orthogonal_sliders;
-        let potential_diagonal_pinners =
-            bishop_attacks(our_king, their_pieces) & their_diagonal_sliders;
+        for player in Player::ALL {
+            let our_king = self.board.king_square(player);
+            let our_pieces = self.board.occupancy_for(player);
+            let their_pieces = self.board.occupancy_for(!player);
 
-        for pinner in potential_orthogonal_pinners {
-            let between_ray = tables::ray_between(our_king, pinner);
-            let blockers = between_ray & our_pieces;
+            let potential_diagonal_pinners = all_diagonal_sliders
+                & bishop_attacks(our_king, their_pieces)
+                & self.board.diagonal_sliders(!player);
 
-            match blockers.count() {
-                0 => self.checkers.set(pinner),
-                1 => self.orthogonal_pins |= pinner.bb() | between_ray,
-                _ => {}
-            }
-        }
+            let potential_orthogonal_pinners = all_orthogonal_sliders
+                & rook_attacks(our_king, their_pieces)
+                & self.board.orthogonal_sliders(!player);
 
-        for pinner in potential_diagonal_pinners {
-            let between_ray = tables::ray_between(our_king, pinner);
-            let blockers = between_ray & our_pieces;
+            for (pinners_list, pinmask_bb) in [
+                (potential_orthogonal_pinners, &mut self.orthogonal_pins),
+                (potential_diagonal_pinners, &mut self.diagonal_pins),
+            ] {
+                for pinner in pinners_list {
+                    let between_ray = tables::ray_between(our_king, pinner);
+                    let blockers = between_ray & our_pieces;
 
-            match blockers.count() {
-                0 => self.checkers.set(pinner),
-                1 => self.diagonal_pins |= pinner.bb() | between_ray,
-                _ => {}
+                    match blockers.count() {
+                        0 if player == self.player => self.checkers.set(pinner),
+                        1 => {
+                            self.pinned[player].set(blockers.single());
+
+                            if player == self.player {
+                                *pinmask_bb |= pinner.bb() | between_ray;
+                            }
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
     }
@@ -476,6 +486,7 @@ impl Game {
             non_pawn_hash: self.non_pawn_hash,
 
             checkers: self.checkers,
+            pinned: self.pinned,
             orthogonal_pins: self.orthogonal_pins,
             diagonal_pins: self.diagonal_pins,
             threats: self.threats,
@@ -602,6 +613,7 @@ impl Game {
             non_pawn_hash: self.non_pawn_hash,
 
             checkers: self.checkers,
+            pinned: self.pinned,
             orthogonal_pins: self.orthogonal_pins,
             diagonal_pins: self.diagonal_pins,
             threats: self.threats,
@@ -646,6 +658,7 @@ impl Game {
         self.castle_rights = history.castle_rights;
         self.en_passant_target = history.en_passant_target;
         self.checkers = history.checkers;
+        self.pinned = history.pinned;
         self.orthogonal_pins = history.orthogonal_pins;
         self.diagonal_pins = history.diagonal_pins;
         self.threats = history.threats;
@@ -693,6 +706,7 @@ impl Game {
         self.en_passant_target = history.en_passant_target;
         self.halfmove_clock = history.halfmove_clock;
         self.checkers = history.checkers;
+        self.pinned = history.pinned;
         self.orthogonal_pins = history.orthogonal_pins;
         self.diagonal_pins = history.diagonal_pins;
         self.threats = history.threats;

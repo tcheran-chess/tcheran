@@ -1,7 +1,7 @@
 use crate::chess::{
     bitboard::{Bitboard, bitboards},
     game::Game,
-    movegen::{attackers, tables, tables::between},
+    movegen::{attackers, tables, tables::ray_between},
     moves::Move,
     piece::PromotionPieceKind,
     square::{Square, squares},
@@ -27,7 +27,7 @@ pub fn generate_tacticals(game: &Game, f: &mut impl FnMut(Move)) {
 
     let check_mask = if number_of_checkers == 1 {
         let checker_sq = game.checkers.single();
-        tables::between(checker_sq, king) | game.checkers
+        ray_between(checker_sq, king) | game.checkers
     } else {
         Bitboard::FULL
     };
@@ -88,7 +88,7 @@ pub fn generate_quiets(game: &Game, f: &mut impl FnMut(Move)) {
 
     let check_mask = if number_of_checkers == 1 {
         let checker_sq = game.checkers.single();
-        tables::between(checker_sq, king) | game.checkers
+        ray_between(checker_sq, king) | game.checkers
     } else {
         Bitboard::FULL
     };
@@ -510,8 +510,8 @@ fn generate_castle_move_for_side(
 ) {
     let king = game.board.king_square(game.player);
 
-    let required_empty_squares = between(king, rook);
-    let required_safe_squares = between(king, king_dst) | king_dst.bb();
+    let required_empty_squares = ray_between(king, rook);
+    let required_safe_squares = ray_between(king, king_dst) | king_dst.bb();
 
     if (required_empty_squares & all_pieces).is_empty()
         && (required_safe_squares & game.threats).is_empty()
@@ -534,8 +534,8 @@ fn generate_frc_castle_move_for_side(
 
     let king = game.board.king_square(game.player);
 
-    let required_safe_squares = between(king, king_dst) | king.bb() | king_dst.bb();
-    let required_empty_squares = required_safe_squares | between(king, rook) | rook_dst.bb();
+    let required_safe_squares = ray_between(king, king_dst) | king.bb() | king_dst.bb();
+    let required_empty_squares = required_safe_squares | ray_between(king, rook) | rook_dst.bb();
 
     let blockers = all_pieces ^ king.bb() ^ rook.bb();
 

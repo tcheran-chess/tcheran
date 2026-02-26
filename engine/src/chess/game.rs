@@ -421,7 +421,7 @@ impl Game {
             bishop_attacks(our_king, their_pieces) & their_diagonal_sliders;
 
         for pinner in potential_orthogonal_pinners {
-            let between_ray = tables::between(our_king, pinner);
+            let between_ray = tables::ray_between(our_king, pinner);
             let blockers = between_ray & our_pieces;
 
             match blockers.count() {
@@ -432,7 +432,7 @@ impl Game {
         }
 
         for pinner in potential_diagonal_pinners {
-            let between_ray = tables::between(our_king, pinner);
+            let between_ray = tables::ray_between(our_king, pinner);
             let blockers = between_ray & our_pieces;
 
             match blockers.count() {

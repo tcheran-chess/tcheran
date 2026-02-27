@@ -344,6 +344,20 @@ pub fn negamax(
             continue;
         }
 
+        let quiet_history = ctx.tables.quiet_history.get(game, mv)
+            + ctx.tables.conthist.get(game, ctx.stack, plies, mv);
+
+        if !is_root
+            && !is_pv
+            && !best_score.is_loss()
+            && mv.is_quiet()
+            && depth <= history_prune_depth()
+            && quiet_history < history_prune_margin() * depth.as_i32()
+        {
+            moves.yield_only_tacticals();
+            continue;
+        }
+
         if depth <= see_prune_depth()
             && moves.stage > GenStage::GoodTacticals
             && !is_root

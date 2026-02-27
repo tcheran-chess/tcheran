@@ -28,6 +28,9 @@ parameters!(
     (futility_prune_max_move_value, i32, 121, 8, 256),
     (futility_prune_depth, u8, 0, 0, 6),
 
+    (history_prune_depth, u8, 4, 2, 16),
+    (history_prune_margin, i32, -2500, -8192, -1024),
+
     (see_quiet_margin, i32, -58, -256, -8),
     (see_capture_margin, i32, -231, -256, -8),
     (see_prune_history_divisor, i32, 8, 8, 128),

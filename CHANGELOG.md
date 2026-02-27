@@ -7,6 +7,7 @@
 * SPSA tune - 3580 iters at 20.0+0.20 (16.55 +- 7.10)
 * SPSA tune - 1077 iters at 20.0+0.20 (4.06 +- 3.05)
 * The en-passant square is no longer set when there are no legal en-passant moves (4.57 +- 4.38)
+* Added quiet history (1.35 +- 2.90)
 * Implement a proper thread pool
 * Add mate distance pruning
 * Stop returning mate scores from NMP

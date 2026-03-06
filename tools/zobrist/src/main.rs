@@ -110,7 +110,7 @@ fn main() -> ExitCode {
 
     println!();
 
-    println!("    pub const SIDE_TO_PLAY: ZobristComponent = {side_to_play:#018x};",);
+    println!("    pub const SIDE_TO_PLAY: ZobristComponent = {side_to_play:#018x};");
 
     println!("}}");
 

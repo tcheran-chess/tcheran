@@ -282,7 +282,7 @@ impl UciReporter {
             format!("{}ms", progress.stats.time.as_millis())
         };
 
-        print!("  {BRIGHT_BLACK}{time:>6}{RESET}",);
+        print!("  {BRIGHT_BLACK}{time:>6}{RESET}");
 
         let (nodes, nodes_unit) = metrics::unit_suffix(progress.stats.nodes);
         let nodes_suffix = match nodes_unit {

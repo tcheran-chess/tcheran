@@ -41,8 +41,8 @@ details, including a detailed network history are available in
 | v1.1    |                        |                          |                | 2231           |
 | v1.0    |                        | 1868                     |                |                |
 
-[ccrl-ltc]: https://computerchess.org.uk/ccrl/4040/
-[ccrl-blitz]: https://computerchess.org.uk/ccrl/404/
+[ccrl-ltc]: https://computerchess.org.uk/ccrl/4040/cgi/compare_engines.cgi?class=Single-CPU+engines&only_best_in_class=on&num_best_in_class=1&print=Rating+list&profile_step=50&profile_numbers=1&print=Results+table&print=LOS+table&table_size=100&ct_from_elo=0&ct_to_elo=10000&match_length=30&cross_tables_for_best_versions_only=1&sort_tables=by+rating&diag=0&reference_list=None&recalibrate=no
+[ccrl-blitz]: https://computerchess.org.uk/ccrl/404/cgi/compare_engines.cgi?class=Single-CPU+engines&only_best_in_class=on&num_best_in_class=1&print=Rating+list&profile_step=50&profile_numbers=1&print=Results+table&print=LOS+table&table_size=100&ct_from_elo=0&ct_to_elo=10000&match_length=30&cross_tables_for_best_versions_only=1&sort_tables=by+rating&diag=0&reference_list=None&recalibrate=no
 [cegt]: http://www.cegt.net/40_40%20Rating%20List/40_40%20SingleVersion/rangliste.html
 [mcerl]: https://www.chessengeria.eu/mcerl
 

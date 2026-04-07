@@ -3,14 +3,16 @@ use crate::{
     engine::{
         eval::Eval,
         params::*,
-        search::{SearchContext, negamax, principal_variation::PrincipalVariation, types::Depth},
+        search::{
+            SearchContext, negamax,
+            principal_variation::PrincipalVariation,
+            types::{Depth, ScoreWindow},
+        },
     },
 };
 
-struct Window {
-    alpha: Eval,
-    beta: Eval,
-
+struct AspirationWindow {
+    s: ScoreWindow,
     width: Eval,
 }
 
@@ -22,21 +24,17 @@ fn clamp_beta(eval: Eval) -> Eval {
     std::cmp::min(Eval::MAX, eval)
 }
 
-impl Window {
+impl AspirationWindow {
     pub fn no_window() -> Self {
         Self {
-            alpha: Eval::MIN,
-            beta: Eval::MAX,
-
+            s: ScoreWindow::new(Eval::MIN, Eval::MAX),
             width: Eval(0),
         }
     }
 
     pub fn around(eval: Eval, width: Eval) -> Self {
         Self {
-            alpha: clamp_alpha(eval - width),
-            beta: clamp_beta(eval + width),
-
+            s: ScoreWindow::new(clamp_alpha(eval - width), clamp_beta(eval + width)),
             width,
         }
     }
@@ -46,13 +44,13 @@ impl Window {
     }
 
     pub fn widen_down(&mut self, eval: Eval) {
-        self.beta = (self.alpha + self.beta) / 2;
-        self.alpha = clamp_alpha(eval - self.width);
+        self.s.beta = (self.s.alpha + self.s.beta) / 2;
+        self.s.alpha = clamp_alpha(eval - self.width);
         self.increase_window_widening_rate();
     }
 
     pub fn widen_up(&mut self, eval: Eval) {
-        self.beta = clamp_beta(eval + self.width);
+        self.s.beta = clamp_beta(eval + self.width);
         self.increase_window_widening_rate();
     }
 
@@ -69,9 +67,9 @@ pub fn aspiration_search(
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
     let mut window = if depth < aspiration_min_depth() || eval.is_some_and(Eval::is_decisive) {
-        Window::no_window()
+        AspirationWindow::no_window()
     } else {
-        Window::around(
+        AspirationWindow::around(
             eval.expect("Aspiration search should have an evaluation after it reaches min depth"),
             Eval(aspiration_window_size()),
         )
@@ -80,17 +78,16 @@ pub fn aspiration_search(
     let mut reduction = 0;
 
     loop {
-        let eval =
-            negamax::negamax(game, window.alpha, window.beta, depth - reduction, 0, false, pv, ctx);
+        let eval = negamax::negamax(game, window.s, depth - reduction, 0, false, pv, ctx);
 
         if ctx.time_control.stopped() {
             return Eval::MIN;
         }
 
-        if window.is_in_use() && eval <= window.alpha {
+        if window.is_in_use() && eval <= window.s.alpha {
             window.widen_down(eval);
             reduction = 0;
-        } else if window.is_in_use() && eval >= window.beta {
+        } else if window.is_in_use() && eval >= window.s.beta {
             window.widen_up(eval);
             reduction += 1;
         } else {

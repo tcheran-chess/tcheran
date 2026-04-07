@@ -5,15 +5,14 @@ use crate::{
         moves::{Move, MoveList},
     },
     engine::{
-        eval,
-        eval::Eval,
+        eval::{self, Eval},
         params::*,
         search::{
             move_picker::{GenStage, MovePicker},
             principal_variation::PrincipalVariation,
             quiescence::quiescence,
             tables::lmr_table::lmr_reduction,
-            types::{Depth, DepthReduction},
+            types::{Depth, DepthReduction, ScoreWindow},
         },
         see::see,
         tablebases::Wdl,
@@ -23,8 +22,7 @@ use crate::{
 
 pub fn negamax(
     game: &mut Game,
-    mut alpha: Eval,
-    mut beta: Eval,
+    mut s: ScoreWindow,
     mut depth: Depth,
     plies: u8,
     cut_node: bool,
@@ -38,7 +36,7 @@ pub fn negamax(
     }
 
     let is_root = plies == 0;
-    let is_pv = alpha != beta - Eval(1);
+    let is_pv = !s.is_zero_window();
     let excluded_mv = ctx.stack.get(plies).excluded_mv;
 
     ctx.stack.get(plies).double_extensions = if is_root {
@@ -55,7 +53,7 @@ pub fn negamax(
     }
 
     if depth == 0 {
-        return quiescence(game, alpha, beta, plies, ctx);
+        return quiescence(game, s, plies, ctx);
     }
 
     ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
@@ -77,11 +75,11 @@ pub fn negamax(
         }
 
         // Mate distance pruning
-        alpha = alpha.max(Eval::mated_in(plies));
-        beta = beta.min(Eval::mate_in(plies + 1));
+        s.clamp_alpha(Eval::mated_in(plies));
+        s.clamp_beta(Eval::mate_in(plies + 1));
 
-        if alpha >= beta {
-            return alpha;
+        if s.alpha >= s.beta {
+            return s.alpha;
         }
     }
 
@@ -98,8 +96,8 @@ pub fn negamax(
 
             match tt_entry.bound {
                 NodeBound::Exact => return tt_score,
-                NodeBound::Upper if tt_score <= alpha => return tt_score,
-                NodeBound::Lower if tt_score >= beta => return tt_score,
+                NodeBound::Upper if tt_score <= s.alpha => return tt_score,
+                NodeBound::Lower if tt_score >= s.beta => return tt_score,
                 _ => {}
             }
         }
@@ -131,8 +129,8 @@ pub fn negamax(
             };
 
             if tb_bound == NodeBound::Exact
-                || (tb_bound == NodeBound::Lower && score >= beta)
-                || (tb_bound == NodeBound::Upper && score <= alpha)
+                || (tb_bound == NodeBound::Lower && score >= s.beta)
+                || (tb_bound == NodeBound::Upper && score <= s.alpha)
             {
                 ctx.tt
                     .insert(game.hash, tb_bound, None, score, Eval::NONE, depth, plies);
@@ -146,7 +144,7 @@ pub fn negamax(
                 }
 
                 if tb_bound == NodeBound::Lower {
-                    alpha = alpha.max(score);
+                    s.clamp_alpha(score);
                     syzygy_min = score;
                 }
             }
@@ -198,10 +196,10 @@ pub fn negamax(
         && !in_check
         && excluded_mv.is_none()
         && depth <= reverse_futility_prune_depth()
-        && eval - depth * reverse_futility_prune_margin_per_ply() > beta
+        && eval - depth * reverse_futility_prune_margin_per_ply() > s.beta
     {
-        return if !eval.is_decisive() && !beta.is_decisive() {
-            beta + (eval - beta) / 3
+        return if !eval.is_decisive() && !s.beta.is_decisive() {
+            s.beta + (eval - s.beta) / 3
         } else {
             eval
         };
@@ -213,11 +211,11 @@ pub fn negamax(
         && !in_check
         && excluded_mv.is_none()
         && depth <= razoring_depth()
-        && alpha.0.abs() < 2000
-        && eval + depth * razoring_margin() <= alpha
+        && s.alpha.0.abs() < 2000
+        && eval + depth * razoring_margin() <= s.alpha
     {
-        let qsearch_score = quiescence(game, alpha, alpha + 1, plies, ctx);
-        if qsearch_score <= alpha {
+        let qsearch_score = quiescence(game, s.zero_window_around_alpha(), plies, ctx);
+        if qsearch_score <= s.alpha {
             return qsearch_score;
         }
     }
@@ -226,7 +224,7 @@ pub fn negamax(
     if cut_node
         && !in_check
         && excluded_mv.is_none()
-        && eval >= beta
+        && eval >= s.beta
         // Don't let a player play a null move in response to a null move
         && ctx.stack.last(plies).is_some_and(|s| s.mv.is_some())
         && !game.zugzwang_likely()
@@ -242,8 +240,7 @@ pub fn negamax(
 
         let null_score = -negamax(
             game,
-            -beta,
-            -beta + Eval(1),
+            -s.zero_window_around_beta(),
             depth - reduction,
             plies + 1,
             false,
@@ -257,9 +254,9 @@ pub fn negamax(
             return Eval::MIN;
         }
 
-        if null_score >= beta {
+        if null_score >= s.beta {
             return if null_score.is_decisive() {
-                beta
+                s.beta
             } else {
                 null_score
             };
@@ -293,8 +290,8 @@ pub fn negamax(
         let se_beta = tt_score - depth * singular_extension_margin();
 
         ctx.stack.get(plies).excluded_mv = Some(mv);
-        let value =
-            negamax(game, se_beta - Eval(1), se_beta, se_depth, plies, cut_node, &mut se_pv, ctx);
+        let se_window = ScoreWindow::new(se_beta - Eval(1), se_beta);
+        let value = negamax(game, se_window, se_depth, plies, cut_node, &mut se_pv, ctx);
         ctx.stack.get(plies).excluded_mv = None;
 
         if value < se_beta {
@@ -307,9 +304,9 @@ pub fn negamax(
                 extension = 2;
                 ctx.stack.get(plies).double_extensions += 1;
             }
-        } else if !is_pv && !value.is_decisive() && value >= beta {
+        } else if !is_pv && !value.is_decisive() && value >= s.beta {
             return value;
-        } else if tt_score >= beta {
+        } else if tt_score >= s.beta {
             extension = -1;
         }
     }
@@ -341,7 +338,7 @@ pub fn negamax(
             && !mv.is_capture()
             && !in_check
             && depth <= futility_prune_depth()
-            && eval + futility_prune_max_move_value() < alpha
+            && eval + futility_prune_max_move_value() < s.alpha
             && !best_score.is_loss()
         {
             continue;
@@ -402,16 +399,7 @@ pub fn negamax(
         let search_depth = depth + extension - 1;
 
         let move_score = if number_of_legal_moves == 1 {
-            -negamax(
-                game,
-                -beta,
-                -alpha,
-                search_depth,
-                plies + 1,
-                !is_pv && !cut_node,
-                &mut node_pv,
-                ctx,
-            )
+            -negamax(game, -s, search_depth, plies + 1, !is_pv && !cut_node, &mut node_pv, ctx)
         } else {
             let reduction =
                 if depth >= lmr_depth() && number_of_legal_moves >= lmr_move_threshold() as usize {
@@ -443,8 +431,7 @@ pub fn negamax(
             // We search them with a reduced window to prove that they are at least worse.
             let mut pvs_score = -negamax(
                 game,
-                -alpha - Eval(1),
-                -alpha,
+                -s.zero_window_around_alpha(),
                 reduced_search_depth,
                 plies + 1,
                 true,
@@ -454,11 +441,10 @@ pub fn negamax(
 
             // If we raised alpha, but we were searching with reduced depth, we probably want to double
             // check we didn't miss something, so search without the reduction.
-            if pvs_score > alpha && reduction > 0 {
+            if pvs_score > s.alpha && reduction > 0 {
                 pvs_score = -negamax(
                     game,
-                    -alpha - Eval(1),
-                    -alpha,
+                    -s.zero_window_around_alpha(),
                     search_depth,
                     plies + 1,
                     !cut_node,
@@ -469,8 +455,8 @@ pub fn negamax(
 
             // If searching at full depth STILL raised alpha, re-search with normal alpha/beta
             // bounds.
-            if pvs_score > alpha && pvs_score < beta {
-                -negamax(game, -beta, -alpha, search_depth, plies + 1, false, &mut node_pv, ctx)
+            if pvs_score > s.alpha && pvs_score < s.beta {
+                -negamax(game, -s, search_depth, plies + 1, false, &mut node_pv, ctx)
             } else {
                 pvs_score
             }
@@ -491,15 +477,15 @@ pub fn negamax(
         if move_score > best_score {
             best_score = move_score;
 
-            if move_score > alpha {
-                alpha = move_score;
+            if move_score > s.alpha {
+                s.alpha = move_score;
                 best_move = Some(mv);
                 tt_node_bound = NodeBound::Exact;
                 pv.push(mv, &node_pv);
             }
 
             // Cutoff: This move is so good that our opponent won't let it be played.
-            if move_score >= beta {
+            if move_score >= s.beta {
                 tt_node_bound = NodeBound::Lower;
                 ctx.stack.get(plies).fail_highs += 1;
                 break;
@@ -518,7 +504,7 @@ pub fn negamax(
 
     if number_of_legal_moves == 0 {
         if excluded_mv.is_some() {
-            return alpha;
+            return s.alpha;
         }
 
         return if game.in_check() {

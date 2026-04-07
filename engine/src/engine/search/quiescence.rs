@@ -4,15 +4,17 @@ use crate::{
     engine::{
         eval,
         eval::Eval,
-        search::{move_picker::MovePicker, types::Depth},
+        search::{
+            move_picker::MovePicker,
+            types::{Depth, ScoreWindow},
+        },
         transposition_table::NodeBound,
     },
 };
 
 pub fn quiescence(
     game: &mut Game,
-    mut alpha: Eval,
-    beta: Eval,
+    mut s: ScoreWindow,
     plies: u8,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
@@ -22,7 +24,7 @@ pub fn quiescence(
         return Eval::MIN;
     }
 
-    let is_pv = alpha != beta - Eval(1);
+    let is_pv = !s.is_zero_window();
 
     ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
     ctx.nodes.incr();
@@ -50,8 +52,8 @@ pub fn quiescence(
 
             match tt_entry.bound {
                 NodeBound::Exact => return tt_score,
-                NodeBound::Upper if tt_score <= alpha => return tt_score,
-                NodeBound::Lower if tt_score >= beta => return tt_score,
+                NodeBound::Upper if tt_score <= s.alpha => return tt_score,
+                NodeBound::Lower if tt_score >= s.beta => return tt_score,
                 _ => {}
             }
         }
@@ -84,16 +86,16 @@ pub fn quiescence(
         (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate()
     };
 
-    if eval >= beta {
-        return if !eval.is_decisive() && !beta.is_decisive() {
-            (eval + beta) / 2
+    if eval >= s.beta {
+        return if !eval.is_decisive() && !s.beta.is_decisive() {
+            (eval + s.beta) / 2
         } else {
             eval
         };
     }
 
-    if eval > alpha {
-        alpha = eval;
+    if eval > s.alpha {
+        s.alpha = eval;
         node_bound = NodeBound::Exact;
     }
 
@@ -117,7 +119,7 @@ pub fn quiescence(
 
         game.make_move_nnue(mv, ctx.nnue.next_changes());
 
-        let move_score = -quiescence(game, -beta, -alpha, plies + 1, ctx);
+        let move_score = -quiescence(game, -s, plies + 1, ctx);
 
         game.undo_move();
         ctx.nnue.pop();
@@ -129,14 +131,14 @@ pub fn quiescence(
         if move_score > best_score {
             best_score = move_score;
 
-            if move_score > alpha {
+            if move_score > s.alpha {
                 best_move = Some(mv);
                 node_bound = NodeBound::Exact;
-                alpha = move_score;
+                s.alpha = move_score;
             }
 
             // Cutoff: This move is so good that our opponent won't let it be played.
-            if move_score >= beta {
+            if move_score >= s.beta {
                 node_bound = NodeBound::Lower;
                 break;
             }

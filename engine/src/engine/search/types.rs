@@ -1,5 +1,56 @@
 use std::cmp::Ordering;
 
+use crate::engine::eval::Eval;
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub struct ScoreWindow {
+    pub alpha: Eval,
+    pub beta: Eval,
+}
+
+impl ScoreWindow {
+    pub fn new(alpha: Eval, beta: Eval) -> Self {
+        Self { alpha, beta }
+    }
+
+    pub fn zero_window_around_alpha(&self) -> Self {
+        Self {
+            alpha: self.alpha,
+            beta: self.alpha + Eval(1),
+        }
+    }
+
+    pub fn zero_window_around_beta(&self) -> Self {
+        Self {
+            alpha: self.beta - Eval(1),
+            beta: self.beta,
+        }
+    }
+
+    pub fn clamp_alpha(&mut self, max: Eval) {
+        self.alpha = self.alpha.max(max);
+    }
+
+    pub fn clamp_beta(&mut self, min: Eval) {
+        self.beta = self.beta.min(min);
+    }
+
+    pub fn is_zero_window(&self) -> bool {
+        self.alpha == self.beta - Eval(1)
+    }
+}
+
+impl std::ops::Neg for ScoreWindow {
+    type Output = Self;
+
+    fn neg(self) -> Self::Output {
+        Self {
+            alpha: -self.beta,
+            beta: -self.alpha,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Depth(u8);
 

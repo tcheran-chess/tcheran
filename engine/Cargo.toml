@@ -17,7 +17,7 @@ name = "engine"
 path = "src/main.rs"
 
 [dependencies]
-rand = { version = "0.9.2", optional = true }
+rand = { version = "0.10.0", optional = true }
 atomic-wait = "1.1.0"
 
 [build-dependencies]

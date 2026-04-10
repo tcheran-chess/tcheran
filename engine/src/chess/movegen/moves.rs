@@ -3,7 +3,7 @@ use crate::chess::{
     game::Game,
     movegen::{attackers, tables, tables::between},
     moves::Move,
-    piece::{Piece, PieceKind, PromotionPieceKind},
+    piece::PromotionPieceKind,
     square::{Square, squares},
 };
 
@@ -37,7 +37,6 @@ pub fn generate_tacticals(game: &Game, f: &mut impl FnMut(Move)) {
     generate_pawn_tacticals(
         game,
         game.board.pawns(game.player),
-        king,
         their_pieces,
         all_pieces,
         check_mask,
@@ -139,7 +138,6 @@ pub fn generate_quiets(game: &Game, f: &mut impl FnMut(Move)) {
 fn generate_pawn_tacticals(
     game: &Game,
     pawns: Bitboard,
-    king: Square,
     their_pieces: Bitboard,
     all_pieces: Bitboard,
     check_mask: Bitboard,
@@ -206,36 +204,14 @@ fn generate_pawn_tacticals(
 
     // En-passant capture: Pawns either side of the en-passant pawn can capture
     if let Some(en_passant_target) = game.en_passant_target {
-        let captured_pawn = en_passant_target.backward(game.player);
+        let potential_capturers =
+            can_capture_pawns & tables::pawn_attacks(en_passant_target, game.player.other());
 
-        if (check_mask & (en_passant_target.bb() | captured_pawn.bb())).any() {
-            let potential_capturers =
-                can_capture_pawns & tables::pawn_attacks(en_passant_target, game.player.other());
-
-            for potential_en_passant_capture_start in potential_capturers {
-                // Only consider this pawn if it is not pinned, or if it is pinned but captures along the pin ray
-                if !diagonal_pins.contains(potential_en_passant_capture_start)
-                    || diagonal_pins.contains(en_passant_target)
-                {
-                    // We need to check that we do not reveal a check by making this en-passant capture
-                    let mut board_without_en_passant_participants = game.board.clone();
-                    board_without_en_passant_participants
-                        .remove_at(potential_en_passant_capture_start);
-                    board_without_en_passant_participants
-                        .set_at(en_passant_target, Piece::new(game.player, PieceKind::Pawn));
-                    board_without_en_passant_participants.remove_at(captured_pawn);
-
-                    let king_in_check = attackers::generate_attackers_of(
-                        &board_without_en_passant_participants,
-                        game.player,
-                        king,
-                    )
-                    .any();
-
-                    if !king_in_check {
-                        f(Move::en_passant(potential_en_passant_capture_start, en_passant_target));
-                    }
-                }
+        for potential_capturer in potential_capturers {
+            if !diagonal_pins.contains(potential_capturer)
+                || diagonal_pins.contains(en_passant_target)
+            {
+                f(Move::en_passant(potential_capturer, en_passant_target));
             }
         }
     }
@@ -573,7 +549,10 @@ fn generate_frc_castle_move_for_side(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::{moves::MoveList, square::squares::all::*};
+    use crate::chess::{
+        moves::{MoveList, MoveListExt},
+        square::squares::all::*,
+    };
 
     #[inline(always)]
     fn should_allow_move(fen: &str, mv: (Square, Square)) {
@@ -630,7 +609,12 @@ mod tests {
 
     #[test]
     fn test_forbid_en_passant_revealed_check() {
-        should_not_allow_move("8/8/8/8/k2Pp2Q/8/8/3K4 b - d3 0 1", (E4, D3));
+        crate::init();
+
+        let mut game = Game::from_fen("8/8/8/8/k3p2Q/8/3P4/3K4 w - - 0 1").unwrap();
+        game.make_move(game.moves().expect_matching(D2, D4, None));
+
+        assert!(game.moves().iter().all(|m| (m.from(), m.to()) != (E4, D3)));
     }
 
     #[test]
@@ -661,5 +645,16 @@ mod tests {
             "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q2/PPP1BPpP/R1B1K2R w KQkq - 0 2",
             (E1, A1),
         )
+    }
+
+    #[test]
+    fn test_en_passant_diagonal_pin_20260413() {
+        crate::init();
+
+        let mut game =
+            Game::from_fen("q7/2p3k1/3b2p1/pp1Pnp1p/3Q3P/P1P3P1/1P3PK1/2NB4 b - - 1 33").unwrap();
+        game.make_move(game.moves().expect_matching(C7, C5, None));
+
+        assert!(game.moves().iter().any(|m| (m.from(), m.to()) == (D5, C6)));
     }
 }

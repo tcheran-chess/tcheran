@@ -581,6 +581,7 @@ impl Game {
 
         self.update_checks_and_pins();
         self.update_threats();
+        self.check_en_passant_square_is_valid();
     }
 
     pub fn make_null_move(&mut self) {
@@ -697,6 +698,63 @@ impl Game {
         self.threats = history.threats;
     }
 
+    pub fn check_en_passant_square_is_valid(&mut self) {
+        let Some(en_passant_target) = self.en_passant_target else {
+            return;
+        };
+
+        let moved_pawn = en_passant_target.backward(self.player);
+
+        // If we're in check, we can only be in check from the pawn that would be taken
+        if self.checkers.without(moved_pawn).any() {
+            self.en_passant_target = None;
+            self.hash.toggle_en_passant(en_passant_target);
+            return;
+        }
+
+        let potential_capturers =
+            self.board.pawns(self.player) & pawn_attacks(en_passant_target, self.player.other());
+
+        let king = self.board.king_square(self.player);
+        let mut can_capture = false;
+
+        for potential_en_passant_capture_start in potential_capturers {
+            // Only consider this pawn if it is not pinned, or if it is pinned but captures along the pin ray
+            if !self
+                .diagonal_pins
+                .contains(potential_en_passant_capture_start)
+                || self.diagonal_pins.contains(en_passant_target)
+            {
+                // We need to check that we do not reveal a check by making this en-passant capture
+                let mut board_without_en_passant_participants = self.board.clone();
+                board_without_en_passant_participants.remove_at(potential_en_passant_capture_start);
+                board_without_en_passant_participants
+                    .set_at(en_passant_target, Piece::new(self.player, PieceKind::Pawn));
+                board_without_en_passant_participants.remove_at(moved_pawn);
+
+                let king_in_check = crate::chess::movegen::attackers::generate_attackers_of(
+                    &board_without_en_passant_participants,
+                    self.player,
+                    king,
+                )
+                .any();
+
+                // If this move would place the king in check, it's not valid, so unset the en-passant target
+                if king_in_check {
+                    continue;
+                }
+
+                can_capture = true;
+            }
+        }
+
+        // If all of our pawns were ruled out due to pins, there's no valid target
+        if !can_capture {
+            self.en_passant_target = None;
+            self.hash.toggle_en_passant(en_passant_target);
+        }
+    }
+
     pub fn approx_zobrist_after(&self, mv: Move) -> ZobristHash {
         let mut key = self.hash;
 
@@ -744,7 +802,7 @@ impl Default for Game {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::bitboard::bitboards::*;
+    use crate::chess::{bitboard::bitboards::*, moves::MoveListExt, square::squares::all::*};
 
     #[test]
     fn test_draw_by_insufficient_material() {
@@ -781,5 +839,29 @@ mod tests {
 
         assert_eq!(game.orthogonal_pins, Bitboard::EMPTY);
         assert_eq!(game.diagonal_pins, B4_BB | C3_BB | D2_BB);
+    }
+
+    #[test]
+    fn test_en_passant_target_not_set_if_not_legal() {
+        crate::init();
+
+        let mut game = Game::from_fen("k7/3p4/8/K3P2r/8/8/8/8 b - - 0 1").unwrap();
+        game.make_move(game.moves().expect_matching(D7, D5, None));
+
+        assert_eq!(game.en_passant_target, None);
+
+        // Bishop pinning the capturing pawn diagonally
+        let mut game =
+            Game::from_fen("r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 b kq - 0 1")
+                .unwrap();
+        game.make_move(game.moves().expect_matching(D7, D5, None));
+
+        assert_eq!(game.en_passant_target, None);
+
+        let mut game =
+            Game::from_fen("r7/r7/bp1k3p/2p1p1pP/Pp1pP1P1/1P3P2/2P3K1/1R1RN3 w - - 9 40").unwrap();
+        game.make_move(game.moves().expect_matching(C2, C4, None));
+
+        assert_eq!(game.en_passant_target, Some(C3));
     }
 }

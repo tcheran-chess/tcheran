@@ -1,4 +1,4 @@
-mod attackers;
+pub mod attackers;
 mod moves;
 pub mod tables;
 

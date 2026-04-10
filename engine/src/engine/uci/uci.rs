@@ -380,7 +380,9 @@ impl Uci {
                 println!();
             }
             UciCommand::PerftDiv { depth } => {
-                let result = perft::perft_div(*depth, &mut self.game);
+                let mut result = perft::perft_div(*depth, &mut self.game);
+                result.sort_by_key(|r| format!("{:?}", r.0));
+
                 let mut total = 0;
 
                 for (mv, number_for_mv) in result {

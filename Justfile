@@ -56,8 +56,8 @@ train:
 
 ################################## Tests ######################################
 
-test:
-	@cargo nextest run --release
+test *ARGS:
+	@cargo nextest run --release {{ARGS}}
 
 ############################### Profiling #####################################
 

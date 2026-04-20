@@ -1,14 +1,10 @@
-use rand::{Rng, SeedableRng, prelude::IndexedRandom, rngs::StdRng};
+use rand::{Rng, RngExt, SeedableRng, prelude::IndexedRandom, rngs::StdRng};
 
 use crate::{
     chess::game::Game,
     engine::{
         eval::wdl,
-        options::EngineOptions,
-        search::{
-            NullReporter, PersistentState, ThreadData, TimeControl, search, st_search,
-            time_control::StopControl,
-        },
+        search::{NullReporter, PersistentState, TimeControl, st_search},
         util::log,
     },
 };

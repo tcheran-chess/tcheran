@@ -402,11 +402,12 @@ pub fn negamax(
             && !is_root
             && !is_pv
             && !in_check
+            && mv.is_quiet()
             && number_of_legal_moves >= lmp_moves
-            && moves.stage > GenStage::Killer
-            && !best_score.is_decisive()
+            && !best_score.is_loss()
         {
             moves.skip_quiets();
+            continue;
         }
 
         let nodes_before = ctx.nodes.get();

@@ -32,3 +32,4 @@ All data used for training is self-play data generated using the datagen code fr
 | 13 | `(768->1024)x2->8` | WDL 0.4, LR 0.001, 80 batches  | `7.49 +- 4.59`      | Same architecture and data as net 12, but with horizontally mirrored features |
 | 14 | `(768->1024)x2->8` | WDL 0.4, LR 0.001, 120 batches | `5.00 +- 3.60`      | Same architecture and data as net 13, but with an additional 40 batch fine tuning stage at 0.6 WDL |
 | -  | `(768->1024)x2->8` | WDL 0.4, LR 0.001, 120 batches | `-6.96 +- 4.58`     | Attempting a 0.4 -> 0.6 WDL first stage for training |
+| 15 | `(768->1024)x2->8` | WDL 0.4, LR 0.001, 120 batches | `19.22 +- 7.60`     | Same as net 14, but with an additional ~416M positions at 20ksn |

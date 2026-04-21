@@ -4,7 +4,6 @@ members = [
     "engine",
     "tools/data",
     "tools/zobrist",
-    "tools/sprt",
     "tools/trainer"
 ]
 default-members = ["engine"]

@@ -5,6 +5,7 @@
 * SPSA tune - 938 iters at 20.0+0.20 (24.36 +- 8.47)
 * Network #15, same as 14 with an additional ~416M 20ksn positions (19.22 +- 7.60)
 * SPSA tune - 3580 iters at 20.0+0.20 (16.55 +- 7.10)
+* Exclude pinned pieces in SEE (7.58 +- 4.67)
 * SPSA tune - 1077 iters at 20.0+0.20 (4.06 +- 3.05)
 * The en-passant square is no longer set when there are no legal en-passant moves (4.57 +- 4.38)
 * Added quiet history (1.35 +- 2.90)

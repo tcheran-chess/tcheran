@@ -1,5 +1,12 @@
 use crate::{
-    chess::{game::Game, movegen, movegen::tables, moves::Move, piece::PieceKind},
+    chess::{
+        game::Game,
+        movegen,
+        movegen::{tables, tables::ray_skewering},
+        moves::Move,
+        piece::PieceKind,
+        player::Player,
+    },
     engine::{eval::Eval, params::*},
 };
 
@@ -72,10 +79,20 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
         occupied.unset(game.en_passant_target.unwrap());
     }
 
+    let white_pinned = game.pinned[Player::White];
+    let white_pin_ray = ray_skewering(board.king_square(Player::White), to);
+
+    let black_pinned = game.pinned[Player::Black];
+    let black_pin_ray = ray_skewering(board.king_square(Player::Black), to);
+
+    let not_pinned = !(white_pinned | black_pinned)
+        | (white_pinned & white_pin_ray)
+        | (black_pinned & black_pin_ray);
+
     let mut diagonal_sliders = board.all_diagonal_sliders() & occupied;
     let mut orthorgonal_sliders = board.all_orthogonal_sliders() & occupied;
 
-    let mut attackers = movegen::all_attackers_of(board, to, occupied) & occupied;
+    let mut attackers = movegen::all_attackers_of(board, to, occupied) & occupied & not_pinned;
 
     let mut color = game.player;
 

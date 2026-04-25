@@ -17,12 +17,10 @@ pub fn ray_between(from: Square, to: Square) -> Bitboard {
     unsafe { BETWEEN_RAYS[from][to] }
 }
 
-#[expect(unused, reason = "Not used yet")]
 pub fn ray_intersecting(from: Square, to: Square) -> Bitboard {
     unsafe { INTERSECTING_RAYS[from][to] }
 }
 
-#[expect(unused, reason = "Not used yet")]
 pub fn ray_skewering(from: Square, to: Square) -> Bitboard {
     unsafe { SKEWERING_RAYS[from][to] }
 }

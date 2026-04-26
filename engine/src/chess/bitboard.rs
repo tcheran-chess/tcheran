@@ -352,6 +352,13 @@ pub mod bitboards {
         }
     }
 
+    pub const fn double_push_rank(player: Player) -> Bitboard {
+        match player {
+            Player::White => RANK_3,
+            Player::Black => RANK_6,
+        }
+    }
+
     pub const A1_BB: Bitboard = A1.bb();
     pub const A2_BB: Bitboard = A2.bb();
     pub const A3_BB: Bitboard = A3.bb();

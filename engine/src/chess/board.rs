@@ -20,6 +20,11 @@ impl Board {
     }
 
     #[inline(always)]
+    pub fn occupancies(&self, player: Player) -> (Bitboard, Bitboard) {
+        (self.occupancy_for(player), self.occupancy_for(!player))
+    }
+
+    #[inline(always)]
     pub fn occupancy_for(&self, player: Player) -> Bitboard {
         self.colors[player]
     }

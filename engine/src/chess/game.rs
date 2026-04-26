@@ -4,7 +4,7 @@ use crate::{
         board::Board,
         fen,
         movegen::{
-            generate_legal_moves, tables,
+            all_attackers_of, generate_legal_moves, tables,
             tables::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
         },
         moves::{Move, MoveList},
@@ -109,8 +109,6 @@ pub struct History {
 
     pub checkers: Bitboard,
     pub pinned: [Bitboard; Player::N],
-    pub orthogonal_pins: Bitboard,
-    pub diagonal_pins: Bitboard,
     pub threats: Bitboard,
 }
 
@@ -143,8 +141,6 @@ pub struct Game {
 
     pub checkers: Bitboard,
     pub pinned: [Bitboard; Player::N],
-    pub orthogonal_pins: Bitboard,
-    pub diagonal_pins: Bitboard,
     pub threats: Bitboard,
 
     pub is_frc: bool,
@@ -174,8 +170,6 @@ impl Game {
 
             checkers: Bitboard::EMPTY,
             pinned: [Bitboard::EMPTY; Player::N],
-            orthogonal_pins: Bitboard::EMPTY,
-            diagonal_pins: Bitboard::EMPTY,
             threats: Bitboard::EMPTY,
 
             hash: ZobristHash::uninit(),
@@ -407,8 +401,6 @@ impl Game {
     fn update_checks_and_pins(&mut self) {
         self.checkers = Bitboard::EMPTY;
         self.pinned = [Bitboard::EMPTY; Player::N];
-        self.orthogonal_pins = Bitboard::EMPTY;
-        self.diagonal_pins = Bitboard::EMPTY;
 
         let our_king = self.board.king_square(self.player);
         let them = self.player.other();
@@ -432,25 +424,14 @@ impl Game {
                 & rook_attacks(our_king, their_pieces)
                 & self.board.orthogonal_sliders(!player);
 
-            for (pinners_list, pinmask_bb) in [
-                (potential_orthogonal_pinners, &mut self.orthogonal_pins),
-                (potential_diagonal_pinners, &mut self.diagonal_pins),
-            ] {
-                for pinner in pinners_list {
-                    let between_ray = tables::ray_between(our_king, pinner);
-                    let blockers = between_ray & our_pieces;
+            for pinner in potential_orthogonal_pinners | potential_diagonal_pinners {
+                let between_ray = tables::ray_between(our_king, pinner);
+                let blockers = between_ray & our_pieces;
 
-                    match blockers.count() {
-                        0 if player == self.player => self.checkers.set(pinner),
-                        1 => {
-                            self.pinned[player].set(blockers.single());
-
-                            if player == self.player {
-                                *pinmask_bb |= pinner.bb() | between_ray;
-                            }
-                        }
-                        _ => {}
-                    }
+                match blockers.count() {
+                    0 if player == self.player => self.checkers.set(pinner),
+                    1 => self.pinned[player].set(blockers.single()),
+                    _ => {}
                 }
             }
         }
@@ -490,8 +471,6 @@ impl Game {
 
             checkers: self.checkers,
             pinned: self.pinned,
-            orthogonal_pins: self.orthogonal_pins,
-            diagonal_pins: self.diagonal_pins,
             threats: self.threats,
         };
 
@@ -617,8 +596,6 @@ impl Game {
 
             checkers: self.checkers,
             pinned: self.pinned,
-            orthogonal_pins: self.orthogonal_pins,
-            diagonal_pins: self.diagonal_pins,
             threats: self.threats,
         };
 
@@ -662,8 +639,6 @@ impl Game {
         self.en_passant_target = history.en_passant_target;
         self.checkers = history.checkers;
         self.pinned = history.pinned;
-        self.orthogonal_pins = history.orthogonal_pins;
-        self.diagonal_pins = history.diagonal_pins;
         self.threats = history.threats;
 
         // Undo castling, if we castled
@@ -710,8 +685,6 @@ impl Game {
         self.halfmove_clock = history.halfmove_clock;
         self.checkers = history.checkers;
         self.pinned = history.pinned;
-        self.orthogonal_pins = history.orthogonal_pins;
-        self.diagonal_pins = history.diagonal_pins;
         self.threats = history.threats;
     }
 
@@ -720,47 +693,23 @@ impl Game {
             return;
         };
 
-        let moved_pawn = en_passant_target.backward(self.player);
+        let mut can_capture = false;
 
-        // If we're in check, we can only be in check from the pawn that would be taken
-        if self.checkers.without(moved_pawn).any() {
-            self.en_passant_target = None;
-            self.hash.toggle_en_passant(en_passant_target);
-            return;
-        }
+        let moved_pawn = en_passant_target.backward(self.player);
+        let king = self.board.king_square(self.player);
 
         let potential_capturers =
             self.board.pawns(self.player) & pawn_attacks(en_passant_target, self.player.other());
 
-        let king = self.board.king_square(self.player);
-        let mut can_capture = false;
+        for pawn in potential_capturers {
+            let blockers =
+                en_passant_target.bb() | (self.board.occupancy().without(moved_pawn).without(pawn));
 
-        for potential_en_passant_capture_start in potential_capturers {
-            // Only consider this pawn if it is not pinned, or if it is pinned but captures along the pin ray
-            if !self
-                .diagonal_pins
-                .contains(potential_en_passant_capture_start)
-                || self.diagonal_pins.contains(en_passant_target)
-            {
-                // We need to check that we do not reveal a check by making this en-passant capture
-                let mut board_without_en_passant_participants = self.board.clone();
-                board_without_en_passant_participants.remove_at(potential_en_passant_capture_start);
-                board_without_en_passant_participants
-                    .set_at(en_passant_target, Piece::new(self.player, PieceKind::Pawn));
-                board_without_en_passant_participants.remove_at(moved_pawn);
+            let checkers = blockers
+                & all_attackers_of(&self.board, king, blockers)
+                & self.board.occupancy_for(!self.player);
 
-                let king_in_check = crate::chess::movegen::attackers::generate_attackers_of(
-                    &board_without_en_passant_participants,
-                    self.player,
-                    king,
-                )
-                .any();
-
-                // If this move would place the king in check, it's not valid, so unset the en-passant target
-                if king_in_check {
-                    continue;
-                }
-
+            if checkers.is_empty() {
                 can_capture = true;
             }
         }
@@ -819,7 +768,7 @@ impl Default for Game {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::{bitboard::bitboards::*, moves::MoveListExt, square::squares::all::*};
+    use crate::chess::{moves::MoveListExt, square::squares::all::*};
 
     #[test]
     fn test_draw_by_insufficient_material() {
@@ -848,17 +797,6 @@ mod tests {
     }
 
     #[test]
-    fn test_pin_in_gist_8_depth_3() {
-        crate::init();
-
-        let game =
-            Game::from_fen("rnbq1k1r/pp1P1ppp/2p5/8/1bB5/8/PPPNNnPP/R1BQK2R w KQ - 3 9").unwrap();
-
-        assert_eq!(game.orthogonal_pins, Bitboard::EMPTY);
-        assert_eq!(game.diagonal_pins, B4_BB | C3_BB | D2_BB);
-    }
-
-    #[test]
     fn test_en_passant_target_not_set_if_not_legal() {
         crate::init();
 
@@ -880,5 +818,12 @@ mod tests {
         game.make_move(game.moves().expect_matching(C2, C4, None));
 
         assert_eq!(game.en_passant_target, Some(C3));
+
+        let mut game =
+            Game::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+                .unwrap();
+        game.make_move(game.moves().expect_matching(A2, A4, None));
+
+        assert_eq!(game.en_passant_target, Some(A3));
     }
 }

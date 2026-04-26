@@ -1,7 +1,7 @@
 use crate::chess::{
     bitboard::{Bitboard, bitboards},
     game::Game,
-    movegen::{attackers, tables, tables::ray_between},
+    movegen::{tables, tables::ray_between},
     moves::Move,
     piece::PromotionPieceKind,
     square::{Square, squares},
@@ -422,34 +422,16 @@ fn generate_king_captures(
     their_pieces: Bitboard,
     f: &mut impl FnMut(Move),
 ) {
-    let destinations = tables::king_attacks(king);
-
-    // When calculating the attacked squares, we need to remove our King from the board.
-    // If we don't, squares behind the king look safe (since they are blocked by the king)
-    // meaning we'd generate moves away from a slider while in check.
-    let mut board_without_king = game.board.clone();
-    board_without_king.remove_at(king);
-
-    for dst in destinations & their_pieces {
-        if attackers::generate_attackers_of(&board_without_king, game.player, dst).is_empty() {
-            f(Move::capture(king, dst));
-        }
+    let destinations = tables::king_attacks(king) & their_pieces & !game.threats;
+    for dst in destinations {
+        f(Move::capture(king, dst));
     }
 }
 
 fn generate_king_quiets(game: &Game, king: Square, all_pieces: Bitboard, f: &mut impl FnMut(Move)) {
-    let destinations = tables::king_attacks(king);
-
-    // When calculating the attacked squares, we need to remove our King from the board.
-    // If we don't, squares behind the king look safe (since they are blocked by the king)
-    // meaning we'd generate moves away from a slider while in check.
-    let mut board_without_king = game.board.clone();
-    board_without_king.remove_at(king);
-
-    for dst in destinations & !all_pieces {
-        if attackers::generate_attackers_of(&board_without_king, game.player, dst).is_empty() {
-            f(Move::quiet(king, dst));
-        }
+    let destinations = tables::king_attacks(king) & !all_pieces & !game.threats;
+    for dst in destinations {
+        f(Move::quiet(king, dst));
     }
 }
 

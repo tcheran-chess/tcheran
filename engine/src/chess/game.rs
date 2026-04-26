@@ -377,8 +377,11 @@ impl Game {
     fn update_threats(&mut self) {
         let mut threats = Bitboard::EMPTY;
 
-        let blockers = self.board.occupancy();
-        let them = self.player.other();
+        let us = self.player;
+        let them = !self.player;
+
+        let our_king = self.board.king(us);
+        let blockers = self.board.occupancy() & !our_king;
 
         for pawn in self.board.pawns(them) {
             threats |= pawn_attacks(pawn, them);

@@ -110,12 +110,12 @@ dependencies = [
 [[package]]
 name = "bullet-compiler"
 version = "0.1.0"
-source = "git+https://github.com/tcheran-chess/bullet#fe726f81dec0f9529c35beb33050f57c9bd1ed83"
+source = "git+https://github.com/tcheran-chess/bullet#c69e8e51fe5e14b15849729b12b2c46639f042b4"
 
 [[package]]
 name = "bullet-gpu"
 version = "0.1.0"
-source = "git+https://github.com/tcheran-chess/bullet#fe726f81dec0f9529c35beb33050f57c9bd1ed83"
+source = "git+https://github.com/tcheran-chess/bullet#c69e8e51fe5e14b15849729b12b2c46639f042b4"
 dependencies = [
  "bullet-compiler",
  "metal",
@@ -125,7 +125,7 @@ dependencies = [
 [[package]]
 name = "bullet-trainer"
 version = "0.1.0"
-source = "git+https://github.com/tcheran-chess/bullet#fe726f81dec0f9529c35beb33050f57c9bd1ed83"
+source = "git+https://github.com/tcheran-chess/bullet#c69e8e51fe5e14b15849729b12b2c46639f042b4"
 dependencies = [
  "bullet-compiler",
  "bullet-gpu",
@@ -136,14 +136,13 @@ dependencies = [
 [[package]]
 name = "bullet_lib"
 version = "1.0.0"
-source = "git+https://github.com/tcheran-chess/bullet#fe726f81dec0f9529c35beb33050f57c9bd1ed83"
+source = "git+https://github.com/tcheran-chess/bullet#c69e8e51fe5e14b15849729b12b2c46639f042b4"
 dependencies = [
  "bullet-compiler",
  "bullet-gpu",
  "bullet-trainer",
  "bulletformat",
  "montyformat",
- "parking_lot",
  "sfbinpack",
  "viriformat",
 ]
@@ -156,9 +155,9 @@ checksum = "6d171953264e8dc3aa62757255e602e507fdd358a94e3cdacb9e481ff3a1c6b0"
 
 [[package]]
 name = "cc"
-version = "1.2.60"
+version = "1.2.61"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "43c5703da9466b66a946814e1adf53ea2c90f10063b86290cc9eb67ce3478a20"
+checksum = "d16d90359e986641506914ba71350897565610e87ce0ad9e6f28569db3dd5c6d"
 dependencies = [
  "find-msvc-tools",
  "shlex",
@@ -445,24 +444,15 @@ checksum = "09edd9e8b54e49e587e4f6295a7d29c3ea94d469cb40ab8ca70b288248a81db2"
 
 [[package]]
 name = "libc"
-version = "0.2.185"
+version = "0.2.186"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52ff2c0fe9bc6cb6b14a0592c2ff4fa9ceb83eea9db979b0487cd054946a2b8f"
+checksum = "68ab91017fe16c622486840e4c83c9a37afeff978bd239b5293d61ece587de66"
 
 [[package]]
 name = "libm"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6d2cec3eae94f9f509c767b45932f1ada8350c4bdb85af2fcab4a3c14807981"
-
-[[package]]
-name = "lock_api"
-version = "0.4.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "224399e74b87b5f3557511d98dff8b14089b3dadafcab6bb93eab67d3aace965"
-dependencies = [
- "scopeguard",
-]
 
 [[package]]
 name = "log"
@@ -536,29 +526,6 @@ name = "once_cell_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
-
-[[package]]
-name = "parking_lot"
-version = "0.12.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "93857453250e3077bd71ff98b6a65ea6621a19bb0f559a85248955ac12c45a1a"
-dependencies = [
- "lock_api",
- "parking_lot_core",
-]
-
-[[package]]
-name = "parking_lot_core"
-version = "0.9.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2621685985a2ebf1c516881c026032ac7deafcda1a2c9b7850dc81e3dfcb64c1"
-dependencies = [
- "cfg-if",
- "libc",
- "redox_syscall",
- "smallvec",
- "windows-link",
-]
 
 [[package]]
 name = "paste"
@@ -703,21 +670,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "redox_syscall"
-version = "0.5.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed2bf2547551a7053d6fdfafda3f938979645c44812fbfcda098faae3f1a362d"
-dependencies = [
- "bitflags 2.11.1",
-]
-
-[[package]]
-name = "scopeguard"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
-
-[[package]]
 name = "semver"
 version = "1.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -803,12 +755,6 @@ name = "shlex"
 version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
-
-[[package]]
-name = "smallvec"
-version = "1.15.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67b1b7a3b5fe4f1376887184045fcf45c69e92af734b7aaddc05fb777b6fbd03"
 
 [[package]]
 name = "strsim"

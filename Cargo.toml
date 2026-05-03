@@ -60,7 +60,7 @@ allow_attributes = "warn"
 allow_attributes_without_reason = "warn"
 
 [profile.release]
-# debug = 1
+debug = true
 panic = "abort"
 codegen-units = 1
 lto = true

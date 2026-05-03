@@ -333,6 +333,8 @@ pub fn negamax(
 
         node_pv.clear();
 
+        let lmr_depth = depth - lmr_reduction(depth, number_of_legal_moves);
+
         // Futility pruning
         if !is_pv
             && !mv.is_capture()
@@ -351,21 +353,19 @@ pub fn negamax(
             && !is_pv
             && !best_score.is_loss()
             && mv.is_quiet()
-            && depth <= history_prune_depth()
-            && quiet_history < history_prune_margin() * depth.as_i32()
+            && lmr_depth <= history_prune_depth()
+            && quiet_history < history_prune_margin() * lmr_depth.as_i32()
         {
             moves.yield_only_tacticals();
             continue;
         }
 
-        if depth <= see_prune_depth()
+        if lmr_depth <= see_prune_depth()
             && moves.stage > GenStage::GoodTacticals
             && !is_root
             && !is_pv
             && !best_score.is_loss()
         {
-            let lmr_depth = depth - lmr_reduction(depth, number_of_legal_moves);
-
             let margin = if mv.is_quiet() {
                 lmr_depth * lmr_depth * see_quiet_margin()
             } else {
@@ -383,10 +383,10 @@ pub fn negamax(
             }
         }
 
-        let lmp_moves = (lmp_move_threshold() as usize + (depth.idx() * depth.idx()))
+        let lmp_moves = (lmp_move_threshold() as usize + (lmr_depth.idx() * lmr_depth.idx()))
             / (1 + usize::from(!improving));
 
-        if depth <= lmp_depth()
+        if lmr_depth <= lmp_depth()
             && !is_root
             && !is_pv
             && !in_check
@@ -416,7 +416,7 @@ pub fn negamax(
             -negamax(game, -s, search_depth, plies + 1, !is_pv && !cut_node, &mut node_pv, ctx)
         } else {
             let reduction =
-                if depth >= lmr_depth() && number_of_legal_moves >= lmr_move_threshold() as usize {
+                if depth >= lmr_start_depth() && number_of_legal_moves >= lmr_move_threshold() as usize {
                     let mut reduction =
                         DepthReduction::new(lmr_reduction(depth, number_of_legal_moves));
 

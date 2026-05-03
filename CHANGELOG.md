@@ -9,6 +9,7 @@
 * Exclude pinned pieces in SEE (7.58 +- 4.67)
 * SPSA tune - 1077 iters at 20.0+0.20 (4.06 +- 3.05)
 * The en-passant square is no longer set when there are no legal en-passant moves (4.57 +- 4.38)
+* Use lmr_depth for moveloop pruning conditions (3.81 +- 2.95)
 * Added quiet history (1.35 +- 2.90)
 * Implement a proper thread pool
 * Add mate distance pruning

@@ -41,7 +41,7 @@ parameters!(
 
     (lmr_base, i32, 20, 16, 256),
     (lmr_factor, i32, 268, 64, 1028),
-    (lmr_depth, u8, 2, 1, 8),
+    (lmr_start_depth, u8, 2, 1, 8),
     (lmr_move_threshold, u8, 3, 2, 16),
 
     (lmr_cut_node_factor, u32, 422, 128, 2048),

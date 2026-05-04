@@ -122,15 +122,12 @@ fn standard_castle_right(input: char) -> Result<(FenCastleRight, Square), ()> {
 fn frc_castle_right(input: char, board: &Board) -> Result<(FenCastleRight, Square), ()> {
     use FenCastleRight::*;
 
-    let back_rank = |player: Player| match player {
-        Player::White => Rank::R1,
-        Player::Black => Rank::R8,
-    };
+    let back_ranks = [Rank::R1, Rank::R8];
 
     let leftmost_rook = |player: Player| {
         File::ALL
             .iter()
-            .map(|f| Square::from_file_and_rank(*f, back_rank(player)))
+            .map(|f| Square::from_file_and_rank(*f, back_ranks[player]))
             .find(|s| board.rooks(player).contains(*s))
             .ok_or(())
     };
@@ -139,7 +136,7 @@ fn frc_castle_right(input: char, board: &Board) -> Result<(FenCastleRight, Squar
         File::ALL
             .iter()
             .rev()
-            .map(|f| Square::from_file_and_rank(*f, back_rank(player)))
+            .map(|f| Square::from_file_and_rank(*f, back_ranks[player]))
             .find(|s| board.rooks(player).contains(*s))
             .ok_or(())
     };

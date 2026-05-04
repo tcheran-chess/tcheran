@@ -364,32 +364,24 @@ pub mod squares {
     pub const BLACK_STANDARD_KINGSIDE_ROOK_START: Square = H8;
     pub const BLACK_STANDARD_QUEENSIDE_ROOK_START: Square = A8;
 
+    static KINGSIDE_CASTLE_END_KING: [Square; Player::N] = [G1, G8];
     pub const fn kingside_king_castle_end(player: Player) -> Square {
-        match player {
-            Player::White => G1,
-            Player::Black => G8,
-        }
+        KINGSIDE_CASTLE_END_KING[player.idx()]
     }
 
+    static QUEENSIDE_CASTLE_END_KING: [Square; Player::N] = [C1, C8];
     pub const fn queenside_king_castle_end(player: Player) -> Square {
-        match player {
-            Player::White => C1,
-            Player::Black => C8,
-        }
+        QUEENSIDE_CASTLE_END_KING[player.idx()]
     }
 
+    static KINGSIDE_CASTLE_END_ROOK: [Square; Player::N] = [F1, F8];
     pub const fn kingside_rook_castle_end(player: Player) -> Square {
-        match player {
-            Player::White => F1,
-            Player::Black => F8,
-        }
+        KINGSIDE_CASTLE_END_ROOK[player.idx()]
     }
 
+    static QUEENSIDE_CASTLE_END_ROOK: [Square; Player::N] = [D1, D8];
     pub const fn queenside_rook_castle_end(player: Player) -> Square {
-        match player {
-            Player::White => D1,
-            Player::Black => D8,
-        }
+        QUEENSIDE_CASTLE_END_ROOK[player.idx()]
     }
 
     pub mod all {

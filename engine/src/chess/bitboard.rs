@@ -338,25 +338,19 @@ pub mod bitboards {
     use crate::chess::player::Player;
     use crate::chess::square::squares::all::*;
 
+    static BACK_RANKS: [Bitboard; Player::N] = [RANK_1, RANK_8];
     pub const fn back_rank(player: Player) -> Bitboard {
-        match player {
-            Player::White => RANK_1,
-            Player::Black => RANK_8,
-        }
+        BACK_RANKS[player.idx()]
     }
 
+    static PAWN_BACK_RANKS: [Bitboard; Player::N] = [RANK_2, RANK_7];
     pub const fn pawn_back_rank(player: Player) -> Bitboard {
-        match player {
-            Player::White => RANK_2,
-            Player::Black => RANK_7,
-        }
+        PAWN_BACK_RANKS[player.idx()]
     }
 
+    static DOUBLE_PUSH_RANKS: [Bitboard; Player::N] = [RANK_3, RANK_6];
     pub const fn double_push_rank(player: Player) -> Bitboard {
-        match player {
-            Player::White => RANK_3,
-            Player::Black => RANK_6,
-        }
+        DOUBLE_PUSH_RANKS[player.idx()]
     }
 
     pub const A1_BB: Bitboard = A1.bb();

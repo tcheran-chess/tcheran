@@ -415,28 +415,29 @@ pub fn negamax(
         let move_score = if number_of_legal_moves == 1 {
             -negamax(game, -s, search_depth, plies + 1, !is_pv && !cut_node, &mut node_pv, ctx)
         } else {
-            let reduction =
-                if depth >= lmr_start_depth() && number_of_legal_moves >= lmr_move_threshold() as usize {
-                    let mut reduction =
-                        DepthReduction::new(lmr_reduction(depth, number_of_legal_moves));
+            let reduction = if depth >= lmr_start_depth()
+                && number_of_legal_moves >= lmr_move_threshold() as usize
+            {
+                let mut reduction =
+                    DepthReduction::new(lmr_reduction(depth, number_of_legal_moves));
 
-                    // Reducing more:
-                    reduction.reduce_more_if(cut_node, lmr_cut_node_factor());
+                // Reducing more:
+                reduction.reduce_more_if(cut_node, lmr_cut_node_factor());
 
-                    reduction.reduce_more_if(!is_pv, lmr_is_not_pv_factor());
+                reduction.reduce_more_if(!is_pv, lmr_is_not_pv_factor());
 
-                    reduction.reduce_more_if(
-                        ctx.stack.get(plies + 1).fail_highs > 2,
-                        lmr_many_fail_highs_factor(),
-                    );
+                reduction.reduce_more_if(
+                    ctx.stack.get(plies + 1).fail_highs > 2,
+                    lmr_many_fail_highs_factor(),
+                );
 
-                    // Reducing less:
-                    reduction.reduce_less_if(in_check, lmr_in_check_factor());
+                // Reducing less:
+                reduction.reduce_less_if(in_check, lmr_in_check_factor());
 
-                    reduction.value()
-                } else {
-                    0
-                };
+                reduction.value()
+            } else {
+                0
+            };
 
             let reduced_search_depth = search_depth - reduction;
 

@@ -2,10 +2,9 @@ use super::{MAX_SEARCH_DEPTH, SearchContext};
 use crate::{
     chess::game::Game,
     engine::{
-        eval,
-        eval::Eval,
+        eval::{self, Eval},
         search::{
-            move_picker::MovePicker,
+            move_picker::{GenStage, MovePicker},
             types::{Depth, ScoreWindow},
         },
         transposition_table::NodeBound,
@@ -111,6 +110,10 @@ pub fn quiescence(
 
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
         moves_tried += 1;
+
+        if moves.stage >= GenStage::BadTacticals {
+            break;
+        }
 
         // As long as we've found a move that gets us out of mate, we can stop looking at other quiets
         if mv.is_quiet() && !best_score.is_loss() {

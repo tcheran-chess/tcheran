@@ -137,7 +137,7 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
-            self.stage = if self.skip_quiets { Done } else { GenQuiets };
+            self.stage = GenQuiets;
         }
 
         if self.stage == GenQuiets {

@@ -103,7 +103,12 @@ pub fn quiescence(
     let mut best_move = None;
     let mut moves_tried = 0;
 
-    let mut moves = MovePicker::new_loud(previous_best_move, !in_check);
+    let mut moves = MovePicker::new(previous_best_move);
+
+    if !in_check {
+        moves.skip_quiets();
+    }
+
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
         moves_tried += 1;
 

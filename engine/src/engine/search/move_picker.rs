@@ -90,17 +90,6 @@ impl MovePicker {
         }
     }
 
-    pub fn new_loud(previous_best_move: Option<Move>, skip_quiets: bool) -> Self {
-        Self {
-            moves: ArrayVec::new(),
-            previous_best_move,
-            skip_quiets,
-
-            stage: GenStage::BestMove,
-            bad_tacticals: ArrayVec::new(),
-        }
-    }
-
     pub fn next(
         &mut self,
         game: &Game,
@@ -325,7 +314,8 @@ mod tests {
             Game::from_fen("rnb1kbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").unwrap();
 
         let mut moves: Vec<Move> = Vec::new();
-        let mut move_provider = MovePicker::new_loud(None, true);
+        let mut move_provider = MovePicker::new(None);
+        move_provider.skip_quiets();
 
         while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);

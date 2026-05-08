@@ -356,7 +356,7 @@ pub fn negamax(
             && lmr_depth <= history_prune_depth()
             && quiet_history < history_prune_margin() * lmr_depth.as_i32()
         {
-            moves.yield_only_tacticals();
+            moves.skip_quiets();
             continue;
         }
 
@@ -394,7 +394,7 @@ pub fn negamax(
             && moves.stage > GenStage::Killer
             && !best_score.is_decisive()
         {
-            moves.yield_only_tacticals();
+            moves.skip_quiets();
         }
 
         let nodes_before = ctx.nodes.get();

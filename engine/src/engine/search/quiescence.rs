@@ -109,7 +109,7 @@ pub fn quiescence(
 
         // As long as we've found a move that gets us out of mate, we can stop looking at other quiets
         if mv.is_quiet() && !best_score.is_loss() {
-            moves.yield_only_tacticals();
+            moves.skip_quiets();
             continue;
         }
 

@@ -71,7 +71,7 @@ impl MoveListExt for ArrayVec<MoveEntry, MAX_LEGAL_MOVES> {
 pub struct MovePicker {
     moves: ArrayVec<MoveEntry, MAX_LEGAL_MOVES>,
     previous_best_move: Option<Move>,
-    only_tacticals: bool,
+    skip_quiets: bool,
 
     pub stage: GenStage,
 
@@ -83,18 +83,18 @@ impl MovePicker {
         Self {
             moves: ArrayVec::new(),
             previous_best_move,
-            only_tacticals: false,
+            skip_quiets: false,
 
             stage: GenStage::BestMove,
             bad_tacticals: ArrayVec::new(),
         }
     }
 
-    pub fn new_loud(previous_best_move: Option<Move>, only_tacticals: bool) -> Self {
+    pub fn new_loud(previous_best_move: Option<Move>, skip_quiets: bool) -> Self {
         Self {
             moves: ArrayVec::new(),
             previous_best_move,
-            only_tacticals,
+            skip_quiets,
 
             stage: GenStage::BestMove,
             bad_tacticals: ArrayVec::new(),
@@ -148,13 +148,13 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
-            self.stage = if self.only_tacticals { Done } else { GenQuiets };
+            self.stage = if self.skip_quiets { Done } else { GenQuiets };
         }
 
         if self.stage == GenQuiets {
             self.stage = Killer;
 
-            if !self.only_tacticals {
+            if !self.skip_quiets {
                 movegen::generate_quiets(game, &mut |mv| {
                     self.moves.push(MoveEntry { mv, score: 0 });
                 });
@@ -164,7 +164,7 @@ impl MovePicker {
         if self.stage == Killer {
             self.stage = ScoreQuiets;
 
-            if !self.only_tacticals
+            if !self.skip_quiets
                 && let Some(killer) = tables.killer_moves.get(plies)
                 && self.moves.remove(killer)
                 && Some(killer) != self.previous_best_move
@@ -176,7 +176,7 @@ impl MovePicker {
         if self.stage == ScoreQuiets {
             self.stage = Quiets;
 
-            if !self.only_tacticals {
+            if !self.skip_quiets {
                 for entry in &mut self.moves {
                     entry.score = score_quiet(game, entry.mv, tables, stack, plies);
                 }
@@ -184,7 +184,7 @@ impl MovePicker {
         }
 
         if self.stage == Quiets {
-            if !self.only_tacticals {
+            if !self.skip_quiets {
                 while let Some(entry) = self.moves.next_best() {
                     if Some(entry.mv) == self.previous_best_move {
                         continue;
@@ -216,8 +216,8 @@ impl MovePicker {
         unreachable!()
     }
 
-    pub fn yield_only_tacticals(&mut self) {
-        self.only_tacticals = true;
+    pub fn skip_quiets(&mut self) {
+        self.skip_quiets = true;
     }
 }
 

@@ -25,8 +25,9 @@ parameters!(
     (double_extension_max, u8, 5, 2, 10),
 
     // Move loop techniques
-    (futility_prune_max_move_value, i32, 112, 8, 256),
-    (futility_prune_depth, u8, 0, 0, 6),
+    (futility_prune_base_value, i32, 500, 128, 1024),
+    (futility_prune_depth_multiplier, i32, 140, 8, 256),
+    (futility_prune_depth, u8, 8, 4, 12),
 
     (history_prune_depth, u8, 4, 2, 16),
     (history_prune_margin, i32, -2951, -8192, -1024),

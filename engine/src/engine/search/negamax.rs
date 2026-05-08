@@ -346,13 +346,15 @@ pub fn negamax(
         let lmr_depth = depth - lmr_reduction(depth, number_of_legal_moves);
 
         // Futility pruning
-        if !is_pv
-            && !mv.is_capture()
+        if !is_root
+            && !is_pv
+            && mv.is_quiet()
             && !in_check
             && depth <= futility_prune_depth()
-            && eval + futility_prune_max_move_value() < s.alpha
+            && eval + futility_prune_base_value() + depth * futility_prune_depth_multiplier() <= s.alpha
             && !best_score.is_loss()
         {
+            moves.skip_quiets();
             continue;
         }
 

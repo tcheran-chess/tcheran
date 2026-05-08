@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [12.0]
+
 * SPSA tune - 938 iters at 20.0+0.20 (24.36 +- 8.47)
 * Network #15, same as 14 with an additional ~416M 20ksn positions (19.22 +- 7.60)
 * SPSA tune - 3580 iters at 20.0+0.20 (16.55 +- 7.10)
@@ -432,7 +434,8 @@ Initial release with the following major features:
     * Tapered midgame vs. endgame evaluation
     * Incremental updates
 
-[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v11.0...HEAD
+[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v12.0...HEAD
+[12.0]: https://github.com/jgilchrist/chess-engine/compare/v11.0..v12.0
 [11.0]: https://github.com/jgilchrist/chess-engine/compare/v10.0..v11.0
 [10.0]: https://github.com/jgilchrist/chess-engine/compare/v9.0..v10.0
 [9.0]: https://github.com/jgilchrist/chess-engine/compare/v8.0..v9.0

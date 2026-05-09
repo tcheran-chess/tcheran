@@ -151,26 +151,36 @@ pub fn negamax(
         }
     }
 
-    let raw_eval = if excluded_mv.is_some() || in_check {
-        Eval::NONE
-    } else {
-        match tt_entry {
-            Some(ref e) if e.eval != Eval::NONE => e.eval,
-            _ => {
-                let e = eval::eval(ctx.nnue, game);
+    let (raw_eval, eval) = if in_check {
+        (Eval::NONE, Eval::NONE)
+    } else if excluded_mv.is_some() {
+        (Eval::NONE, ctx.stack.get(plies).eval)
+    } else if let Some(tt_entry) = &tt_entry {
+        let raw_eval = if tt_entry.eval == Eval::NONE {
+            eval::eval(ctx.nnue, game)
+        } else {
+            tt_entry.eval
+        };
 
-                ctx.tt
-                    .insert(game.hash, NodeBound::None, None, Eval::NONE, e, Depth::ZERO, plies);
+        let eval = (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate();
 
-                e
-            }
-        }
-    };
+        (raw_eval, eval)
+    }
+    else {
+        let raw_eval = eval::eval(ctx.nnue, game);
+        let eval = (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate();
 
-    let eval = if raw_eval == Eval::NONE {
-        Eval::NONE
-    } else {
-        (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate()
+        ctx.tt.insert(
+            game.hash,
+            NodeBound::None,
+            None,
+            Eval::NONE,
+            raw_eval,
+            Depth::ZERO,
+            plies,
+        );
+
+        (raw_eval, eval)
     };
 
     ctx.stack.get(plies).eval = eval;

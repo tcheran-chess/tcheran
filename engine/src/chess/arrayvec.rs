@@ -33,23 +33,8 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         self.len += 1;
     }
 
-    pub fn pop(&mut self) -> Option<T> {
-        if self.len == 0 {
-            return None;
-        }
-
-        self.len -= 1;
-        unsafe { Some(std::ptr::read(self.data[self.len].as_ptr())) }
-    }
-
     pub fn clear(&mut self) {
         self.len = 0;
-    }
-
-    pub fn swap(&mut self, a: usize, b: usize) {
-        unsafe {
-            std::ptr::swap(self.data.get_unchecked_mut(a), self.data.get_unchecked_mut(b));
-        }
     }
 
     pub fn swap_remove(&mut self, idx: usize) -> T {

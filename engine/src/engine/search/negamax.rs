@@ -165,20 +165,12 @@ pub fn negamax(
         let eval = (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate();
 
         (raw_eval, eval)
-    }
-    else {
+    } else {
         let raw_eval = eval::eval(ctx.nnue, game);
         let eval = (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate();
 
-        ctx.tt.insert(
-            game.hash,
-            NodeBound::None,
-            None,
-            Eval::NONE,
-            raw_eval,
-            Depth::ZERO,
-            plies,
-        );
+        ctx.tt
+            .insert(game.hash, NodeBound::None, None, Eval::NONE, raw_eval, Depth::ZERO, plies);
 
         (raw_eval, eval)
     };
@@ -351,7 +343,8 @@ pub fn negamax(
             && mv.is_quiet()
             && !in_check
             && depth <= futility_prune_depth()
-            && eval + futility_prune_base_value() + depth * futility_prune_depth_multiplier() <= s.alpha
+            && eval + futility_prune_base_value() + depth * futility_prune_depth_multiplier()
+                <= s.alpha
             && !best_score.is_loss()
         {
             moves.skip_quiets();

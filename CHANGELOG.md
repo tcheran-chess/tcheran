@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+* Game::is_direct_check is now used in LMP (4.57 +- 3.35)
 * Re-introduce futility pruning and make it depth dependent (4.38 +- 3.25)
 
 #### Misc

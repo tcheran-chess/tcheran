@@ -395,6 +395,7 @@ pub fn negamax(
             && !is_root
             && !is_pv
             && !in_check
+            && !game.is_direct_check(mv)
             && mv.is_quiet()
             && moves_tried >= lmp_moves
             && !best_score.is_loss()

@@ -1,8 +1,8 @@
 macro_rules! parameters {
     (
         $(
-            ($name:ident, $ty:ty, $default:expr, $min:expr, $max:expr)
-        ),* $(,)?
+            $name:ident: $ty:ty = $default:literal [$min:literal..$max:literal];
+        )*
     ) => {
         #[cfg(not(feature = "spsa"))]
         mod default_params {
@@ -56,8 +56,8 @@ macro_rules! parameters {
 macro_rules! non_tunable_parameters {
     (
         $(
-            ($name:ident, $ty:ty, $value:expr)
-        ),* $(,)?
+            $name:ident: $ty:ty = $value:literal;
+        )*
     ) => {
         $(
             pub const fn $name() -> $ty {

@@ -108,6 +108,7 @@ pub struct History {
     pub non_pawn_hash: [ZobristHash; Player::N],
 
     pub checkers: Bitboard,
+    pub check_zones: [Bitboard; 4],
     pub pinned: [Bitboard; Player::N],
     pub threats: Bitboard,
 }
@@ -140,6 +141,7 @@ pub struct Game {
     pub history: Vec<History>,
 
     pub checkers: Bitboard,
+    pub check_zones: [Bitboard; 4],
     pub pinned: [Bitboard; Player::N],
     pub threats: Bitboard,
 
@@ -169,6 +171,7 @@ impl Game {
             plies,
 
             checkers: Bitboard::EMPTY,
+            check_zones: [Bitboard::EMPTY; 4],
             pinned: [Bitboard::EMPTY; Player::N],
             threats: Bitboard::EMPTY,
 
@@ -310,6 +313,25 @@ impl Game {
         self.checkers.any()
     }
 
+    #[inline(always)]
+    pub fn is_direct_check(&self, mv: Move) -> bool {
+        let moved_piece_kind = mv
+            .promotion()
+            .map(|p| p.piece())
+            .unwrap_or(self.board.piece_guaranteed_at(mv.from()).kind);
+
+        let zones = match moved_piece_kind {
+            PieceKind::Pawn => self.check_zones[0],
+            PieceKind::Knight => self.check_zones[1],
+            PieceKind::Bishop => self.check_zones[2],
+            PieceKind::Rook => self.check_zones[3],
+            PieceKind::Queen => self.check_zones[2] | self.check_zones[3],
+            PieceKind::King => return false,
+        };
+
+        zones.contains(mv.to())
+    }
+
     fn set_at(&mut self, sq: Square, piece: Piece, nnue_changes: &mut NNUEChanges) {
         self.board.set_at(sq, piece);
         self.toggle_piece_in_hashes(sq, piece);
@@ -402,8 +424,10 @@ impl Game {
         self.checkers = Bitboard::EMPTY;
         self.pinned = [Bitboard::EMPTY; Player::N];
 
-        let our_king = self.board.king_square(self.player);
         let them = self.player.other();
+
+        let our_king = self.board.king_square(self.player);
+        let their_king = self.board.king_square(them);
 
         self.checkers |= pawn_attacks(our_king, self.player) & self.board.pawns(them);
         self.checkers |= knight_attacks(our_king) & self.board.knights(them);
@@ -435,6 +459,15 @@ impl Game {
                 }
             }
         }
+
+        let blockers = self.board.occupancy();
+
+        self.check_zones = [
+            pawn_attacks(their_king, them),
+            knight_attacks(their_king),
+            bishop_attacks(their_king, blockers),
+            rook_attacks(their_king, blockers),
+        ];
     }
 
     // Checks only some very basic cases to reduce the chances of TT hash collisions giving us a
@@ -504,6 +537,7 @@ impl Game {
             non_pawn_hash: self.non_pawn_hash,
 
             checkers: self.checkers,
+            check_zones: self.check_zones,
             pinned: self.pinned,
             threats: self.threats,
         };
@@ -629,6 +663,7 @@ impl Game {
             non_pawn_hash: self.non_pawn_hash,
 
             checkers: self.checkers,
+            check_zones: self.check_zones,
             pinned: self.pinned,
             threats: self.threats,
         };
@@ -672,6 +707,7 @@ impl Game {
         self.castle_rights = history.castle_rights;
         self.en_passant_target = history.en_passant_target;
         self.checkers = history.checkers;
+        self.check_zones = history.check_zones;
         self.pinned = history.pinned;
         self.threats = history.threats;
 
@@ -718,6 +754,7 @@ impl Game {
         self.en_passant_target = history.en_passant_target;
         self.halfmove_clock = history.halfmove_clock;
         self.checkers = history.checkers;
+        self.check_zones = history.check_zones;
         self.pinned = history.pinned;
         self.threats = history.threats;
     }

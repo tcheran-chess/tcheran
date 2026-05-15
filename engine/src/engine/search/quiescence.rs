@@ -60,7 +60,6 @@ pub fn quiescence(
         previous_best_move = tt_entry.best_move;
     }
 
-    let mut node_bound = NodeBound::Upper;
 
     let (raw_eval, eval) = if in_check {
         (Eval::NONE, Eval::NONE)
@@ -94,11 +93,11 @@ pub fn quiescence(
 
     if eval > s.alpha {
         s.alpha = eval;
-        node_bound = NodeBound::Exact;
     }
 
     let mut best_score = eval;
     let mut best_move = None;
+    let mut node_bound = NodeBound::Upper;
     let mut moves_tried = 0;
 
     let mut moves = MovePicker::new(previous_best_move);

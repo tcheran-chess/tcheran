@@ -320,7 +320,7 @@ pub fn negamax(
     let mut best_score = Eval::MIN;
 
     let mut moves = MovePicker::new(previous_best_move);
-    let mut number_of_legal_moves = 0;
+    let mut moves_tried = 0;
     let mut node_pv = PrincipalVariation::new();
 
     let mut captures_tried = MoveList::new();
@@ -335,7 +335,7 @@ pub fn negamax(
 
         node_pv.clear();
 
-        let lmr_depth = depth - lmr_reduction(depth, number_of_legal_moves);
+        let lmr_depth = depth - lmr_reduction(depth, moves_tried);
 
         // Futility pruning
         if !is_root
@@ -396,7 +396,7 @@ pub fn negamax(
             && !is_pv
             && !in_check
             && mv.is_quiet()
-            && number_of_legal_moves >= lmp_moves
+            && moves_tried >= lmp_moves
             && !best_score.is_loss()
         {
             moves.skip_quiets();
@@ -407,7 +407,7 @@ pub fn negamax(
         ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.from())));
 
         game.make_move_nnue(mv, ctx.nnue.next_changes());
-        number_of_legal_moves += 1;
+        moves_tried += 1;
 
         // Only apply the extension to the singular move
         let extension = if Some(mv) == singular_extension_candidate {
@@ -418,32 +418,30 @@ pub fn negamax(
 
         let search_depth = depth + extension - 1;
 
-        let move_score = if number_of_legal_moves == 1 {
+        let move_score = if moves_tried == 1 {
             -negamax(game, -s, search_depth, plies + 1, !is_pv && !cut_node, &mut node_pv, ctx)
         } else {
-            let reduction = if depth >= lmr_start_depth()
-                && number_of_legal_moves >= lmr_move_threshold() as usize
-            {
-                let mut reduction =
-                    DepthReduction::new(lmr_reduction(depth, number_of_legal_moves));
+            let reduction =
+                if depth >= lmr_start_depth() && moves_tried >= lmr_move_threshold() as usize {
+                    let mut reduction = DepthReduction::new(lmr_reduction(depth, moves_tried));
 
-                // Reducing more:
-                reduction.reduce_more_if(cut_node, lmr_cut_node_factor());
+                    // Reducing more:
+                    reduction.reduce_more_if(cut_node, lmr_cut_node_factor());
 
-                reduction.reduce_more_if(!is_pv, lmr_is_not_pv_factor());
+                    reduction.reduce_more_if(!is_pv, lmr_is_not_pv_factor());
 
-                reduction.reduce_more_if(
-                    ctx.stack.get(plies + 1).fail_highs > 2,
-                    lmr_many_fail_highs_factor(),
-                );
+                    reduction.reduce_more_if(
+                        ctx.stack.get(plies + 1).fail_highs > 2,
+                        lmr_many_fail_highs_factor(),
+                    );
 
-                // Reducing less:
-                reduction.reduce_less_if(in_check, lmr_in_check_factor());
+                    // Reducing less:
+                    reduction.reduce_less_if(in_check, lmr_in_check_factor());
 
-                reduction.value()
-            } else {
-                0
-            };
+                    reduction.value()
+                } else {
+                    0
+                };
 
             let reduced_search_depth = search_depth - reduction;
 
@@ -523,7 +521,7 @@ pub fn negamax(
         }
     }
 
-    if number_of_legal_moves == 0 {
+    if moves_tried == 0 {
         if excluded_mv.is_some() {
             return s.alpha;
         }

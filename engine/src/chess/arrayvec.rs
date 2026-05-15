@@ -8,8 +8,10 @@ pub struct ArrayVec<T: Copy, const N: usize> {
 
 impl<T: Copy, const N: usize> ArrayVec<T, N> {
     pub const fn new() -> Self {
-        let data: [MaybeUninit<T>; N] = unsafe { MaybeUninit::uninit().assume_init() };
-        Self { data, len: 0 }
+        Self {
+            data: [const { MaybeUninit::uninit() }; N],
+            len: 0,
+        }
     }
 
     pub const fn len(&self) -> usize {
@@ -23,13 +25,18 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
     pub fn get(&self, index: usize) -> &T {
         debug_assert!(index < self.len);
 
-        unsafe { &*self.data.get_unchecked(index).as_ptr() }
+        unsafe { self.data.get_unchecked(index).assume_init_ref() }
     }
 
     pub fn push(&mut self, value: T) {
         debug_assert!(self.len < N);
 
-        unsafe { self.data[self.len].as_mut_ptr().write(value) };
+        unsafe {
+            self.data
+                .get_unchecked_mut(self.len)
+                .as_mut_ptr()
+                .write(value)
+        };
         self.len += 1;
     }
 
@@ -39,10 +46,14 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
 
     pub fn swap_remove(&mut self, idx: usize) -> T {
         unsafe {
-            let value = std::ptr::read(self.data[idx].as_ptr());
+            let value = self.data.get_unchecked(idx).assume_init();
 
             self.len -= 1;
-            std::ptr::copy(self.data[self.len].as_ptr(), self.data[idx].as_mut_ptr(), 1);
+            std::ptr::copy(
+                self.data.get_unchecked(self.len).as_ptr(),
+                self.data.get_unchecked_mut(idx).as_mut_ptr(),
+                1,
+            );
 
             value
         }

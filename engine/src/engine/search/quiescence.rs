@@ -62,27 +62,26 @@ pub fn quiescence(
 
     let mut node_bound = NodeBound::Upper;
 
-    let raw_eval = if in_check {
-        Eval::MIN
+    let (raw_eval, eval) = if in_check {
+        (Eval::NONE, Eval::NONE)
     } else if let Some(tt_entry) = tt_entry {
-        if tt_entry.eval == Eval::NONE {
+        let raw_eval = if tt_entry.eval == Eval::NONE {
             eval::eval(ctx.nnue, game)
         } else {
             tt_entry.eval
-        }
+        };
+
+        let eval = (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate();
+
+        (raw_eval, eval)
     } else {
-        let e = eval::eval(ctx.nnue, game);
+        let raw_eval = eval::eval(ctx.nnue, game);
+        let eval = (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate();
 
         ctx.tt
-            .insert(game.hash, NodeBound::None, None, Eval::NONE, e, Depth::ZERO, plies);
+            .insert(game.hash, NodeBound::None, None, Eval::NONE, raw_eval, Depth::ZERO, plies);
 
-        e
-    };
-
-    let eval = if in_check {
-        Eval::MIN
-    } else {
-        (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate()
+        (raw_eval, eval)
     };
 
     if eval >= s.beta {

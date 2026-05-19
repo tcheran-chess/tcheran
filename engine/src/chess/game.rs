@@ -437,6 +437,40 @@ impl Game {
         }
     }
 
+    // Checks only some very basic cases to reduce the chances of TT hash collisions giving us a
+    // move which isn't legal in the current position. Should be replaced with a proper is_legal
+    // implementation but should help with crashes in the meantime.
+    pub fn is_definitely_illegal(&self, mv: Move) -> bool {
+        let from = mv.from();
+        let to = mv.to();
+        let us = self.player;
+        let them = !self.player;
+
+        // There has to have been a piece that we moved
+        let Some(moved_piece) = self.board.piece_at(from) else {
+            return true;
+        };
+
+        // That piece has to have been ours
+        if moved_piece.player != us {
+            return true;
+        }
+
+        if mv.is_capture() && !mv.is_en_passant() {
+            // A capture move has to have captured a piece
+            let Some(captured_piece) = self.board.piece_at(to) else {
+                return true;
+            };
+
+            // The piece we captured has to have been their piece
+            if captured_piece.player != them {
+                return true;
+            }
+        }
+
+        false
+    }
+
     pub fn make_move(&mut self, mv: Move) {
         self.make_move_nnue(mv, &mut NNUEChanges::uninit());
     }

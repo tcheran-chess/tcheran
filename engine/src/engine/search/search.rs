@@ -101,6 +101,7 @@ impl ThreadData {
     }
 }
 
+#[repr(align(64))]
 pub struct SearchContext<'s> {
     pub tt: &'s TranspositionTable,
     pub tablebase: &'s Tablebase,

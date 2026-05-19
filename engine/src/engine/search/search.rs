@@ -153,6 +153,7 @@ impl<'s> SearchContext<'s> {
     }
 }
 
+#[repr(align(64))]
 pub struct SearchStack([SearchStackEntry; MAX_PLIES_ARRAY_SIZE]);
 
 impl SearchStack {

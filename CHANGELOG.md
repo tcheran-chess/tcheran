@@ -4,6 +4,10 @@
 
 * Re-introduce futility pruning and make it depth dependent (4.38 +- 3.25)
 
+#### Misc
+
+* Dev versions of the engine now contain the git SHA it was built from
+
 ## [12.0]
 
 * SPSA tune - 938 iters at 20.0+0.20 (24.36 +- 8.47)

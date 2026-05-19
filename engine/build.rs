@@ -21,13 +21,29 @@ fn generate_engine_version() {
     let cargo_version = env!("CARGO_PKG_VERSION");
 
     let (version, suffix) = match cargo_version.split_once('-') {
-        Some((version, suffix)) => (version, format!("-{suffix}")),
+        Some((version, suffix)) => (version, generate_version_suffix(suffix)),
         None => (cargo_version, String::new()),
     };
 
     let version = version.strip_suffix(".0").unwrap();
 
     println!("cargo:rustc-env=ENGINE_VERSION=v{version}{suffix}");
+}
+
+fn generate_version_suffix(suffix: &str) -> String {
+    let git_sha = Command::new("git")
+        .args(["rev-parse", "--short=8", "HEAD"])
+        .output()
+        .ok()
+        .filter(|v| v.status.success())
+        .and_then(|v| String::from_utf8(v.stdout).ok())
+        .map(|v| v.trim().to_string());
+
+    if let Some(sha) = git_sha {
+        format!("-{suffix}-{sha}")
+    } else {
+        format!("-{suffix}")
+    }
 }
 
 fn setup_network() -> PathBuf {

@@ -1,4 +1,9 @@
-# <div align="center">Tcheran</div>
+<div align="center">
+
+  <img alt="Logo" src=".github/logo.jpg" width="200"></img>
+  <h1>Tcheran</h1>
+
+</div>
 
 Tcheran is a UCI chess (and fischer random chess) engine developed by
 [@jgilchrist](https://github.com/jgilchrist) and written in Rust.

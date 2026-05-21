@@ -111,6 +111,7 @@ impl MovePicker {
             self.stage = GoodTacticals;
 
             movegen::generate_tacticals(game, &mut |mv| {
+                if Some(mv) == self.previous_best_move { return; }
                 self.moves.push(MoveEntry { mv, score: 0 });
             });
 
@@ -121,10 +122,6 @@ impl MovePicker {
 
         if self.stage == GoodTacticals {
             while let Some(entry) = self.moves.next_best() {
-                if Some(entry.mv) == self.previous_best_move {
-                    continue;
-                }
-
                 // If a move has good history, we can be more sure it should be searched
                 // early even if its SEE score is poor.
                 let threshold = -entry.score / 4;
@@ -145,6 +142,7 @@ impl MovePicker {
 
             if !self.skip_quiets {
                 movegen::generate_quiets(game, &mut |mv| {
+                    if Some(mv) == self.previous_best_move { return; }
                     self.moves.push(MoveEntry { mv, score: 0 });
                 });
             }
@@ -175,10 +173,6 @@ impl MovePicker {
         if self.stage == Quiets {
             if !self.skip_quiets {
                 while let Some(entry) = self.moves.next_best() {
-                    if Some(entry.mv) == self.previous_best_move {
-                        continue;
-                    }
-
                     return Some(entry.mv);
                 }
             }
@@ -188,10 +182,6 @@ impl MovePicker {
 
         if self.stage == BadTacticals {
             while let Some(entry) = self.bad_tacticals.next_best() {
-                if Some(entry.mv) == self.previous_best_move {
-                    continue;
-                }
-
                 return Some(entry.mv);
             }
 

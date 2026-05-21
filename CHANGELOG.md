@@ -8,6 +8,7 @@
 
 * Dev versions of the engine now contain the git SHA it was built from
 * The TT move is now checked for some basic cases that could indicate a hash collision
+* Underpromotion captures are now scored properly
 
 ## [12.0]
 

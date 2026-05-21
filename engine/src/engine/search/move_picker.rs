@@ -213,8 +213,8 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
         score += tables.capture_history.get(game, mv) / 8;
     }
 
-    if mv.is_promotion() {
-        score += see_value(PieceKind::Queen).0 - see_value(PieceKind::Pawn).0;
+    if let Some(promotion_piece) = mv.promotion() {
+        score += see_value(promotion_piece.piece()).0 - see_value(PieceKind::Pawn).0;
     }
 
     score

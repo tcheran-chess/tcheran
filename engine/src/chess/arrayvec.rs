@@ -35,8 +35,9 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
             self.data
                 .get_unchecked_mut(self.len)
                 .as_mut_ptr()
-                .write(value)
+                .write(value);
         };
+
         self.len += 1;
     }
 

@@ -60,7 +60,6 @@ pub fn quiescence(
         previous_best_move = tt_entry.best_move;
     }
 
-
     let (raw_eval, eval) = if in_check {
         (Eval::NONE, Eval::NONE)
     } else if let Some(tt_entry) = tt_entry {

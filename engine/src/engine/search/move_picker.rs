@@ -113,7 +113,10 @@ impl MovePicker {
             self.stage = GoodTacticals;
 
             movegen::generate_tacticals(game, &mut |mv| {
-                if Some(mv) == self.previous_best_move { return; }
+                if Some(mv) == self.previous_best_move {
+                    return;
+                }
+
                 self.moves.push(MoveEntry { mv, score: 0 });
             });
 
@@ -144,7 +147,10 @@ impl MovePicker {
 
             if !self.skip_quiets {
                 movegen::generate_quiets(game, &mut |mv| {
-                    if Some(mv) == self.previous_best_move { return; }
+                    if Some(mv) == self.previous_best_move {
+                        return;
+                    }
+
                     self.moves.push(MoveEntry { mv, score: 0 });
                 });
             }
@@ -173,17 +179,17 @@ impl MovePicker {
         }
 
         if self.stage == Quiets {
-            if !self.skip_quiets {
-                while let Some(entry) = self.moves.next_best() {
-                    return Some(entry.mv);
-                }
+            if !self.skip_quiets
+                && let Some(entry) = self.moves.next_best()
+            {
+                return Some(entry.mv);
             }
 
             self.stage = BadTacticals;
         }
 
         if self.stage == BadTacticals {
-            while let Some(entry) = self.bad_tacticals.next_best() {
+            if let Some(entry) = self.bad_tacticals.next_best() {
                 return Some(entry.mv);
             }
 

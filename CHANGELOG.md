@@ -7,6 +7,7 @@
 * Network #18, with a new much longer training schedule about half way between my existing one and Hobbes' (14.19 +- 6.56)
 * Cut off if the singular beta beats beta (6.97 +- 4.40)
 * Added TT clusters (6.28 +- 4.04)
+* Score quiet moves that give check higher for picking (4.97 +- 3.54)
 * Game::is_direct_check is now used in LMP (4.57 +- 3.35)
 * Re-introduce futility pruning and make it depth dependent (4.38 +- 3.25)
 * Fixed TT relative age calculation (2.91 +- 2.35)

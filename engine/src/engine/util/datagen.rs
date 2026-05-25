@@ -50,7 +50,7 @@ fn random_starting_position(rand: &mut impl Rng) -> Result<Game, ()> {
     Ok(game)
 }
 
-fn acceptable_starting_position(rand: &mut impl Rng, state: &mut PersistentState) -> Game {
+fn acceptable_starting_position(rand: &mut impl Rng) -> Game {
     const UNBALANCED_STARTING_EVAL: i32 = 1000;
 
     loop {
@@ -58,8 +58,6 @@ fn acceptable_starting_position(rand: &mut impl Rng, state: &mut PersistentState
         let Ok(game) = random_starting_position(rand) else {
             continue;
         };
-
-        state.reset();
 
         // Do a quick search to ensure that we haven't landed in a completely broken (won/lost) position.
         let (_, eval) = st_search(
@@ -84,12 +82,11 @@ fn acceptable_starting_position(rand: &mut impl Rng, state: &mut PersistentState
 
 pub fn generate_random_starting_positions(n: u64, seed: u64, _book: String) -> Vec<Game> {
     let mut rand = StdRng::seed_from_u64(seed);
-    let mut persistent_state = PersistentState::new(4);
 
     let mut games = Vec::new();
 
     for _ in 0..n {
-        let game = acceptable_starting_position(&mut rand, &mut persistent_state);
+        let game = acceptable_starting_position(&mut rand);
         games.push(game);
     }
 

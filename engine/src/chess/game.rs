@@ -8,7 +8,7 @@ use crate::{
             tables::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
         },
         moves::{Move, MoveList},
-        piece::{Piece, PieceKind},
+        piece::{Piece, PieceKind, PromotionPieceKind},
         player::Player,
         square::{Square, squares},
         zobrist,
@@ -315,10 +315,10 @@ impl Game {
 
     #[inline(always)]
     pub fn is_direct_check(&self, mv: Move) -> bool {
-        let moved_piece_kind = mv
-            .promotion()
-            .map(|p| p.piece())
-            .unwrap_or(self.board.piece_guaranteed_at(mv.from()).kind);
+        let moved_piece_kind = mv.promotion().map_or_else(
+            || self.board.piece_guaranteed_at(mv.from()).kind,
+            PromotionPieceKind::piece,
+        );
 
         let zones = match moved_piece_kind {
             PieceKind::Pawn => self.check_zones[0],

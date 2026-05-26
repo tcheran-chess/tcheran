@@ -155,8 +155,8 @@ pub struct Uci {
     persistent_state: Arc<PersistentState>,
     reporter: Arc<UciReporter>,
 
-    options: Vec<UciOption>,
-    engine_options: EngineOptions,
+    uci_options: Vec<UciOption>,
+    options: EngineOptions,
 
     // If we're running without using stdin (i.e. passing the UCI commands as command line
     // args) then we need to block on anything taking place on other threads, otherwise we'll
@@ -178,7 +178,7 @@ impl Uci {
                     .send(&UciResponse::Id(IdParam::Author("Jonathan Gilchrist")));
 
                 // Options
-                for option in &self.options {
+                for option in &self.uci_options {
                     self.reporter.send(&UciResponse::Option(option));
                 }
 
@@ -195,7 +195,7 @@ impl Uci {
                     return Ok(ExecuteResult::KeepGoing);
                 }
 
-                let Some(option) = self.options.iter().find(|o| o.name == name) else {
+                let Some(option) = self.uci_options.iter().find(|o| o.name == name) else {
                     let unknown_option = format!("unknown option: {name}");
                     log::crashlog(&unknown_option);
                     self.reporter.generic_report(&unknown_option);
@@ -208,7 +208,7 @@ impl Uci {
                     &mut self.game,
                     &mut self.threads,
                     &mut self.persistent_state,
-                    &mut self.engine_options,
+                    &mut self.options,
                     &mut self.reporter,
                 )?;
             }
@@ -220,7 +220,7 @@ impl Uci {
                 }
 
                 self.game = Game::new();
-                self.game.is_frc = self.engine_options.frc;
+                self.game.is_frc = self.options.frc;
 
                 self.threads.reset();
                 self.persistent_state.reset();
@@ -234,7 +234,7 @@ impl Uci {
 
                 let mut game = match position {
                     commands::Position::StartPos => Game::new(),
-                    commands::Position::Fen(fen) => if !self.engine_options.frc {
+                    commands::Position::Fen(fen) => if !self.options.frc {
                         Game::from_fen(fen)
                     } else {
                         Game::from_frc_fen(fen)
@@ -248,7 +248,7 @@ impl Uci {
                 }
 
                 self.game = game;
-                self.game.is_frc = self.engine_options.frc;
+                self.game.is_frc = self.options.frc;
             }
             UciCommand::Go { time_control } => {
                 if self.threads.busy() {
@@ -283,7 +283,7 @@ impl Uci {
 
                 let game = self.game.clone();
                 let persistent_state = self.persistent_state.clone();
-                let options = self.engine_options.clone();
+                let options = self.options.clone();
                 let reporter = self.reporter.clone();
                 let time_control = time_control.clone();
                 let stop_control = self.threads.thread_control.clone();
@@ -694,8 +694,8 @@ pub fn uci(uci_input_mode: UciInputMode) -> Result<(), String> {
             show_wdl: defaults::SHOW_WDL,
         }),
 
-        options: uci_options(),
-        engine_options: EngineOptions::DEFAULT,
+        uci_options: uci_options(),
+        options: EngineOptions::DEFAULT,
 
         block_on_threads: match uci_input_mode {
             UciInputMode::Stdin => false,

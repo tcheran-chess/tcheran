@@ -108,7 +108,7 @@ pub fn quiescence(
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
         moves_tried += 1;
 
-        if moves.stage >= GenStage::BadTacticals {
+        if !best_score.is_loss() && moves.stage >= GenStage::BadTacticals {
             break;
         }
 

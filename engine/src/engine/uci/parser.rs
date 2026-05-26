@@ -279,20 +279,9 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
             } else if let Some(depth) = depth {
                 TimeControl::Depth(depth)
             } else if let Some(nodes) = nodes {
-                // When doing datagen, 'go nodes n' means soft nodes n,
-                // hard nodes n * f
-                if cfg!(feature = "datagen") {
-                    const DATAGEN_HARD_NODES_FACTOR: u64 = 10;
-
-                    TimeControl::Nodes {
-                        soft: Some(nodes),
-                        hard: Some(nodes * DATAGEN_HARD_NODES_FACTOR),
-                    }
-                } else {
-                    TimeControl::Nodes {
-                        soft: None,
-                        hard: Some(nodes),
-                    }
+                TimeControl::Nodes {
+                    soft: None,
+                    hard: Some(nodes),
                 }
             } else if infinite {
                 TimeControl::Infinite

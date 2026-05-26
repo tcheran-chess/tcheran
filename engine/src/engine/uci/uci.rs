@@ -626,6 +626,24 @@ pub fn uci_options() -> Vec<UciOption> {
         })
         .default(String::new())
         .build(),
+        //
+        UciOption::check("SoftNodes", |refs, value| refs.options.soft_nodes = value)
+            .default(crate::engine::options::defaults::SOFT_NODES)
+            .build(),
+        //
+        UciOption::spin("SoftNodesHardFactor", |refs, value| {
+            let inner_value = value.as_usize();
+
+            let mut value = Some(inner_value);
+            if inner_value == 0 {
+                value = None;
+            }
+
+            refs.options.soft_notes_hard_factor = value;
+        })
+        .with_bounds(0, 128)
+        .default(0)
+        .build(),
     ];
 
     let mut o = vec![];
@@ -643,7 +661,7 @@ fn worker_thread_loop(mut rx: Receiver<ThreadCommand>, id: usize) {
         match rx.recv(Clone::clone) {
             ThreadCommand::Search {
                 game,
-                time_control,
+                mut time_control,
                 stop_control,
                 options,
                 persistent_state,
@@ -657,6 +675,18 @@ fn worker_thread_loop(mut rx: Receiver<ThreadCommand>, id: usize) {
                 } else {
                     Arc::new(NullReporter)
                 };
+
+                // Adapt time control for soft nodes if the corresponding option is set
+                if options.soft_nodes
+                    && let TimeControl::Nodes { hard, .. } = time_control
+                {
+                    let nodes = hard.expect("Hard nodes should be set after parsing go nodes");
+
+                    time_control = TimeControl::Nodes {
+                        soft: Some(nodes),
+                        hard: options.soft_notes_hard_factor.map(|f| f as u64 * nodes),
+                    }
+                }
 
                 // Only do time control on the main thread
                 let time_control = if is_main_thread {

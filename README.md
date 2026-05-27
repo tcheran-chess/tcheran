@@ -13,7 +13,7 @@ For searching, it uses a standard alpha-beta search with many enhancements
 improve move ordering, etc.).
 
 For evaluation, it uses an efficiently-updatable neural network (NNUE). Its
-current architecture is `(768x4hm->1024)x2->8` (a single-layer,
+current architecture is `(768x8hm->1024)x2->8` (a single-layer,
 horizontally-mirrored network with a 1024-node hidden layer, and eight output
 buckets). The network is trained exclusively using self-play games from earlier
 versions of Tcheran, and [that data is available online][training-data]. More
@@ -80,6 +80,7 @@ A huge thanks to the following people and tools:
 * [Fathom][fathom], which is used for Syzygy tablebase probing
 * [OpenBench][openbench], which is used for testing changes to the engine
 * [Stockfish's WDL model][stockfish-wdl], which is used for normalizing Tcheran's evaluation output
+* @JonathanHallstrom for training some networks for Tcheran
 * sp00ph for his command channel, which is used in Tcheran's SMP implementation
 * The testers at [CCRL][ccrl] (and elsewhere), who have invested time and hardware resource, and provided consistent motivation to improve
 

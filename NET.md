@@ -34,3 +34,4 @@ Network training schedules can be found in the project's history in [tools/train
 | 16 | `(768x4hm->1024)x2->8` | `19.04 +- 7.72`     | Added 4 input buckets, trained with an additional ~2.1B positions |
 | 17 | `(768x4hm->1024)x2->8` | `91.09 +- 18.98` DFRC     | Same as net 16 but with ~185M DFRC positions |
 | 18 | `(768x4hm->1024)x2->8` | `14.19 +- 6.56` | Same as net 17 but with a new, much longer training schedule about half way between my existing one and Hobbes' |
+| 19 | `(768x8hm->1024)x2->8` | `2.95 +- 2.37` | Ups the number of input buckets from 4 to 8 |

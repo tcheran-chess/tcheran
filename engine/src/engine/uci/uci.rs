@@ -437,7 +437,13 @@ impl Uci {
 
                         match piece {
                             Some(piece) if piece.kind != PieceKind::King => {
-                                print!("{: ^7}", piece_contributions[sq].to_string());
+                                let normalized_contribution = wdl::normalize(
+                                    piece_contributions[sq].for_player(Player::White),
+                                    &self.game.board,
+                                )
+                                .to_white_eval(Player::White);
+
+                                print!("{: ^7}", normalized_contribution.to_string());
                             }
                             _ => print!("       "),
                         }

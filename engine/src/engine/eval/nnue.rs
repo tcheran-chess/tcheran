@@ -69,6 +69,11 @@ fn input_bucket(king: Square, pov: Player) -> usize {
     BUCKET_LAYOUT[(king.relative_for(pov).idx() ^ king_flip) as usize]
 }
 
+#[inline]
+fn should_mirror(king: Square) -> bool {
+    king.file() >= File::E
+}
+
 #[derive(Debug, Clone)]
 pub struct NNUEChanges {
     pub adds: ArrayVec<NNUEChange, 2>,
@@ -239,13 +244,10 @@ impl NetworkStack {
             // If the king crossed over the middle of the board, the board either becomes, or stops being
             // mirrored and will require a full refresh.
             if entry.changes.moved_piece.kind == PieceKind::King {
-                let from_file = entry.changes.mv.from().file().idx();
-                let to_file = entry.changes.mv.to().file().idx();
+                let from = entry.changes.mv.from();
+                let to = entry.changes.mv.to();
 
-                let crossed_mirroring_boundary = (from_file <= File::D.idx()
-                    && to_file >= File::E.idx())
-                    || (from_file >= File::E.idx() && to_file <= File::D.idx());
-
+                let crossed_mirroring_boundary = should_mirror(from) != should_mirror(to);
                 if crossed_mirroring_boundary {
                     return None;
                 }
@@ -355,7 +357,7 @@ impl std::ops::IndexMut<Player> for NNUE {
 impl NNUE {
     pub fn refresh(&mut self, board: &Board, pov: Player, cache: &mut AccumulatorCache) {
         let king = board.king_square(pov);
-        let king_side = usize::from(king.file() >= File::E);
+        let king_side = usize::from(should_mirror(king));
         let king_bucket = BUCKET_LAYOUT[king.relative_for(pov)];
 
         let cache_entry = &mut cache.0[pov][king_side][king_bucket];

@@ -40,13 +40,6 @@ const INPUT_BUCKETS: usize = get_num_buckets(&BUCKET_LAYOUT);
 const OUTPUT_BUCKETS: usize = 8;
 
 pub fn run() {
-    let data = ViriBinpackLoader::new(
-        "etc/data/data.viri",
-        1024 * 20,
-        4,
-        viriformat::dataformat::Filter::default(),
-    );
-
     let mut trainer = ValueTrainerBuilder::default()
         .dual_perspective()
         .optimiser(AdamW)
@@ -57,29 +50,18 @@ pub fn run() {
             SavedFormat::id("l0w")
                 .transform(|store, weights| {
                     let factoriser = store.get("l0f").values.f32().repeat(INPUT_BUCKETS);
-                    weights
-                        .into_iter()
-                        .zip(factoriser)
-                        .map(|(a, b)| a + b)
-                        .collect()
+                    weights.into_iter().zip(factoriser).map(|(a, b)| a + b).collect()
                 })
                 .round()
                 .quantise::<i16>(QA),
             SavedFormat::id("l0b").round().quantise::<i16>(QA),
-            SavedFormat::id("l1w")
-                .round()
-                .quantise::<i16>(QB)
-                .transpose(),
+            SavedFormat::id("l1w").round().quantise::<i16>(QB).transpose(),
             SavedFormat::id("l1b").round().quantise::<i16>(QA * QB),
         ])
         .loss_fn(|output, target| output.sigmoid().squared_error(target))
         .build(|builder, stm_inputs, ntm_inputs, output_buckets| {
             // factoriser
-            let l0f = builder.new_weights(
-                "l0f",
-                Shape::new(HIDDEN_LAYER, FEATURES),
-                InitSettings::Zeroed,
-            );
+            let l0f = builder.new_weights("l0f", Shape::new(HIDDEN_LAYER, FEATURES), InitSettings::Zeroed);
             let expanded_factoriser = l0f.repeat(INPUT_BUCKETS);
 
             // weights
@@ -101,21 +83,8 @@ pub fn run() {
         min_weight: -0.99,
         ..Default::default()
     };
-
-    trainer
-        .optimiser
-        .set_params_for_weight("l0w", stricter_clipping);
-
-    trainer
-        .optimiser
-        .set_params_for_weight("l0f", stricter_clipping);
-
-    let settings = LocalSettings {
-        threads: 8,
-        test_set: None,
-        output_directory: "etc/checkpoints",
-        batch_queue_size: 32,
-    };
+    trainer.optimiser.set_params_for_weight("l0w", stricter_clipping);
+    trainer.optimiser.set_params_for_weight("l0f", stricter_clipping);
 
     // Schedule 1
     let schedule1_superbatches: usize = 80;
@@ -132,8 +101,6 @@ pub fn run() {
         save_rate: 10,
     };
 
-    trainer.run(&schedule1, &settings, &data);
-
     // Schedule 2
     let schedule2_superbatches: usize = 40;
     let schedule2 = TrainingSchedule {
@@ -149,5 +116,20 @@ pub fn run() {
         save_rate: 10,
     };
 
+    let data = ViriBinpackLoader::new(
+        "etc/data/data.viri",
+        1024 * 20,
+        4,
+        viriformat::dataformat::Filter::default(),
+    );
+
+    let settings = LocalSettings {
+        threads: 8,
+        test_set: None,
+        output_directory: "etc/checkpoints",
+        batch_queue_size: 32,
+    };
+
+    trainer.run(&schedule1, &settings, &data);
     trainer.run(&schedule2, &settings, &data);
 }

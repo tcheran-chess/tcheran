@@ -11,7 +11,7 @@ use crate::{
             move_picker::{GenStage, MovePicker},
             principal_variation::PrincipalVariation,
             quiescence::quiescence,
-            tables::lmr_table::lmr_reduction,
+            tables::lmr_reduction,
             types::{Depth, DepthReduction, ScoreWindow},
         },
         see::see,

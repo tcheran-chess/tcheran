@@ -39,7 +39,7 @@ const BUCKET_LAYOUT: [usize; 32] = [
 const INPUT_BUCKETS: usize = get_num_buckets(&BUCKET_LAYOUT);
 const OUTPUT_BUCKETS: usize = 8;
 
-pub fn run() {
+pub fn run(net_name: &str) {
     let mut trainer = ValueTrainerBuilder::default()
         .dual_perspective()
         .optimiser(AdamW)
@@ -89,7 +89,7 @@ pub fn run() {
     // Schedule 1
     let schedule1_superbatches: usize = 80;
     let schedule1 = TrainingSchedule {
-        net_id: "tcheran".to_string(),
+        net_id: format!("{net_name}-s1"),
         eval_scale: SCALE,
         steps: TrainingSteps::default(schedule1_superbatches),
         wdl_scheduler: wdl::ConstantWDL { value: 0.4 },
@@ -104,7 +104,7 @@ pub fn run() {
     // Schedule 2
     let schedule2_superbatches: usize = 40;
     let schedule2 = TrainingSchedule {
-        net_id: "tcheran-ft".to_string(),
+        net_id: format!("{net_name}-s2"),
         eval_scale: SCALE,
         steps: TrainingSteps::default(schedule2_superbatches),
         wdl_scheduler: wdl::ConstantWDL { value: 0.6 },

@@ -87,32 +87,31 @@ pub fn run(net_name: &str) {
     trainer.optimiser.set_params_for_weight("l0f", stricter_clipping);
 
     // Schedule 1
-    let schedule1_superbatches: usize = 80;
+    let schedule1_superbatches: usize = 400;
     let schedule1 = TrainingSchedule {
         net_id: format!("{net_name}-s1"),
         eval_scale: SCALE,
         steps: TrainingSteps::default(schedule1_superbatches),
-        wdl_scheduler: wdl::ConstantWDL { value: 0.4 },
+        wdl_scheduler: wdl::Warmup {
+            warmup_batches: 100,
+            inner: wdl::LinearWDL { start: 0.2, end: 0.6 },
+        },
         lr_scheduler: lr::CosineDecayLR {
-            initial_lr: 1e-3,
-            final_lr: 2.7e-5,
+            initial_lr: 0.001,
+            final_lr: 0.0000081,
             final_superbatch: schedule1_superbatches,
         },
         save_rate: 10,
     };
 
     // Schedule 2
-    let schedule2_superbatches: usize = 40;
+    let schedule2_superbatches: usize = 100;
     let schedule2 = TrainingSchedule {
         net_id: format!("{net_name}-s2"),
         eval_scale: SCALE,
         steps: TrainingSteps::default(schedule2_superbatches),
-        wdl_scheduler: wdl::ConstantWDL { value: 0.6 },
-        lr_scheduler: lr::CosineDecayLR {
-            initial_lr: 4.5e-5,
-            final_lr: 4.05e-6,
-            final_superbatch: schedule2_superbatches,
-        },
+        wdl_scheduler: wdl::ConstantWDL { value: 0.75 },
+        lr_scheduler: lr::ConstantLR { value: 0.00000081 },
         save_rate: 10,
     };
 

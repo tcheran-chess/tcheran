@@ -4,6 +4,7 @@
 
 * Network #16, adding 4 input buckets and trained with an additional ~2.1B positions (19.04 +- 7.72)
 * Network #17, adding ~185M DFRC positions (91.09 +- 18.98 DFRC)
+* Network #18, with a new much longer training schedule about half way between my existing one and Hobbes' (14.19 +- 6.56)
 * Added TT clusters (6.28 +- 4.04)
 * Game::is_direct_check is now used in LMP (4.57 +- 3.35)
 * Re-introduce futility pruning and make it depth dependent (4.38 +- 3.25)

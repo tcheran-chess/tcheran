@@ -342,8 +342,8 @@ pub fn negamax(
             && !is_pv
             && mv.is_quiet()
             && !in_check
-            && depth <= futility_prune_depth()
-            && eval + futility_prune_base_value() + depth * futility_prune_depth_multiplier()
+            && lmr_depth <= futility_prune_depth()
+            && eval + futility_prune_base_value() + lmr_depth * futility_prune_depth_multiplier()
                 <= s.alpha
             && !best_score.is_loss()
         {

@@ -32,26 +32,6 @@ struct MoveEntry {
     score: i32,
 }
 
-trait MoveListExt {
-    fn next_best(&mut self) -> Option<MoveEntry>;
-}
-
-impl MoveListExt for ArrayVec<MoveEntry, MAX_LEGAL_MOVES> {
-    fn next_best(&mut self) -> Option<MoveEntry> {
-        if self.is_empty() {
-            return None;
-        }
-
-        let idx = self
-            .iter()
-            .enumerate()
-            .max_by_key(|&(_, entry)| entry.score)
-            .map_or(0, |(i, _)| i);
-
-        Some(self.swap_remove(idx))
-    }
-}
-
 pub struct MovePicker {
     moves: ArrayVec<MoveEntry, MAX_LEGAL_MOVES>,
     previous_best_move: Option<Move>,
@@ -110,7 +90,7 @@ impl MovePicker {
         }
 
         if self.stage == GoodTacticals {
-            while let Some(entry) = self.moves.next_best() {
+            while let Some(entry) = next_best(&mut self.moves) {
                 // If a move has good history, we can be more sure it should be searched
                 // early even if its SEE score is poor.
                 let threshold = -entry.score / 4;
@@ -170,7 +150,7 @@ impl MovePicker {
 
         if self.stage == Quiets {
             if !self.skip_quiets
-                && let Some(entry) = self.moves.next_best()
+                && let Some(entry) = next_best(&mut self.moves)
             {
                 return Some(entry.mv);
             }
@@ -179,7 +159,7 @@ impl MovePicker {
         }
 
         if self.stage == BadTacticals {
-            if let Some(entry) = self.bad_tacticals.next_best() {
+            if let Some(entry) = next_best(&mut self.bad_tacticals) {
                 return Some(entry.mv);
             }
 
@@ -196,6 +176,20 @@ impl MovePicker {
     pub fn skip_quiets(&mut self) {
         self.skip_quiets = true;
     }
+}
+
+fn next_best(moves: &mut ArrayVec<MoveEntry, MAX_LEGAL_MOVES>) -> Option<MoveEntry> {
+    if moves.is_empty() {
+        return None;
+    }
+
+    let idx = moves
+        .iter()
+        .enumerate()
+        .max_by_key(|&(_, entry)| entry.score)
+        .map_or(0, |(i, _)| i);
+
+    Some(moves.swap_remove(idx))
 }
 
 pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {

@@ -18,8 +18,8 @@ pub enum GenStage {
     BestMove,
     GenTacticals,
     GoodTacticals,
-    GenQuiets,
     Killer,
+    GenQuiets,
     ScoreQuiets,
     Quiets,
     BadTacticals,
@@ -34,7 +34,6 @@ struct MoveEntry {
 
 trait MoveListExt {
     fn next_best(&mut self) -> Option<MoveEntry>;
-    fn remove(&mut self, mv: Move) -> bool;
 }
 
 impl MoveListExt for ArrayVec<MoveEntry, MAX_LEGAL_MOVES> {
@@ -50,21 +49,6 @@ impl MoveListExt for ArrayVec<MoveEntry, MAX_LEGAL_MOVES> {
             .map_or(0, |(i, _)| i);
 
         Some(self.swap_remove(idx))
-    }
-
-    fn remove(&mut self, mv: Move) -> bool {
-        let idx = self
-            .iter()
-            .enumerate()
-            .find(|&(_, entry)| entry.mv == mv)
-            .map(|(i, _)| i);
-
-        let Some(idx) = idx else {
-            return false;
-        };
-
-        self.swap_remove(idx);
-        true
     }
 }
 
@@ -139,11 +123,23 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
+            self.stage = Killer;
+        }
+
+        if self.stage == Killer {
             self.stage = GenQuiets;
+
+            if !self.skip_quiets
+                && let Some(killer) = tables.killer_moves.get(plies)
+                && Some(killer) != self.previous_best_move
+                && game.is_legal(killer)
+            {
+                return Some(killer);
+            }
         }
 
         if self.stage == GenQuiets {
-            self.stage = Killer;
+            self.stage = ScoreQuiets;
 
             if !self.skip_quiets {
                 movegen::generate_quiets(game, &mut |mv| {
@@ -151,20 +147,14 @@ impl MovePicker {
                         return;
                     }
 
+                    if let Some(killer) = tables.killer_moves.get(plies)
+                        && mv == killer
+                    {
+                        return;
+                    }
+
                     self.moves.push(MoveEntry { mv, score: 0 });
                 });
-            }
-        }
-
-        if self.stage == Killer {
-            self.stage = ScoreQuiets;
-
-            if !self.skip_quiets
-                && let Some(killer) = tables.killer_moves.get(plies)
-                && self.moves.remove(killer)
-                && Some(killer) != self.previous_best_move
-            {
-                return Some(killer);
             }
         }
 

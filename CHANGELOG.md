@@ -5,6 +5,7 @@
 * Network #16, adding 4 input buckets and trained with an additional ~2.1B positions (19.04 +- 7.72)
 * Game::is_direct_check is now used in LMP (4.57 +- 3.35)
 * Re-introduce futility pruning and make it depth dependent (4.38 +- 3.25)
+* Legal killer moves are now yielded before generating quiet moves for a minor speedup
 
 #### Misc
 

@@ -78,7 +78,7 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    pub fn without(&mut self, square: Square) -> Self {
+    pub fn without(&self, square: Square) -> Self {
         Self(self.0 & square.bb().invert().0)
     }
 

@@ -1,9 +1,18 @@
+use std::collections::HashSet;
+
 use crate::{
-    chess::{fen::START_POS, game::Game, movegen, moves::MoveList, perft::perft},
+    chess::{
+        fen::START_POS,
+        game::Game,
+        movegen,
+        moves::{Flags, Move, MoveList},
+        perft::perft,
+    },
     engine::search::{SearchStack, move_picker::MovePicker, tables::Tables},
 };
 
 const ENABLE_MOVEPICKER_PERFT: bool = false;
+const ENABLE_ISLEGAL_PERFT: bool = false;
 
 fn test_perft(fen: &str, depth: u8, expected_positions: usize) {
     crate::init();
@@ -12,6 +21,10 @@ fn test_perft(fen: &str, depth: u8, expected_positions: usize) {
 
     if ENABLE_MOVEPICKER_PERFT {
         test_perft_with_movepicker(fen, depth, expected_positions);
+    }
+
+    if ENABLE_ISLEGAL_PERFT {
+        test_islegal_perft(fen, depth);
     }
 }
 
@@ -106,6 +119,77 @@ fn test_perft_with_movepicker(fen: &str, depth: u8, expected_positions: usize) {
         movepicker_perft(depth, &mut game, &mut Tables::new(), &mut SearchStack::new());
 
     assert_eq!(expected_positions, actual_positions);
+}
+
+fn islegal_movegen(game: &Game) -> MoveList {
+    let mut moves = MoveList::new();
+
+    for bits in 1..=u16::MAX {
+        if !Flags::are_valid((bits >> 12) as u8) {
+            continue;
+        }
+
+        let mv = Move::new_from_bits(bits);
+
+        if !game.is_definitely_illegal(mv) {
+            moves.push(mv);
+        }
+    }
+
+    moves
+}
+
+fn islegal_perft(depth: u8, game: &mut Game) {
+    if depth == 0 {
+        return;
+    }
+
+    let moves = islegal_movegen(game);
+    let movegen_moves = game.moves();
+
+    let moves_set: HashSet<&Move> = HashSet::from_iter(moves.iter());
+
+    // First, check the list of generate moves against legal movegen
+    let actual_moves_set: HashSet<&Move> = HashSet::from_iter(movegen_moves.iter());
+
+    let illegal_moves_allowed = moves_set.difference(&actual_moves_set);
+    for illegal_move in illegal_moves_allowed {
+        panic!(
+            "is_legal allows illegal move\nposition: {}\nmove: {:?} [capture={},castling={},promo={},en_passant={},double_push={}]",
+            game.to_fen(),
+            illegal_move,
+            illegal_move.is_capture(),
+            illegal_move.is_castling(),
+            illegal_move.is_promotion(),
+            illegal_move.is_en_passant(),
+            illegal_move.is_double_push(),
+        )
+    }
+
+    let legal_moves_excluded = actual_moves_set.difference(&moves_set);
+    for legal_move in legal_moves_excluded {
+        panic!(
+            "is_legal excludes legal move\nposition: {}\nmove: {:?} [capture={},castling={},promo={},en_passant={},double_push={}]",
+            game.to_fen(),
+            legal_move,
+            legal_move.is_capture(),
+            legal_move.is_castling(),
+            legal_move.is_promotion(),
+            legal_move.is_en_passant(),
+            legal_move.is_double_push(),
+        )
+    }
+
+    for &mv in moves.iter() {
+        game.make_move(mv);
+        islegal_perft(depth - 1, game);
+        game.undo_move();
+    }
+}
+
+fn test_islegal_perft(fen: &str, depth: u8) {
+    let mut game = Game::from_fen(fen).unwrap();
+    islegal_perft(depth, &mut game);
 }
 
 #[test]

@@ -58,7 +58,7 @@ impl MoveListExt for ArrayVec<Move, MAX_LEGAL_MOVES> {
 // 15 │      │ ─┘                                   01 - Rook       11 - Bishop
 //    └──────┘
 
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Clone, Copy, Hash)]
 pub struct Move(NonZeroU16);
 
 const FROM_MASK: u16 = 0b0000_0000_0011_1111;
@@ -66,7 +66,7 @@ const TO_MASK: u16 = 0b0000_1111_1100_0000;
 
 #[repr(u8)]
 #[derive(PartialEq, Eq)]
-enum Flags {
+pub enum Flags {
     Quiet = 0b0000,
     Castle = flag_bits(true, false),
     DoublePush = flag_bits(false, true),
@@ -86,6 +86,23 @@ impl Flags {
     // Trick from Simbelmyne - rather than checking individual bits, we can transmute and check everything at once
     fn from_u8(flags: u8) -> Self {
         unsafe { std::mem::transmute::<u8, Self>(flags) }
+    }
+
+    #[cfg(test)]
+    pub fn are_valid(flags: u8) -> bool {
+        flags == Flags::Quiet as u8
+            || flags == Flags::Castle as u8
+            || flags == Flags::DoublePush as u8
+            || flags == Flags::Capture as u8
+            || flags == Flags::EnPassant as u8
+            || flags == Flags::PromoteToBishop as u8
+            || flags == Flags::PromoteToKnight as u8
+            || flags == Flags::PromoteToRook as u8
+            || flags == Flags::PromoteToQueen as u8
+            || flags == Flags::CaptureAndPromoteToBishop as u8
+            || flags == Flags::CaptureAndPromoteToKnight as u8
+            || flags == Flags::CaptureAndPromoteToRook as u8
+            || flags == Flags::CaptureAndPromoteToQueen as u8
     }
 }
 
@@ -115,6 +132,13 @@ impl Move {
                     | ((flags as u16) << FLAGS_SHIFT),
             )
         })
+    }
+
+    #[cfg(test)]
+    pub fn new_from_bits(bits: u16) -> Self {
+        assert_ne!(bits, 0);
+
+        Self(unsafe { NonZeroU16::new_unchecked(bits) })
     }
 
     #[inline]

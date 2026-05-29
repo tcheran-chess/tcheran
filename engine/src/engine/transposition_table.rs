@@ -9,7 +9,7 @@ use crate::{
 };
 
 pub struct TranspositionTable {
-    data: Vec<AtomicTranspositionTableEntry>,
+    data: Vec<RawCluster>,
     generation: AtomicU8,
     size: usize,
 }
@@ -18,9 +18,10 @@ pub struct TranspositionTable {
 #[repr(transparent)]
 struct BoundAndAge(u8);
 
-impl BoundAndAge {
-    const AGE_MASK: u8 = 0b0011_1111;
+const MAX_AGE: u8 = 1 << 6;
+const AGE_MASK: u8 = MAX_AGE - 1;
 
+impl BoundAndAge {
     fn new(bound: NodeBound, age: u8) -> Self {
         Self(age << 2 | bound as u8)
     }
@@ -40,9 +41,15 @@ impl BoundAndAge {
     }
 }
 
+#[inline]
+#[expect(clippy::cast_possible_truncation, reason = "Truncation is intended")]
+fn tt_key(hash: ZobristHash) -> u16 {
+    hash.0 as u16
+}
+
 #[derive(Clone)]
 struct TranspositionTableEntry {
-    pub key: ZobristHash,           // 8 bytes
+    pub key: u16,                   // 2 bytes
     pub best_move: Option<Move>,    // 2 bytes
     pub score: i16,                 // 2 bytes
     pub eval: i16,                  // 2 bytes
@@ -51,7 +58,7 @@ struct TranspositionTableEntry {
 }
 
 const _ASSERT_TT_DATA_SIZE: () =
-    assert!(size_of::<TranspositionTableEntry>() == 16, "Transposition table entry size changed");
+    assert!(size_of::<TranspositionTableEntry>() == 10, "Transposition table entry size changed");
 
 impl TranspositionTableEntry {
     fn bound(&self) -> NodeBound {
@@ -60,6 +67,14 @@ impl TranspositionTableEntry {
 
     fn age(&self) -> u8 {
         self.bound_and_age.age()
+    }
+
+    fn relative_age(&self, age: u8) -> i32 {
+        i32::from((MAX_AGE + self.age() - age) & AGE_MASK)
+    }
+
+    fn is_empty(&self) -> bool {
+        self.bound() == NodeBound::None
     }
 }
 
@@ -79,60 +94,54 @@ pub enum NodeBound {
     None,
 }
 
-struct TranspositionTableEntryBits {
-    key: u64,
-    data: u64,
+const ENTRIES_PER_CLUSTER: usize = 3;
+
+#[repr(align(32))]
+pub struct Cluster {
+    entries: [TranspositionTableEntry; ENTRIES_PER_CLUSTER],
+    _padding: u16,
 }
 
-struct AtomicTranspositionTableEntry {
-    key: AtomicU64,
-    data: AtomicU64,
+#[repr(align(32))]
+pub struct RawCluster {
+    bits: [AtomicU64; 4],
 }
 
-impl AtomicTranspositionTableEntry {
+impl RawCluster {
     const fn empty() -> Self {
         Self {
-            key: AtomicU64::new(0),
-            data: AtomicU64::new(0),
+            bits: [const { AtomicU64::new(0) }; 4],
         }
     }
 
     fn reset(&self) {
-        self.key.store(0, Ordering::Relaxed);
-        self.data.store(0, Ordering::Relaxed);
+        self.bits[0].store(0, Ordering::Relaxed);
+        self.bits[1].store(0, Ordering::Relaxed);
+        self.bits[2].store(0, Ordering::Relaxed);
+        self.bits[3].store(0, Ordering::Relaxed);
     }
 
-    #[expect(clippy::transmute_undefined_repr, reason = "Confirmed that this transmute works")]
-    fn write(&self, entry: TranspositionTableEntry) {
-        let bits =
-            unsafe { transmute::<TranspositionTableEntry, TranspositionTableEntryBits>(entry) };
+    fn write(&self, cluster: Cluster) {
+        let bits = unsafe { transmute::<Cluster, [u64; 4]>(cluster) };
 
-        // XOR the key with the data. This means we can only retrieve the same key
-        // here if our .read() retrieves the matching data.
-        // If it retrieves non-matching data due to a race, the key will XOR back
-        // to a different value and won't match the key for the position, so it won't be used.
-        self.key.store(bits.key ^ bits.data, Ordering::Relaxed);
-        self.data.store(bits.data, Ordering::Relaxed);
+        self.bits[0].store(bits[0], Ordering::Relaxed);
+        self.bits[1].store(bits[1], Ordering::Relaxed);
+        self.bits[2].store(bits[2], Ordering::Relaxed);
+        self.bits[3].store(bits[3], Ordering::Relaxed);
     }
 
-    #[expect(clippy::transmute_undefined_repr, reason = "Confirmed that this transmute works")]
-    fn read(&self) -> Option<TranspositionTableEntry> {
-        let key = self.key.load(Ordering::Relaxed);
-        let data = self.data.load(Ordering::Relaxed);
+    fn read(&self) -> Cluster {
+        let b0 = self.bits[0].load(Ordering::Relaxed);
+        let b1 = self.bits[1].load(Ordering::Relaxed);
+        let b2 = self.bits[2].load(Ordering::Relaxed);
+        let b3 = self.bits[3].load(Ordering::Relaxed);
 
-        let key = key ^ data;
-
-        if key == 0 && data == 0 {
-            return None;
-        }
-
-        let bits = TranspositionTableEntryBits { key, data };
-        Some(unsafe { transmute::<TranspositionTableEntryBits, TranspositionTableEntry>(bits) })
+        unsafe { transmute::<[u64; 4], Cluster>([b0, b1, b2, b3]) }
     }
 }
 
-pub const fn calculate_number_of_entries(size_mb: usize) -> usize {
-    let size_of_entry = size_of::<TranspositionTableEntry>();
+pub const fn calculate_number_of_clusters(size_mb: usize) -> usize {
+    let size_of_entry = size_of::<RawCluster>();
     let total_size_in_bytes = size_mb * 1024 * 1024;
     total_size_in_bytes / size_of_entry
 }
@@ -162,11 +171,10 @@ impl TranspositionTable {
             return;
         }
 
-        let number_of_entries = calculate_number_of_entries(size_mb);
+        let number_of_clusters = calculate_number_of_clusters(size_mb);
 
         self.data.clear();
-        self.data
-            .resize_with(number_of_entries, AtomicTranspositionTableEntry::empty);
+        self.data.resize_with(number_of_clusters, RawCluster::empty);
         self.data.shrink_to_fit();
         self.size = size_mb;
         self.generation.store(0, Ordering::Relaxed);
@@ -176,7 +184,7 @@ impl TranspositionTable {
         let mut generation = self.generation.load(Ordering::Relaxed);
 
         generation += 1;
-        generation &= BoundAndAge::AGE_MASK;
+        generation &= AGE_MASK;
 
         self.generation.store(generation, Ordering::Relaxed);
     }
@@ -185,7 +193,7 @@ impl TranspositionTable {
         clippy::cast_possible_truncation,
         reason = "The truncation is intended to get an index"
     )]
-    fn get_entry_idx(&self, key: ZobristHash) -> usize {
+    fn get_cluster_idx(&self, key: ZobristHash) -> usize {
         // (from Reckless: For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction)
         ((u128::from(key.0) * (self.data.len() as u128)) >> 64) as usize
     }
@@ -201,39 +209,30 @@ impl TranspositionTable {
         let estimate_n = 1000;
         let generation = self.generation.load(Ordering::Relaxed);
 
-        for entry in self.data.iter().take(estimate_n) {
-            if entry
-                .read()
-                .is_some_and(|e| e.bound_and_age.age() == generation)
-            {
-                occupied += 1;
+        for raw_cluster in self.data.iter().take(estimate_n) {
+            let cluster = raw_cluster.read();
+
+            for entry in cluster.entries {
+                if entry.age() == generation {
+                    occupied += 1;
+                }
             }
         }
 
-        let decimal = occupied as f32 / estimate_n as f32;
-        let permille = decimal * 1000.0;
+        let occupied_entries = occupied as f32 / estimate_n as f32;
+        let occupied_clusters = occupied_entries / ENTRIES_PER_CLUSTER as f32;
+        let permille = occupied_clusters * 1000.0;
         permille as u64
     }
 
     fn should_overwrite(old: &TranspositionTableEntry, new: &TranspositionTableEntry) -> bool {
+        // Always prioritise results from new positions
+        if old.key != new.key {
+            return true;
+        }
+
         // Always prioritise results from new searches
         if new.age() != old.age() {
-            return true;
-        }
-
-        // Always overwrite entries with no bound
-        if old.bound() == NodeBound::None {
-            return true;
-        }
-
-        // Never overwrite entries if the new entry has a None bound
-        if new.bound() == NodeBound::None {
-            return false;
-        }
-
-        // Always prefer results that have been searched to a higher depth,
-        // since they're more accurate
-        if new.depth > old.depth {
             return true;
         }
 
@@ -242,8 +241,13 @@ impl TranspositionTable {
             return true;
         }
 
-        // Don't overwrite exact nodes
-        old.bound() != NodeBound::Exact
+        // Weight entries by depth searched, preferring newer entries unless old entries are searched
+        // to significantly higher depths
+        if new.depth + 4 > old.depth {
+            return true;
+        }
+
+        false
     }
 
     // When searching, mate scores are relative to the root position.
@@ -299,7 +303,32 @@ impl TranspositionTable {
         depth: Depth,
         plies: u8,
     ) {
-        let idx = self.get_entry_idx(key);
+        let idx = self.get_cluster_idx(key);
+        let key = tt_key(key);
+
+        let mut cluster = self.data[idx].read();
+        let age = self.generation.load(Ordering::Relaxed);
+
+        let mut least_valuable_entry_idx = 0;
+        let mut least_valuable_entry = None;
+        let mut worst_value = i32::MAX;
+
+        // Try and pick the least valuable existing entry
+        for (idx, entry) in cluster.entries.iter().enumerate() {
+            if entry.is_empty() || entry.key == key {
+                least_valuable_entry = Some(entry);
+                least_valuable_entry_idx = idx;
+                break;
+            }
+
+            let entry_value = i32::from(entry.depth) - 4 * entry.relative_age(age);
+
+            if entry_value < worst_value {
+                least_valuable_entry = Some(entry);
+                least_valuable_entry_idx = idx;
+                worst_value = entry_value;
+            }
+        }
 
         let mut new_entry = TranspositionTableEntry {
             key,
@@ -307,44 +336,46 @@ impl TranspositionTable {
             eval: eval.0 as i16,
             depth: depth.as_u8(),
             best_move,
-            bound_and_age: BoundAndAge::new(bound, self.generation.load(Ordering::Relaxed)),
+            bound_and_age: BoundAndAge::new(bound, age),
         };
 
-        // !: We know the exact size of the table and will always access within the bounds.
-        unsafe {
-            if let Some(existing_entry) = self.data.get_unchecked(idx).read() {
-                if Self::should_overwrite(&existing_entry, &new_entry) {
-                    // Don't overwrite moves with None
-                    if best_move.is_none()
-                        && existing_entry.best_move.is_some()
-                        && new_entry.key == existing_entry.key
-                    {
-                        new_entry.best_move = existing_entry.best_move;
-                    }
+        if best_move.is_none()
+            && let Some(lve) = least_valuable_entry
+            && lve.key == key
+            && lve.best_move.is_some()
+        {
+            new_entry.best_move = lve.best_move;
+        }
 
-                    self.data[idx].write(new_entry);
-                }
-            } else {
-                self.data[idx].write(new_entry);
-            }
+        if least_valuable_entry.is_none()
+            || Self::should_overwrite(least_valuable_entry.unwrap(), &new_entry)
+        {
+            cluster.entries[least_valuable_entry_idx] = new_entry;
+            self.data[idx].write(cluster);
         }
     }
 
     pub fn get(&self, key: ZobristHash, plies: u8) -> Option<TranspositionTableHit> {
-        let idx = self.get_entry_idx(key);
+        let idx = self.get_cluster_idx(key);
+        let key = tt_key(key);
 
         // !: We know the exact size of the table and will always access within the bounds.
         unsafe {
-            if let Some(entry) = self.data.get_unchecked(idx).read()
-                && entry.key == key
-            {
-                return Some(TranspositionTableHit {
-                    bound: entry.bound(),
-                    score: Self::with_mate_distance_from_root(Eval(i32::from(entry.score)), plies),
-                    depth: Depth::new(entry.depth),
-                    eval: Eval(i32::from(entry.eval)),
-                    best_move: entry.best_move,
-                });
+            let cluster = self.data.get_unchecked(idx).read();
+
+            for entry in cluster.entries {
+                if entry.key == key {
+                    return Some(TranspositionTableHit {
+                        bound: entry.bound(),
+                        score: Self::with_mate_distance_from_root(
+                            Eval(i32::from(entry.score)),
+                            plies,
+                        ),
+                        depth: Depth::new(entry.depth),
+                        eval: Eval(i32::from(entry.eval)),
+                        best_move: entry.best_move,
+                    });
+                }
             }
         }
 
@@ -356,7 +387,7 @@ impl TranspositionTable {
             target_arch = "x86_64" => {
                 use std::arch::x86_64::{_MM_HINT_T0, _mm_prefetch};
 
-                let idx = self.get_entry_idx(hash);
+                let idx = self.get_cluster_idx(hash);
 
                 unsafe {
                     let ptr = self.data.as_ptr().add(idx).cast();

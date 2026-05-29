@@ -197,6 +197,7 @@ impl Game {
 
         game.update_threats();
         game.update_checks_and_pins();
+        game.check_en_passant_square_is_valid();
 
         game
     }

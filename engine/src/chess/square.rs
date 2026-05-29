@@ -355,6 +355,25 @@ impl std::ops::BitOr for Square {
     }
 }
 
+pub mod ranks {
+    use super::*;
+
+    static BACK_RANKS: [Rank; Player::N] = [Rank::R1, Rank::R8];
+    pub fn back_rank(player: Player) -> Rank {
+        BACK_RANKS[player]
+    }
+
+    static PAWN_BACK_RANKS: [Rank; Player::N] = [Rank::R2, Rank::R7];
+    pub fn pawn_back_rank(player: Player) -> Rank {
+        PAWN_BACK_RANKS[player]
+    }
+
+    static PROMOTION_RANKS: [Rank; Player::N] = [Rank::R7, Rank::R2];
+    pub fn promotion_rank(player: Player) -> Rank {
+        PROMOTION_RANKS[player]
+    }
+}
+
 pub mod squares {
     use self::all::*;
     use crate::chess::{player::Player, square::Square};

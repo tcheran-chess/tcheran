@@ -103,7 +103,7 @@ impl MovePicker {
             self.stage = GenTacticals;
 
             if let Some(previous_best_move) = self.previous_best_move
-                && !game.is_definitely_illegal(previous_best_move)
+                && game.is_legal(previous_best_move)
             {
                 return Some(previous_best_move);
             }

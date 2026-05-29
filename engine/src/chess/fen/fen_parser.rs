@@ -3,7 +3,7 @@ use crate::chess::{
     game::{CastleRights, Game},
     piece::Piece,
     player::Player,
-    square::{File, Rank, Square, squares},
+    square::{File, Rank, Square, ranks::back_rank, squares},
 };
 
 #[derive(Debug)]
@@ -122,12 +122,10 @@ fn standard_castle_right(input: char) -> Result<(FenCastleRight, Square), ()> {
 fn frc_castle_right(input: char, board: &Board) -> Result<(FenCastleRight, Square), ()> {
     use FenCastleRight::*;
 
-    let back_ranks = [Rank::R1, Rank::R8];
-
     let leftmost_rook = |player: Player| {
         File::ALL
             .iter()
-            .map(|f| Square::from_file_and_rank(*f, back_ranks[player]))
+            .map(|f| Square::from_file_and_rank(*f, back_rank(player)))
             .find(|s| board.rooks(player).contains(*s))
             .ok_or(())
     };
@@ -136,7 +134,7 @@ fn frc_castle_right(input: char, board: &Board) -> Result<(FenCastleRight, Squar
         File::ALL
             .iter()
             .rev()
-            .map(|f| Square::from_file_and_rank(*f, back_ranks[player]))
+            .map(|f| Square::from_file_and_rank(*f, back_rank(player)))
             .find(|s| board.rooks(player).contains(*s))
             .ok_or(())
     };

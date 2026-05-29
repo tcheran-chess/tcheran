@@ -5,12 +5,19 @@ use crate::{
         fen,
         movegen::{
             all_attackers_of, generate_legal_moves, tables,
-            tables::{bishop_attacks, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
+            tables::{
+                bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_between,
+                ray_intersecting, rook_attacks,
+            },
         },
         moves::{Move, MoveList},
         piece::{Piece, PieceKind, PromotionPieceKind},
         player::Player,
-        square::{Square, squares},
+        square::{
+            Square,
+            ranks::{back_rank, pawn_back_rank, promotion_rank},
+            squares,
+        },
         zobrist,
         zobrist::ZobristHash,
     },
@@ -471,38 +478,228 @@ impl Game {
         ];
     }
 
-    // Checks only some very basic cases to reduce the chances of TT hash collisions giving us a
-    // move which isn't legal in the current position. Should be replaced with a proper is_legal
-    // implementation but should help with crashes in the meantime.
-    pub fn is_definitely_illegal(&self, mv: Move) -> bool {
-        let from = mv.from();
-        let to = mv.to();
+    // Logic ported from Stormphrax
+    pub fn is_legal(&self, mv: Move) -> bool {
         let us = self.player;
         let them = !self.player;
 
+        let from = mv.from();
+        let to = mv.to();
+        let from_piece = self.board.piece_at(from);
+        let to_piece = self.board.piece_at(to);
+        let our_king = self.board.king_square(us);
+        let occupancy = self.board.occupancy();
+
         // There has to have been a piece that we moved
-        let Some(moved_piece) = self.board.piece_at(from) else {
-            return true;
+        let Some(moved_piece) = from_piece else {
+            return false;
         };
 
         // That piece has to have been ours
         if moved_piece.player != us {
-            return true;
+            return false;
         }
 
-        if mv.is_capture() && !mv.is_en_passant() {
-            // A capture move has to have captured a piece
-            let Some(captured_piece) = self.board.piece_at(to) else {
-                return true;
-            };
+        // Check some preconditions for special move types
+        if mv.is_capture() && !mv.is_en_passant() && to_piece.is_none() {
+            return false;
+        }
 
-            // The piece we captured has to have been their piece
-            if captured_piece.player != them {
-                return true;
+        // If we're in check and moving anything except the king:
+        if self.in_check() && moved_piece.kind != PieceKind::King {
+            // If multiple pieces are checking, we had to evade with the king
+            if self.checkers.count() > 1 {
+                return false;
+            }
+
+            let checker = self.checkers.single();
+            // en passant requires special handling
+            if !mv.is_en_passant() {
+                let check_ray = ray_between(our_king, checker);
+
+                // We either block the check or capture the checker
+                let valid_destinations = check_ray | checker.bb();
+
+                if !valid_destinations.contains(to) {
+                    return false;
+                }
             }
         }
 
-        false
+        // If the piece we're moving is pinned, it can only move along the pin ray
+        if self.pinned[us].contains(from) {
+            let move_ray = ray_intersecting(from, to);
+            if !move_ray.contains(our_king) {
+                return false;
+            }
+        }
+
+        // If we're capturing:
+        if let Some(captured_piece) = to_piece {
+            if captured_piece.player == us {
+                // We can only 'capture' our own piece if castling
+                if !mv.is_castling() {
+                    return false;
+                }
+
+                // When castling, we can only capture rooks
+                if captured_piece.kind != PieceKind::Rook {
+                    return false;
+                }
+            } else if !mv.is_capture() {
+                return false;
+            }
+
+            // We can't capture kings
+            if captured_piece.kind == PieceKind::King {
+                return false;
+            }
+        }
+
+        // If we're castling:
+        if mv.is_castling() {
+            // We can only castle a king
+            if moved_piece.kind != PieceKind::King {
+                return false;
+            }
+
+            // Can't castle in check!
+            if self.in_check() {
+                return false;
+            }
+
+            let our_back_rank = back_rank(us);
+
+            // We have to stay on the back rank
+            if from.rank() != our_back_rank || to.rank() != our_back_rank {
+                return false;
+            }
+
+            let king_dst;
+            let rook_dst;
+
+            // We have to have rights to castle
+            if Some(to) == self.castle_rights[us].king_side {
+                king_dst = squares::kingside_king_castle_end(us);
+                rook_dst = squares::kingside_rook_castle_end(us);
+            } else if Some(to) == self.castle_rights[us].queen_side {
+                king_dst = squares::queenside_king_castle_end(us);
+                rook_dst = squares::queenside_rook_castle_end(us);
+            } else {
+                return false;
+            }
+
+            return if self.is_frc {
+                if self.pinned[us].contains(to) {
+                    return false;
+                }
+
+                let required_safe_squares = ray_between(from, king_dst) | from.bb() | king_dst.bb();
+                let required_empty_squares =
+                    required_safe_squares | ray_between(from, to) | rook_dst.bb();
+
+                let blockers = occupancy.without(from).without(to);
+
+                (required_empty_squares & blockers).is_empty()
+                    && (required_safe_squares & self.threats).is_empty()
+            } else {
+                let required_empty_squares = ray_between(from, to);
+                let required_safe_squares = ray_between(from, king_dst) | king_dst.bb();
+
+                (required_empty_squares & occupancy).is_empty()
+                    && (required_safe_squares & self.threats).is_empty()
+            };
+        }
+
+        // Lots of special handling for pawn moves
+        if moved_piece.kind == PieceKind::Pawn {
+            if mv.is_en_passant() {
+                // Can't do en-passant without an en-passant target
+                let Some(en_passant_target) = self.en_passant_target else {
+                    return false;
+                };
+
+                // Must have moved to the en-passant target square
+                if to != en_passant_target {
+                    return false;
+                }
+
+                // Must have moved there from a valid square
+                let valid_sources = pawn_attacks(en_passant_target, them);
+                if !valid_sources.contains(from) {
+                    return false;
+                }
+
+                let capture_square = en_passant_target.forward(them);
+                let occupancy_after_ep = occupancy.without(from).with(to).without(capture_square);
+
+                let orthogonal_checks = rook_attacks(our_king, occupancy_after_ep)
+                    & self.board.orthogonal_sliders(them);
+
+                let diagonal_checks = bishop_attacks(our_king, occupancy_after_ep)
+                    & self.board.diagonal_sliders(them);
+
+                return orthogonal_checks.is_empty() && diagonal_checks.is_empty();
+            }
+
+            let promotion_rank = promotion_rank(us);
+            if from.rank() == promotion_rank && !mv.is_promotion()
+                || mv.is_promotion() && from.rank() != promotion_rank
+            {
+                return false;
+            }
+
+            let their_pieces = self.board.occupancy_for(them);
+
+            let valid_destinations = if mv.is_capture() {
+                pawn_attacks(from, us) & their_pieces
+            } else {
+                let single_push = from.forward(us).bb();
+
+                let pawn_back_rank = pawn_back_rank(us);
+
+                if mv.is_double_push() && from.rank() != pawn_back_rank {
+                    return false;
+                }
+
+                // Can't double push over one of their pieces - single pushing is handled above
+                if from.rank() == pawn_back_rank && (single_push & their_pieces).is_empty() {
+                    if mv.is_double_push() && (single_push & occupancy).is_empty() {
+                        single_push.forward(us)
+                    } else {
+                        single_push
+                    }
+                } else {
+                    single_push
+                }
+            };
+
+            if !valid_destinations.contains(to) {
+                return false;
+            }
+        } else {
+            // Not valid for non-pawns
+            if mv.is_promotion() || mv.is_en_passant() || mv.is_double_push() {
+                return false;
+            }
+
+            let valid_destinations = match moved_piece.kind {
+                PieceKind::Knight => knight_attacks(from),
+                PieceKind::Bishop => bishop_attacks(from, occupancy),
+                PieceKind::Rook => rook_attacks(from, occupancy),
+                PieceKind::Queen => bishop_attacks(from, occupancy) | rook_attacks(from, occupancy),
+                PieceKind::King => king_attacks(from) & !self.threats,
+
+                // Handled above
+                PieceKind::Pawn => unreachable!(),
+            };
+
+            if !valid_destinations.contains(to) {
+                return false;
+            }
+        }
+
+        true
     }
 
     pub fn make_move(&mut self, mv: Move) {
@@ -897,5 +1094,25 @@ mod tests {
         game.make_move(game.moves().expect_matching(A2, A4, None));
 
         assert_eq!(game.en_passant_target, Some(A3));
+    }
+
+    #[test]
+    fn test_islegal_castling_in_kiwipete() {
+        crate::init();
+
+        let game =
+            Game::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
+                .unwrap();
+        assert!(game.is_legal(Move::castles(E1, H1)));
+    }
+
+    #[test]
+    fn test_islegal_en_passant_in_bench_position() {
+        crate::init();
+
+        let game =
+            Game::from_fen("5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28")
+                .unwrap();
+        assert!(game.is_legal(Move::en_passant(G4, F3)));
     }
 }

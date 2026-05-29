@@ -131,7 +131,7 @@ fn islegal_movegen(game: &Game) -> MoveList {
 
         let mv = Move::new_from_bits(bits);
 
-        if !game.is_definitely_illegal(mv) {
+        if game.is_legal(mv) {
             moves.push(mv);
         }
     }

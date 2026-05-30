@@ -70,7 +70,7 @@ impl TranspositionTableEntry {
     }
 
     fn relative_age(&self, age: u8) -> i32 {
-        i32::from((MAX_AGE + self.age() - age) & AGE_MASK)
+        i32::from((MAX_AGE + age - self.age()) & AGE_MASK)
     }
 
     fn is_empty(&self) -> bool {

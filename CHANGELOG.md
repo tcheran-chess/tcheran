@@ -6,6 +6,7 @@
 * Added TT clusters (6.28 +- 4.04)
 * Game::is_direct_check is now used in LMP (4.57 +- 3.35)
 * Re-introduce futility pruning and make it depth dependent (4.38 +- 3.25)
+* Fixed TT relative age calculation (2.91 +- 2.35)
 * Legal killer moves are now yielded before generating quiet moves for a minor speedup
 
 #### Misc

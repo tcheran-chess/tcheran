@@ -14,6 +14,7 @@
 * Dev versions of the engine now contain the git SHA it was built from
 * The TT move is now fully checked for legality, avoiding rare crashes
 * Underpromotion captures are now scored properly
+* Fixed empty TT entries being considered to have 'exact' bounds
 
 ## [12.0]
 

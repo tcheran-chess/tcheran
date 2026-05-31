@@ -28,10 +28,10 @@ impl BoundAndAge {
 
     fn bound(&self) -> NodeBound {
         match self.0 & 0b11 {
-            0b00 => NodeBound::Exact,
-            0b01 => NodeBound::Upper,
-            0b10 => NodeBound::Lower,
-            0b11 => NodeBound::None,
+            0b00 => NodeBound::None,
+            0b01 => NodeBound::Exact,
+            0b10 => NodeBound::Upper,
+            0b11 => NodeBound::Lower,
             _ => unreachable!(),
         }
     }
@@ -88,10 +88,10 @@ pub struct TranspositionTableHit {
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum NodeBound {
+    None,
     Exact,
     Upper,
     Lower,
-    None,
 }
 
 const ENTRIES_PER_CLUSTER: usize = 3;

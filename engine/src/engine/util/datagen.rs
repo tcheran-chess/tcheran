@@ -11,8 +11,15 @@ use crate::{
 
 const DEFAULT_STARTING_MOVES: usize = 8;
 
-fn random_starting_position(rand: &mut impl Rng) -> Result<Game, ()> {
-    let mut game = Game::new();
+fn random_starting_position(rand: &mut impl Rng, dfrc: bool) -> Result<Game, ()> {
+    let mut game = if !dfrc {
+        Game::new()
+    } else {
+        let white_idx = rand.random_range(0..960);
+        let black_idx = rand.random_range(0..960);
+
+        Game::new_dfrc(white_idx, black_idx)
+    };
 
     // We want to see games where the first non-random move was made by either player, so we want
     // to sometimes make an extra random move so that black can make the first non-random move.
@@ -50,12 +57,12 @@ fn random_starting_position(rand: &mut impl Rng) -> Result<Game, ()> {
     Ok(game)
 }
 
-fn acceptable_starting_position(rand: &mut impl Rng) -> Game {
+fn acceptable_starting_position(rand: &mut impl Rng, dfrc: bool) -> Game {
     const UNBALANCED_STARTING_EVAL: i32 = 1000;
 
     loop {
         // Skip any games that ended before we got to our starting position
-        let Ok(game) = random_starting_position(rand) else {
+        let Ok(game) = random_starting_position(rand, dfrc) else {
             continue;
         };
 
@@ -80,13 +87,18 @@ fn acceptable_starting_position(rand: &mut impl Rng) -> Game {
     }
 }
 
-pub fn generate_random_starting_positions(n: u64, seed: u64, _book: String) -> Vec<Game> {
+pub fn generate_random_starting_positions(
+    n: u64,
+    seed: u64,
+    _book: String,
+    dfrc: bool,
+) -> Vec<Game> {
     let mut rand = StdRng::seed_from_u64(seed);
 
     let mut games = Vec::new();
 
     for _ in 0..n {
-        let game = acceptable_starting_position(&mut rand);
+        let game = acceptable_starting_position(&mut rand, dfrc);
         games.push(game);
     }
 

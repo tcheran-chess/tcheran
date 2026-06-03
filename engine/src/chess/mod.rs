@@ -10,6 +10,7 @@ pub mod perft;
 pub mod piece;
 pub mod player;
 pub mod san;
+pub mod scharnagl;
 pub mod square;
 pub mod zobrist;
 

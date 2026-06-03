@@ -330,11 +330,13 @@ fn cmd_genfens(args: &[&str]) -> Result<UciCommand, ()> {
 
     let mut seed: Option<u64> = None;
     let mut book: Option<String> = None;
+    let mut dfrc = false;
 
     while let Some(&arg) = args.next() {
         match arg {
             "seed" => seed = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
             "book" => book = Some(args.next().ok_or(())?.to_string()),
+            "dfrc" => dfrc = args.next().ok_or(())?.parse::<bool>().map_err(|_| ())?,
             _ => return Err(()),
         }
     }
@@ -343,6 +345,7 @@ fn cmd_genfens(args: &[&str]) -> Result<UciCommand, ()> {
         n,
         seed: seed.ok_or(())?,
         book: book.ok_or(())?,
+        dfrc,
     })
 }
 

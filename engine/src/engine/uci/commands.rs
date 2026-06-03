@@ -33,6 +33,7 @@ pub enum UciCommand {
         n: u64,
         seed: u64,
         book: String,
+        dfrc: bool,
     },
 
     // Extra debug UCI commands

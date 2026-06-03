@@ -4,22 +4,22 @@ use crate::{
         board::Board,
         fen,
         movegen::{
-            all_attackers_of, generate_legal_moves, tables,
+            all_attackers_of, generate_legal_moves,
             tables::{
-                bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_between,
+                self, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_between,
                 ray_intersecting, rook_attacks,
             },
         },
         moves::{Move, MoveList},
         piece::{Piece, PieceKind, PromotionPieceKind},
         player::Player,
+        scharnagl,
         square::{
             Square,
             ranks::{back_rank, pawn_back_rank, promotion_rank},
             squares,
         },
-        zobrist,
-        zobrist::ZobristHash,
+        zobrist::{self, ZobristHash},
     },
     engine::eval::nnue::{NNUEChange, NNUEChanges},
 };
@@ -158,6 +158,11 @@ pub struct Game {
 impl Game {
     pub fn new() -> Self {
         Self::from_fen(fen::START_POS).unwrap()
+    }
+
+    pub fn new_dfrc(white_idx: usize, black_idx: usize) -> Self {
+        let (board, castle_rights) = scharnagl::from_idxs(white_idx, black_idx);
+        Self::from_state(board, Player::White, castle_rights, None, 0, 0, true)
     }
 
     pub fn from_state(

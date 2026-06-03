@@ -15,6 +15,7 @@
 * The TT move is now fully checked for legality, avoiding rare crashes
 * Underpromotion captures are now scored properly
 * Fixed empty TT entries being considered to have 'exact' bounds
+* Added the ability for genfens to generate DFRC starting positions
 
 ## [12.0]
 

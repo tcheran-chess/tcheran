@@ -499,11 +499,16 @@ impl Uci {
                 .reporter
                 .generic_report("datagen feature is not enabled"),
             #[cfg(feature = "datagen")]
-            UciCommand::GenFens { n, seed, book } => {
+            UciCommand::GenFens {
+                n,
+                seed,
+                book,
+                dfrc,
+            } => {
                 use crate::engine::util::datagen;
 
                 let starting_positions =
-                    datagen::generate_random_starting_positions(*n, *seed, book.to_owned());
+                    datagen::generate_random_starting_positions(*n, *seed, book.to_owned(), *dfrc);
                 for pos in starting_positions {
                     self.reporter
                         .generic_report(&format!("genfens {}", pos.to_fen()));

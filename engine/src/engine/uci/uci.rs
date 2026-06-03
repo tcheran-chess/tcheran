@@ -495,9 +495,12 @@ impl Uci {
             }
 
             #[cfg(not(feature = "datagen"))]
-            UciCommand::GenFens { .. } => self
-                .reporter
-                .generic_report("datagen feature is not enabled"),
+            UciCommand::GenFens { .. } => {
+                log::crashlog("datagen feature is not enabled");
+
+                self.reporter
+                    .generic_report("datagen feature is not enabled");
+            }
             #[cfg(feature = "datagen")]
             UciCommand::GenFens {
                 n,

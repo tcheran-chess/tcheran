@@ -72,7 +72,7 @@ pub fn on_option_change() {
     use super::params::*;
 
     // Re-initialise the LMR table, which depends on parameters
-    crate::engine::search::tables::lmr_table::init();
+    crate::engine::search::tables::init();
 
     // Re-initialise the SEE piece value array since it contains multiple parameters
     crate::engine::see::init_see_values(

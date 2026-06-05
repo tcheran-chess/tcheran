@@ -90,19 +90,21 @@ impl Flags {
 
     #[cfg(test)]
     pub fn are_valid(flags: u8) -> bool {
-        flags == Flags::Quiet as u8
-            || flags == Flags::Castle as u8
-            || flags == Flags::DoublePush as u8
-            || flags == Flags::Capture as u8
-            || flags == Flags::EnPassant as u8
-            || flags == Flags::PromoteToBishop as u8
-            || flags == Flags::PromoteToKnight as u8
-            || flags == Flags::PromoteToRook as u8
-            || flags == Flags::PromoteToQueen as u8
-            || flags == Flags::CaptureAndPromoteToBishop as u8
-            || flags == Flags::CaptureAndPromoteToKnight as u8
-            || flags == Flags::CaptureAndPromoteToRook as u8
-            || flags == Flags::CaptureAndPromoteToQueen as u8
+        use Flags::*;
+
+        flags == Quiet as u8
+            || flags == Castle as u8
+            || flags == DoublePush as u8
+            || flags == Capture as u8
+            || flags == EnPassant as u8
+            || flags == PromoteToBishop as u8
+            || flags == PromoteToKnight as u8
+            || flags == PromoteToRook as u8
+            || flags == PromoteToQueen as u8
+            || flags == CaptureAndPromoteToBishop as u8
+            || flags == CaptureAndPromoteToKnight as u8
+            || flags == CaptureAndPromoteToRook as u8
+            || flags == CaptureAndPromoteToQueen as u8
     }
 }
 

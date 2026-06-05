@@ -147,13 +147,13 @@ fn islegal_perft(depth: u8, game: &mut Game) {
     let moves = islegal_movegen(game);
     let movegen_moves = game.moves();
 
-    let moves_set: HashSet<&Move> = HashSet::from_iter(moves.iter());
+    let moves_set: HashSet<&Move> = moves.iter().collect();
 
     // First, check the list of generate moves against legal movegen
-    let actual_moves_set: HashSet<&Move> = HashSet::from_iter(movegen_moves.iter());
+    let actual_moves_set: HashSet<&Move> = movegen_moves.iter().collect();
 
-    let illegal_moves_allowed = moves_set.difference(&actual_moves_set);
-    for illegal_move in illegal_moves_allowed {
+    let illegal_moves_allowed = moves_set.difference(&actual_moves_set).collect::<Vec<_>>();
+    if let Some(illegal_move) = illegal_moves_allowed.first() {
         panic!(
             "is_legal allows illegal move\nposition: {}\nmove: {:?} [capture={},castling={},promo={},en_passant={},double_push={}]",
             game.to_fen(),
@@ -166,8 +166,8 @@ fn islegal_perft(depth: u8, game: &mut Game) {
         )
     }
 
-    let legal_moves_excluded = actual_moves_set.difference(&moves_set);
-    for legal_move in legal_moves_excluded {
+    let legal_moves_excluded = actual_moves_set.difference(&moves_set).collect::<Vec<_>>();
+    if let Some(legal_move) = legal_moves_excluded.first() {
         panic!(
             "is_legal excludes legal move\nposition: {}\nmove: {:?} [capture={},castling={},promo={},en_passant={},double_push={}]",
             game.to_fen(),
@@ -180,7 +180,7 @@ fn islegal_perft(depth: u8, game: &mut Game) {
         )
     }
 
-    for &mv in moves.iter() {
+    for &mv in &moves {
         game.make_move(mv);
         islegal_perft(depth - 1, game);
         game.undo_move();

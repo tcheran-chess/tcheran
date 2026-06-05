@@ -597,7 +597,7 @@ mod tests {
         should_not_allow_move(
             "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q2/PPP1BPpP/R1B1K2R w KQkq - 0 2",
             (E1, A1),
-        )
+        );
     }
 
     #[test]
@@ -616,6 +616,6 @@ mod tests {
         should_allow_move(
             "r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/5N2/qp1P2PP/R2Q1RK1 w kq - 0 2",
             (C5, B6),
-        )
+        );
     }
 }

@@ -1,7 +1,7 @@
 use std::num::NonZeroU16;
 
 use crate::{
-    chess::{piece::PromotionPieceKind, square::Square},
+    chess::{PromotionPieceKind, Square},
     util::arrayvec::ArrayVec,
 };
 

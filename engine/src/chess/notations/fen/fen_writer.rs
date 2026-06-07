@@ -1,9 +1,4 @@
-use crate::chess::{
-    board::Board,
-    game::Game,
-    piece::Piece,
-    square::{FILES, RANKS, Square},
-};
+use crate::chess::{Board, File, Game, Piece, Rank, Square};
 
 const fn format_piece(piece: Piece) -> char {
     match piece {
@@ -57,11 +52,11 @@ fn format_rank(rank: &[Option<Piece>]) -> String {
 }
 
 fn format_board(board: &Board) -> String {
-    RANKS
+    Rank::ALL
         .into_iter()
         .rev()
         .map(|r| {
-            FILES
+            File::ALL
                 .into_iter()
                 .map(|f| board.piece_at(Square::from_file_and_rank(f, r)))
                 .collect::<Vec<_>>()

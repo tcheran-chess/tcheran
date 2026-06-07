@@ -1,9 +1,6 @@
 use super::{MAX_SEARCH_DEPTH, SearchContext};
 use crate::{
-    chess::{
-        game::Game,
-        moves::{Move, MoveList},
-    },
+    chess::{Game, Move, moves::MoveList},
     engine::{
         eval::{self, Eval},
         params::*,

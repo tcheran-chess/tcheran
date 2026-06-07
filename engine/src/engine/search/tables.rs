@@ -1,14 +1,7 @@
 use std::cmp::min;
 
 use crate::{
-    chess::{
-        game::Game,
-        moves::{Move, MoveList},
-        piece::{Piece, PieceKind},
-        player::Player,
-        square::Square,
-        zobrist::ZobristHash,
-    },
+    chess::{Game, Move, Piece, PieceKind, Player, Square, moves::MoveList, zobrist::ZobristHash},
     engine::{
         eval::Eval,
         params::*,

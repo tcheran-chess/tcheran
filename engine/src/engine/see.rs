@@ -1,9 +1,7 @@
 use crate::{
     chess::{
-        game::Game,
-        moves::{Move, all_attackers_of, bishop_attacks, rook_attacks},
-        piece::PieceKind,
-        player::Player,
+        Game, Move, PieceKind, Player,
+        moves::{all_attackers_of, bishop_attacks, rook_attacks},
         rays::ray_skewering,
     },
     engine::{eval::Eval, params::*},
@@ -164,11 +162,7 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::{
-        game::Game,
-        moves::MoveListExt,
-        square::{Square, squares::all::*},
-    };
+    use crate::chess::{Game, Square, moves::MoveListExt, squares::all::*};
 
     fn use_basic_see_values() {
         super::init_see_values(100, 300, 300, 500, 900);

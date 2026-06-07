@@ -7,7 +7,7 @@ use std::{
 };
 
 use crate::{
-    chess::{game::Game, moves::Move, square::Square},
+    chess::{Game, Move, Square},
     engine::{
         options::EngineOptions,
         params::*,

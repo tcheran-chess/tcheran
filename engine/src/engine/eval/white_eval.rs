@@ -1,4 +1,4 @@
-use crate::{chess::player::Player, engine::eval::Eval};
+use crate::{chess::Player, engine::eval::Eval};
 
 /// A classical evaluation value from the white player's perspective
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]

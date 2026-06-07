@@ -7,7 +7,7 @@ use std::{
 use anyhow::Result;
 use clap::Args;
 use engine::{
-    chess::game::Game,
+    chess::Game,
     engine::eval::{nnue, nnue::NetworkStack},
 };
 use rayon::{iter::ParallelIterator, prelude::ParallelSlice};

@@ -1,9 +1,5 @@
 use crate::chess::{
-    board::Board,
-    game::{CastleRights, Game},
-    piece::Piece,
-    player::Player,
-    square::{File, Rank, Square, ranks::back_rank, squares},
+    Board, CastleRights, File, Game, Piece, Player, Rank, Square, ranks::back_rank, squares,
 };
 
 #[derive(Debug)]

@@ -1,6 +1,6 @@
 use std::ops::Div;
 
-use crate::{chess::player::Player, engine::eval::WhiteEval};
+use crate::{chess::Player, engine::eval::WhiteEval};
 
 /// An evaluation from the active player's perspective
 ///

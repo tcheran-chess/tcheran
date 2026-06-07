@@ -4,13 +4,7 @@ use std::{
 };
 
 use crate::{
-    chess::{
-        game::Game,
-        moves::{Move, MoveListExt},
-        piece::PromotionPieceKind,
-        player::Player,
-        square::Square,
-    },
+    chess::{Game, Move, Player, PromotionPieceKind, Square, moves::MoveListExt},
     engine::tablebases::bindings,
 };
 

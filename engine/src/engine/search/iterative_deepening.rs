@@ -1,5 +1,5 @@
 use crate::{
-    chess::game::Game,
+    chess::Game,
     engine::search::{
         MAX_SEARCH_DEPTH, Reporter, SearchContext, SearchInfo, SearchResult, SearchStats,
         aspiration::aspiration_search, principal_variation::PrincipalVariation, types::Depth,

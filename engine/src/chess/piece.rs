@@ -1,4 +1,4 @@
-use crate::chess::player::Player;
+use crate::chess::Player;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum PieceKind {

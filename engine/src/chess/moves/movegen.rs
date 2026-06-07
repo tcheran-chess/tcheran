@@ -1,13 +1,9 @@
 use crate::chess::{
-    bitboard::{
-        Bitboard, bitboards,
-        bitboards::{back_rank, double_push_rank, pawn_back_rank},
-    },
-    game::Game,
-    moves::{Move, bishop_attacks, king_attacks, knight_attacks, rook_attacks},
-    piece::PromotionPieceKind,
+    Bitboard, Game, Move, PromotionPieceKind, Square, bitboards,
+    bitboards::{back_rank, double_push_rank, pawn_back_rank},
+    moves::{bishop_attacks, king_attacks, knight_attacks, rook_attacks},
     rays::{ray_between, ray_relative_antidiagonal, ray_relative_diagonal, ray_skewering},
-    square::{Square, squares},
+    squares,
 };
 
 pub fn generate_legal_moves(game: &Game, mut f: impl FnMut(Move)) {

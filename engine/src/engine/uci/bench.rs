@@ -8,7 +8,7 @@ use std::{
 };
 
 use crate::{
-    chess::{game::Game, moves::Move},
+    chess::{Game, moves::Move},
     engine::{
         search,
         search::{PersistentState, Reporter, SearchInfo, TimeControl, types::Depth},

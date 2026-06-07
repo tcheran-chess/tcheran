@@ -1,9 +1,6 @@
 use crate::chess::{
-    bitboard::Bitboard,
-    direction::Direction,
+    Bitboard, Direction, Player, Square,
     moves::{bishop_attacks, rook_attacks},
-    player::Player,
-    square::Square,
 };
 
 static mut BETWEEN_RAYS: [[Bitboard; Square::N]; Square::N] =

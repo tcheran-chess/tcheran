@@ -1,4 +1,4 @@
-use engine::chess::{moves::Move, piece::PromotionPieceKind, square::Square};
+use engine::chess::{PromotionPieceKind, Square, moves::Move};
 use viriformat::chess::{
     chessmove::Move as ViriMove, piece::PieceType as ViriPieceType, types::Square as ViriSquare,
 };

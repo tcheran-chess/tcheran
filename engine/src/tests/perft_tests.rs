@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use crate::{
     chess::{
-        game::Game,
-        moves::{Flags, Move, MoveList, generate_quiets, generate_tacticals},
+        Game, Move,
+        moves::{Flags, MoveList, generate_quiets, generate_tacticals},
         notations::fen::START_POS,
         perft::perft,
     },

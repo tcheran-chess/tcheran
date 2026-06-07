@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    chess::game::Game,
+    chess::Game,
     engine::{
         eval::Eval,
         options::EngineOptions,

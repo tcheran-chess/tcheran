@@ -1,9 +1,5 @@
 use super::constants;
-use crate::chess::{
-    game::Game,
-    moves::Move,
-    piece::{PieceKind, PromotionPieceKind},
-};
+use crate::chess::{Game, Move, PieceKind, PromotionPieceKind};
 
 #[derive(Debug, Eq, PartialEq)]
 enum AmbiguityResolution {

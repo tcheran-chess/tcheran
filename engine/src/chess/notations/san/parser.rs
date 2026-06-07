@@ -2,10 +2,7 @@ use std::collections::HashSet;
 
 use super::constants;
 use crate::chess::{
-    game::Game,
-    moves::{Move, MoveListExt},
-    piece::{PieceKind, PromotionPieceKind},
-    square::{File, Rank, Square},
+    File, Game, Move, PieceKind, PromotionPieceKind, Rank, Square, moves::MoveListExt,
 };
 
 enum AmbiguityResolution {

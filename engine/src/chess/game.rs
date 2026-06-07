@@ -1,20 +1,14 @@
 use crate::{
     chess::{
-        bitboard::{Bitboard, bitboards},
-        board::Board,
+        Bitboard, Board, Move, Piece, PieceKind, Player, PromotionPieceKind, Square, bitboards,
         moves::{
-            Move, MoveList, all_attackers_of, bishop_attacks, generate_legal_moves, king_attacks,
+            MoveList, all_attackers_of, bishop_attacks, generate_legal_moves, king_attacks,
             knight_attacks, pawn_attacks, rook_attacks,
         },
         notations,
-        piece::{Piece, PieceKind, PromotionPieceKind},
-        player::Player,
+        ranks::{back_rank, pawn_back_rank, promotion_rank},
         rays::{ray_between, ray_intersecting},
-        square::{
-            Square,
-            ranks::{back_rank, pawn_back_rank, promotion_rank},
-            squares,
-        },
+        squares,
         zobrist::{self, ZobristHash},
     },
     engine::eval::nnue::{NNUEChange, NNUEChanges},

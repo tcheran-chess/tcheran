@@ -2,11 +2,7 @@ use std::time::{Duration, Instant};
 
 use super::commands::UciCommand;
 use crate::{
-    chess::{
-        piece::PromotionPieceKind,
-        player::Player,
-        square::{File, Rank, Square},
-    },
+    chess::{File, Player, PromotionPieceKind, Rank, Square},
     engine::{
         search::{Clocks, TimeControl, types::Depth},
         uci::{UciMove, commands::Position},

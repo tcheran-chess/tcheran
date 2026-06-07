@@ -1,18 +1,4 @@
-use crate::chess::{
-    bitboard::{Bitboard, bitboards},
-    player::Player,
-};
-
-pub const FILES: [File; File::N] = [
-    File::A,
-    File::B,
-    File::C,
-    File::D,
-    File::E,
-    File::F,
-    File::G,
-    File::H,
-];
+use crate::chess::{Bitboard, Player, bitboards};
 
 #[derive(PartialEq, Eq, Clone, Copy, Ord, PartialOrd)]
 pub enum File {
@@ -126,17 +112,6 @@ impl<T> std::ops::IndexMut<File> for [T; File::N] {
         unsafe { self.get_unchecked_mut(index as usize) }
     }
 }
-
-pub const RANKS: [Rank; Rank::N] = [
-    Rank::R1,
-    Rank::R2,
-    Rank::R3,
-    Rank::R4,
-    Rank::R5,
-    Rank::R6,
-    Rank::R7,
-    Rank::R8,
-];
 
 #[derive(PartialEq, Eq, Clone, Copy, Ord, PartialOrd)]
 pub enum Rank {

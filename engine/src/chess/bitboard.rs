@@ -1,8 +1,4 @@
-use crate::chess::{
-    direction::Direction,
-    player::Player,
-    square::{File, Rank, Square},
-};
+use crate::chess::{Direction, File, Player, Rank, Square};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Bitboard(u64);

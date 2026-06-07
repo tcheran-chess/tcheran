@@ -1,9 +1,5 @@
 use crate::chess::{
-    board::Board,
-    game::{CastleRights, Game},
-    piece::{Piece, PieceKind},
-    player::Player,
-    square::{File, Square, ranks::back_rank},
+    Board, CastleRights, File, Game, Piece, PieceKind, Player, Square, ranks::back_rank,
 };
 
 fn place_in_nth_available(

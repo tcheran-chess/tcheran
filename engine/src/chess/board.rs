@@ -1,10 +1,4 @@
-use crate::chess::{
-    bitboard::Bitboard,
-    moves::Move,
-    piece::{Piece, PieceKind},
-    player::Player,
-    square::Square,
-};
+use crate::chess::{Bitboard, Move, Piece, PieceKind, Player, Square};
 
 #[derive(Clone)]
 pub struct Board {

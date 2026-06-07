@@ -1,12 +1,5 @@
 use crate::{
-    chess::{
-        board::Board,
-        game::Game,
-        moves::Move,
-        piece::{Piece, PieceKind},
-        player::Player,
-        square::{File, Square, squares::all::*},
-    },
+    chess::{Board, File, Game, Piece, PieceKind, Player, Square, moves::Move, squares::all::*},
     engine::{
         eval::{Eval, simd},
         search::MAX_PLIES_ARRAY_SIZE,

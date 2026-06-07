@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    chess::{game::Game, moves::Move, piece::Piece, player::Player},
+    chess::{Game, Move, Piece, Player},
     engine::{
         eval::{Eval, nnue::NetworkStack},
         options::EngineOptions,

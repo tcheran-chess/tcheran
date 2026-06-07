@@ -1,9 +1,5 @@
 use crate::chess::{
-    game::{CastleRightsSide, Game},
-    piece::{Piece, PieceKind},
-    player::Player,
-    square::Square,
-    zobrist::components::ZobristComponent,
+    CastleRightsSide, Game, Piece, PieceKind, Player, Square, zobrist::components::ZobristComponent,
 };
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]

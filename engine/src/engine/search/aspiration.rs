@@ -1,5 +1,5 @@
 use crate::{
-    chess::game::Game,
+    chess::Game,
     engine::{
         eval::Eval,
         params::*,

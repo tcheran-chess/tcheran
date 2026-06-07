@@ -8,7 +8,7 @@ use std::{
 
 use anyhow::{Result, bail};
 use clap::Args;
-use engine::chess::{game::Game, moves::Move, notations::san, player::Player};
+use engine::chess::{Game, Move, Player, notations::san};
 use pgn_reader::{RawComment, RawTag, Reader, SanPlus, Visitor};
 use viriformat::{
     chess::board::{Board, DrawType, GameOutcome, WinType},

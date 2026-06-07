@@ -1,5 +1,6 @@
 pub mod chess;
 pub mod engine;
+pub mod util;
 
 #[cfg(test)]
 pub mod tests;

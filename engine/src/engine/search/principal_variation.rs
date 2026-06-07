@@ -1,7 +1,4 @@
-use crate::{
-    chess::{arrayvec::ArrayVec, moves::Move},
-    engine::search::MAX_PLIES_ARRAY_SIZE,
-};
+use crate::{chess::moves::Move, engine::search::MAX_PLIES_ARRAY_SIZE, util::arrayvec::ArrayVec};
 
 #[derive(Clone)]
 pub struct PrincipalVariation(ArrayVec<Move, MAX_PLIES_ARRAY_SIZE>);

@@ -1,6 +1,5 @@
 use crate::{
     chess::{
-        arrayvec::ArrayVec,
         board::Board,
         game::Game,
         moves::Move,
@@ -12,6 +11,7 @@ use crate::{
         eval::{Eval, simd},
         search::MAX_PLIES_ARRAY_SIZE,
     },
+    util::arrayvec::ArrayVec,
 };
 
 // Network parameters

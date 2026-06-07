@@ -1,6 +1,9 @@
 use std::num::NonZeroU16;
 
-use crate::chess::{arrayvec::ArrayVec, piece::PromotionPieceKind, square::Square};
+use crate::{
+    chess::{piece::PromotionPieceKind, square::Square},
+    util::arrayvec::ArrayVec,
+};
 
 pub const MAX_LEGAL_MOVES: usize = 218;
 

@@ -1,6 +1,5 @@
 use crate::{
     chess::{
-        arrayvec::ArrayVec,
         game::Game,
         moves::{MAX_LEGAL_MOVES, Move, generate_quiets, generate_tacticals},
         piece::PieceKind,
@@ -10,6 +9,7 @@ use crate::{
         search::{SearchStack, tables::Tables},
         see::{see, see_value},
     },
+    util::arrayvec::ArrayVec,
 };
 
 #[derive(Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]

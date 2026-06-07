@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    chess::{game::Game, moves::Move, player::Player, san},
+    chess::{game::Game, moves::Move, notations::san, player::Player},
     engine::{
         eval::{Eval, wdl, wdl::WdlProbabilities},
         search,

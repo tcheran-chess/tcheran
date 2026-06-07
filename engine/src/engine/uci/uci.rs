@@ -17,10 +17,10 @@ use crate::{
         bitboard::Bitboard,
         game::Game,
         moves::Move,
+        notations::san,
         perft,
         piece::PieceKind,
         player::Player,
-        san,
         square::{File, Rank, Square},
     },
     engine::{
@@ -367,7 +367,7 @@ impl Uci {
                 }
 
                 println!("{:?}", self.game.board);
-                println!("FEN: {}", crate::chess::fen::write(&self.game));
+                println!("FEN: {}", crate::chess::notations::fen::write(&self.game));
                 println!();
             }
             UciCommand::Perft { depth } => {

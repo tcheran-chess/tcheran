@@ -2,10 +2,10 @@ use std::collections::HashSet;
 
 use crate::{
     chess::{
-        fen::START_POS,
         game::Game,
         movegen,
         moves::{Flags, Move, MoveList},
+        notations::fen::START_POS,
         perft::perft,
     },
     engine::search::{SearchStack, move_picker::MovePicker, tables::Tables},

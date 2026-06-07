@@ -2,7 +2,6 @@ use crate::{
     chess::{
         bitboard::{Bitboard, bitboards},
         board::Board,
-        fen,
         movegen::{
             all_attackers_of, generate_legal_moves,
             tables::{
@@ -11,9 +10,9 @@ use crate::{
             },
         },
         moves::{Move, MoveList},
+        notations,
         piece::{Piece, PieceKind, PromotionPieceKind},
         player::Player,
-        scharnagl,
         square::{
             Square,
             ranks::{back_rank, pawn_back_rank, promotion_rank},
@@ -157,11 +156,11 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
-        Self::from_fen(fen::START_POS).unwrap()
+        Self::from_fen(notations::fen::START_POS).unwrap()
     }
 
     pub fn new_dfrc(white_idx: usize, black_idx: usize) -> Self {
-        let (board, castle_rights) = scharnagl::from_idxs(white_idx, black_idx);
+        let (board, castle_rights) = notations::scharnagl::from_idxs(white_idx, black_idx);
         Self::from_state(board, Player::White, castle_rights, None, 0, 0, true)
     }
 
@@ -214,16 +213,16 @@ impl Game {
         game
     }
 
-    pub fn from_fen(fen: &str) -> Result<Self, fen::ParseError> {
-        fen::parse(fen, false)
+    pub fn from_fen(fen: &str) -> Result<Self, notations::fen::ParseError> {
+        notations::fen::parse(fen, false)
     }
 
-    pub fn from_frc_fen(fen: &str) -> Result<Self, fen::ParseError> {
-        fen::parse(fen, true)
+    pub fn from_frc_fen(fen: &str) -> Result<Self, notations::fen::ParseError> {
+        notations::fen::parse(fen, true)
     }
 
     pub fn to_fen(&self) -> String {
-        fen::write(self)
+        notations::fen::write(self)
     }
 
     pub fn turn(&self) -> u32 {

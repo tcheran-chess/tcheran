@@ -1,8 +1,8 @@
+use super::constants;
 use crate::chess::{
     game::Game,
     moves::Move,
     piece::{PieceKind, PromotionPieceKind},
-    san::constants,
 };
 
 #[derive(Debug, Eq, PartialEq)]
@@ -137,9 +137,9 @@ fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
 mod tests {
     use super::*;
     use crate::chess::{
-        fen,
         game::Game,
         moves::MoveListExt,
+        notations::fen,
         square::{Square, squares::all::*},
     };
 

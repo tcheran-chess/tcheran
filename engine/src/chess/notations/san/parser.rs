@@ -1,10 +1,10 @@
 use std::collections::HashSet;
 
+use super::constants;
 use crate::chess::{
     game::Game,
     moves::{Move, MoveListExt},
     piece::{PieceKind, PromotionPieceKind},
-    san::constants,
     square::{File, Rank, Square},
 };
 
@@ -270,7 +270,9 @@ pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::{fen, game::Game, piece::PromotionPieceKind, square::squares::all::*};
+    use crate::chess::{
+        game::Game, notations::fen, piece::PromotionPieceKind, square::squares::all::*,
+    };
 
     fn test_parse_san(fen: &'static str, expected_mv: (Square, Square), san: &'static str) {
         crate::init();

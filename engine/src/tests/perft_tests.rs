@@ -3,8 +3,7 @@ use std::collections::HashSet;
 use crate::{
     chess::{
         game::Game,
-        movegen,
-        moves::{Flags, Move, MoveList},
+        moves::{Flags, Move, MoveList, generate_quiets, generate_tacticals},
         notations::fen::START_POS,
         perft::perft,
     },
@@ -53,8 +52,8 @@ fn movepicker_perft(
 
     let mut best_move = None;
     if test_individual_node_move_counts {
-        movegen::generate_tacticals(game, &mut |mv| tacticals_movelist.push(mv));
-        movegen::generate_quiets(game, &mut |mv| quiets_movelist.push(mv));
+        generate_tacticals(game, &mut |mv| tacticals_movelist.push(mv));
+        generate_quiets(game, &mut |mv| quiets_movelist.push(mv));
 
         // We want to make sure that we don't generate the best_move more than once, or any of the
         // killer moves more than once.

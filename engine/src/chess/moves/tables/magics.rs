@@ -1,7 +1,7 @@
-use super::attacks;
 use crate::chess::{
     bitboard::{Bitboard, bitboards},
     direction::Direction,
+    moves::attacks,
     square::Square,
 };
 
@@ -149,12 +149,12 @@ pub fn init() {
     initialise_bishop_attacks();
 }
 
-pub fn rook_attacks(s: Square, blockers: Bitboard) -> Bitboard {
+pub fn lookup_rook_attacks(s: Square, blockers: Bitboard) -> Bitboard {
     let table_idx = table_index_rook(s, blockers);
     *unsafe { ATTACKS_TABLE.get_unchecked(table_idx) }
 }
 
-pub fn bishop_attacks(s: Square, blockers: Bitboard) -> Bitboard {
+pub fn lookup_bishop_attacks(s: Square, blockers: Bitboard) -> Bitboard {
     let table_idx = table_index_bishop(s, blockers);
     *unsafe { ATTACKS_TABLE.get_unchecked(table_idx) }
 }

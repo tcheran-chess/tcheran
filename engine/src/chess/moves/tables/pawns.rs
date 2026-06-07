@@ -1,10 +1,9 @@
-use super::attacks;
-use crate::chess::{bitboard::Bitboard, player::Player, square::Square};
+use crate::chess::{bitboard::Bitboard, moves::attacks, player::Player, square::Square};
 
 static mut ATTACKS_TABLE: [[Bitboard; Square::N]; Player::N] =
     [[Bitboard::EMPTY; Square::N]; Player::N];
 
-pub fn pawn_attacks(s: Square, player: Player) -> Bitboard {
+pub fn lookup_pawn_attacks(s: Square, player: Player) -> Bitboard {
     unsafe { ATTACKS_TABLE[player][s] }
 }
 

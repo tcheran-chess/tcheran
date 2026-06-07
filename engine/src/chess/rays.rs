@@ -1,7 +1,7 @@
 use crate::chess::{
     bitboard::Bitboard,
     direction::Direction,
-    movegen::tables::{bishop_attacks, rook_attacks},
+    moves::{bishop_attacks, rook_attacks},
     player::Player,
     square::Square,
 };

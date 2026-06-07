@@ -2,17 +2,14 @@ use crate::{
     chess::{
         bitboard::{Bitboard, bitboards},
         board::Board,
-        movegen::{
-            all_attackers_of, generate_legal_moves,
-            tables::{
-                self, bishop_attacks, king_attacks, knight_attacks, pawn_attacks, ray_between,
-                ray_intersecting, rook_attacks,
-            },
+        moves::{
+            Move, MoveList, all_attackers_of, bishop_attacks, generate_legal_moves, king_attacks,
+            knight_attacks, pawn_attacks, rook_attacks,
         },
-        moves::{Move, MoveList},
         notations,
         piece::{Piece, PieceKind, PromotionPieceKind},
         player::Player,
+        rays::{ray_between, ray_intersecting},
         square::{
             Square,
             ranks::{back_rank, pawn_back_rank, promotion_rank},
@@ -461,7 +458,7 @@ impl Game {
                 & self.board.orthogonal_sliders(!player);
 
             for pinner in potential_orthogonal_pinners | potential_diagonal_pinners {
-                let between_ray = tables::ray_between(our_king, pinner);
+                let between_ray = ray_between(our_king, pinner);
                 let blockers = between_ray & our_pieces;
 
                 match blockers.count() {

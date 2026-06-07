@@ -1,4 +1,32 @@
-use crate::chess::{bitboard::Bitboard, direction::Direction, player::Player, square::Square};
+use crate::chess::{
+    bitboard::Bitboard, board::Board, direction::Direction, moves::tables, player::Player,
+    square::Square,
+};
+
+#[inline]
+pub fn pawn_attacks(s: Square, player: Player) -> Bitboard {
+    tables::lookup_pawn_attacks(s, player)
+}
+
+#[inline]
+pub fn knight_attacks(s: Square) -> Bitboard {
+    tables::lookup_knight_attacks(s)
+}
+
+#[inline]
+pub fn bishop_attacks(s: Square, pieces: Bitboard) -> Bitboard {
+    tables::lookup_bishop_attacks(s, pieces)
+}
+
+#[inline]
+pub fn rook_attacks(s: Square, pieces: Bitboard) -> Bitboard {
+    tables::lookup_rook_attacks(s, pieces)
+}
+
+#[inline]
+pub fn king_attacks(s: Square) -> Bitboard {
+    tables::lookup_king_attacks(s)
+}
 
 pub fn generate_pawn_attacks(square: Square, player: Player) -> Bitboard {
     let mut attacks = Bitboard::EMPTY;
@@ -69,4 +97,20 @@ pub fn generate_king_attacks(square: Square) -> Bitboard {
     }
 
     attacks
+}
+
+pub fn all_attackers_of(board: &Board, square: Square, occupied: Bitboard) -> Bitboard {
+    use Player::*;
+
+    let mut attackers = Bitboard::EMPTY;
+
+    attackers |= pawn_attacks(square, White) & board.pawns(Black);
+    attackers |= pawn_attacks(square, Black) & board.pawns(White);
+
+    attackers |= knight_attacks(square) & board.all_knights();
+    attackers |= bishop_attacks(square, occupied) & board.all_diagonal_sliders();
+    attackers |= rook_attacks(square, occupied) & board.all_orthogonal_sliders();
+    attackers |= king_attacks(square) & board.all_kings();
+
+    attackers
 }

@@ -4,12 +4,9 @@ use crate::chess::{
         bitboards::{back_rank, double_push_rank, pawn_back_rank},
     },
     game::Game,
-    movegen::{
-        tables,
-        tables::{ray_between, ray_relative_antidiagonal, ray_relative_diagonal, ray_skewering},
-    },
-    moves::Move,
+    moves::{Move, bishop_attacks, king_attacks, knight_attacks, rook_attacks},
     piece::PromotionPieceKind,
+    rays::{ray_between, ray_relative_antidiagonal, ray_relative_diagonal, ray_skewering},
     square::{Square, squares},
 };
 
@@ -270,7 +267,7 @@ fn generate_knight_captures(
     f: &mut impl FnMut(Move),
 ) {
     for knight in knights & !pinned {
-        let destinations = tables::knight_attacks(knight) & dst_mask;
+        let destinations = knight_attacks(knight) & dst_mask;
         for dst in destinations {
             f(Move::capture(knight, dst));
         }
@@ -284,7 +281,7 @@ fn generate_knight_quiets(
     f: &mut impl FnMut(Move),
 ) {
     for knight in knights & !pinned {
-        let destinations = tables::knight_attacks(knight) & dst_mask;
+        let destinations = knight_attacks(knight) & dst_mask;
         for dst in destinations {
             f(Move::quiet(knight, dst));
         }
@@ -300,7 +297,7 @@ fn generate_diagonal_slider_captures(
     f: &mut impl FnMut(Move),
 ) {
     for src in diagonal_sliders & !pinned {
-        let destinations = tables::bishop_attacks(src, all_pieces) & dst_mask;
+        let destinations = bishop_attacks(src, all_pieces) & dst_mask;
         for dst in destinations {
             f(Move::capture(src, dst));
         }
@@ -308,7 +305,7 @@ fn generate_diagonal_slider_captures(
 
     for src in diagonal_sliders & pinned {
         let pin_ray = ray_skewering(king, src);
-        let destinations = tables::bishop_attacks(src, all_pieces) & dst_mask & pin_ray;
+        let destinations = bishop_attacks(src, all_pieces) & dst_mask & pin_ray;
         for dst in destinations {
             f(Move::capture(src, dst));
         }
@@ -324,7 +321,7 @@ fn generate_diagonal_slider_quiets(
     f: &mut impl FnMut(Move),
 ) {
     for src in diagonal_sliders & !pinned {
-        let destinations = tables::bishop_attacks(src, all_pieces) & dst_mask;
+        let destinations = bishop_attacks(src, all_pieces) & dst_mask;
         for dst in destinations {
             f(Move::quiet(src, dst));
         }
@@ -332,7 +329,7 @@ fn generate_diagonal_slider_quiets(
 
     for src in diagonal_sliders & pinned {
         let pin_ray = ray_skewering(king, src);
-        let destinations = tables::bishop_attacks(src, all_pieces) & dst_mask & pin_ray;
+        let destinations = bishop_attacks(src, all_pieces) & dst_mask & pin_ray;
         for dst in destinations {
             f(Move::quiet(src, dst));
         }
@@ -348,7 +345,7 @@ fn generate_orthogonal_slider_captures(
     f: &mut impl FnMut(Move),
 ) {
     for src in orthogonal_sliders & !pinned {
-        let destinations = tables::rook_attacks(src, all_pieces) & dst_mask;
+        let destinations = rook_attacks(src, all_pieces) & dst_mask;
         for dst in destinations {
             f(Move::capture(src, dst));
         }
@@ -356,7 +353,7 @@ fn generate_orthogonal_slider_captures(
 
     for src in orthogonal_sliders & pinned {
         let pin_ray = ray_skewering(king, src);
-        let destinations = tables::rook_attacks(src, all_pieces) & dst_mask & pin_ray;
+        let destinations = rook_attacks(src, all_pieces) & dst_mask & pin_ray;
         for dst in destinations {
             f(Move::capture(src, dst));
         }
@@ -372,7 +369,7 @@ fn generate_orthogonal_slider_quiets(
     f: &mut impl FnMut(Move),
 ) {
     for src in orthogonal_sliders & !pinned {
-        let destinations = tables::rook_attacks(src, all_pieces) & dst_mask;
+        let destinations = rook_attacks(src, all_pieces) & dst_mask;
         for dst in destinations {
             f(Move::quiet(src, dst));
         }
@@ -380,7 +377,7 @@ fn generate_orthogonal_slider_quiets(
 
     for src in orthogonal_sliders & pinned {
         let pin_ray = ray_skewering(king, src);
-        let destinations = tables::rook_attacks(src, all_pieces) & dst_mask & pin_ray;
+        let destinations = rook_attacks(src, all_pieces) & dst_mask & pin_ray;
         for dst in destinations {
             f(Move::quiet(src, dst));
         }
@@ -393,14 +390,14 @@ fn generate_king_captures(
     their_pieces: Bitboard,
     f: &mut impl FnMut(Move),
 ) {
-    let destinations = tables::king_attacks(king) & their_pieces & !game.threats;
+    let destinations = king_attacks(king) & their_pieces & !game.threats;
     for dst in destinations {
         f(Move::capture(king, dst));
     }
 }
 
 fn generate_king_quiets(game: &Game, king: Square, all_pieces: Bitboard, f: &mut impl FnMut(Move)) {
-    let destinations = tables::king_attacks(king) & !all_pieces & !game.threats;
+    let destinations = king_attacks(king) & !all_pieces & !game.threats;
     for dst in destinations {
         f(Move::quiet(king, dst));
     }

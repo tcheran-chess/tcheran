@@ -2,8 +2,7 @@ use crate::{
     chess::{
         arrayvec::ArrayVec,
         game::Game,
-        movegen,
-        moves::{MAX_LEGAL_MOVES, Move},
+        moves::{MAX_LEGAL_MOVES, Move, generate_quiets, generate_tacticals},
         piece::PieceKind,
     },
     engine::{
@@ -76,7 +75,7 @@ impl MovePicker {
         if self.stage == GenTacticals {
             self.stage = GoodTacticals;
 
-            movegen::generate_tacticals(game, &mut |mv| {
+            generate_tacticals(game, &mut |mv| {
                 if Some(mv) == self.previous_best_move {
                     return;
                 }
@@ -122,7 +121,7 @@ impl MovePicker {
             self.stage = ScoreQuiets;
 
             if !self.skip_quiets {
-                movegen::generate_quiets(game, &mut |mv| {
+                generate_quiets(game, &mut |mv| {
                     if Some(mv) == self.previous_best_move {
                         return;
                     }

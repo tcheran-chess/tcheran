@@ -1,11 +1,10 @@
 use crate::{
     chess::{
         game::Game,
-        movegen,
-        movegen::{tables, tables::ray_skewering},
-        moves::Move,
+        moves::{Move, all_attackers_of, bishop_attacks, rook_attacks},
         piece::PieceKind,
         player::Player,
+        rays::ray_skewering,
     },
     engine::{eval::Eval, params::*},
 };
@@ -92,7 +91,7 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
     let mut diagonal_sliders = board.all_diagonal_sliders() & occupied;
     let mut orthorgonal_sliders = board.all_orthogonal_sliders() & occupied;
 
-    let mut attackers = movegen::all_attackers_of(board, to, occupied) & occupied & not_pinned;
+    let mut attackers = all_attackers_of(board, to, occupied) & occupied & not_pinned;
 
     let mut color = game.player;
 
@@ -142,11 +141,11 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
             || attacker == PieceKind::Bishop
             || attacker == PieceKind::Queen
         {
-            attackers |= tables::bishop_attacks(to, occupied) & diagonal_sliders;
+            attackers |= bishop_attacks(to, occupied) & diagonal_sliders;
         }
 
         if attacker == PieceKind::Rook || attacker == PieceKind::Queen {
-            attackers |= tables::rook_attacks(to, occupied) & orthorgonal_sliders;
+            attackers |= rook_attacks(to, occupied) & orthorgonal_sliders;
         }
 
         if color == game.player {

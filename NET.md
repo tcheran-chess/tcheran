@@ -34,3 +34,4 @@ All data used for training is self-play data generated using the datagen code fr
 | -  | `(768hm->1024)x2->8`   | WDL 0.4, LR 0.001, 120 batches | `-6.96 +- 4.58`     | Attempting a 0.4 -> 0.6 WDL first stage for training |
 | 15 | `(768hm->1024)x2->8`   | WDL 0.4, LR 0.001, 120 batches | `19.22 +- 7.60`     | Same as net 14, but with an additional ~416M positions at 20ksn |
 | 16 | `(768x4hm->1024)x2->8` | WDL 0.4, LR 0.001, 120 batches | `19.04 +- 7.72`     | Added 4 input buckets, trained with an additional ~2.1B positions |
+| 17 | `(768x4hm->1024)x2->8` | WDL 0.4, LR 0.001, 120 batches | `91.09 +- 18.98` DFRC     | Same as net 16 but with ~185M DFRC positions |

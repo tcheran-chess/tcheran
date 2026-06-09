@@ -1,18 +1,29 @@
-use crate::{
-    chess::{
-        Bitboard, Board, Move, Piece, PieceKind, Player, PromotionPieceKind, Square, bitboards,
-        moves::{
-            MoveList, all_attackers_of, bishop_attacks, generate_legal_moves, king_attacks,
-            knight_attacks, pawn_attacks, rook_attacks,
-        },
-        notations,
-        ranks::{back_rank, pawn_back_rank, promotion_rank},
-        rays::{ray_between, ray_intersecting},
-        squares,
-        zobrist::{self, ZobristHash},
+use crate::chess::{
+    Bitboard, Board, Move, Piece, PieceKind, Player, PromotionPieceKind, Square, bitboards,
+    moves::{
+        MoveList, all_attackers_of, bishop_attacks, generate_legal_moves, king_attacks,
+        knight_attacks, pawn_attacks, rook_attacks,
     },
-    engine::eval::nnue::{NNUEChange, NNUEChanges},
+    notations,
+    ranks::{back_rank, pawn_back_rank, promotion_rank},
+    rays::{ray_between, ray_intersecting},
+    squares,
+    zobrist::{self, ZobristHash},
 };
+
+pub trait MoveObserver {
+    fn init(&mut self, moved_piece: Piece, mv: Move);
+    fn set(&mut self, sq: Square, piece: Piece);
+    fn remove(&mut self, sq: Square, piece: Piece);
+}
+
+struct NullObserver;
+
+impl MoveObserver for NullObserver {
+    fn init(&mut self, _moved_piece: Piece, _move: Move) {}
+    fn set(&mut self, _sq: Square, _piece: Piece) {}
+    fn remove(&mut self, _sq: Square, _piece: Piece) {}
+}
 
 #[derive(Debug, Copy, Clone)]
 pub enum CastleRightsSide {
@@ -335,17 +346,17 @@ impl Game {
         zones.contains(mv.to())
     }
 
-    fn set_at(&mut self, sq: Square, piece: Piece, nnue_changes: &mut NNUEChanges) {
+    fn set_at(&mut self, sq: Square, piece: Piece, observer: &mut impl MoveObserver) {
         self.board.set_at(sq, piece);
         self.toggle_piece_in_hashes(sq, piece);
-        nnue_changes.adds.push(NNUEChange::new(sq, piece));
+        observer.set(sq, piece);
     }
 
-    fn remove_at(&mut self, sq: Square, nnue_changes: &mut NNUEChanges) -> Piece {
+    fn remove_at(&mut self, sq: Square, observer: &mut impl MoveObserver) -> Piece {
         let removed_piece = self.board.piece_guaranteed_at(sq);
         self.board.remove_at(sq);
         self.toggle_piece_in_hashes(sq, removed_piece);
-        nnue_changes.subs.push(NNUEChange::new(sq, removed_piece));
+        observer.remove(sq, removed_piece);
 
         removed_piece
     }
@@ -698,10 +709,10 @@ impl Game {
     }
 
     pub fn make_move(&mut self, mv: Move) {
-        self.make_move_nnue(mv, &mut NNUEChanges::uninit());
+        self.make_move_observed(mv, &mut NullObserver);
     }
 
-    pub fn make_move_nnue(&mut self, mv: Move, nnue_changes: &mut NNUEChanges) {
+    pub fn make_move_observed(&mut self, mv: Move, observer: &mut impl MoveObserver) {
         let from = mv.from();
         let to = mv.to();
         let player = self.player;
@@ -710,8 +721,7 @@ impl Game {
         let moved_piece = self.board.piece_guaranteed_at(from);
         let maybe_captured_piece = self.board.piece_at(to);
 
-        nnue_changes.moved_piece = moved_piece;
-        nnue_changes.mv = mv;
+        observer.init(moved_piece, mv);
 
         // Capture the irreversible aspects of the position so that they can be restored
         // if we undo this move.
@@ -737,10 +747,10 @@ impl Game {
 
         self.history.push(history);
 
-        self.remove_at(from, nnue_changes);
+        self.remove_at(from, observer);
 
         if maybe_captured_piece.is_some() {
-            self.remove_at(to, nnue_changes);
+            self.remove_at(to, observer);
         }
 
         // Move the piece to the destination, unless we're castling.
@@ -748,9 +758,9 @@ impl Game {
         // ends up. We'll move it to the right square later on.
         if let Some(promoted_to) = mv.promotion() {
             let promoted_piece = Piece::new(player, promoted_to.piece());
-            self.set_at(to, promoted_piece, nnue_changes);
+            self.set_at(to, promoted_piece, observer);
         } else if !mv.is_castling() {
-            self.set_at(to, moved_piece, nnue_changes);
+            self.set_at(to, moved_piece, observer);
         }
 
         // If we moved a pawn to the en passant target, this was an en passant capture, so we
@@ -758,7 +768,7 @@ impl Game {
         if mv.is_en_passant() {
             // Remove the piece behind the square the pawn just moved to
             let capture_square = to.backward(player);
-            self.remove_at(capture_square, nnue_changes);
+            self.remove_at(capture_square, observer);
         }
 
         let new_en_passant_target = if mv.is_double_push() {
@@ -790,10 +800,10 @@ impl Game {
             && let Some((king_to, rook_to)) =
                 self.castle_rights[player].castle_dst_squares(player, to)
         {
-            self.set_at(king_to, moved_piece, nnue_changes);
+            self.set_at(king_to, moved_piece, observer);
 
             // The rook was 'captured'
-            self.set_at(rook_to, maybe_captured_piece.unwrap(), nnue_changes);
+            self.set_at(rook_to, maybe_captured_piece.unwrap(), observer);
         }
 
         // If we moved the king, we lose castle rights

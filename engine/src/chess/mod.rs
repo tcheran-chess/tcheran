@@ -14,7 +14,7 @@ pub mod zobrist;
 pub use bitboard::{Bitboard, bitboards};
 pub use board::Board;
 pub use direction::Direction;
-pub use game::{CastleRights, CastleRightsSide, Game};
+pub use game::{CastleRights, CastleRightsSide, Game, MoveObserver};
 pub use moves::Move;
 pub use piece::{Piece, PieceKind, PromotionPieceKind};
 pub use player::Player;

@@ -122,7 +122,7 @@ pub fn quiescence(
 
         ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.from())));
 
-        game.make_move_nnue(mv, ctx.nnue.next_changes());
+        game.make_move_observed(mv, ctx.nnue.next_changes());
 
         let move_score = -quiescence(game, -s, plies + 1, ctx);
 

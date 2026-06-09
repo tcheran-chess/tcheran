@@ -404,7 +404,7 @@ pub fn negamax(
         let nodes_before = ctx.nodes.get();
         ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.from())));
 
-        game.make_move_nnue(mv, ctx.nnue.next_changes());
+        game.make_move_observed(mv, ctx.nnue.next_changes());
         moves_tried += 1;
 
         // Only apply the extension to the singular move

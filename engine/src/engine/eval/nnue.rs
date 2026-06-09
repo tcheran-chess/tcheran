@@ -1,5 +1,8 @@
 use crate::{
-    chess::{Board, File, Game, Piece, PieceKind, Player, Square, moves::Move, squares::all::*},
+    chess::{
+        Board, File, Game, MoveObserver, Piece, PieceKind, Player, Square, moves::Move,
+        squares::all::*,
+    },
     engine::{
         eval::{Eval, simd},
         search::MAX_PLIES_ARRAY_SIZE,
@@ -73,6 +76,21 @@ pub struct NNUEChanges {
     pub subs: ArrayVec<NNUEChange, 2>,
     pub mv: Move,
     pub moved_piece: Piece,
+}
+
+impl MoveObserver for NNUEChanges {
+    fn init(&mut self, moved_piece: Piece, mv: Move) {
+        self.moved_piece = moved_piece;
+        self.mv = mv;
+    }
+
+    fn set(&mut self, sq: Square, piece: Piece) {
+        self.adds.push(NNUEChange::new(sq, piece));
+    }
+
+    fn remove(&mut self, sq: Square, piece: Piece) {
+        self.subs.push(NNUEChange::new(sq, piece));
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

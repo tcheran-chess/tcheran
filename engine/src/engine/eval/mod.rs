@@ -1,4 +1,5 @@
 mod eval;
+mod inference;
 pub mod nnue;
 mod player_eval;
 mod simd;

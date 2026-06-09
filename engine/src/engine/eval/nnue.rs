@@ -4,7 +4,7 @@ use crate::{
         squares::all::*,
     },
     engine::{
-        eval::{Eval, simd},
+        eval::{Eval, inference},
         search::MAX_PLIES_ARRAY_SIZE,
     },
     util::arrayvec::ArrayVec,
@@ -480,7 +480,7 @@ impl NNUE {
     pub fn evaluate(&self, player: Player, game: &Game) -> Eval {
         let (us, them) = (&self[player], &self[player.other()]);
         let output_bucket = Self::bucket(game);
-        let mut output = simd::sum_output_weights(us, them, output_bucket);
+        let mut output = inference::sum_output_weights(us, them, output_bucket);
 
         // Reduce quantization from QA * QA * QB to QA * QB.
         output /= i32::from(QA);

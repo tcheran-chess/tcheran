@@ -402,71 +402,30 @@ fn generate_king_quiets(game: &Game, king: Square, all_pieces: Bitboard, f: &mut
 fn generate_castles(game: &Game, all_pieces: Bitboard, f: &mut impl FnMut(Move)) {
     let castle_rights_for_player = game.castle_rights[game.player];
 
-    if !game.is_frc {
-        if let Some(kingside_dst) = castle_rights_for_player.king_side {
-            generate_castle_move_for_side(
-                game,
-                all_pieces,
-                f,
-                kingside_dst,
-                squares::kingside_king_castle_end(game.player),
-            );
-        }
+    if let Some(kingside_dst) = castle_rights_for_player.king_side {
+        generate_castle_move_for_side(
+            game,
+            all_pieces,
+            f,
+            kingside_dst,
+            squares::kingside_rook_castle_end(game.player),
+            squares::kingside_king_castle_end(game.player),
+        );
+    }
 
-        if let Some(queenside_dst) = castle_rights_for_player.queen_side {
-            generate_castle_move_for_side(
-                game,
-                all_pieces,
-                f,
-                queenside_dst,
-                squares::queenside_king_castle_end(game.player),
-            );
-        }
-    } else {
-        if let Some(kingside_dst) = castle_rights_for_player.king_side {
-            generate_frc_castle_move_for_side(
-                game,
-                all_pieces,
-                f,
-                kingside_dst,
-                squares::kingside_rook_castle_end(game.player),
-                squares::kingside_king_castle_end(game.player),
-            );
-        }
-
-        if let Some(queenside_dst) = castle_rights_for_player.queen_side {
-            generate_frc_castle_move_for_side(
-                game,
-                all_pieces,
-                f,
-                queenside_dst,
-                squares::queenside_rook_castle_end(game.player),
-                squares::queenside_king_castle_end(game.player),
-            );
-        }
+    if let Some(queenside_dst) = castle_rights_for_player.queen_side {
+        generate_castle_move_for_side(
+            game,
+            all_pieces,
+            f,
+            queenside_dst,
+            squares::queenside_rook_castle_end(game.player),
+            squares::queenside_king_castle_end(game.player),
+        );
     }
 }
 
 fn generate_castle_move_for_side(
-    game: &Game,
-    all_pieces: Bitboard,
-    f: &mut impl FnMut(Move),
-    rook: Square,
-    king_dst: Square,
-) {
-    let king = game.board.king_square(game.player);
-
-    let required_empty_squares = ray_between(king, rook);
-    let required_safe_squares = ray_between(king, king_dst) | king_dst.bb();
-
-    if (required_empty_squares & all_pieces).is_empty()
-        && (required_safe_squares & game.threats).is_empty()
-    {
-        f(Move::castles(king, rook));
-    }
-}
-
-fn generate_frc_castle_move_for_side(
     game: &Game,
     all_pieces: Bitboard,
     f: &mut impl FnMut(Move),

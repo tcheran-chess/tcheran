@@ -8,13 +8,16 @@ pub fn sum_output_weights(us: &Accumulator, them: &Accumulator, output_bucket: u
         target_feature = "avx2" => {
             sum_output_weights_simd(us, them, output_bucket)
         }
+        target_feature = "neon" => {
+            sum_output_weights_simd(us, them, output_bucket)
+        }
         _ => {
             sum_output_weights_scalar(us, them, output_bucket)
         }
     }
 }
 
-#[cfg(any(target_feature = "avx512bw", target_feature = "avx2"))]
+#[cfg(any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon"))]
 #[allow(unused, reason = "May be unused when SIMD is unavailable")]
 fn sum_output_weights_simd(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> i32 {
     use crate::engine::eval::simd::{

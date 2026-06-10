@@ -1,8 +1,8 @@
 use crate::chess::{
     Bitboard, Board, Move, Piece, PieceKind, Player, PromotionPieceKind, Square, bitboards,
     moves::{
-        MoveList, all_attackers_of, bishop_attacks, generate_legal_moves, king_attacks,
-        knight_attacks, pawn_attacks, rook_attacks,
+        MoveList, bishop_attacks, generate_legal_moves, king_attacks, knight_attacks, pawn_attacks,
+        rook_attacks,
     },
     notations,
     ranks::{back_rank, pawn_back_rank, promotion_rank},
@@ -971,17 +971,21 @@ impl Game {
 
         let moved_pawn = en_passant_target.backward(self.player);
         let king = self.board.king_square(self.player);
+        let them = !self.player;
 
         let potential_capturers =
-            self.board.pawns(self.player) & pawn_attacks(en_passant_target, self.player.other());
+            self.board.pawns(self.player) & pawn_attacks(en_passant_target, them);
 
         for pawn in potential_capturers {
-            let blockers =
-                en_passant_target.bb() | (self.board.occupancy().without(moved_pawn).without(pawn));
+            let blockers = self
+                .board
+                .occupancy()
+                .without(moved_pawn)
+                .with(en_passant_target)
+                .without(pawn);
 
-            let checkers = blockers
-                & all_attackers_of(&self.board, king, blockers)
-                & self.board.occupancy_for(!self.player);
+            let checkers = rook_attacks(king, blockers) & self.board.orthogonal_sliders(them)
+                | bishop_attacks(king, blockers) & self.board.diagonal_sliders(them);
 
             if checkers.is_empty() {
                 can_capture = true;

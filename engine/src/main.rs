@@ -9,7 +9,7 @@ use engine::engine::util::log;
 
 fn main() -> ExitCode {
     std::panic::set_hook(Box::new(|info| {
-        let backtrace = Backtrace::capture();
+        let backtrace = Backtrace::force_capture();
         let panic_message = get_panic_message(info, &backtrace);
 
         println!("{panic_message}");

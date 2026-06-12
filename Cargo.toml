@@ -56,7 +56,6 @@ useless_let_if_seq = "allow"
 # modulename.rs will contain any top-level logic.
 module_inception = "allow"
 
-allow_attributes = "warn"
 allow_attributes_without_reason = "warn"
 
 [profile.release]

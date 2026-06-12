@@ -53,7 +53,7 @@ fn setup_network() -> PathBuf {
     // If so, check that it exists - but just use that.
     if let Ok(eval_file) = env::var("EVALFILE") {
         let path = relative_to_project_root(&eval_file);
-        assert!(path.exists(), "EVALFILE was {}, but not found at {}", &eval_file, path.display());
+        assert!(path.exists(), "EVALFILE was {}, but not found at {}", eval_file, path.display());
         return path;
     }
 

@@ -70,7 +70,7 @@ impl<M: Sync> Sender<M> {
         let shared = &*self.shared;
         let (threads, generation) = unpack_futex(shared.futex.load(Relaxed));
         // Because any previous `send` call waited until all receivers handled the message, there should be no outstanding receivers.
-        debug_assert!(threads == 0);
+        debug_assert_eq!(threads, 0);
 
         // SAFETY: Because the sender waits until all receivers handled the message, we can safely store a pointer to the local message
         // and have the receivers dereference that pointer.

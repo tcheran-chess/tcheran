@@ -117,7 +117,7 @@ pub fn run(net_name: &str) {
 
     let data = ViriBinpackLoader::new(
         "etc/data/data.viri",
-        1024 * 20,
+        1024 * 8,
         4,
         viriformat::dataformat::Filter::default(),
     );

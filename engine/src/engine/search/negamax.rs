@@ -337,8 +337,8 @@ pub fn negamax(
         // Futility pruning
         if !is_root
             && !is_pv
-            && mv.is_quiet()
             && !in_check
+            && mv.is_quiet()
             && lmr_depth <= futility_prune_depth()
             && eval + futility_prune_base_value() + lmr_depth * futility_prune_depth_multiplier()
                 <= s.alpha

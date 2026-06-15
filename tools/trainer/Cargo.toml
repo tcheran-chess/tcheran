@@ -4,6 +4,11 @@ version = "0.0.0"
 rust-version = { workspace = true }
 edition = { workspace = true }
 
+[features]
+default = ["metal"]
+metal = ["bullet_lib/metal"]
+cuda = ["bullet_lib/cuda"]
+
 [dependencies]
-bullet_lib = { git = "https://github.com/jw1912/bullet", package = "bullet_lib", features = ["metal"] }
+bullet_lib = { git = "https://github.com/jw1912/bullet", package = "bullet_lib" }
 viriformat = "2.0.1"

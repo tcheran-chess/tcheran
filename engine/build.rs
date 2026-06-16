@@ -92,6 +92,7 @@ fn download_network(download_to: &Path) {
         .unwrap();
 
     assert!(download_succeeded.success(), "Unable to download network");
+    println!("cargo::warning=Fetched network: {NETWORK}");
 }
 
 fn build_fathom() {

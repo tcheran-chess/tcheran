@@ -18,5 +18,7 @@ ifeq ($(DATAGEN),true)
 	DATAGEN_FEATURE_ARG := --features datagen
 endif
 
-openbench:
+default: build
+
+build:
 	cargo rustc --manifest-path ./engine/Cargo.toml --bin engine --release $(SPSA_FEATURE_ARG) $(DATAGEN_FEATURE_ARG) -- -C target-cpu=native --emit link=$(NAME)

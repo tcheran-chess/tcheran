@@ -107,12 +107,12 @@ dependencies = [
 [[package]]
 name = "bullet-compiler"
 version = "0.1.0"
-source = "git+https://github.com/jw1912/bullet#3b7341725b9c44d29959bb4b1abe4ea6033e0577"
+source = "git+https://github.com/jw1912/bullet#ae4572ac992d4412a18e80133089c33dcb00f195"
 
 [[package]]
 name = "bullet-gpu"
 version = "0.1.0"
-source = "git+https://github.com/jw1912/bullet#3b7341725b9c44d29959bb4b1abe4ea6033e0577"
+source = "git+https://github.com/jw1912/bullet#ae4572ac992d4412a18e80133089c33dcb00f195"
 dependencies = [
  "bullet-compiler",
  "objc2",
@@ -124,7 +124,7 @@ dependencies = [
 [[package]]
 name = "bullet-trainer"
 version = "0.1.0"
-source = "git+https://github.com/jw1912/bullet#3b7341725b9c44d29959bb4b1abe4ea6033e0577"
+source = "git+https://github.com/jw1912/bullet#ae4572ac992d4412a18e80133089c33dcb00f195"
 dependencies = [
  "bullet-compiler",
  "bullet-gpu",
@@ -135,7 +135,7 @@ dependencies = [
 [[package]]
 name = "bullet_lib"
 version = "1.0.0"
-source = "git+https://github.com/jw1912/bullet#3b7341725b9c44d29959bb4b1abe4ea6033e0577"
+source = "git+https://github.com/jw1912/bullet#ae4572ac992d4412a18e80133089c33dcb00f195"
 dependencies = [
  "bullet-compiler",
  "bullet-gpu",

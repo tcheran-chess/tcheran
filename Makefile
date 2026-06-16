@@ -1,6 +1,6 @@
 export RUSTFLAGS := -Ctarget-cpu=native
 
-EXE = Tcheran
+EXE = tcheran
 SPSA = false
 DATAGEN = false
 

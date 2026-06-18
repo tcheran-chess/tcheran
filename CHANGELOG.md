@@ -10,6 +10,7 @@
 * Score quiet moves that give check higher for picking (4.97 +- 3.54)
 * Game::is_direct_check is now used in LMP (4.57 +- 3.35)
 * Re-introduce futility pruning and make it depth dependent (4.38 +- 3.25)
+* Reduce less for 'ttpv' nodes (3.12 +- 2.48)
 * Fixed TT relative age calculation (2.91 +- 2.35)
 * Network #19, upping the number of input buckets from 4 to 8 (2.95 +- 2.37)
 * Legal killer moves are now yielded before generating quiet moves for a minor speedup

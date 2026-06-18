@@ -49,6 +49,7 @@ parameters!(
     lmr_is_not_pv_factor: u32 = 1043 [128..2048];
     lmr_many_fail_highs_factor: u32 = 866 [128..2048];
     lmr_in_check_factor: u32 = 377 [128..2048];
+    lmr_ttpv_factor: u32 = 1024 [128..2048];
 
     // Eval
     material_scale_base: i32 = 971 [512..1024];

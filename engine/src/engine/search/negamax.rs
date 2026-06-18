@@ -448,6 +448,8 @@ pub fn negamax(
                     // Reducing less:
                     reduction.reduce_less_if(in_check, lmr_in_check_factor());
 
+                    reduction.reduce_less_if(tt_pv, lmr_ttpv_factor());
+
                     reduction.value()
                 } else {
                     0

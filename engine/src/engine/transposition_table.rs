@@ -16,12 +16,12 @@ pub struct TranspositionTable {
 
 #[derive(Clone)]
 #[repr(transparent)]
-struct BoundAndAge(u8);
+struct Flags(u8);
 
 const MAX_AGE: u8 = 1 << 6;
 const AGE_MASK: u8 = MAX_AGE - 1;
 
-impl BoundAndAge {
+impl Flags {
     fn new(bound: NodeBound, age: u8) -> Self {
         Self(age << 2 | bound as u8)
     }
@@ -49,12 +49,12 @@ fn tt_key(hash: ZobristHash) -> u16 {
 
 #[derive(Clone)]
 struct TranspositionTableEntry {
-    pub key: u16,                   // 2 bytes
-    pub best_move: Option<Move>,    // 2 bytes
-    pub score: i16,                 // 2 bytes
-    pub eval: i16,                  // 2 bytes
-    pub depth: u8,                  // 1 byte
-    pub bound_and_age: BoundAndAge, // 1 byte
+    pub key: u16,                // 2 bytes
+    pub best_move: Option<Move>, // 2 bytes
+    pub score: i16,              // 2 bytes
+    pub eval: i16,               // 2 bytes
+    pub depth: u8,               // 1 byte
+    pub flags: Flags,            // 1 byte
 }
 
 const _ASSERT_TT_DATA_SIZE: () =
@@ -62,11 +62,11 @@ const _ASSERT_TT_DATA_SIZE: () =
 
 impl TranspositionTableEntry {
     fn bound(&self) -> NodeBound {
-        self.bound_and_age.bound()
+        self.flags.bound()
     }
 
     fn age(&self) -> u8 {
-        self.bound_and_age.age()
+        self.flags.age()
     }
 
     fn relative_age(&self, age: u8) -> i32 {
@@ -336,7 +336,7 @@ impl TranspositionTable {
             eval: eval.0 as i16,
             depth: depth.as_u8(),
             best_move,
-            bound_and_age: BoundAndAge::new(bound, age),
+            flags: Flags::new(bound, age),
         };
 
         if best_move.is_none()

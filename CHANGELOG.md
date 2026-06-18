@@ -18,6 +18,7 @@
 * Underpromotion captures are now scored properly
 * Fixed empty TT entries being considered to have 'exact' bounds
 * Added the ability for genfens to generate DFRC starting positions
+* The 'Minimal' UCI option is now respected
 
 ## [12.0]
 

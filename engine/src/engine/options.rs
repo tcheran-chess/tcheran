@@ -5,6 +5,7 @@ pub mod defaults {
 
     pub const HASH_SIZE: usize = 16;
     pub const THREADS: usize = 1;
+    pub const MINIMAL: bool = false;
     pub const FRC: bool = false;
 
     pub const MOVE_OVERHEAD: Duration = Duration::from_millis(0);
@@ -19,6 +20,7 @@ pub mod defaults {
 pub struct EngineOptions {
     pub hash_size: usize,
     pub threads: usize,
+    pub minimal: bool,
     pub frc: bool,
 
     // Account for the possibility that there's some overhead making the move
@@ -34,6 +36,7 @@ impl EngineOptions {
     pub const DEFAULT: Self = Self {
         hash_size: defaults::HASH_SIZE,
         threads: defaults::THREADS,
+        minimal: defaults::MINIMAL,
         frc: defaults::FRC,
 
         move_overhead: defaults::MOVE_OVERHEAD,

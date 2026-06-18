@@ -105,6 +105,7 @@ impl ThreadData {
 pub struct SearchContext<'s> {
     pub tt: &'s TranspositionTable,
     pub tablebase: &'s Tablebase,
+    pub options: &'s EngineOptions,
 
     pub tables: &'s mut Tables,
     pub nnue: &'s mut NetworkStack,
@@ -137,6 +138,7 @@ impl<'s> SearchContext<'s> {
         Self {
             tt,
             tablebase,
+            options,
 
             tables,
             stack: search_stack,
@@ -338,7 +340,7 @@ pub fn search(
     // such as the exact number of nodes searched and the exact time used. This could be useful for
     // debugging time issues or reproducing a bug by playing exact nodes.
     // See https://github.com/AndyGrant/Ethereal/issues/214
-    if ctx.was_hard_stopped {
+    if ctx.was_hard_stopped || ctx.options.minimal {
         reporter.report_search_progress(SearchInfo {
             game,
             pv: result.pv.clone(),

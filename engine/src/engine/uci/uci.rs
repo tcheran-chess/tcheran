@@ -617,6 +617,12 @@ pub fn uci_options() -> Vec<UciOption> {
         .with_bounds(1, 1024)
         .build(),
         //
+        UciOption::check("Minimal", |refs, value| {
+            refs.options.minimal = value;
+        })
+        .default(defaults::MINIMAL)
+        .build(),
+        //
         UciOption::check("UCI_Chess960", |refs, value| {
             refs.options.frc = value;
             refs.game.is_frc = value;

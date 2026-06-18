@@ -47,12 +47,14 @@ pub fn search(
         ctx.time_control
             .update_after_search(new_best_move, depth, ctx.nodes.get());
 
-        reporter.report_search_progress(SearchInfo {
-            game,
-            eval,
-            pv: pv.clone(),
-            stats: SearchStats::from_ctx(ctx),
-        });
+        if !ctx.options.minimal {
+            reporter.report_search_progress(SearchInfo {
+                game,
+                eval,
+                pv: pv.clone(),
+                stats: SearchStats::from_ctx(ctx),
+            });
+        }
     }
 
     result.expect("Should always end iterative deepening with a result")

@@ -303,6 +303,8 @@ pub fn negamax(
                 extension = 2;
                 ctx.stack.get(plies).double_extensions += 1;
             }
+        } else if se_beta >= s.beta {
+            return se_beta;
         } else if !is_pv && !value.is_decisive() && value >= s.beta {
             return value;
         } else if tt_score >= s.beta {

@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     sync::atomic::{AtomicU64, Ordering},
     time::{Duration, Instant},
 };
@@ -8,6 +9,7 @@ use crate::{
     engine::{
         eval::{Eval, nnue::NetworkStack},
         options::EngineOptions,
+        params::*,
         search::{
             iterative_deepening,
             principal_variation::PrincipalVariation,
@@ -353,7 +355,8 @@ pub fn search(
         stop_control.stop();
         stop_control.wait_until_last();
 
-        let result = best_result(results);
+        let all_results = results.get();
+        let result = best_result(&all_results);
 
         let send_final_info =
              // We picked a different thread, so we want to report *that* thread's info
@@ -381,13 +384,30 @@ pub fn search(
     thread_result
 }
 
-fn best_result(results: &SearchResults) -> SearchResult {
-    let results = results.get();
+fn best_result(results: &[SearchResult]) -> &SearchResult {
+    if results.len() == 1 {
+        return &results[0];
+    }
 
-    // For now, we assume that the main thread produced the best result
-    let result = &results[0];
+    let worst_score = results
+        .iter()
+        .map(|r| r.score)
+        .min()
+        .expect("Should have a worst score");
 
-    result.clone()
+    let thread_value = |r: &SearchResult| -> i64 {
+        i64::from(r.score.0 - worst_score.0 + thread_vote_offset()) * i64::from(r.stats.depth)
+    };
+
+    let mut votes: HashMap<Move, i64> = HashMap::new();
+    for thread_result in results {
+        *votes.entry(thread_result.mv).or_insert(0) += thread_value(thread_result);
+    }
+
+    results
+        .iter()
+        .max_by_key(|r| votes.get(&r.mv).expect("Should have votes for each move"))
+        .expect("Should have a best result")
 }
 
 // Simple single-threaded search used by utilities like bench, tests and datagen

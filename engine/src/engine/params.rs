@@ -89,6 +89,8 @@ parameters!(
     non_pawn_correction_history_weight: i32 = 88 [48..256];
     threat_correction_history_weight: i32 = 149 [48..256];
 
+    thread_vote_offset: i32 = 25 [2..32];
+
     // Time Management
     max_time_per_move: u32 = 90 [50..100];
     default_moves_to_go: u32 = 20 [8..32];

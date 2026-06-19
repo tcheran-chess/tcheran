@@ -49,6 +49,10 @@ impl Eval {
         Self(Self::TB_MATED + i32::from(ply))
     }
 
+    pub fn is_real(self) -> bool {
+        self < Self::MAX && self > Self::MIN
+    }
+
     #[inline]
     pub fn is_decisive(self) -> bool {
         self.is_win() || self.is_loss()

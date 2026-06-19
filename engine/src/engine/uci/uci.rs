@@ -5,6 +5,7 @@ use std::{
     sync::{
         Arc,
         atomic::{AtomicBool, Ordering},
+        mpsc::{Receiver, SyncSender, sync_channel},
     },
     thread,
     thread::JoinHandle,
@@ -36,27 +37,26 @@ use crate::{
             responses::{IdParam, UciReporter, UciResponse},
         },
         util,
-        util::{
-            command_channel::{Receiver, Sender, channel},
-            log, metrics,
-        },
+        util::{log, metrics},
     },
 };
 
 pub struct Threads {
     threads: Vec<JoinHandle<()>>,
-    tx: Sender<ThreadCommand>,
+    txs: Vec<SyncSender<ThreadCommand>>,
 
     thread_control: StopControl,
 }
 
 impl Threads {
-    pub fn new() -> Self {
-        let (tx, _) = channel(0);
+    fn create_channels(n: u32) -> (Vec<SyncSender<ThreadCommand>>, Vec<Receiver<ThreadCommand>>) {
+        (0..n).map(|_| sync_channel(0)).unzip()
+    }
 
+    pub fn new() -> Self {
         let mut ts = Self {
             threads: vec![],
-            tx,
+            txs: vec![],
 
             thread_control: StopControl::new(0),
         };
@@ -75,15 +75,16 @@ impl Threads {
                 .for_each(|t| t.join().expect("Thread panicked"));
         }
 
-        let (tx, rxs) = channel(n);
+        let (txs, rxs) = Self::create_channels(n);
 
         self.threads = rxs
+            .into_iter()
             .enumerate()
             .map(|(thread_id, rx)| {
                 thread::spawn({
                     move || {
                         if std::panic::catch_unwind(move || {
-                            worker_thread_loop(rx, thread_id);
+                            worker_thread_loop(&rx, thread_id);
                         })
                         .is_err()
                         {
@@ -94,14 +95,17 @@ impl Threads {
             })
             .collect();
 
-        self.tx = tx;
+        self.txs = txs;
         self.thread_control = StopControl::new(0);
 
         self.send(ThreadCommand::Ping);
     }
 
-    fn send(&mut self, cmd: ThreadCommand) {
-        self.tx.send(cmd);
+    #[expect(clippy::needless_pass_by_value, reason = "Must be cloned for each tx")]
+    fn send(&self, cmd: ThreadCommand) {
+        for tx in &self.txs {
+            tx.send(cmd.clone()).expect("receiver disconnected");
+        }
     }
 
     pub fn wait(&self) {
@@ -685,12 +689,12 @@ pub fn uci_options() -> Vec<UciOption> {
     o
 }
 
-fn worker_thread_loop(mut rx: Receiver<ThreadCommand>, id: usize) {
+fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
     let mut thread_data = ThreadData::new(id);
     let is_main_thread = id == 0;
 
     loop {
-        match rx.recv(Clone::clone) {
+        match rx.recv().unwrap() {
             ThreadCommand::Search {
                 game,
                 mut time_control,

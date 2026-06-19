@@ -81,7 +81,6 @@ A huge thanks to the following people and tools:
 * [OpenBench][openbench], which is used for testing changes to the engine
 * [Stockfish's WDL model][stockfish-wdl], which is used for normalizing Tcheran's evaluation output
 * @JonathanHallstrom for training some networks for Tcheran
-* sp00ph for his command channel, which is used in Tcheran's SMP implementation
 * The testers at [CCRL][ccrl] (and elsewhere), who have invested time and hardware resource, and provided consistent motivation to improve
 
 [bullet]: https://github.com/jw1912/bullet

@@ -1,29 +1,31 @@
 use crate::{
-    chess::{Game, Move, Square, squares::all::*},
+    chess::{Game, Square, squares::all::*},
     engine::{
         eval::Eval,
-        search::{NullReporter, PersistentState, TimeControl, st_search, types::Depth},
+        search::{
+            NullReporter, PersistentState, SearchResult, TimeControl, st_search, types::Depth,
+        },
     },
 };
 
-fn test_expected_move(fen: &str, depth: Depth, mv: (Square, Square)) -> (Move, Eval) {
+fn test_expected_move(fen: &str, depth: Depth, mv: (Square, Square)) -> SearchResult {
     crate::init();
     let game = Game::from_fen(fen).unwrap();
 
-    let (best_move, eval) =
+    let result =
         st_search(&game, &PersistentState::new(16), TimeControl::Depth(depth), &NullReporter);
 
-    assert_eq!((best_move.from(), best_move.to()), mv);
-    (best_move, eval)
+    assert_eq!((result.best_move.from(), result.best_move.to()), mv);
+    result
 }
 
 #[test]
 fn test_mate_on_100th_halfmove_detected() {
-    let (_, eval) = test_expected_move(
+    let result = test_expected_move(
         "4Q3/8/1p4pk/1PbB1p1p/7P/p3P1PK/P3qP2/8 w - - 99 88",
         Depth::new(5),
         (E8, H8),
     );
 
-    assert_eq!(eval, Eval::mate_in(1));
+    assert_eq!(result.eval, Eval::mate_in(1));
 }

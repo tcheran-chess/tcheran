@@ -67,7 +67,7 @@ fn acceptable_starting_position(rand: &mut impl Rng, dfrc: bool) -> Game {
         };
 
         // Do a quick search to ensure that we haven't landed in a completely broken (won/lost) position.
-        let (_, eval) = st_search(
+        let result = st_search(
             &game,
             &PersistentState::new(4),
             TimeControl::Nodes {
@@ -77,7 +77,7 @@ fn acceptable_starting_position(rand: &mut impl Rng, dfrc: bool) -> Game {
             &NullReporter,
         );
 
-        let normalised_eval = wdl::normalize(eval, &game.board);
+        let normalised_eval = wdl::normalize(result.eval, &game.board);
 
         if normalised_eval.0.abs() >= UNBALANCED_STARTING_EVAL {
             continue;

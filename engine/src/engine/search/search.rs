@@ -301,7 +301,7 @@ pub fn search(
     stop_control: &StopControl,
     options: &EngineOptions,
     reporter: &dyn Reporter,
-) -> (Move, Eval) {
+) -> SearchResult {
     let is_main_thread = thread_data.id == 0;
 
     let (tables, stack, nnue) = thread_data.mut_refs();
@@ -351,7 +351,7 @@ pub fn search(
 
     reporter.best_move(game, result.best_move);
 
-    (result.best_move, result.eval)
+    result
 }
 
 // Simple single-threaded search used by utilities like bench, tests and datagen
@@ -360,7 +360,7 @@ pub fn st_search(
     persistent_state: &PersistentState,
     time_control: TimeControl,
     reporter: &dyn Reporter,
-) -> (Move, Eval) {
+) -> SearchResult {
     search(
         game,
         persistent_state,

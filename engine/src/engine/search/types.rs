@@ -1,6 +1,6 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, sync::OnceLock};
 
-use crate::engine::eval::Eval;
+use crate::engine::{eval::Eval, search::SearchResult};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct ScoreWindow {
@@ -200,5 +200,34 @@ impl DepthReduction {
     )]
     pub fn value(&self) -> u8 {
         (self.0 / 1024) as u8
+    }
+}
+
+pub struct SearchResults(Vec<OnceLock<SearchResult>>);
+
+impl SearchResults {
+    pub fn new(n: usize) -> Self {
+        Self(
+            (0..n)
+                .map(|_| OnceLock::new())
+                .collect::<Vec<OnceLock<SearchResult>>>(),
+        )
+    }
+
+    pub fn set(&self, n: usize, result: &SearchResult) {
+        _ = self
+            .0
+            .get(n)
+            .expect("Should have unique access to set result for our thread")
+            .set(result.clone());
+    }
+
+    pub fn get(&self) -> Vec<(usize, SearchResult)> {
+        self.0
+            .iter()
+            .map(|l| l.get().expect("Every thread should've reported a result"))
+            .cloned()
+            .enumerate()
+            .collect::<Vec<_>>()
     }
 }

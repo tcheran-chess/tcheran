@@ -13,7 +13,7 @@ use crate::{
             principal_variation::PrincipalVariation,
             tables::{KillersTable, Tables},
             time_control::{StopControl, TimeStrategy},
-            types::Depth,
+            types::{Depth, SearchResults},
         },
         tablebases::{Tablebase, Wdl},
         transposition_table::TranspositionTable,
@@ -235,10 +235,12 @@ impl Clocks {
     }
 }
 
+#[derive(Clone)]
 pub struct SearchResult {
     pub best_move: Move,
     pub eval: Eval,
     pub pv: PrincipalVariation,
+    pub stats: SearchStats,
 }
 
 pub struct SearchInfo<'s> {
@@ -248,6 +250,7 @@ pub struct SearchInfo<'s> {
     pub stats: SearchStats,
 }
 
+#[derive(Clone)]
 pub struct SearchStats {
     pub time: Duration,
     pub depth: u8,
@@ -297,12 +300,14 @@ pub fn search(
     game: &Game,
     persistent_state: &PersistentState,
     thread_data: &mut ThreadData,
+    results: &SearchResults,
     time_control: TimeControl,
     stop_control: &StopControl,
     options: &EngineOptions,
     reporter: &dyn Reporter,
 ) -> SearchResult {
-    let is_main_thread = thread_data.id == 0;
+    let thread_id = thread_data.id;
+    let is_main_thread = thread_id == 0;
 
     let (tables, stack, nnue) = thread_data.mut_refs();
     let mut ctx = SearchContext::new(
@@ -319,7 +324,7 @@ pub fn search(
         options,
     );
 
-    let result = iterative_deepening::search(
+    let thread_result = iterative_deepening::search(
         // Give the search its own copy of the game so we don't get one returned in a dirty state
         // when the search aborts.
         &mut game.clone(),
@@ -327,31 +332,54 @@ pub fn search(
         reporter,
     );
 
+    results.set(thread_id, &thread_result);
+
     if is_main_thread {
         // If we're the main thread, signal for all the other threads to stop and then wait until
         // they do.
         stop_control.stop();
         stop_control.wait_until_last();
+
+        let (best_thread_id, result) = best_result(results);
+
+        let send_final_info =
+             // We picked a different thread, so we want to report *that* thread's info
+             best_thread_id != thread_id
+             // We did more searching since last reporting, always send a final info line
+             // before reporting the best move so we have useful information such as the exact number of
+             // nodes searched and the exact time used. This could be useful for debugging time issues or
+             // reproducing a bug by playing exact nodes.
+             // See https://github.com/AndyGrant/Ethereal/issues/214
+             || ctx.was_hard_stopped
+             // This will be the only info we send
+             || ctx.options.minimal;
+
+        stop_control.stopped();
+
+        if send_final_info {
+            reporter.report_search_progress(SearchInfo {
+                game,
+                pv: result.pv.clone(),
+                eval: result.eval,
+                stats: result.stats.clone(),
+            });
+        }
+
+        reporter.best_move(game, result.best_move);
+    } else {
+        stop_control.stopped();
     }
 
-    stop_control.stopped();
+    thread_result
+}
 
-    // Always send a final info line before reporting the best move so we have useful information
-    // such as the exact number of nodes searched and the exact time used. This could be useful for
-    // debugging time issues or reproducing a bug by playing exact nodes.
-    // See https://github.com/AndyGrant/Ethereal/issues/214
-    if ctx.was_hard_stopped || ctx.options.minimal {
-        reporter.report_search_progress(SearchInfo {
-            game,
-            pv: result.pv.clone(),
-            eval: result.eval,
-            stats: SearchStats::from_ctx(&ctx),
-        });
-    }
+fn best_result(results: &SearchResults) -> (usize, SearchResult) {
+    let results = results.get();
 
-    reporter.best_move(game, result.best_move);
+    // For now, we assume that the main thread produced the best result
+    let (thread_id, result) = &results[0];
 
-    result
+    (*thread_id, result.clone())
 }
 
 // Simple single-threaded search used by utilities like bench, tests and datagen
@@ -366,6 +394,7 @@ pub fn st_search(
         persistent_state,
         // Non-main thread ID so that we don't wait to finish
         &mut ThreadData::new(1),
+        &SearchResults::new(2),
         time_control,
         &StopControl::new(0),
         &EngineOptions::DEFAULT,

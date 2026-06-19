@@ -25,7 +25,7 @@ use crate::{
         options::{EngineOptions, defaults},
         search::{
             NullReporter, PersistentState, Reporter, SearchInfo, SearchStats, ThreadData,
-            TimeControl, probe_tb_at_root, search, time_control::StopControl,
+            TimeControl, probe_tb_at_root, search, time_control::StopControl, types::SearchResults,
         },
         uci::{
             bench::bench,
@@ -140,6 +140,7 @@ pub enum ThreadCommand {
         options: EngineOptions,
         persistent_state: Arc<PersistentState>,
         reporter: Arc<dyn Reporter + Send + Sync>,
+        results: Arc<SearchResults>,
     },
     Quit,
     Ping,
@@ -284,6 +285,7 @@ impl Uci {
                 let reporter = self.reporter.clone();
                 let time_control = time_control.clone();
                 let stop_control = self.threads.thread_control.clone();
+                let results = Arc::new(SearchResults::new(self.options.threads));
 
                 self.threads.send(ThreadCommand::Search {
                     game,
@@ -292,6 +294,7 @@ impl Uci {
                     options,
                     persistent_state,
                     reporter,
+                    results,
                 });
 
                 if self.block_on_threads {
@@ -688,6 +691,7 @@ fn worker_thread_loop(mut rx: Receiver<ThreadCommand>, id: usize) {
                 options,
                 persistent_state,
                 reporter,
+                results,
             } => {
                 thread_data.new_search(&game);
 
@@ -721,6 +725,7 @@ fn worker_thread_loop(mut rx: Receiver<ThreadCommand>, id: usize) {
                     &game,
                     &persistent_state,
                     &mut thread_data,
+                    &results,
                     time_control,
                     &stop_control,
                     &options,

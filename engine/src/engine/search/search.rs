@@ -392,11 +392,10 @@ pub fn st_search(
     search(
         game,
         persistent_state,
-        // Non-main thread ID so that we don't wait to finish
-        &mut ThreadData::new(1),
-        &SearchResults::new(2),
+        &mut ThreadData::new(0),
+        &SearchResults::new(1),
         time_control,
-        &StopControl::new(0),
+        &StopControl::new(1),
         &EngineOptions::DEFAULT,
         reporter,
     )

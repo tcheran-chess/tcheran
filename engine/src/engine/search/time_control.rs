@@ -12,8 +12,8 @@ use crate::{
         options::EngineOptions,
         params::*,
         search::{SearchContext, TimeControl, types::Depth},
-        util::n_waiter::NWaiter,
     },
+    util::monitor::Monitor,
 };
 
 pub struct TimeStrategy {
@@ -37,20 +37,20 @@ pub struct TimeStrategy {
 #[derive(Clone)]
 pub struct StopControl {
     force_stop: Arc<AtomicBool>,
-    running: NWaiter,
+    running: Monitor<u32>,
 }
 
 impl StopControl {
     pub fn new(n: u32) -> Self {
         Self {
             force_stop: Arc::new(AtomicBool::new(false)),
-            running: NWaiter::new(n),
+            running: Monitor::new(n),
         }
     }
 
-    pub fn start_search(&self) {
+    pub fn start_search(&self, n: u32) {
         self.force_stop.store(false, Ordering::Relaxed);
-        self.running.start();
+        self.running.set(n);
     }
 
     pub fn stop(&self) {
@@ -58,7 +58,7 @@ impl StopControl {
     }
 
     pub fn stopped(&self) {
-        self.running.decr();
+        self.running.modify(|n| *n -= 1, |n| n == 0 || n == 1);
     }
 
     pub fn reset(&self) {
@@ -66,7 +66,7 @@ impl StopControl {
     }
 
     pub fn is_busy(&self) -> bool {
-        self.running.is_busy()
+        self.running.value() != 0
     }
 
     pub fn should_stop(&self) -> bool {
@@ -74,11 +74,11 @@ impl StopControl {
     }
 
     pub fn wait_until_last(&self) {
-        self.running.wait_until_last();
+        self.running.wait_while(|v| *v > 1);
     }
 
     pub fn wait_until_finished(&self) {
-        self.running.wait_until_finished();
+        self.running.wait_while(|v| *v > 0);
     }
 }
 

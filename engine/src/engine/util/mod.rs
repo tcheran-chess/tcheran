@@ -4,4 +4,3 @@ pub mod command_channel;
 pub mod datagen;
 pub mod log;
 pub mod metrics;
-pub mod n_waiter;

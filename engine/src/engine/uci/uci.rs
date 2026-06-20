@@ -95,7 +95,7 @@ impl Threads {
             .collect();
 
         self.tx = tx;
-        self.thread_control = StopControl::new(n);
+        self.thread_control = StopControl::new(0);
 
         self.send(ThreadCommand::Ping);
     }
@@ -276,7 +276,14 @@ impl Uci {
                     return Ok(ExecuteResult::KeepGoing);
                 }
 
-                self.threads.thread_control.start_search();
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "Thread limit is below u32 limit"
+                )]
+                self.threads
+                    .thread_control
+                    .start_search(self.options.threads as u32);
+
                 self.persistent_state.new_search();
 
                 let game = self.game.clone();

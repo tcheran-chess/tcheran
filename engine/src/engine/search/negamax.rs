@@ -199,18 +199,32 @@ pub fn negamax(
         false
     };
 
+    let tt_adjusted_eval = if let Some(ref e) = tt_entry
+        && e.bound != NodeBound::None
+        && !e.score.is_decisive()
+        && e.bound
+            != (if e.score > eval {
+                NodeBound::Upper
+            } else {
+                NodeBound::Lower
+            }) {
+        e.score
+    } else {
+        eval
+    };
+
     // Reverse futility pruning
     if !is_root
         && !is_pv
         && !in_check
         && excluded_mv.is_none()
         && depth <= reverse_futility_prune_depth()
-        && eval - depth * reverse_futility_prune_margin_per_ply() > s.beta
+        && tt_adjusted_eval - depth * reverse_futility_prune_margin_per_ply() > s.beta
     {
-        return if !eval.is_decisive() && !s.beta.is_decisive() {
-            s.beta + (eval - s.beta) / 3
+        return if !tt_adjusted_eval.is_decisive() && !s.beta.is_decisive() {
+            s.beta + (tt_adjusted_eval - s.beta) / 3
         } else {
-            eval
+            tt_adjusted_eval
         };
     }
 

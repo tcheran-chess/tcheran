@@ -42,22 +42,14 @@ use crate::{
 };
 
 pub struct Threads {
-    threads: Vec<JoinHandle<()>>,
-    txs: Vec<SyncSender<ThreadCommand>>,
-
+    threads: Vec<Thread>,
     thread_control: StopControl,
 }
 
 impl Threads {
-    fn create_channels(n: u32) -> (Vec<SyncSender<ThreadCommand>>, Vec<Receiver<ThreadCommand>>) {
-        (0..n).map(|_| sync_channel(0)).unzip()
-    }
-
     pub fn new() -> Self {
         let mut ts = Self {
             threads: vec![],
-            txs: vec![],
-
             thread_control: StopControl::new(0),
         };
 
@@ -65,37 +57,14 @@ impl Threads {
         ts
     }
 
-    pub fn scale(&mut self, n: u32) {
+    pub fn scale(&mut self, n: usize) {
         // If we just started, we may be scaling from 0 threads in which case we don't need to quit
         // our existing threads.
         if !self.threads.is_empty() {
-            self.send(ThreadCommand::Quit);
-            self.threads
-                .drain(..)
-                .for_each(|t| t.join().expect("Thread panicked"));
+            self.threads.drain(..).for_each(Thread::join);
         }
 
-        let (txs, rxs) = Self::create_channels(n);
-
-        self.threads = rxs
-            .into_iter()
-            .enumerate()
-            .map(|(thread_id, rx)| {
-                thread::spawn({
-                    move || {
-                        if std::panic::catch_unwind(move || {
-                            worker_thread_loop(&rx, thread_id);
-                        })
-                        .is_err()
-                        {
-                            std::process::exit(-1);
-                        }
-                    }
-                })
-            })
-            .collect();
-
-        self.txs = txs;
+        self.threads = (0..n).map(Thread::new).collect();
         self.thread_control = StopControl::new(0);
 
         self.send(ThreadCommand::Ping);
@@ -103,8 +72,8 @@ impl Threads {
 
     #[expect(clippy::needless_pass_by_value, reason = "Must be cloned for each tx")]
     fn send(&self, cmd: ThreadCommand) {
-        for tx in &self.txs {
-            tx.send(cmd.clone()).expect("receiver disconnected");
+        for thread in &self.threads {
+            thread.send(cmd.clone());
         }
     }
 
@@ -134,6 +103,40 @@ impl Threads {
     }
 }
 
+pub struct Thread {
+    handle: JoinHandle<()>,
+    tx: SyncSender<ThreadCommand>,
+}
+
+impl Thread {
+    pub fn new(id: usize) -> Self {
+        let (tx, rx) = sync_channel(0);
+
+        let handle = thread::spawn({
+            move || {
+                if std::panic::catch_unwind(move || {
+                    worker_thread_loop(&rx, id);
+                })
+                .is_err()
+                {
+                    std::process::exit(-1);
+                }
+            }
+        });
+
+        Self { handle, tx }
+    }
+
+    pub fn send(&self, cmd: ThreadCommand) {
+        self.tx.send(cmd).expect("Unable to send thread command");
+    }
+
+    pub fn join(self) {
+        drop(self.tx);
+        self.handle.join().expect("Unable to join thread");
+    }
+}
+
 #[derive(Clone)]
 #[expect(clippy::large_enum_variant, reason = "No issues with these being large")]
 pub enum ThreadCommand {
@@ -146,7 +149,6 @@ pub enum ThreadCommand {
         reporter: Arc<dyn Reporter + Send + Sync>,
         results: Arc<SearchResults>,
     },
-    Quit,
     Ping,
     Reset,
 }
@@ -625,7 +627,7 @@ pub fn uci_options() -> Vec<UciOption> {
         //
         UciOption::spin("Threads", |refs, value| {
             refs.options.threads = value.as_usize();
-            refs.threads.scale(refs.options.threads as u32);
+            refs.threads.scale(refs.options.threads);
         })
         .default(crate::engine::options::defaults::THREADS as i32)
         .with_bounds(1, 1024)
@@ -693,8 +695,8 @@ fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
     let mut thread_data = ThreadData::new(id);
     let is_main_thread = id == 0;
 
-    loop {
-        match rx.recv().unwrap() {
+    while let Ok(command) = rx.recv() {
+        match command {
             ThreadCommand::Search {
                 game,
                 mut time_control,
@@ -747,7 +749,6 @@ fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
             ThreadCommand::Reset => {
                 thread_data.reset();
             }
-            ThreadCommand::Quit => return,
         }
     }
 }

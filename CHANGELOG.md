@@ -23,6 +23,7 @@
 * Fixed empty TT entries being considered to have 'exact' bounds
 * Added the ability for genfens to generate DFRC starting positions
 * The 'Minimal' UCI option is now respected
+* Threading code was rewritten to use the stdlib, removing the atomic-wait dependency
 
 ## [12.0]
 

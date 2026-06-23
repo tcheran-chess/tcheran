@@ -1,3 +1,5 @@
+#![allow(non_upper_case_globals, reason = "Looks nicer")]
+
 use crate::engine::tuning::{non_tunable_parameters, parameters};
 
 #[rustfmt::skip]

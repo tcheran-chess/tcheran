@@ -106,36 +106,27 @@ fn cmd_debug(args: &[&str]) -> Result<UciCommand, ()> {
     Ok(UciCommand::Debug(onoff))
 }
 
-// Note that we intentionally don't
 fn cmd_setoption(args: &[&str]) -> Result<UciCommand, ()> {
-    if args.is_empty() {
+    if args.len() != 4 {
         return Err(());
     }
 
-    // The first argument must be 'name'
-    let name_arg = args[0];
-    if name_arg != "name" {
+    let name_token = args[0];
+    let name_arg = args[1];
+    let value_token = args[2];
+    let value_arg = args[3];
+
+    if name_token != "name" {
         return Err(());
     }
 
-    // All the tokens between 'name' and 'value' are the name
-    let value_idx = args.iter().position(|&t| t == "value");
-    let Some(value_idx) = value_idx else {
-        return Err(());
-    };
-
-    let name_tokens = &args[1..value_idx];
-    let value_tokens = &args[value_idx + 1..];
-
-    if name_tokens.is_empty() || value_tokens.is_empty() {
+    if value_token != "value" {
         return Err(());
     }
 
-    // Note that args containing multiple spaces between tokens will be reconstructed incorrectly here,
-    // but we shouldn't ever have examples of that in practice so it's fine.
     Ok(UciCommand::SetOption {
-        name: name_tokens.join(" "),
-        value: value_tokens.join(" "),
+        name: name_arg.to_string(),
+        value: value_arg.to_string(),
     })
 }
 

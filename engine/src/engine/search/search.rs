@@ -56,8 +56,8 @@ impl PersistentState {
         self.reset_counters();
     }
 
-    pub fn reset(&self) {
-        self.tt.reset();
+    pub fn reset(&mut self, options: &EngineOptions) {
+        self.tt.reset(options.threads);
         self.reset_counters();
     }
 

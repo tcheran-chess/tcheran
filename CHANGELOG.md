@@ -25,6 +25,7 @@
 * The 'Minimal' UCI option is now respected
 * Threading code was rewritten to use the stdlib, removing the atomic-wait dependency
 * The 'Move Overhead' UCI option is now 'MoveOverhead'
+* The transposition table is now cleared using multiple threads
 
 ## [12.0]
 

@@ -117,19 +117,6 @@ pub struct RawCluster {
 }
 
 impl RawCluster {
-    const fn empty() -> Self {
-        Self {
-            bits: [const { AtomicU64::new(0) }; 4],
-        }
-    }
-
-    fn reset(&self) {
-        self.bits[0].store(0, Ordering::Relaxed);
-        self.bits[1].store(0, Ordering::Relaxed);
-        self.bits[2].store(0, Ordering::Relaxed);
-        self.bits[3].store(0, Ordering::Relaxed);
-    }
-
     fn write(&self, cluster: Cluster) {
         let bits = unsafe { transmute::<Cluster, [u64; 4]>(cluster) };
 
@@ -163,30 +150,62 @@ impl TranspositionTable {
             generation: AtomicU8::default(),
         };
 
-        tt.resize(size_mb);
+        tt.resize(size_mb, 1);
         tt
     }
 
-    pub fn reset(&self) {
-        for i in 0..self.data.len() {
-            self.data[i].reset();
+    pub fn reset(&mut self, threads: usize) {
+        unsafe {
+            std::thread::scope(|scope| {
+                let len = self.data.len();
+                let slice = std::slice::from_raw_parts_mut(self.data.as_mut_ptr(), len);
+
+                let chunk_size = len.div_ceil(threads);
+                for chunk in slice.chunks_mut(chunk_size) {
+                    scope.spawn(|| chunk.as_mut_ptr().write_bytes(0, chunk.len()));
+                }
+            });
         }
 
         self.generation.store(0, Ordering::Relaxed);
     }
 
-    pub fn resize(&mut self, size_mb: usize) {
+    // Safety: Does not zero the memory it returns so all callers must zero it
+    unsafe fn allocate(len: usize) -> Vec<RawCluster> {
+        use std::{
+            alloc::{Layout, alloc, handle_alloc_error},
+            ptr::slice_from_raw_parts_mut,
+        };
+
+        unsafe {
+            let layout = Layout::array::<RawCluster>(len).unwrap();
+
+            let ptr = alloc(layout);
+            if ptr.is_null() {
+                handle_alloc_error(layout);
+            }
+
+            Box::from_raw(slice_from_raw_parts_mut(ptr.cast(), len)).into()
+        }
+    }
+
+    pub fn resize(&mut self, size_mb: usize, threads: usize) {
         if self.size == size_mb {
             return;
         }
 
+        // Force deallocation of the existing memory
+        self.data.clear();
+        self.data.shrink_to_fit();
+
         let number_of_clusters = calculate_number_of_clusters(size_mb);
 
-        self.data.clear();
-        self.data.resize_with(number_of_clusters, RawCluster::empty);
-        self.data.shrink_to_fit();
+        unsafe {
+            self.data = Self::allocate(number_of_clusters);
+            self.reset(threads);
+        }
+
         self.size = size_mb;
-        self.generation.store(0, Ordering::Relaxed);
     }
 
     pub fn new_generation(&self) {

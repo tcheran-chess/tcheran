@@ -227,7 +227,10 @@ impl Uci {
                 self.game.is_frc = self.options.frc;
 
                 self.threads.reset();
-                self.persistent_state.reset();
+
+                Arc::get_mut(&mut self.persistent_state)
+                    .expect("Unable to get unique access to state")
+                    .reset(&self.options);
             }
             UciCommand::Position { position, moves } => {
                 if self.threads.busy() {
@@ -619,7 +622,9 @@ pub fn uci_options() -> Vec<UciOption> {
     let options = vec![
         UciOption::spin("Hash", |refs, value| {
             refs.options.hash_size = value.as_usize();
-            refs.state.tt.resize(refs.options.hash_size);
+            refs.state
+                .tt
+                .resize(refs.options.hash_size, refs.options.threads);
         })
         .default(crate::engine::options::defaults::HASH_SIZE as i32)
         .with_bounds(0, 1024 * 1024)

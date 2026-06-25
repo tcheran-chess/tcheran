@@ -37,6 +37,10 @@ pub fn search(
             panic!("No PV move at depth {} for position {}", depth, game.to_fen())
         });
 
+        ctx.completed_depth = depth;
+        ctx.time_control
+            .update_after_search(new_best_move, depth, ctx.nodes.get());
+
         let stats = SearchStats::from_ctx(ctx);
 
         result = Some(SearchResult {
@@ -45,10 +49,6 @@ pub fn search(
             pv: pv.clone(),
             stats: stats.clone(),
         });
-
-        ctx.completed_depth = depth;
-        ctx.time_control
-            .update_after_search(new_best_move, depth, ctx.nodes.get());
 
         if !ctx.options.minimal {
             reporter.report_search_progress(SearchInfo {

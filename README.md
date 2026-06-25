@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img alt="Logo" src=".github/logo.jpg" width="200"></img>
+  <img alt="Logo" src=".github/logo.svg" width="200"></img>
   <h1>Tcheran</h1>
 
 </div>

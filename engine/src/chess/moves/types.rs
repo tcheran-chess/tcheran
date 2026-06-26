@@ -171,7 +171,7 @@ impl Move {
     }
 
     #[inline]
-    pub const fn quiet_promotion(from: Square, to: Square, promotion: PromotionPieceKind) -> Self {
+    pub const fn push_promotion(from: Square, to: Square, promotion: PromotionPieceKind) -> Self {
         Self::new(
             from,
             to,
@@ -336,10 +336,20 @@ mod tests {
     }
 
     #[test]
-    fn test_quiet_promotion() {
-        let mv = Move::quiet_promotion(A1, B1, PromotionPieceKind::Queen);
+    fn test_non_capture_tactical_promotion() {
+        let mv = Move::push_promotion(A1, B1, PromotionPieceKind::Queen);
         assert_eq!(mv.promotion(), Some(PromotionPieceKind::Queen));
         assert!(!mv.is_quiet());
+        assert!(!mv.is_capture());
+        assert!(!mv.is_castling());
+        assert!(!mv.is_en_passant());
+    }
+
+    #[test]
+    fn test_non_capture_quiet_promotion() {
+        let mv = Move::push_promotion(A1, B1, PromotionPieceKind::Bishop);
+        assert_eq!(mv.promotion(), Some(PromotionPieceKind::Bishop));
+        assert!(mv.is_quiet());
         assert!(!mv.is_capture());
         assert!(!mv.is_castling());
         assert!(!mv.is_en_passant());

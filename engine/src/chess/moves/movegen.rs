@@ -187,7 +187,7 @@ fn generate_pawn_tacticals(
     // Queen promotions
     for dst in promotion_destinations {
         let src = dst.bb().backward(us).single();
-        f(Move::quiet_promotion(src, dst, PromotionPieceKind::Queen));
+        f(Move::push_promotion(src, dst, PromotionPieceKind::Queen));
     }
 
     for dst in left_attacks & !promotion_rank {
@@ -250,9 +250,9 @@ fn generate_pawn_quiets(
     let underpromotion_destinations = promotion_pushes.forward(us) & !all_pieces;
     for dst in underpromotion_destinations & dst_mask {
         let src = dst.bb().backward(us).single();
-        f(Move::quiet_promotion(src, dst, PromotionPieceKind::Rook));
-        f(Move::quiet_promotion(src, dst, PromotionPieceKind::Knight));
-        f(Move::quiet_promotion(src, dst, PromotionPieceKind::Bishop));
+        f(Move::push_promotion(src, dst, PromotionPieceKind::Rook));
+        f(Move::push_promotion(src, dst, PromotionPieceKind::Knight));
+        f(Move::push_promotion(src, dst, PromotionPieceKind::Bishop));
     }
 }
 

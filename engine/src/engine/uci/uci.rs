@@ -25,8 +25,8 @@ use crate::{
         },
         options::{EngineOptions, defaults},
         search::{
-            NullReporter, PersistentState, Reporter, SearchResult, SearchStats, ThreadData,
-            TimeControl, probe_tb_at_root, search, time_control::StopControl, types::SearchResults,
+            NullReporter, PersistentState, Reporter, ThreadData, TimeControl, probe_tb_at_root,
+            search, time_control::StopControl, types::SearchResults,
         },
         uci::{
             bench::bench,
@@ -264,26 +264,11 @@ impl Uci {
                 }
 
                 if self.persistent_state.tablebase.can_probe(&self.game)
-                    && let Some((mv, score, pv, elapsed, depth)) =
+                    && let Some(tb_result) =
                         probe_tb_at_root(&self.game, &self.persistent_state.tablebase, time_control)
                 {
-                    self.reporter.report_search_progress(
-                        &self.game,
-                        &SearchResult {
-                            mv,
-                            pv,
-                            score,
-                            stats: SearchStats {
-                                time: elapsed,
-                                depth,
-                                seldepth: depth,
-                                nodes: u64::from(depth),
-                                tbhits: u64::from(depth),
-                                hashfull: 0,
-                            },
-                        },
-                    );
-                    self.reporter.best_move(&self.game, mv);
+                    self.reporter.report_search_progress(&self.game, &tb_result);
+                    self.reporter.best_move(&self.game, tb_result.mv);
                     return Ok(ExecuteResult::KeepGoing);
                 }
 

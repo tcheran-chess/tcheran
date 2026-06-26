@@ -387,7 +387,7 @@ pub fn probe_tb_at_root(
     game: &Game,
     tb: &Tablebase,
     time_control: &TimeControl,
-) -> Option<(Move, Eval, PrincipalVariation, Duration, u8)> {
+) -> Option<SearchResult> {
     let mut game = game.clone();
     let best_move = tb.best_move(&game)?;
 
@@ -439,11 +439,23 @@ pub fn probe_tb_at_root(
 
     let elapsed = start_time.elapsed();
     let depth = pv.len();
-    let eval = eval.unwrap_or_else(|| match tb_score {
+    let score = eval.unwrap_or_else(|| match tb_score {
         Wdl::Win => Eval::tb_mate_in(MAX_SEARCH_DEPTH),
         Wdl::Draw => Eval::DRAW,
         Wdl::Loss => Eval::tb_mated_in(MAX_SEARCH_DEPTH),
     });
 
-    Some((best_move, eval, pv, elapsed, depth))
+    Some(SearchResult {
+        mv: best_move,
+        pv,
+        score,
+        stats: SearchStats {
+            time: elapsed,
+            depth,
+            seldepth: depth,
+            nodes: u64::from(depth),
+            tbhits: u64::from(depth),
+            hashfull: 0,
+        },
+    })
 }

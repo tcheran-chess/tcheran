@@ -292,22 +292,28 @@ pub fn negamax(
         .and_then(|entry| entry.best_move);
 
     if let Some(mv) = singular_extension_candidate {
-        let mut se_pv = PrincipalVariation::new();
         let tt_score = tt_entry.as_ref().unwrap().score;
 
-        let se_depth = (depth - 1) / 2u8;
         let se_beta = tt_score - depth * singular_extension_margin();
+        let se_depth = (depth - 1) / 2u8;
 
         ctx.stack.get(plies).excluded_mv = Some(mv);
-        let se_window = ScoreWindow::new(se_beta - Eval(1), se_beta);
-        let value = negamax(game, se_window, se_depth, plies, cut_node, &mut se_pv, ctx);
+        let se_score = negamax(
+            game,
+            ScoreWindow::new(se_beta - Eval(1), se_beta),
+            se_depth,
+            plies,
+            cut_node,
+            &mut PrincipalVariation::new(),
+            ctx,
+        );
         ctx.stack.get(plies).excluded_mv = None;
 
-        if value < se_beta {
+        if se_score < se_beta {
             extension = 1;
 
             if !is_pv
-                && value + double_extension_margin() < se_beta
+                && se_score < se_beta - double_extension_margin()
                 && ctx.stack.get(plies).double_extensions <= double_extension_max()
             {
                 extension = 2;
@@ -315,8 +321,8 @@ pub fn negamax(
             }
         } else if se_beta >= s.beta {
             return se_beta;
-        } else if !is_pv && !value.is_decisive() && value >= s.beta {
-            return value;
+        } else if !is_pv && !se_score.is_decisive() && se_score >= s.beta {
+            return se_score;
         } else if tt_score >= s.beta {
             extension = -1;
         }

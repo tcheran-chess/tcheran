@@ -37,7 +37,7 @@ use crate::{
             responses::{IdParam, UciReporter, UciResponse},
         },
         util,
-        util::{log, metrics},
+        util::log,
     },
 };
 
@@ -276,7 +276,6 @@ impl Uci {
                             depth,
                             seldepth: depth,
                             nodes: u64::from(depth),
-                            nodes_per_second: metrics::nodes_per_second(u64::from(depth), elapsed),
                             tbhits: u64::from(depth),
                             hashfull: 0,
                         },

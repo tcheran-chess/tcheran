@@ -220,7 +220,7 @@ impl UciReporter {
             ),
             time: Some(progress.stats.time),
             nodes: Some(progress.stats.nodes),
-            nps: Some(progress.stats.nodes_per_second),
+            nps: Some(metrics::nodes_per_second(progress.stats.nodes, progress.stats.time)),
             tbhits: Some(progress.stats.tbhits),
             hashfull: Some(progress.stats.hashfull),
             string: None,
@@ -295,7 +295,8 @@ impl UciReporter {
 
         print!(" {BRIGHT_BLACK}{:>7}{RESET}", format!("{nodes}{nodes_suffix}"));
 
-        let (nps, nps_unit) = metrics::unit_suffix(progress.stats.nodes_per_second);
+        let nps = metrics::nodes_per_second(progress.stats.nodes, progress.stats.time);
+        let (nps, nps_unit) = metrics::unit_suffix(nps);
         let nps_suffix = match nps_unit {
             UnitPrefix::None => "nps",
             UnitPrefix::Kilo => "knps",

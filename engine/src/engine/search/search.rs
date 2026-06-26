@@ -17,7 +17,6 @@ use crate::{
         },
         tablebases::{Tablebase, Wdl},
         transposition_table::TranspositionTable,
-        util,
         util::buffered_atomic_counter::BufferedAtomicU64,
     },
 };
@@ -256,7 +255,6 @@ pub struct SearchStats {
     pub depth: u8,
     pub seldepth: u8,
     pub nodes: u64,
-    pub nodes_per_second: u64,
     pub tbhits: u64,
     pub hashfull: u64,
 }
@@ -268,10 +266,6 @@ impl SearchStats {
             depth: ctx.completed_depth.as_u8(),
             seldepth: ctx.max_depth_reached,
             nodes: ctx.nodes.get_global(),
-            nodes_per_second: util::metrics::nodes_per_second(
-                ctx.nodes.get_global(),
-                ctx.time_control.elapsed(),
-            ),
             tbhits: ctx.tbhits.get_global(),
             hashfull: ctx.tt.occupancy(),
         }

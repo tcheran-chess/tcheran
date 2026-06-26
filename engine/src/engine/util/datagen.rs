@@ -77,7 +77,7 @@ fn acceptable_starting_position(rand: &mut impl Rng, dfrc: bool) -> Game {
             &NullReporter,
         );
 
-        let normalised_eval = wdl::normalize(result.eval, &game.board);
+        let normalised_eval = wdl::normalize(result.score, &game.board);
 
         if normalised_eval.0.abs() >= UNBALANCED_STARTING_EVAL {
             continue;

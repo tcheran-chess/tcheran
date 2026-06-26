@@ -236,8 +236,8 @@ impl Clocks {
 
 #[derive(Clone)]
 pub struct SearchResult {
-    pub best_move: Move,
-    pub eval: Eval,
+    pub mv: Move,
+    pub score: Eval,
     pub pv: PrincipalVariation,
     pub stats: SearchStats,
 }
@@ -347,7 +347,7 @@ pub fn search(
             reporter.report_search_progress(game, &result);
         }
 
-        reporter.best_move(game, result.best_move);
+        reporter.best_move(game, result.mv);
     } else {
         stop_control.stopped();
     }

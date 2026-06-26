@@ -264,15 +264,15 @@ impl Uci {
                 }
 
                 if self.persistent_state.tablebase.can_probe(&self.game)
-                    && let Some((mv, eval, pv, elapsed, depth)) =
+                    && let Some((mv, score, pv, elapsed, depth)) =
                         probe_tb_at_root(&self.game, &self.persistent_state.tablebase, time_control)
                 {
                     self.reporter.report_search_progress(
                         &self.game,
                         &SearchResult {
-                            best_move: mv,
+                            mv,
                             pv,
-                            eval,
+                            score,
                             stats: SearchStats {
                                 time: elapsed,
                                 depth,

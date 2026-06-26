@@ -208,8 +208,8 @@ impl UciReporter {
         self.send(&UciResponse::Info(InfoFields {
             depth: Some(result.stats.depth),
             seldepth: Some(result.stats.seldepth),
-            score: Some(InfoScore::from(result.eval, game)),
-            wdl: Some(wdl::wdl(result.eval, &game.board)),
+            score: Some(InfoScore::from(result.score, game)),
+            wdl: Some(wdl::wdl(result.score, &game.board)),
             pv: Some(
                 result
                     .pv
@@ -232,7 +232,7 @@ impl UciReporter {
     fn pretty_report_search_progress(game: &Game, result: &search::SearchResult) {
         use colors::*;
 
-        let score = InfoScore::from(result.eval, game);
+        let score = InfoScore::from(result.score, game);
         let mut game = game.clone();
 
         print!(" {:>3}", result.stats.depth);
@@ -266,7 +266,7 @@ impl UciReporter {
 
         #[expect(clippy::cast_possible_truncation, reason = "Apresult calculation")]
         let as_percentage = |n: f64| (100.0 * n).round() as i32;
-        let wdl = wdl::wdl(result.eval, &game.board);
+        let wdl = wdl::wdl(result.score, &game.board);
         let formatted_wdl = format!(
             "({}/{}/{})",
             as_percentage(wdl.win),

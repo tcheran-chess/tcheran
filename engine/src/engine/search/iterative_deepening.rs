@@ -25,7 +25,7 @@ pub fn search(
 
         ctx.root_depth = depth;
 
-        let previous_eval = result.as_ref().map(|r| r.eval);
+        let previous_eval = result.as_ref().map(|r| r.score);
         let eval = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
 
         if ctx.time_control.stopped() {
@@ -42,8 +42,8 @@ pub fn search(
             .update_after_search(new_best_move, depth, ctx.nodes.get());
 
         let this_result = SearchResult {
-            best_move: new_best_move,
-            eval,
+            mv: new_best_move,
+            score: eval,
             pv: pv.clone(),
             stats: SearchStats::from_ctx(ctx),
         };

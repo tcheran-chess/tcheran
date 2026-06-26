@@ -15,7 +15,7 @@ fn test_expected_move(fen: &str, depth: Depth, mv: (Square, Square)) -> SearchRe
     let result =
         st_search(&game, &PersistentState::new(16), TimeControl::Depth(depth), &NullReporter);
 
-    assert_eq!((result.best_move.from(), result.best_move.to()), mv);
+    assert_eq!((result.mv.from(), result.mv.to()), mv);
     result
 }
 
@@ -27,5 +27,5 @@ fn test_mate_on_100th_halfmove_detected() {
         (E8, H8),
     );
 
-    assert_eq!(result.eval, Eval::mate_in(1));
+    assert_eq!(result.score, Eval::mate_in(1));
 }

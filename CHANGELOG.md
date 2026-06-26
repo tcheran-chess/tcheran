@@ -11,6 +11,7 @@
 * Preparation for making time management tunable (4.68 +- 4.31)
 * Game::is_direct_check is now used in LMP (4.57 +- 3.35)
 * Re-introduce futility pruning and make it depth dependent (4.38 +- 3.25)
+* Add quiescence futility pruning (4.32 +- 3.18)
 * Network #20, trained with Ranger instead of AdamW
 * Reduce less for 'ttpv' nodes (3.12 +- 2.48)
 * Fixed TT relative age calculation (2.91 +- 2.35)

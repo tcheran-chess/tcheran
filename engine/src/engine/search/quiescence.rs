@@ -3,10 +3,12 @@ use crate::{
     chess::Game,
     engine::{
         eval::{self, Eval},
+        params::*,
         search::{
             move_picker::{GenStage, MovePicker},
             types::{Depth, ScoreWindow},
         },
+        see::see,
         transposition_table::NodeBound,
     },
 };
@@ -108,6 +110,7 @@ pub fn quiescence(
     let mut best_move = None;
     let mut node_bound = NodeBound::Upper;
     let mut moves_tried = 0;
+    let futility_score = eval + quiescence_futility_margin();
 
     let mut moves = MovePicker::new(previous_best_move);
 
@@ -125,6 +128,18 @@ pub fn quiescence(
         // As long as we've found a move that gets us out of mate, we can stop looking at other quiets
         if mv.is_quiet() && !best_score.is_loss() {
             moves.skip_quiets();
+            continue;
+        }
+
+        if !best_score.is_loss()
+            && !in_check
+            && futility_score <= s.alpha
+            && !see(game, mv, Eval(1))
+        {
+            if best_score < futility_score {
+                best_score = futility_score;
+            }
+
             continue;
         }
 

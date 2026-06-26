@@ -55,6 +55,9 @@ parameters!(
     lmr_in_check_factor: u32 = 377 [128..2048];
     lmr_ttpv_factor: u32 = 1024 [128..2048];
 
+    // Quiescence
+    quiescence_futility_margin: i32 = 400 [64..1024];
+
     // Eval
     material_scale_base: i32 = 971 [512..1024];
     material_scale_divisor: i32 = 17 [8..128];

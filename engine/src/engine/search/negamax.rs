@@ -424,40 +424,36 @@ pub fn negamax(
         };
 
         let search_depth = depth + extension - 1;
+        let mut score = Eval::NONE;
 
-        let move_score = if moves_tried == 1 {
-            -negamax(game, -s, search_depth, plies + 1, !is_pv && !cut_node, &mut node_pv, ctx)
-        } else {
-            let reduction =
-                if depth >= lmr_start_depth() && moves_tried >= lmr_move_threshold() as usize {
-                    let mut reduction = DepthReduction::new(lmr_reduction(depth, moves_tried));
+        if depth >= lmr_start_depth() && moves_tried >= lmr_move_threshold() as usize {
+            let reduction = {
+                let mut r = DepthReduction::new(lmr_reduction(depth, moves_tried));
 
-                    // Reducing more:
-                    reduction.reduce_more_if(cut_node, lmr_cut_node_factor());
+                // Reducing more:
+                r.reduce_more_if(cut_node, lmr_cut_node_factor());
 
-                    reduction.reduce_more_if(!is_pv, lmr_is_not_pv_factor());
+                r.reduce_more_if(!is_pv, lmr_is_not_pv_factor());
 
-                    reduction.reduce_more_if(
-                        ctx.stack.get(plies + 1).fail_highs > 2,
-                        lmr_many_fail_highs_factor(),
-                    );
+                r.reduce_more_if(
+                    ctx.stack.get(plies + 1).fail_highs > 2,
+                    lmr_many_fail_highs_factor(),
+                );
 
-                    // Reducing less:
-                    reduction.reduce_less_if(in_check, lmr_in_check_factor());
+                // Reducing less:
+                r.reduce_less_if(in_check, lmr_in_check_factor());
 
-                    reduction.reduce_less_if(tt_pv, lmr_ttpv_factor());
+                r.reduce_less_if(tt_pv, lmr_ttpv_factor());
 
-                    reduction.value()
-                } else {
-                    0
-                };
+                r.value()
+            };
 
             let reduced_search_depth = search_depth - reduction;
 
             // We already found a good move (i.e. we raised alpha).
             // Now, we just need to prove that the other moves are worse.
             // We search them with a reduced window to prove that they are at least worse.
-            let mut pvs_score = -negamax(
+            score = -negamax(
                 game,
                 -s.zero_window_around_alpha(),
                 reduced_search_depth,
@@ -469,8 +465,8 @@ pub fn negamax(
 
             // If we raised alpha, but we were searching with reduced depth, we probably want to double
             // check we didn't miss something, so search without the reduction.
-            if pvs_score > s.alpha && reduction > 0 {
-                pvs_score = -negamax(
+            if score > s.alpha && reduction > 0 {
+                score = -negamax(
                     game,
                     -s.zero_window_around_alpha(),
                     search_depth,
@@ -480,15 +476,21 @@ pub fn negamax(
                     ctx,
                 );
             }
+        } else if !is_pv || moves_tried > 1 {
+            score = -negamax(
+                game,
+                -s.zero_window_around_alpha(),
+                search_depth,
+                plies + 1,
+                !cut_node,
+                &mut node_pv,
+                ctx,
+            );
+        }
 
-            // If searching at full depth STILL raised alpha, re-search with normal alpha/beta
-            // bounds.
-            if pvs_score > s.alpha && pvs_score < s.beta {
-                -negamax(game, -s, search_depth, plies + 1, false, &mut node_pv, ctx)
-            } else {
-                pvs_score
-            }
-        };
+        if is_pv && (moves_tried == 1 || score > s.alpha) {
+            score = -negamax(game, -s, search_depth, plies + 1, false, &mut node_pv, ctx);
+        }
 
         game.undo_move();
         ctx.nnue.pop();
@@ -502,18 +504,18 @@ pub fn negamax(
             return Eval::MIN;
         }
 
-        if move_score > best_score {
-            best_score = move_score;
+        if score > best_score {
+            best_score = score;
 
-            if move_score > s.alpha {
-                s.alpha = move_score;
+            if score > s.alpha {
+                s.alpha = score;
                 best_move = Some(mv);
                 tt_node_bound = NodeBound::Exact;
                 pv.push(mv, &node_pv);
             }
 
             // Cutoff: This move is so good that our opponent won't let it be played.
-            if move_score >= s.beta {
+            if score >= s.beta {
                 tt_node_bound = NodeBound::Lower;
                 ctx.stack.get(plies).fail_highs += 1;
                 break;

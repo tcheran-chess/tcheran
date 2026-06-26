@@ -569,7 +569,7 @@ pub fn negamax(
         }
 
         if !(in_check
-            || best_move.is_some_and(|m| m.is_capture() || m.is_promotion())
+            || best_move.is_some_and(|m| !m.is_quiet())
             || tt_node_bound == NodeBound::Lower && best_score <= eval
             || tt_node_bound == NodeBound::Upper && best_score >= eval)
         {

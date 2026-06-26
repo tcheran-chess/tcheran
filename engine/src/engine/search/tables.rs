@@ -53,7 +53,7 @@ impl<const MAX: i16> HistoryEntry<MAX> {
 
 pub struct Tables {
     pub quiet_history: Box<QuietHistoryTable>,
-    pub capture_history: Box<CaptureHistoryTable>,
+    pub tactical_history: Box<TacticalHistoryTable>,
     pub killer_moves: KillersTable,
     pub conthist: Box<ContHistTable>,
     pub corrhist: CorrectionHistories,
@@ -63,7 +63,7 @@ impl Tables {
     pub fn new() -> Self {
         Self {
             quiet_history: QuietHistoryTable::new(),
-            capture_history: CaptureHistoryTable::new(),
+            tactical_history: TacticalHistoryTable::new(),
             killer_moves: KillersTable::new(),
             conthist: ContHistTable::new(),
             corrhist: CorrectionHistories::new(),
@@ -142,13 +142,13 @@ impl QuietHistoryTable {
     }
 }
 
-pub struct CaptureHistoryTable(PieceTo<[Threats<HistoryEntry<{ Self::MAX }>>; PieceKind::N]>);
+pub struct TacticalHistoryTable(PieceTo<[Threats<HistoryEntry<{ Self::MAX }>>; PieceKind::N + 1]>);
 
 pub fn capture_history_bonus(depth: Depth) -> i32 {
     min(depth * capture_history_factor() - capture_history_offset(), capture_history_max_bonus())
 }
 
-impl CaptureHistoryTable {
+impl TacticalHistoryTable {
     pub const MAX: i16 = 8192;
 
     pub fn new() -> Box<Self> {
@@ -158,7 +158,7 @@ impl CaptureHistoryTable {
     pub fn get(&self, game: &Game, mv: Move) -> i32 {
         let capturing_piece = game.board.piece_guaranteed_at(mv.from());
         let capture_square = mv.to();
-        let captured_piece = game.board.captured_piece(mv).expect("Move was a capture");
+        let captured_piece = game.board.captured_piece(mv).map_or(0, |p| p as usize + 1);
         let (from_threatened, to_threatened) = threat_indices(game, mv);
 
         self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened]
@@ -168,7 +168,7 @@ impl CaptureHistoryTable {
     fn update_for_move(&mut self, mv: Move, game: &Game, bonus: i32) {
         let capturing_piece = game.board.piece_guaranteed_at(mv.from());
         let capture_square = mv.to();
-        let captured_piece = game.board.captured_piece(mv).expect("Move was a capture");
+        let captured_piece = game.board.captured_piece(mv).map_or(0, |p| p as usize + 1);
         let (from_threatened, to_threatened) = threat_indices(game, mv);
 
         self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened]
@@ -178,9 +178,7 @@ impl CaptureHistoryTable {
     pub fn update(&mut self, mv: Move, game: &Game, depth: Depth, other_captures_tried: &MoveList) {
         let bonus = capture_history_bonus(depth);
 
-        if mv.is_capture() {
-            self.update_for_move(mv, game, bonus);
-        }
+        self.update_for_move(mv, game, bonus);
 
         for other_capture in other_captures_tried {
             self.update_for_move(*other_capture, game, -bonus);

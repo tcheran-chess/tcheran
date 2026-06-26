@@ -195,15 +195,15 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
 
     if let Some(captured_piece) = game.board.captured_piece(mv) {
         score += see_value(captured_piece).0;
-
-        // Capture history max is 8192, so divide by 8 so max is roughly
-        // equivalent to the see_value of a queen.
-        score += tables.capture_history.get(game, mv) / 8;
     }
 
     if let Some(promotion_piece) = mv.promotion() {
         score += see_value(promotion_piece.piece()).0 - see_value(PieceKind::Pawn).0;
     }
+
+    // Capture history max is 8192, so divide by 8 so max is roughly
+    // equivalent to the see_value of a queen.
+    score += tables.tactical_history.get(game, mv) / 8;
 
     score
 }

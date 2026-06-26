@@ -332,7 +332,7 @@ pub fn negamax(
     let mut moves_tried = 0;
     let mut node_pv = PrincipalVariation::new();
 
-    let mut captures_tried = MoveList::new();
+    let mut tacticals_tried = MoveList::new();
     let mut quiets_tried = MoveList::new();
 
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
@@ -383,11 +383,8 @@ pub fn negamax(
             let margin = if mv.is_quiet() {
                 lmr_depth * lmr_depth * see_quiet_margin()
             } else {
-                let history_mod = if mv.is_capture() {
-                    ctx.tables.capture_history.get(game, mv) / see_prune_history_divisor()
-                } else {
-                    0
-                };
+                let history_mod =
+                    ctx.tables.tactical_history.get(game, mv) / see_prune_history_divisor();
 
                 lmr_depth * see_capture_margin() - history_mod
             };
@@ -524,8 +521,8 @@ pub fn negamax(
         }
 
         // Only add to the tried lists if the move didn't cause a cutoff
-        if mv.is_capture() {
-            captures_tried.push(mv);
+        if !mv.is_quiet() {
+            tacticals_tried.push(mv);
         }
 
         if mv.is_quiet() {
@@ -552,13 +549,13 @@ pub fn negamax(
             && let Some(mv) = best_move
         {
             ctx.tables
-                .capture_history
-                .update(mv, game, depth, &captures_tried);
+                .tactical_history
+                .update(mv, game, depth, &tacticals_tried);
 
             // 'Killers': if a move was so good that it caused a beta cutoff,
             // but it wasn't a capture, we remember it so that we can try it
             // before other quiet moves.
-            if !mv.is_capture() {
+            if mv.is_quiet() {
                 ctx.tables.killer_moves.set(plies, mv);
 
                 ctx.tables

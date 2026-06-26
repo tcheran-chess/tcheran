@@ -115,34 +115,28 @@ pub fn negamax(
         {
             ctx.tbhits.incr();
 
-            let score = match wdl {
-                Wdl::Win => Eval::tb_mate_in(plies),
-                Wdl::Draw => Eval::DRAW,
-                Wdl::Loss => Eval::tb_mated_in(plies),
+            let (score, bound) = match wdl {
+                Wdl::Win => (Eval::tb_mate_in(plies), NodeBound::Lower),
+                Wdl::Draw => (Eval::DRAW, NodeBound::Exact),
+                Wdl::Loss => (Eval::tb_mated_in(plies), NodeBound::Upper),
             };
 
-            let tb_bound = match wdl {
-                Wdl::Win => NodeBound::Lower,
-                Wdl::Loss => NodeBound::Upper,
-                Wdl::Draw => NodeBound::Exact,
-            };
-
-            if tb_bound == NodeBound::Exact
-                || (tb_bound == NodeBound::Lower && score >= s.beta)
-                || (tb_bound == NodeBound::Upper && score <= s.alpha)
+            if bound == NodeBound::Exact
+                || (bound == NodeBound::Lower && score >= s.beta)
+                || (bound == NodeBound::Upper && score <= s.alpha)
             {
                 ctx.tt
-                    .insert(game.hash, tb_bound, None, score, Eval::NONE, depth, plies, tt_pv);
+                    .insert(game.hash, bound, None, score, Eval::NONE, depth, plies, tt_pv);
 
                 return score;
             }
 
             if is_pv {
-                if tb_bound == NodeBound::Upper {
+                if bound == NodeBound::Upper {
                     syzygy_max = score;
                 }
 
-                if tb_bound == NodeBound::Lower {
+                if bound == NodeBound::Lower {
                     s.clamp_alpha(score);
                     syzygy_min = score;
                 }

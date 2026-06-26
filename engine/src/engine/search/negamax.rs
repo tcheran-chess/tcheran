@@ -199,7 +199,7 @@ pub fn negamax(
         && !in_check
         && excluded_mv.is_none()
         && depth <= reverse_futility_prune_depth()
-        && eval - depth * reverse_futility_prune_margin_per_ply() > s.beta
+        && eval - depth * reverse_futility_prune_margin_per_ply() >= s.beta
     {
         return if !eval.is_decisive() && !s.beta.is_decisive() {
             s.beta + (eval - s.beta) / 3

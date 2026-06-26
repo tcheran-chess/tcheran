@@ -32,6 +32,7 @@ parameters!(
     futility_prune_depth: u8 = 8 [4..12];
 
     history_prune_depth: u8 = 4 [2..16];
+    history_prune_offset: i32 = 0 [-8192..512];
     history_prune_margin: i32 = -2951 [-8192..-1024];
 
     see_quiet_margin: i32 = -58 [-256..-8];

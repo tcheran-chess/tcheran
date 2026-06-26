@@ -368,7 +368,7 @@ pub fn negamax(
             && !best_score.is_loss()
             && mv.is_quiet()
             && lmr_depth <= history_prune_depth()
-            && quiet_history < history_prune_margin() * lmr_depth.as_i32()
+            && quiet_history < history_prune_offset() + lmr_depth * history_prune_margin()
         {
             moves.skip_quiets();
             continue;

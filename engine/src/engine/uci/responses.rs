@@ -204,39 +204,39 @@ impl UciReporter {
         println!();
     }
 
-    fn uci_report_search_progress(&self, progress: &search::SearchInfo<'_>) {
+    fn uci_report_search_progress(&self, game: &Game, result: &search::SearchResult) {
         self.send(&UciResponse::Info(InfoFields {
-            depth: Some(progress.stats.depth),
-            seldepth: Some(progress.stats.seldepth),
-            score: Some(InfoScore::from(progress.eval, progress.game)),
-            wdl: Some(wdl::wdl(progress.eval, &progress.game.board)),
+            depth: Some(result.stats.depth),
+            seldepth: Some(result.stats.seldepth),
+            score: Some(InfoScore::from(result.eval, game)),
+            wdl: Some(wdl::wdl(result.eval, &game.board)),
             pv: Some(
-                progress
+                result
                     .pv
                     .iter()
                     .copied()
-                    .map(|m| UciMove::from_move(m, progress.game.is_frc))
+                    .map(|m| UciMove::from_move(m, game.is_frc))
                     .collect(),
             ),
-            time: Some(progress.stats.time),
-            nodes: Some(progress.stats.nodes),
-            nps: Some(metrics::nodes_per_second(progress.stats.nodes, progress.stats.time)),
-            tbhits: Some(progress.stats.tbhits),
-            hashfull: Some(progress.stats.hashfull),
+            time: Some(result.stats.time),
+            nodes: Some(result.stats.nodes),
+            nps: Some(metrics::nodes_per_second(result.stats.nodes, result.stats.time)),
+            tbhits: Some(result.stats.tbhits),
+            hashfull: Some(result.stats.hashfull),
             string: None,
         }));
     }
 
     // Inspired by Simbelmyne's lovely search output
     #[expect(clippy::cast_precision_loss, reason = "Various approximate calculations")]
-    fn pretty_report_search_progress(progress: &search::SearchInfo<'_>) {
+    fn pretty_report_search_progress(game: &Game, result: &search::SearchResult) {
         use colors::*;
 
-        let score = InfoScore::from(progress.eval, progress.game);
-        let mut game = progress.game.clone();
+        let score = InfoScore::from(result.eval, game);
+        let mut game = game.clone();
 
-        print!(" {:>3}", progress.stats.depth);
-        print!("{BRIGHT_BLACK}/{:<3}{RESET}", progress.stats.seldepth);
+        print!(" {:>3}", result.stats.depth);
+        print!("{BRIGHT_BLACK}/{:<3}{RESET}", result.stats.seldepth);
 
         let (formatted_score, score_color) = match score {
             InfoScore::Centipawns(cp) => {
@@ -264,9 +264,9 @@ impl UciReporter {
 
         print!(" {score_color}{formatted_score:>7}{RESET}");
 
-        #[expect(clippy::cast_possible_truncation, reason = "Approximate calculation")]
+        #[expect(clippy::cast_possible_truncation, reason = "Apresult calculation")]
         let as_percentage = |n: f64| (100.0 * n).round() as i32;
-        let wdl = wdl::wdl(progress.eval, &progress.game.board);
+        let wdl = wdl::wdl(result.eval, &game.board);
         let formatted_wdl = format!(
             "({}/{}/{})",
             as_percentage(wdl.win),
@@ -276,15 +276,15 @@ impl UciReporter {
 
         print!(" {BRIGHT_BLACK}{formatted_wdl:<10}{RESET}");
 
-        let time = if progress.stats.time >= Duration::from_secs(1) {
-            format!("{:.2}s", progress.stats.time.as_secs_f32())
+        let time = if result.stats.time >= Duration::from_secs(1) {
+            format!("{:.2}s", result.stats.time.as_secs_f32())
         } else {
-            format!("{}ms", progress.stats.time.as_millis())
+            format!("{}ms", result.stats.time.as_millis())
         };
 
         print!("  {BRIGHT_BLACK}{time:>6}{RESET}");
 
-        let (nodes, nodes_unit) = metrics::unit_suffix(progress.stats.nodes);
+        let (nodes, nodes_unit) = metrics::unit_suffix(result.stats.nodes);
         let nodes_suffix = match nodes_unit {
             UnitPrefix::None => "n",
             UnitPrefix::Kilo => "kn",
@@ -295,7 +295,7 @@ impl UciReporter {
 
         print!(" {BRIGHT_BLACK}{:>7}{RESET}", format!("{nodes}{nodes_suffix}"));
 
-        let nps = metrics::nodes_per_second(progress.stats.nodes, progress.stats.time);
+        let nps = metrics::nodes_per_second(result.stats.nodes, result.stats.time);
         let (nps, nps_unit) = metrics::unit_suffix(nps);
         let nps_suffix = match nps_unit {
             UnitPrefix::None => "nps",
@@ -309,11 +309,11 @@ impl UciReporter {
 
         print!(
             "  {BRIGHT_BLACK}{:>4}{RESET}",
-            format!("{:.0}%", progress.stats.hashfull as f64 / 10.0)
+            format!("{:.0}%", result.stats.hashfull as f64 / 10.0)
         );
 
         print!("  ");
-        for mv in progress.pv.iter() {
+        for mv in result.pv.iter() {
             let san_mv = san::format_move(&game, *mv);
 
             print!(
@@ -346,11 +346,11 @@ impl Reporter for UciReporter {
         println!("info string {s}");
     }
 
-    fn report_search_progress(&self, progress: search::SearchInfo<'_>) {
+    fn report_search_progress(&self, game: &Game, result: &search::SearchResult) {
         if self.pretty_output.load(Ordering::Relaxed) {
-            Self::pretty_report_search_progress(&progress);
+            Self::pretty_report_search_progress(game, result);
         } else {
-            self.uci_report_search_progress(&progress);
+            self.uci_report_search_progress(game, result);
         }
     }
 

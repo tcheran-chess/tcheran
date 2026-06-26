@@ -242,13 +242,6 @@ pub struct SearchResult {
     pub stats: SearchStats,
 }
 
-pub struct SearchInfo<'s> {
-    pub game: &'s Game,
-    pub eval: Eval,
-    pub pv: PrincipalVariation,
-    pub stats: SearchStats,
-}
-
 #[derive(Clone)]
 pub struct SearchStats {
     pub time: Duration,
@@ -275,7 +268,7 @@ impl SearchStats {
 pub trait Reporter {
     fn generic_report(&self, s: &str);
 
-    fn report_search_progress(&self, progress: SearchInfo<'_>);
+    fn report_search_progress(&self, game: &Game, result: &SearchResult);
 
     fn best_move(&self, game: &Game, mv: Move);
 }
@@ -285,7 +278,7 @@ pub struct NullReporter;
 impl Reporter for NullReporter {
     fn generic_report(&self, _: &str) {}
 
-    fn report_search_progress(&self, _: SearchInfo<'_>) {}
+    fn report_search_progress(&self, _: &Game, _: &SearchResult) {}
 
     fn best_move(&self, _: &Game, _: Move) {}
 }
@@ -351,12 +344,7 @@ pub fn search(
         stop_control.stopped();
 
         if send_final_info {
-            reporter.report_search_progress(SearchInfo {
-                game,
-                pv: result.pv.clone(),
-                eval: result.eval,
-                stats: result.stats.clone(),
-            });
+            reporter.report_search_progress(game, &result);
         }
 
         reporter.best_move(game, result.best_move);

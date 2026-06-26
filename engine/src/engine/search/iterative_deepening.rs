@@ -1,7 +1,7 @@
 use crate::{
     chess::Game,
     engine::search::{
-        MAX_SEARCH_DEPTH, Reporter, SearchContext, SearchInfo, SearchResult, SearchStats,
+        MAX_SEARCH_DEPTH, Reporter, SearchContext, SearchResult, SearchStats,
         aspiration::aspiration_search, principal_variation::PrincipalVariation, types::Depth,
     },
 };
@@ -41,23 +41,18 @@ pub fn search(
         ctx.time_control
             .update_after_search(new_best_move, depth, ctx.nodes.get());
 
-        let stats = SearchStats::from_ctx(ctx);
-
-        result = Some(SearchResult {
+        let this_result = SearchResult {
             best_move: new_best_move,
             eval,
             pv: pv.clone(),
-            stats: stats.clone(),
-        });
+            stats: SearchStats::from_ctx(ctx),
+        };
 
         if !ctx.options.minimal {
-            reporter.report_search_progress(SearchInfo {
-                game,
-                eval,
-                pv: pv.clone(),
-                stats: stats.clone(),
-            });
+            reporter.report_search_progress(game, &this_result);
         }
+
+        result = Some(this_result);
     }
 
     result.expect("Should always end iterative deepening with a result")

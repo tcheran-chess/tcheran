@@ -11,7 +11,7 @@ use crate::{
     chess::{Game, moves::Move},
     engine::{
         search,
-        search::{PersistentState, Reporter, SearchInfo, TimeControl, types::Depth},
+        search::{PersistentState, Reporter, SearchResult, TimeControl, types::Depth},
     },
 };
 
@@ -127,8 +127,8 @@ impl BenchReporter {
 impl Reporter for BenchReporter {
     fn generic_report(&self, _: &str) {}
 
-    fn report_search_progress(&self, stats: SearchInfo<'_>) {
-        *self.nodes.borrow_mut() = Some(stats.stats.nodes);
+    fn report_search_progress(&self, _: &Game, result: &SearchResult) {
+        *self.nodes.borrow_mut() = Some(result.stats.nodes);
     }
 
     fn best_move(&self, _: &Game, _: Move) {}

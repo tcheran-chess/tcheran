@@ -193,13 +193,17 @@ pub fn negamax(
         false
     };
 
+    let mut rfp_margin = 0;
+    rfp_margin += depth * reverse_futility_prune_depth_margin();
+    rfp_margin -= i32::from(improving) * reverse_futility_prune_improving_margin();
+
     // Reverse futility pruning
     if !is_root
         && !is_pv
         && !in_check
         && excluded_mv.is_none()
         && depth <= reverse_futility_prune_depth()
-        && eval - depth * reverse_futility_prune_margin_per_ply() >= s.beta
+        && eval - rfp_margin >= s.beta
     {
         return if !eval.is_decisive() && !s.beta.is_decisive() {
             s.beta + (eval - s.beta) / 3

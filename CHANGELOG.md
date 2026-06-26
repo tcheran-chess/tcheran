@@ -13,6 +13,7 @@
 * Reduce less for 'ttpv' nodes (3.12 +- 2.48)
 * Fixed TT relative age calculation (2.91 +- 2.35)
 * Network #19, upping the number of input buckets from 4 to 8 (2.95 +- 2.37)
+* The reverse futility pruning margin is adjusted if we are improving (2.68 +- 2.34)
 * Legal killer moves are now yielded before generating quiet moves for a minor speedup
 
 #### Misc

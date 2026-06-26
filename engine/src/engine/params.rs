@@ -9,7 +9,8 @@ parameters!(
     aspiration_min_depth: u8 = 5 [3..10];
 
     // Whole node techniques
-    reverse_futility_prune_margin_per_ply: i32 = 106 [16..256];
+    reverse_futility_prune_depth_margin: i32 = 106 [16..256];
+    reverse_futility_prune_improving_margin: i32 = 106 [16..256];
     reverse_futility_prune_depth: u8 = 5 [2..10];
 
     razoring_margin: i32 = 429 [8..512];

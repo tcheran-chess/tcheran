@@ -57,27 +57,27 @@ parameters!(
 
     // Eval
     material_scale_base: i32 = 971 [512..1024];
-    material_scale_divisor: i32 = 17 [16..128];
+    material_scale_divisor: i32 = 17 [8..128];
 
     // SEE
-    see_pawn_value: i32 = 258 [4..4096];
-    see_knight_value: i32 = 750 [4..4096];
-    see_bishop_value: i32 = 761 [4..4096];
-    see_rook_value: i32 = 1244 [4..4096];
-    see_queen_value: i32 = 1986 [4..4096];
+    see_pawn_value: i32 = 258 [128..512];
+    see_knight_value: i32 = 750 [512..1536];
+    see_bishop_value: i32 = 761 [512..1536];
+    see_rook_value: i32 = 1244 [512..2048];
+    see_queen_value: i32 = 1986 [1536..3072];
 
     // History
-    quiet_history_max_bonus: i32 = 1770 [1..4096];
-    quiet_history_factor: i32 = 661 [1..2048];
-    quiet_history_offset: i32 = 339 [1..2048];
+    quiet_history_max_bonus: i32 = 1770 [64..4096];
+    quiet_history_factor: i32 = 661 [64..1024];
+    quiet_history_offset: i32 = 339 [64..1024];
 
-    capture_history_max_bonus: i32 = 2086 [1..4096];
-    capture_history_factor: i32 = 717 [1..2048];
-    capture_history_offset: i32 = 155 [1..2048];
+    capture_history_max_bonus: i32 = 2086 [64..4096];
+    capture_history_factor: i32 = 717 [64..1024];
+    capture_history_offset: i32 = 155 [64..1024];
 
-    continuation_history_max_bonus: i32 = 1252 [1..4096];
-    continuation_history_factor: i32 = 384 [1..2048];
-    continuation_history_offset: i32 = 111 [1..2048];
+    continuation_history_max_bonus: i32 = 1252 [64..4096];
+    continuation_history_factor: i32 = 384 [64..1024];
+    continuation_history_offset: i32 = 111 [64..1024];
 
     pawn_correction_history_weight: i32 = 200 [48..256];
     major_correction_history_weight: i32 = 114 [48..256];

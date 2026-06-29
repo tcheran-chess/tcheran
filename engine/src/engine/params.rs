@@ -1,6 +1,6 @@
 #![allow(non_upper_case_globals, reason = "Looks nicer")]
 
-use crate::engine::tuning::{non_tunable_parameters, parameters};
+use crate::engine::tuning::parameters;
 
 #[rustfmt::skip]
 parameters!(
@@ -84,19 +84,17 @@ parameters!(
     minor_correction_history_weight: i32 = 178 [48..256];
     non_pawn_correction_history_weight: i32 = 97 [48..256];
     threat_correction_history_weight: i32 = 141 [48..256];
-);
 
-#[rustfmt::skip]
-non_tunable_parameters!(
     // Time Management
-    max_time_per_move: f32 = 0.9;
-    default_moves_to_go: u32 = 20;
-    increment_to_use: f32 = 0.8;
-    soft_time_multiplier: f32 = 0.70;
-    hard_time_multiplier: f32 = 0.50;
+    max_time_per_move: u32 = 90 [50..100];
+    default_moves_to_go: u32 = 20 [8..32];
+    increment_to_use: u32 = 80 [1..100];
+    soft_time_multiplier: u32 = 70 [1..100];
+    hard_time_multiplier: u32 = 50 [1..100];
 
-    best_move_stability_initial_depth: u8 = 5;
-    node_tm_base: f32 = 2.63;
-    node_tm_multiplier: f32 = 1.7;
-    node_tm_min: f32 = 0.9;
+    best_move_stability_initial_depth: u8 = 5 [4..8];
+
+    node_tm_base: u32 = 263 [1..512];
+    node_tm_multiplier: u32 = 170 [1..512];
+    node_tm_min: u32 = 90 [1..100];
 );

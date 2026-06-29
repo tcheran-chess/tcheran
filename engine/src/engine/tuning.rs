@@ -53,20 +53,6 @@ macro_rules! parameters {
     };
 }
 
-macro_rules! non_tunable_parameters {
-    (
-        $(
-            $name:ident: $ty:ty = $value:literal;
-        )*
-    ) => {
-        $(
-            pub const fn $name() -> $ty {
-                $value
-            }
-        )*
-    };
-}
-
 #[cfg(feature = "spsa")]
 pub fn on_option_change() {
     use super::params::*;
@@ -84,5 +70,4 @@ pub fn on_option_change() {
     );
 }
 
-pub(crate) use non_tunable_parameters;
 pub(crate) use parameters;

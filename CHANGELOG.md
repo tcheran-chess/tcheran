@@ -8,6 +8,7 @@
 * Cut off if the singular beta beats beta (6.97 +- 4.40)
 * Added TT clusters (6.28 +- 4.04)
 * Score quiet moves that give check higher for picking (4.97 +- 3.54)
+* Preparation for making time management tunable (4.68 +- 4.31)
 * Game::is_direct_check is now used in LMP (4.57 +- 3.35)
 * Re-introduce futility pruning and make it depth dependent (4.38 +- 3.25)
 * Reduce less for 'ttpv' nodes (3.12 +- 2.48)

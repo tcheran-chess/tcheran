@@ -86,6 +86,7 @@ const CHECK_TERMINATION_NODE_FREQUENCY: u64 = 2048;
 const BEST_MOVE_STABILITY_TIME_MULTIPLIERS: [f32; 5] = [2.50, 1.20, 1.00, 0.80, 0.75];
 
 impl TimeStrategy {
+    #[expect(clippy::cast_precision_loss, reason = "Time management calculations can be approx")]
     pub fn new(
         game: &Game,
         time_control: TimeControl,
@@ -117,13 +118,17 @@ impl TimeStrategy {
                     .saturating_sub(options.move_overhead)
                     .max(options.move_overhead);
 
-                let absolute_max = time_remaining.mul_f32(max_time_per_move());
+                let absolute_max = time_remaining.mul_f32(max_time_per_move() as f32 / 100.0);
                 let moves_to_go = clocks.moves_to_go.unwrap_or(default_moves_to_go());
 
-                let base_time = absolute_max / moves_to_go + increment.mul_f32(increment_to_use());
+                let base_time = absolute_max / moves_to_go
+                    + increment.mul_f32(increment_to_use() as f32 / 100.0);
 
-                hard_stop = absolute_max.mul_f32(hard_time_multiplier());
-                soft_stop = std::cmp::min(base_time.mul_f32(soft_time_multiplier()), hard_stop);
+                hard_stop = absolute_max.mul_f32(hard_time_multiplier() as f32 / 100.0);
+                soft_stop = std::cmp::min(
+                    base_time.mul_f32(soft_time_multiplier() as f32 / 100.0),
+                    hard_stop,
+                );
             }
             TimeControl::Nodes { hard, .. } => {
                 if let Some(hard_limit) = hard {
@@ -230,28 +235,34 @@ impl TimeStrategy {
 
     #[expect(clippy::cast_precision_loss, reason = "Time management calculations can be approx")]
     pub fn update_after_search(&mut self, best_move: Move, depth: Depth, nodes_visited: u64) {
+        // Update best move stability
+        if Some(best_move) == self.last_best_move {
+            self.best_move_stability += 1;
+        } else {
+            self.best_move_stability = 0;
+        }
+
+        self.last_best_move = Some(best_move);
+
+        // Compute new scale
         let mut scale = 1.0;
 
         if depth >= best_move_stability_initial_depth() {
-            self.best_move_stability = if Some(best_move) == self.last_best_move {
-                std::cmp::min(4, self.best_move_stability + 1)
-            } else {
-                0
-            };
-
-            scale *= BEST_MOVE_STABILITY_TIME_MULTIPLIERS[self.best_move_stability];
+            scale *= BEST_MOVE_STABILITY_TIME_MULTIPLIERS[self.best_move_stability.min(4)];
         }
 
-        let nodes_for_best_move = self.nodes_used[best_move.from()][best_move.to()];
-        let fraction_used_for_best_move = nodes_for_best_move as f32 / nodes_visited as f32;
-        let node_scale_adjustment = fraction_used_for_best_move
-            .mul_add(-node_tm_multiplier(), node_tm_base())
-            .max(node_tm_min());
+        let node_scale_adjustment = {
+            let nodes_for_best_move = self.nodes_used[best_move.from()][best_move.to()];
+            let fraction_used_for_best_move = nodes_for_best_move as f32 / nodes_visited as f32;
+
+            fraction_used_for_best_move
+                .mul_add(-(node_tm_multiplier() as f32 / 100.0), node_tm_base() as f32 / 100.0)
+                .max(node_tm_min() as f32 / 100.0)
+        };
 
         scale *= node_scale_adjustment;
 
         self.scale = scale;
-        self.last_best_move = Some(best_move);
     }
 
     fn is_force_stopped(&self) -> bool {

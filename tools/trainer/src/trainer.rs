@@ -5,22 +5,23 @@ use bullet_lib::{
     },
     nn::{
         InitSettings, Shape,
-        optimiser::{Ranger, RangerParams},
+        optimiser::{Ranger, RangerOptimiser, RangerParams},
     },
     trainer::{
         save::SavedFormat,
         schedule::{TrainingSchedule, TrainingSteps, lr, wdl},
         settings::LocalSettings,
     },
-    value::{ValueTrainerBuilder, loader::ViriBinpackLoader},
+    value::{ValueTrainer, ValueTrainerBuilder, loader::ViriBinpackLoader},
 };
 
 use crate::bullet_extensions::*;
 
 type Optimiser = Ranger;
+type OptimiserT = RangerOptimiser;
 type Params = RangerParams;
 
-const SCALE: f32 = 400.0;
+pub const SCALE: f32 = 400.0;
 const QA: i16 = 255;
 const QB: i16 = 64;
 
@@ -42,7 +43,7 @@ const BUCKET_SCHEME: [usize; 32] = [
 const INPUT_BUCKETS: usize = get_num_buckets(&BUCKET_SCHEME);
 const OUTPUT_BUCKETS: usize = 8;
 
-pub fn run(net_name: &str) {
+pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount<OUTPUT_BUCKETS>> {
     let mut trainer = ValueTrainerBuilder::default()
         .dual_perspective()
         .optimiser(Optimiser::default())
@@ -84,6 +85,12 @@ pub fn run(net_name: &str) {
     let l0_clipping = Params::clipped(-0.99..0.99);
     trainer.optimiser.set_params_for_weight("l0w", l0_clipping);
     trainer.optimiser.set_params_for_weight("l0f", l0_clipping);
+
+    trainer
+}
+
+pub fn run(net_name: &str) {
+    let mut trainer = trainer();
 
     // Schedule 1
     let schedule1_superbatches: usize = 400;

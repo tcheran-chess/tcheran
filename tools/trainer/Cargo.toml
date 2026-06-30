@@ -12,3 +12,4 @@ cuda = ["bullet_lib/cuda"]
 [dependencies]
 bullet_lib = { git = "https://github.com/jw1912/bullet", package = "bullet_lib" }
 viriformat = "2.0.1"
+clap = { version = "4.6.1", features = ["derive"] }

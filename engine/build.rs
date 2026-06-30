@@ -4,7 +4,7 @@ use std::{
     process::Command,
 };
 
-const NETWORK: &str = "v19-8ae28367.nnue";
+const NETWORK: &str = "v20-90b07006.nnue";
 const DOWNLOAD_BASE_URL: &str =
     "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks";
 

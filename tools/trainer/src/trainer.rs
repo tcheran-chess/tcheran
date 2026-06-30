@@ -5,7 +5,7 @@ use bullet_lib::{
     },
     nn::{
         InitSettings, Shape,
-        optimiser::{AdamW, AdamWParams},
+        optimiser::{Ranger, RangerParams},
     },
     trainer::{
         save::SavedFormat,
@@ -42,7 +42,7 @@ const OUTPUT_BUCKETS: usize = 8;
 pub fn run(net_name: &str) {
     let mut trainer = ValueTrainerBuilder::default()
         .dual_perspective()
-        .optimiser(AdamW)
+        .optimiser(Ranger)
         .inputs(ChessBucketsMirrored::new(BUCKET_LAYOUT))
         .output_buckets(MaterialCount::<OUTPUT_BUCKETS>)
         .save_format(&[
@@ -78,7 +78,7 @@ pub fn run(net_name: &str) {
         });
 
     // Accounting for factoriser weight magnitudes (as per Bullet example)
-    let stricter_clipping = AdamWParams {
+    let stricter_clipping = RangerParams {
         max_weight: 0.99,
         min_weight: -0.99,
         ..Default::default()

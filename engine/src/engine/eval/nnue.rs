@@ -20,7 +20,7 @@ pub const QA: i16 = 255;
 pub const QB: i16 = 64;
 
 // Eval scaling factor
-pub const SCALE: i32 = 269;
+pub const SCALE: i32 = 267;
 
 /// Container for all network parameters
 #[repr(C, align(64))]

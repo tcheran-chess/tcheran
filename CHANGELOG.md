@@ -7,6 +7,7 @@
 * Network #18, with a new much longer training schedule about half way between my existing one and Hobbes' (14.19 +- 6.56)
 * Cut off if the singular beta beats beta (6.97 +- 4.40)
 * Added TT clusters (6.28 +- 4.04)
+* SPSA tune - 2682 iters at 20+0.20 (5.58 +- 3.78)
 * Score quiet moves that give check higher for picking (4.97 +- 3.54)
 * Preparation for making time management tunable (4.68 +- 4.31)
 * Game::is_direct_check is now used in LMP (4.57 +- 3.35)

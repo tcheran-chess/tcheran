@@ -15,6 +15,7 @@ pub use types::*;
 use crate::{
     chess::{moves::MoveList, prelude::*},
     engine::{
+        cuckoo::has_upcoming_repetition,
         eval::{Eval, eval},
         options::EngineOptions,
         params::*,
@@ -381,6 +382,14 @@ pub fn negamax(
 
         if s.alpha >= s.beta {
             return s.alpha;
+        }
+
+        if s.alpha < Eval::DRAW && has_upcoming_repetition(game, plies) {
+            s.alpha = Eval::DRAW;
+
+            if s.alpha >= s.beta {
+                return s.alpha;
+            }
         }
     }
 
@@ -1015,6 +1024,14 @@ pub fn quiescence(
         } else {
             eval(ctx.nnue, game)
         };
+    }
+
+    if s.alpha < Eval::DRAW && has_upcoming_repetition(game, plies) {
+        s.alpha = Eval::DRAW;
+
+        if s.alpha >= s.beta {
+            return s.alpha;
+        }
     }
 
     let tt_entry = ctx.tt.get(game.hash, plies);

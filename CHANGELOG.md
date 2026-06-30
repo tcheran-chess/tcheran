@@ -11,6 +11,7 @@
 * Add 'simple' probcut (3.62 +- 2.81)
 * Add late move pruning in quiescence (3.51 +- 2.75)
 * Add hindsight extensions (3.31 +- 2.61)
+* Add upcoming repetition detection (3.07 +- 2.46)
 * Give a higher history bonus for moves that failed high but where the static eval was below alpha (2.66 +- 2.14)
 * Add 4-ply continuation history (2.16 +- 1.73)
 * LMR is now done later in the root node (0.50 +- 1.83)

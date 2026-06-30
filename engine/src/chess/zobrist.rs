@@ -25,6 +25,28 @@ impl ZobristHash {
     }
 }
 
+impl std::ops::BitXor for ZobristHash {
+    type Output = Self;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        Self(self.0 ^ rhs.0)
+    }
+}
+
+impl std::ops::BitXorAssign for ZobristHash {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        self.0 ^= rhs.0;
+    }
+}
+
+impl std::ops::BitXor<u64> for ZobristHash {
+    type Output = Self;
+
+    fn bitxor(self, rhs: u64) -> Self::Output {
+        Self(self.0 ^ rhs)
+    }
+}
+
 pub fn hash(game: &Game) -> ZobristHash {
     let mut hash = hash_pieces(game, |_| true);
 
@@ -76,7 +98,7 @@ pub fn hash_pieces(game: &Game, include_piece_fn: impl Fn(Piece) -> bool) -> Zob
     hash
 }
 
-fn piece_on_square(player: Player, piece: PieceKind, square: Square) -> ZobristComponent {
+pub fn piece_on_square(player: Player, piece: PieceKind, square: Square) -> ZobristComponent {
     components::PIECE_SQUARE[player][square][piece]
 }
 
@@ -88,7 +110,7 @@ fn en_passant(square: Square) -> ZobristComponent {
     components::EN_PASSANT_SQUARE[square]
 }
 
-fn side_to_play() -> ZobristComponent {
+pub fn side_to_play() -> ZobristComponent {
     components::SIDE_TO_PLAY
 }
 

@@ -43,7 +43,11 @@ pub fn aspiration_search(
     let mut reduction = 0;
 
     loop {
-        let eval = negamax::negamax(game, window, depth - reduction, 0, false, pv, ctx);
+        // This would only make a difference if aspiration_max_reduction > aspiration_min_depth
+        // but would allow dropping directly into quiescence which we don't want.
+        let search_depth = (depth - reduction).max(Depth::new(1));
+
+        let eval = negamax::negamax(game, window, search_depth, 0, false, pv, ctx);
 
         if ctx.stopped() {
             return Eval::MIN;
@@ -57,7 +61,7 @@ pub fn aspiration_search(
         } else if eval >= window.beta {
             window.beta = clamp_beta(eval + width);
             width = increase_width(width);
-            reduction += 1;
+            reduction = (reduction + 1).min(aspiration_max_reduction());
         } else {
             return eval;
         }

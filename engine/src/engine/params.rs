@@ -7,6 +7,7 @@ parameters!(
     // Search
     aspiration_window_size: i32 = 16 [10..30];
     aspiration_min_depth: u8 = 5 [3..10];
+    aspiration_max_reduction: u8 = 3 [2..10];
 
     // Whole node techniques
     reverse_futility_prune_depth_margin: i32 = 111 [16..256];

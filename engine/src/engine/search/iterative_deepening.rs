@@ -19,7 +19,7 @@ pub fn search(
     for depth in 1..=MAX_SEARCH_DEPTH {
         let depth = Depth::new(depth);
 
-        if !ctx.time_control.should_start_new_search(depth, ctx) {
+        if !ctx.should_start_new_search(depth) {
             break;
         }
 
@@ -28,7 +28,7 @@ pub fn search(
         let previous_eval = result.as_ref().map(|r| r.score);
         let eval = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
 
-        if ctx.time_control.stopped() {
+        if ctx.stopped() {
             ctx.was_hard_stopped = true;
             break;
         }
@@ -37,9 +37,7 @@ pub fn search(
             panic!("No PV move at depth {} for position {}", depth, game.to_fen())
         });
 
-        ctx.completed_depth = depth;
-        ctx.time_control
-            .update_after_search(new_best_move, depth, ctx.nodes.get());
+        ctx.update_after_search(new_best_move, depth, ctx.nodes.get());
 
         let this_result = SearchResult {
             id: ctx.id,

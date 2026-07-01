@@ -11,7 +11,7 @@ use crate::{
     engine::{
         options::EngineOptions,
         params::*,
-        search::{SearchContext, TimeControl, types::Depth},
+        search::{TimeControl, types::Depth},
     },
     util::monitor::Monitor,
 };
@@ -19,7 +19,6 @@ use crate::{
 pub struct TimeStrategy {
     time_control: TimeControl,
     started_at: Instant,
-    stopped: bool,
 
     soft_stop: Duration,
     hard_stop: Duration,
@@ -141,7 +140,6 @@ impl TimeStrategy {
         Self {
             time_control,
             started_at: started_at.unwrap_or_else(Instant::now),
-            stopped: false,
 
             soft_stop,
             hard_stop,
@@ -161,12 +159,12 @@ impl TimeStrategy {
         self.started_at.elapsed()
     }
 
-    pub fn should_start_new_search(&self, depth: Depth, ctx: &SearchContext<'_>) -> bool {
+    pub fn should_start_new_search(&self, nodes: u64, depth: Depth) -> bool {
         if depth == 1 {
             return true;
         }
 
-        if self.is_force_stopped() {
+        if self.control.should_stop() {
             return false;
         }
 
@@ -175,58 +173,47 @@ impl TimeStrategy {
             TimeControl::Clocks { .. } => self.elapsed() < self.soft_stop.mul_f32(self.scale),
             TimeControl::ExactTime { time, .. } => self.elapsed() < time,
             TimeControl::Depth(d) => d >= depth,
-            TimeControl::Nodes { soft, .. } => soft.is_none_or(|s| ctx.nodes.get() <= s),
+            TimeControl::Nodes { soft, .. } => soft.is_none_or(|s| nodes <= s),
         }
     }
 
     #[inline]
-    pub fn stopped(&self) -> bool {
-        self.stopped
-    }
-
-    #[inline]
-    fn stop(&mut self) {
-        self.stopped = true;
-    }
-
-    pub fn update(&mut self, nodes_visited: u64, root_depth: Depth) {
+    pub fn stopped(&mut self, nodes: u64, root_depth: Depth) -> bool {
         // If we're on our first iterative deepening iteration we don't have a best move
         // yet, so don't force-stop the search under any circumstances.
         if root_depth == 1 {
-            return;
+            return false;
         }
 
-        if nodes_visited < self.next_check_at || self.stopped {
-            return;
+        // If either we, or another thread, has already asked to stop, then we're stopped
+        if self.control.should_stop() {
+            return true;
         }
 
-        if self.is_force_stopped() {
-            self.stop();
-            return;
+        if nodes < self.next_check_at {
+            return false;
         }
 
-        self.next_check_at = nodes_visited + CHECK_TERMINATION_NODE_FREQUENCY;
+        self.next_check_at = nodes + CHECK_TERMINATION_NODE_FREQUENCY;
 
-        match self.time_control {
-            TimeControl::Clocks { .. } => {
-                if self.elapsed() > self.hard_stop {
-                    self.stop();
-                }
-            }
-            TimeControl::ExactTime { time, .. } => {
-                if self.elapsed() > time {
-                    self.stop();
-                }
-            }
+        let should_stop = match self.time_control {
+            TimeControl::Clocks { .. } => self.elapsed() > self.hard_stop,
+            TimeControl::ExactTime { time, .. } => self.elapsed() > time,
             TimeControl::Nodes { hard, .. } => {
                 // If we had a hard node limit, we will have waited to check until we hit
                 // that limit so we can just stop immediately here.
-                if hard.is_some() {
-                    self.stop();
-                }
+                hard.is_some()
             }
-            TimeControl::Infinite | TimeControl::Depth(_) => {}
+            TimeControl::Infinite | TimeControl::Depth(_) => false,
+        };
+
+        if should_stop {
+            // This will only ever be called by the main thread, as the other threads are running
+            // in TimeControl::Infinite
+            self.control.stop();
         }
+
+        should_stop
     }
 
     pub fn update_nodes_used(&mut self, mv: Move, nodes_used: u64) {
@@ -263,9 +250,5 @@ impl TimeStrategy {
         scale *= node_scale_adjustment;
 
         self.scale = scale;
-    }
-
-    fn is_force_stopped(&self) -> bool {
-        self.control.should_stop()
     }
 }

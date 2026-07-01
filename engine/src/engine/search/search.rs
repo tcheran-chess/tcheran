@@ -110,7 +110,7 @@ pub struct SearchContext<'s> {
     pub nnue: &'s mut NetworkStack,
     pub stack: &'s mut SearchStack,
 
-    pub time_control: TimeStrategy,
+    time_control: TimeStrategy,
 
     pub id: usize,
     pub max_depth_reached: u8,
@@ -154,6 +154,27 @@ impl<'s> SearchContext<'s> {
             nodes: BufferedAtomicU64::new(node_counter),
             tbhits: BufferedAtomicU64::new(tbhits_counter),
         }
+    }
+}
+
+impl SearchContext<'_> {
+    pub fn should_start_new_search(&mut self, depth: Depth) -> bool {
+        self.time_control
+            .should_start_new_search(self.nodes.get(), depth)
+    }
+
+    pub fn stopped(&mut self) -> bool {
+        self.time_control.stopped(self.nodes.get(), self.root_depth)
+    }
+
+    pub fn update_nodes_used(&mut self, mv: Move, nodes: u64) {
+        self.time_control.update_nodes_used(mv, nodes);
+    }
+
+    pub fn update_after_search(&mut self, best_move: Move, depth: Depth, nodes: u64) {
+        self.completed_depth = depth;
+        self.time_control
+            .update_after_search(best_move, depth, nodes);
     }
 }
 

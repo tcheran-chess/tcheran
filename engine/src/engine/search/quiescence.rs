@@ -20,8 +20,7 @@ pub fn quiescence(
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
     // Check periodically to see if we're out of time.
-    ctx.time_control.update(ctx.nodes.get(), ctx.root_depth);
-    if ctx.time_control.stopped() {
+    if ctx.stopped() {
         return Eval::MIN;
     }
 
@@ -154,7 +153,7 @@ pub fn quiescence(
         game.undo_move();
         ctx.nnue.pop();
 
-        if ctx.time_control.stopped() {
+        if ctx.stopped() {
             return Eval::MIN;
         }
 

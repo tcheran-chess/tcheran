@@ -27,8 +27,7 @@ pub fn negamax(
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
     // Check periodically to see if we're out of time.
-    ctx.time_control.update(ctx.nodes.get(), ctx.root_depth);
-    if ctx.time_control.stopped() {
+    if ctx.stopped() {
         return Eval::MIN;
     }
 
@@ -257,7 +256,7 @@ pub fn negamax(
 
         game.undo_null_move();
 
-        if ctx.time_control.stopped() {
+        if ctx.stopped() {
             return Eval::MIN;
         }
 
@@ -501,10 +500,10 @@ pub fn negamax(
 
         if is_root {
             let nodes_for_this_move = ctx.nodes.get() - nodes_before;
-            ctx.time_control.update_nodes_used(mv, nodes_for_this_move);
+            ctx.update_nodes_used(mv, nodes_for_this_move);
         }
 
-        if ctx.time_control.stopped() {
+        if ctx.stopped() {
             return Eval::MIN;
         }
 

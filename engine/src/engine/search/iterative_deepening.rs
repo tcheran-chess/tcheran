@@ -37,7 +37,7 @@ pub fn search(
             panic!("No PV move at depth {} for position {}", depth, game.to_fen())
         });
 
-        ctx.update_after_search(new_best_move, depth, ctx.nodes.get());
+        ctx.update_after_search(new_best_move, depth);
 
         let this_result = SearchResult {
             id: ctx.id,

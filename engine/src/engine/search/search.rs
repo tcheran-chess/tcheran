@@ -171,10 +171,10 @@ impl SearchContext<'_> {
         self.time_control.update_nodes_used(mv, nodes);
     }
 
-    pub fn update_after_search(&mut self, best_move: Move, depth: Depth, nodes: u64) {
+    pub fn update_after_search(&mut self, best_move: Move, depth: Depth) {
         self.completed_depth = depth;
         self.time_control
-            .update_after_search(best_move, depth, nodes);
+            .update_after_search(best_move, depth, self.nodes.get());
     }
 }
 

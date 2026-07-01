@@ -42,6 +42,7 @@ pub fn search(
             .update_after_search(new_best_move, depth, ctx.nodes.get());
 
         let this_result = SearchResult {
+            id: ctx.id,
             mv: new_best_move,
             score: eval,
             pv: pv.clone(),

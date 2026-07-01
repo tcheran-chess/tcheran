@@ -112,6 +112,7 @@ pub struct SearchContext<'s> {
 
     pub time_control: TimeStrategy,
 
+    pub id: usize,
     pub max_depth_reached: u8,
     pub completed_depth: Depth,
     pub root_depth: Depth,
@@ -122,6 +123,7 @@ pub struct SearchContext<'s> {
 
 impl<'s> SearchContext<'s> {
     pub fn new(
+        id: usize,
         game: &Game,
         tt: &'s TranspositionTable,
         tablebase: &'s Tablebase,
@@ -144,6 +146,7 @@ impl<'s> SearchContext<'s> {
             nnue,
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
 
+            id,
             max_depth_reached: 0,
             completed_depth: Depth::ZERO,
             root_depth: Depth::ZERO,
@@ -236,6 +239,7 @@ impl Clocks {
 
 #[derive(Clone)]
 pub struct SearchResult {
+    pub id: usize,
     pub mv: Move,
     pub score: Eval,
     pub pv: PrincipalVariation,
@@ -298,6 +302,7 @@ pub fn search(
 
     let (tables, stack, nnue) = thread_data.mut_refs();
     let mut ctx = SearchContext::new(
+        thread_id,
         game,
         &persistent_state.tt,
         &persistent_state.tablebase,
@@ -327,11 +332,11 @@ pub fn search(
         stop_control.stop();
         stop_control.wait_until_last();
 
-        let (best_thread_id, result) = best_result(results);
+        let result = best_result(results);
 
         let send_final_info =
              // We picked a different thread, so we want to report *that* thread's info
-             best_thread_id != thread_id
+             result.id != thread_id
              // We did more searching since last reporting, always send a final info line
              // before reporting the best move so we have useful information such as the exact number of
              // nodes searched and the exact time used. This could be useful for debugging time issues or
@@ -355,13 +360,13 @@ pub fn search(
     thread_result
 }
 
-fn best_result(results: &SearchResults) -> (usize, SearchResult) {
+fn best_result(results: &SearchResults) -> SearchResult {
     let results = results.get();
 
     // For now, we assume that the main thread produced the best result
-    let (thread_id, result) = &results[0];
+    let result = &results[0];
 
-    (*thread_id, result.clone())
+    result.clone()
 }
 
 // Simple single-threaded search used by utilities like bench, tests and datagen
@@ -446,6 +451,7 @@ pub fn probe_tb_at_root(
     });
 
     Some(SearchResult {
+        id: 0,
         mv: best_move,
         pv,
         score,

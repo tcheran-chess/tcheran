@@ -222,12 +222,11 @@ impl SearchResults {
             .set(result.clone());
     }
 
-    pub fn get(&self) -> Vec<(usize, SearchResult)> {
+    pub fn get(&self) -> Vec<SearchResult> {
         self.0
             .iter()
             .map(|l| l.get().expect("Every thread should've reported a result"))
             .cloned()
-            .enumerate()
             .collect::<Vec<_>>()
     }
 }

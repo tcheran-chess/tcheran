@@ -3,7 +3,7 @@ name = "engine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-default-run = "engine"
+default-run = "tcheran"
 
 [features]
 spsa = []
@@ -13,7 +13,7 @@ datagen = ["dep:rand"]
 path = "src/lib.rs"
 
 [[bin]]
-name = "engine"
+name = "tcheran"
 path = "src/main.rs"
 
 [dependencies]

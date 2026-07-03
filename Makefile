@@ -21,4 +21,4 @@ endif
 default: build
 
 build:
-	cargo rustc --manifest-path ./engine/Cargo.toml --bin engine --release $(SPSA_FEATURE_ARG) $(DATAGEN_FEATURE_ARG) -- -C target-cpu=native --emit link=$(NAME)
+	cargo rustc --manifest-path ./engine/Cargo.toml --bin tcheran --release $(SPSA_FEATURE_ARG) $(DATAGEN_FEATURE_ARG) -- -C target-cpu=native --emit link=$(NAME)

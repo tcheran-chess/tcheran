@@ -1,6 +1,6 @@
 use crate::{
     chess::{
-        Board, File, Game, MoveObserver, Piece, PieceKind, Player, Square, moves::Move,
+        Board, File, Game, MoveObserver, Piece, PieceKind, Player, Rank, Square, moves::Move,
         squares::all::*,
     },
     engine::{
@@ -34,16 +34,38 @@ pub struct Network {
 pub static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
 
 #[rustfmt::skip]
-const BUCKET_LAYOUT: [usize; Square::N] = [
-    0, 1, 2, 3, 3, 2, 1, 0,
-    4, 4, 5, 5, 5, 5, 4, 4,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    6, 6, 6, 6, 6, 6, 6, 6,
-    7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7,
-    7, 7, 7, 7, 7, 7, 7, 7,
+const NON_MIRRORED_BUCKET_LAYOUT: [usize; Square::N / 2] = [
+    0, 1, 2, 3,
+    4, 4, 5, 5,
+    6, 6, 6, 6,
+    6, 6, 6, 6,
+    7, 7, 7, 7,
+    7, 7, 7, 7,
+    7, 7, 7, 7,
+    7, 7, 7, 7,
 ];
+
+const BUCKET_LAYOUT: [usize; Square::N] = const {
+    let mut layout = [0; Square::N];
+    let max_file_idx = File::N - 1;
+
+    let mut rank = 0;
+    while rank < Rank::N {
+        let mut file = 0;
+        while file < File::N / 2 {
+            let bucket = NON_MIRRORED_BUCKET_LAYOUT[rank * Rank::N / 2 + file];
+
+            layout[rank * Rank::N + file] = bucket;
+            layout[rank * Rank::N + (max_file_idx - file)] = bucket;
+
+            file += 1;
+        }
+
+        rank += 1;
+    }
+
+    layout
+};
 
 const INPUT_BUCKETS: usize = const {
     let mut max = 0;

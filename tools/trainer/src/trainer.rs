@@ -25,7 +25,7 @@ const FEATURES: usize = 768;
 const HIDDEN_LAYER: usize = 1024;
 
 #[rustfmt::skip]
-const BUCKET_LAYOUT: [usize; 32] = [
+const NON_MIRRORED_BUCKET_LAYOUT: [usize; 32] = [
     0, 1, 2, 3,
     4, 4, 5, 5,
     6, 6, 6, 6,
@@ -36,14 +36,14 @@ const BUCKET_LAYOUT: [usize; 32] = [
     7, 7, 7, 7,
 ];
 
-const INPUT_BUCKETS: usize = get_num_buckets(&BUCKET_LAYOUT);
+const INPUT_BUCKETS: usize = get_num_buckets(&NON_MIRRORED_BUCKET_LAYOUT);
 const OUTPUT_BUCKETS: usize = 8;
 
 pub fn run(net_name: &str) {
     let mut trainer = ValueTrainerBuilder::default()
         .dual_perspective()
         .optimiser(Ranger)
-        .inputs(ChessBucketsMirrored::new(BUCKET_LAYOUT))
+        .inputs(ChessBucketsMirrored::new(NON_MIRRORED_BUCKET_LAYOUT))
         .output_buckets(MaterialCount::<OUTPUT_BUCKETS>)
         .save_format(&[
             // Merge in the factoriser weights

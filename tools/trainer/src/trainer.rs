@@ -5,7 +5,7 @@ use bullet_lib::{
     },
     nn::{
         InitSettings, Shape,
-        optimiser::{Ranger, RangerOptimiser, RangerParams},
+        optimiser::{AdamW, AdamWOptimiser, AdamWParams},
     },
     trainer::{
         save::SavedFormat,
@@ -17,16 +17,20 @@ use bullet_lib::{
 
 use crate::bullet_extensions::*;
 
-type Optimiser = Ranger;
-type OptimiserT = RangerOptimiser;
-type Params = RangerParams;
+type Optimiser = AdamW;
+type OptimiserT = AdamWOptimiser;
+type Params = AdamWParams;
 
 pub const SCALE: f32 = 400.0;
-const QA: i16 = 255;
-const QB: i16 = 64;
 
-const FEATURES: usize = 768;
-const HIDDEN_LAYER: usize = 1024;
+pub const Q0: i16 = 255;
+pub const Q1: i16 = 128;
+pub const Q: i32 = 64;
+
+pub const FEATURES: usize = 768;
+pub const L1: usize = 1024;
+pub const L2: usize = 16;
+pub const L3: usize = 32;
 
 #[rustfmt::skip]
 const BUCKET_SCHEME: [usize; 32] = [
@@ -40,8 +44,13 @@ const BUCKET_SCHEME: [usize; 32] = [
     7, 7, 7, 7,
 ];
 
-const INPUT_BUCKETS: usize = get_num_buckets(&BUCKET_SCHEME);
-const OUTPUT_BUCKETS: usize = 8;
+pub const INPUT_BUCKETS: usize = get_num_buckets(&BUCKET_SCHEME);
+pub const OUTPUT_BUCKETS: usize = 8;
+
+const L1_SHIFT: usize = 8;
+const L1_SHIFT_SCALE: f32 = Q0 as f32 / ((1 << L1_SHIFT) as f32);
+const I8_RANGE: f32 = i8::MAX as f32 / (Q1 as f32);
+const L1_RANGE: f32 = I8_RANGE * L1_SHIFT_SCALE * L1_SHIFT_SCALE;
 
 pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount<OUTPUT_BUCKETS>> {
     let mut trainer = ValueTrainerBuilder::default()
@@ -57,34 +66,63 @@ pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount
                     weights.into_iter().zip(factoriser).map(|(a, b)| a + b).collect()
                 })
                 .round()
-                .quantise::<i16>(QA),
-            SavedFormat::id("l0b").round().quantise::<i16>(QA),
-            SavedFormat::id("l1w").round().quantise::<i16>(QB).transpose(),
-            SavedFormat::id("l1b").round().quantise::<i16>(QA * QB),
+                .quantise::<i16>(Q0),
+            SavedFormat::id("l0b").round().quantise::<i16>(Q0),
+            SavedFormat::id("l1w")
+                .transform(|_, mut weights| {
+                    for i in weights.iter_mut() {
+                        *i /= L1_SHIFT_SCALE * L1_SHIFT_SCALE;
+                    }
+                    weights
+                })
+                .round()
+                .quantise::<i8>(Q1),
+            SavedFormat::id("l1b").round().quantise::<i32>(Q * (1 << L1_SHIFT)),
+            SavedFormat::id("l2w").round().quantise::<i32>(Q),
+            SavedFormat::id("l2b").round().quantise::<i32>(Q.pow(3)),
+            SavedFormat::id("l3w").round().quantise::<i32>(Q),
+            SavedFormat::id("l3b").round().quantise::<i32>(Q.pow(4)),
         ])
-        .loss_fn(|output, target| output.sigmoid().squared_error(target))
-        .build(|builder, stm_inputs, ntm_inputs, output_buckets| {
-            // factoriser
-            let l0f = builder.new_weights("l0f", Shape::new(HIDDEN_LAYER, FEATURES), InitSettings::Zeroed);
-            let expanded_factoriser = l0f.repeat(INPUT_BUCKETS);
+        .build_custom(|builder, (stm_inputs, ntm_inputs, output_buckets), target| {
+            // features & factoriser
+            let l0f = builder.new_weights("l0f", Shape::new(L1, FEATURES), InitSettings::Zeroed);
+            let mut l0 = builder.new_affine("l0", FEATURES * INPUT_BUCKETS, L1);
+            l0.init_with_effective_input_size(20000);
+            l0.weights = l0.weights + l0f.repeat(INPUT_BUCKETS);
 
             // weights
-            let mut l0 = builder.new_affine("l0", FEATURES * INPUT_BUCKETS, HIDDEN_LAYER);
-            l0.weights = l0.weights + expanded_factoriser;
-
-            let l1 = builder.new_affine("l1", 2 * HIDDEN_LAYER, OUTPUT_BUCKETS);
+            let l1 = builder.new_affine("l1", L1, OUTPUT_BUCKETS * L2);
+            let l2 = builder.new_affine("l2", L2, OUTPUT_BUCKETS * L3);
+            let l3 = builder.new_affine("l3", L3, OUTPUT_BUCKETS);
 
             // inference
-            let stm_hidden = l0.forward(stm_inputs).screlu();
-            let ntm_hidden = l0.forward(ntm_inputs).screlu();
-            let hidden_layer = stm_hidden.concat(ntm_hidden);
-            l1.forward(hidden_layer).select(output_buckets)
+            let ft = |input, start, end| l0.slice(start, end).forward(input).crelu();
+            let stm_hidden = ft(stm_inputs, 0, L1 / 2) * ft(stm_inputs, L1 / 2, L1);
+            let ntm_hidden = ft(ntm_inputs, 0, L1 / 2) * ft(ntm_inputs, L1 / 2, L1);
+
+            let h1 = stm_hidden.concat(ntm_hidden);
+            let h2 = l1.forward(h1).select(output_buckets).screlu();
+            let h3 = l2.forward(h2).select(output_buckets).crelu();
+            let output = l3.forward(h3).select(output_buckets);
+
+            // loss
+            let main_loss = output.sigmoid().squared_error(target);
+
+            let ones_l1_vec = builder.new_constant(Shape::new(1, L1), &[1.0 / L1 as f32; L1]);
+            let sparsity_loss = ones_l1_vec.matmul(h1);
+
+            let loss = main_loss + 0.005 * sparsity_loss;
+
+            (output, loss)
         });
 
     // Accounting for factoriser weight magnitudes (as per Bullet example)
     let l0_clipping = Params::clipped(-0.99..0.99);
     trainer.optimiser.set_params_for_weight("l0w", l0_clipping);
     trainer.optimiser.set_params_for_weight("l0f", l0_clipping);
+
+    let l1_clipping = Params::clipped(-L1_RANGE..L1_RANGE);
+    trainer.optimiser.set_params_for_weight("l1w", l1_clipping);
 
     trainer
 }

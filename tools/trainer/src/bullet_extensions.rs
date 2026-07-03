@@ -1,5 +1,5 @@
 use bullet_lib::TrainingSteps;
-use bullet_lib::nn::optimiser::RangerParams;
+use bullet_lib::nn::optimiser::{AdamWParams, RangerParams};
 use std::ops::Range;
 
 pub trait TrainingStepsImpl {
@@ -28,6 +28,16 @@ impl TrainingStepsImpl for TrainingSteps {
 
 pub trait OptimiserParamsExt {
     fn clipped(ranger: Range<f32>) -> Self;
+}
+
+impl OptimiserParamsExt for AdamWParams {
+    fn clipped(range: Range<f32>) -> Self {
+        Self {
+            min_weight: range.start,
+            max_weight: range.end,
+            ..Default::default()
+        }
+    }
 }
 
 impl OptimiserParamsExt for RangerParams {

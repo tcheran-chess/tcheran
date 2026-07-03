@@ -1,10 +1,17 @@
 use std::{
-    env,
+    env, fs,
     path::{Path, PathBuf},
     process::Command,
 };
 
-const NETWORK: &str = "v20-90b07006.nnue";
+use crate::preprocessing::RawNetwork;
+
+mod preprocessing;
+
+// Make the network architecture definition available for preprocessing
+include!("src/engine/eval/nnue/network.rs");
+
+const NETWORK_FILE: &str = "v21-46233aea.nnue";
 const DOWNLOAD_BASE_URL: &str =
     "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks";
 
@@ -12,6 +19,7 @@ fn main() {
     generate_engine_version();
 
     let network_file = setup_network();
+    let network_file = preprocess_network(&network_file);
     println!("cargo:rustc-env=NETWORK={}", network_file.display());
 
     build_fathom();
@@ -57,7 +65,7 @@ fn setup_network() -> PathBuf {
         return path;
     }
 
-    let path = relative_to_project_root(Path::new("data").join(NETWORK));
+    let path = relative_to_project_root(Path::new("data").join(NETWORK_FILE));
     if !path.exists() {
         download_network(&path);
     }
@@ -88,13 +96,47 @@ fn download_network(download_to: &Path) {
             "--create-dirs",
             "--output",
             &download_to.display().to_string(),
-            &format!("{DOWNLOAD_BASE_URL}/{NETWORK}"),
+            &format!("{DOWNLOAD_BASE_URL}/{NETWORK_FILE}"),
         ])
         .status()
         .unwrap();
 
     assert!(download_succeeded.success(), "Unable to download network");
-    println!("cargo::warning=Fetched network: {NETWORK}");
+    println!("cargo::warning=Fetched network: {NETWORK_FILE}");
+}
+
+pub fn preprocess_network(file: &PathBuf) -> PathBuf {
+    let raw_bytes = fs::read(file).expect("Unable to read file");
+    assert_eq!(raw_bytes.len(), size_of::<RawNetwork>());
+
+    let raw_network = unsafe {
+        let mut network: Box<RawNetwork> = Box::new_zeroed().assume_init();
+        std::ptr::copy_nonoverlapping(
+            raw_bytes.as_ptr(),
+            std::ptr::from_mut(network.as_mut()).cast::<u8>(),
+            raw_bytes.len(),
+        );
+        network
+    };
+
+    let mut network = unsafe {
+        let network: Box<Network> = Box::new_zeroed().assume_init();
+        network
+    };
+
+    preprocessing::preprocess(&raw_network, &mut network);
+
+    let bytes = unsafe {
+        std::slice::from_raw_parts(
+            std::ptr::from_ref::<Network>(network.as_ref()).cast::<u8>(),
+            size_of::<Network>(),
+        )
+    };
+
+    let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
+    let output_file = out_dir.join(NETWORK_FILE);
+    fs::write(&output_file, bytes).expect("Unable to write file");
+    output_file
 }
 
 fn build_fathom() {

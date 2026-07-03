@@ -8,15 +8,15 @@ use crate::{
             Eval,
             nnue::{
                 inference,
-                network::{
-                    BUCKET_LAYOUT, FEATURES, HIDDEN_SIZE, INPUT_BUCKETS, NETWORK, OUTPUT_BUCKETS,
-                },
+                network::{BUCKET_LAYOUT, FEATURES, INPUT_BUCKETS, L1, Network, OUTPUT_BUCKETS},
             },
         },
         search::MAX_PLIES_ARRAY_SIZE,
     },
     util::arrayvec::ArrayVec,
 };
+
+pub static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
 
 fn input_bucket(king: Square, pov: Player) -> usize {
     let king_flip = 7 * u8::from(king.file().idx() >= 4);
@@ -124,7 +124,7 @@ pub struct CacheEntry {
 impl CacheEntry {
     fn new() -> Self {
         Self {
-            value: Accumulator(NETWORK.feature_bias),
+            value: Accumulator(NETWORK.l0_biases),
             board: Board::EMPTY,
         }
     }
@@ -294,7 +294,7 @@ impl NetworkStack {
 /// A column of the feature-weights matrix.
 #[derive(Clone)]
 #[repr(C, align(64))]
-pub struct Accumulator(pub [i16; HIDDEN_SIZE]);
+pub struct Accumulator(pub [i16; L1]);
 
 #[derive(Clone)]
 pub struct NNUE {
@@ -305,8 +305,8 @@ impl Default for NNUE {
     fn default() -> Self {
         Self {
             accumulators: [
-                Accumulator(NETWORK.feature_bias),
-                Accumulator(NETWORK.feature_bias),
+                Accumulator(NETWORK.l0_biases),
+                Accumulator(NETWORK.l0_biases),
             ],
         }
     }
@@ -372,27 +372,27 @@ impl NNUE {
 
     #[expect(clippy::needless_range_loop, reason = "Readability")]
     fn add1(acc: &mut Accumulator, add1: usize) {
-        let add1_features = &NETWORK.feature_weights[add1];
+        let add1_features = &NETWORK.l0_weights[add1];
 
-        for i in 0..HIDDEN_SIZE {
+        for i in 0..L1 {
             acc.0[i] += add1_features[i];
         }
     }
 
     #[expect(clippy::needless_range_loop, reason = "Readability")]
     fn sub1(acc: &mut Accumulator, sub1: usize) {
-        let sub1_features = &NETWORK.feature_weights[sub1];
+        let sub1_features = &NETWORK.l0_weights[sub1];
 
-        for i in 0..HIDDEN_SIZE {
+        for i in 0..L1 {
             acc.0[i] -= sub1_features[i];
         }
     }
 
     fn add1_sub1(previous_acc: &Accumulator, acc: &mut Accumulator, add1: usize, sub1: usize) {
-        let add1_features = &NETWORK.feature_weights[add1];
-        let sub1_features = &NETWORK.feature_weights[sub1];
+        let add1_features = &NETWORK.l0_weights[add1];
+        let sub1_features = &NETWORK.l0_weights[sub1];
 
-        for i in 0..HIDDEN_SIZE {
+        for i in 0..L1 {
             acc.0[i] = previous_acc.0[i] + add1_features[i] - sub1_features[i];
         }
     }
@@ -404,11 +404,11 @@ impl NNUE {
         sub1: usize,
         sub2: usize,
     ) {
-        let add1_features = &NETWORK.feature_weights[add1];
-        let sub1_features = &NETWORK.feature_weights[sub1];
-        let sub2_features = &NETWORK.feature_weights[sub2];
+        let add1_features = &NETWORK.l0_weights[add1];
+        let sub1_features = &NETWORK.l0_weights[sub1];
+        let sub2_features = &NETWORK.l0_weights[sub2];
 
-        for i in 0..HIDDEN_SIZE {
+        for i in 0..L1 {
             acc.0[i] = previous_acc.0[i] + add1_features[i] - sub1_features[i] - sub2_features[i];
         }
     }
@@ -421,12 +421,12 @@ impl NNUE {
         sub1: usize,
         sub2: usize,
     ) {
-        let add1_features = &NETWORK.feature_weights[add1];
-        let add2_features = &NETWORK.feature_weights[add2];
-        let sub1_features = &NETWORK.feature_weights[sub1];
-        let sub2_features = &NETWORK.feature_weights[sub2];
+        let add1_features = &NETWORK.l0_weights[add1];
+        let add2_features = &NETWORK.l0_weights[add2];
+        let sub1_features = &NETWORK.l0_weights[sub1];
+        let sub2_features = &NETWORK.l0_weights[sub2];
 
-        for i in 0..HIDDEN_SIZE {
+        for i in 0..L1 {
             acc.0[i] = previous_acc.0[i] + add1_features[i] + add2_features[i]
                 - sub1_features[i]
                 - sub2_features[i];

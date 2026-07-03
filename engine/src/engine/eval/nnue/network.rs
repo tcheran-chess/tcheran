@@ -1,30 +1,48 @@
-use crate::chess::{File, Rank, Square};
-
 // Network parameters
 pub const FEATURES: usize = 768;
-pub const HIDDEN_SIZE: usize = 1024;
+
+pub const L1: usize = 1024;
+pub const L2: usize = 16;
+pub const L3: usize = 32;
+
 pub const OUTPUT_BUCKETS: usize = 8;
 
-// Quantization factors
-pub const QA: i16 = 255;
-pub const QB: i16 = 64;
+// Quantisation factors
+pub const Q0: i32 = 255;
+pub const _Q1: i32 = 128;
+pub const Q: i32 = 64;
+
+pub const L0_SHIFT: u32 = 9;
+
+pub const L1_SHIFT: cfg_select!(
+    target_feature = "avx512bw" => u32,
+    _ => i32,
+) = 8;
 
 // Eval scaling factor
-pub const SCALE: i32 = 267;
+pub const SCALE: i32 = 318;
+
+// Redefinitions of Square::N / File::N / Rank::N so this file can be
+// included directly in build.rs
+const SQUARE_N: usize = 64;
+const RANK_N: usize = 8;
+const FILE_N: usize = 8;
 
 /// Container for all network parameters
 #[repr(C, align(64))]
 pub struct Network {
-    pub feature_weights: [[i16; HIDDEN_SIZE]; INPUT_BUCKETS * FEATURES],
-    pub feature_bias: [i16; HIDDEN_SIZE],
-    pub output_weights: [[i16; HIDDEN_SIZE * 2]; OUTPUT_BUCKETS],
-    pub output_bias: [i16; OUTPUT_BUCKETS],
+    pub l0_weights: [[i16; L1]; INPUT_BUCKETS * FEATURES],
+    pub l0_biases: [i16; L1],
+    pub l1_weights: [[[i8; L2 * 4]; L1 / 4]; OUTPUT_BUCKETS],
+    pub l1_biases: [[i32; L2]; OUTPUT_BUCKETS],
+    pub l2_weights: [[[i32; L3]; L2]; OUTPUT_BUCKETS],
+    pub l2_biases: [[i32; L3]; OUTPUT_BUCKETS],
+    pub l3_weights: [[i32; L3]; OUTPUT_BUCKETS],
+    pub l3_biases: [i32; OUTPUT_BUCKETS],
 }
 
-pub static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
-
 #[rustfmt::skip]
-const BUCKET_SCHEME: [usize; Square::N / 2] = [
+const BUCKET_SCHEME: [usize; SQUARE_N / 2] = [
     0, 1, 2, 3,
     4, 4, 5, 5,
     6, 6, 6, 6,
@@ -35,18 +53,18 @@ const BUCKET_SCHEME: [usize; Square::N / 2] = [
     7, 7, 7, 7,
 ];
 
-pub const BUCKET_LAYOUT: [usize; Square::N] = const {
-    let mut layout = [0; Square::N];
-    let max_file_idx = File::N - 1;
+pub const BUCKET_LAYOUT: [usize; SQUARE_N] = const {
+    let mut layout = [0; SQUARE_N];
+    let max_file_idx = FILE_N - 1;
 
     let mut rank = 0;
-    while rank < Rank::N {
+    while rank < RANK_N {
         let mut file = 0;
-        while file < File::N / 2 {
-            let bucket = BUCKET_SCHEME[rank * Rank::N / 2 + file];
+        while file < FILE_N / 2 {
+            let bucket = BUCKET_SCHEME[rank * RANK_N / 2 + file];
 
-            layout[rank * Rank::N + file] = bucket;
-            layout[rank * Rank::N + (max_file_idx - file)] = bucket;
+            layout[rank * RANK_N + file] = bucket;
+            layout[rank * RANK_N + (max_file_idx - file)] = bucket;
 
             file += 1;
         }
@@ -61,7 +79,7 @@ pub const INPUT_BUCKETS: usize = const {
     let mut max = 0;
     let mut i = 0;
 
-    while i < Square::N {
+    while i < SQUARE_N {
         if BUCKET_LAYOUT[i] > max {
             max = BUCKET_LAYOUT[i];
         }

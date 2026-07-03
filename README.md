@@ -13,8 +13,8 @@ For searching, it uses a standard alpha-beta search with many enhancements
 improve move ordering, etc.).
 
 For evaluation, it uses an efficiently-updatable neural network (NNUE). Its
-current architecture is `(768x8hm->1024)x2->8` (a single-layer,
-horizontally-mirrored network with a 1024-node hidden layer, and eight output
+current architecture is `(768x8hm->1024)x2->(16->32->1)x8` (a multi-layer,
+horizontally-mirrored network with 1024, 16 and 32 node hidden layers, and eight output
 buckets). The network is trained exclusively using self-play games from earlier
 versions of Tcheran, and [that data is available online][training-data]. More
 details, including a detailed network history are available in

@@ -37,7 +37,7 @@ use crate::{
             responses::{IdParam, UciReporter, UciResponse},
         },
         util,
-        util::log,
+        util::{log, speedtest::speedtest},
     },
 };
 
@@ -71,7 +71,7 @@ impl Threads {
     }
 
     #[expect(clippy::needless_pass_by_value, reason = "Must be cloned for each tx")]
-    fn send(&self, cmd: ThreadCommand) {
+    pub fn send(&self, cmd: ThreadCommand) {
         for thread in &self.threads {
             thread.send(cmd.clone());
         }
@@ -491,6 +491,13 @@ impl Uci {
             UciCommand::BenchNodes => {
                 let (nodes, _) = bench(None);
                 println!("{nodes}");
+            }
+            UciCommand::Speedtest {
+                threads,
+                hash,
+                duration,
+            } => {
+                speedtest(*threads, *hash, *duration);
             }
 
             #[cfg(not(feature = "datagen"))]

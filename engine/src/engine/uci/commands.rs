@@ -29,6 +29,11 @@ pub enum UciCommand {
     // OpenBench UCI commands
     Bench,
     BenchNodes,
+    Speedtest {
+        threads: Option<u64>,
+        hash: Option<u64>,
+        duration: Option<u64>,
+    },
     GenFens {
         n: u64,
         seed: u64,

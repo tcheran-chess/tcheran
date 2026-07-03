@@ -345,6 +345,29 @@ fn cmd_genfens(args: &[&str]) -> Result<UciCommand, ()> {
     })
 }
 
+fn cmd_speedtest(args: &[&str]) -> Result<UciCommand, ()> {
+    let mut args = args.iter();
+
+    let mut threads = None;
+    let mut hash = None;
+    let mut duration = None;
+
+    while let Some(&arg) = args.next() {
+        match arg {
+            "threads" => threads = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
+            "hash" => hash = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
+            "duration" => duration = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
+            _ => return Err(()),
+        }
+    }
+
+    Ok(UciCommand::Speedtest {
+        threads,
+        hash,
+        duration,
+    })
+}
+
 #[expect(clippy::result_unit_err, reason = "Improved error reporting is planned")]
 pub fn parse(input: &str) -> Result<UciCommand, ()> {
     let tokens = input.split_whitespace().collect::<Vec<&str>>();
@@ -367,6 +390,7 @@ pub fn parse(input: &str) -> Result<UciCommand, ()> {
 
         "bench" => no_args_command(UciCommand::Bench, args),
         "benchnodes" => no_args_command(UciCommand::BenchNodes, args),
+        "speedtest" => cmd_speedtest(args),
         "genfens" => cmd_genfens(args),
 
         "pos" => no_args_command(UciCommand::PrintPosition, args),

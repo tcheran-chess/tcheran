@@ -271,7 +271,7 @@ impl TranspositionTable {
 
         // Weight entries by depth searched, preferring newer entries unless old entries are searched
         // to significantly higher depths
-        if i32::from(new.depth) + 4 > i32::from(old.depth) {
+        if i32::from(new.depth) + 4 + 2 * i32::from(new.flags.was_pv()) > i32::from(old.depth) {
             return true;
         }
 

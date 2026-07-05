@@ -3,10 +3,11 @@ use std::{fmt, io, iter, marker::PhantomData};
 use arrayvec::ArrayVec;
 use bitflags::bitflags;
 use byteorder::{BE, ByteOrder as _, LE, ReadBytesExt as _};
-use shakmaty::{Bitboard, Color, File, Piece, Position, Rank, Role, Square};
+use shakmaty::{Bitboard, Color, File, Piece, Rank, Role, Square};
 use tracing::{trace, trace_span};
 
 use crate::{
+    chess::SyzygyChess,
     errors::{ProbeError, ProbeResult},
     filesystem::{RandomAccessFile, ReadHint},
     material::Material,
@@ -873,9 +874,9 @@ impl BlockLengthBuffer {
 }
 
 /// A Syzygy table.
-struct Table<T: TableTag, P: Position> {
+struct Table<T: TableTag, Chess: SyzygyChess> {
     is_wdl: PhantomData<T>,
-    syzygy: PhantomData<P>,
+    syzygy: PhantomData<Chess>,
 
     raf: Box<dyn RandomAccessFile>,
 
@@ -884,7 +885,7 @@ struct Table<T: TableTag, P: Position> {
     files: ArrayVec<FileData, 4>,
 }
 
-impl<T: TableTag, P: Position> fmt::Debug for Table<T, P> {
+impl<T: TableTag, Chess: SyzygyChess> fmt::Debug for Table<T, Chess> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Table")
             .field("num_unique_pieces", &self.num_unique_pieces)
@@ -894,7 +895,7 @@ impl<T: TableTag, P: Position> fmt::Debug for Table<T, P> {
     }
 }
 
-impl<T: TableTag, S: Position> Table<T, S> {
+impl<T: TableTag, Chess: SyzygyChess> Table<T, Chess> {
     /// Open a table, parse the header, the headers of the subtables and
     /// prepare meta data required for decompression.
     ///
@@ -903,7 +904,10 @@ impl<T: TableTag, S: Position> Table<T, S> {
     /// Panics if the `material` configuration is not supported by Syzygy
     /// tablebases (more than 7 pieces or side without pieces).
     #[track_caller]
-    pub fn new(raf: Box<dyn RandomAccessFile>, material: &Material) -> ProbeResult<Table<T, S>> {
+    pub fn new(
+        raf: Box<dyn RandomAccessFile>,
+        material: &Material,
+    ) -> ProbeResult<Table<T, Chess>> {
         assert!(material.count() <= MAX_PIECES);
         assert!(material.by_color.white.count() >= 1);
         assert!(material.by_color.black.count() >= 1);
@@ -1153,7 +1157,7 @@ impl<T: TableTag, S: Position> Table<T, S> {
 
     /// Given a position, determine the unique (modulo symmetries) index into
     /// the corresponding subtable.
-    fn encode(&self, pos: &S) -> ProbeResult<Option<(&PairsData, u64)>> {
+    fn encode(&self, pos: &Chess::Game) -> ProbeResult<Option<(&PairsData, u64)>> {
         let key = Material::from_board(pos.board());
         let material = Material::from_iter(self.files[0].sides[0].groups.pieces.clone());
         assert!(key == material || key == material.clone().into_swapped());
@@ -1458,7 +1462,7 @@ impl<T: TableTag, S: Position> Table<T, S> {
         Ok((block, lit_idx))
     }
 
-    pub fn probe_wdl(&self, pos: &S) -> ProbeResult<Wdl> {
+    pub fn probe_wdl(&self, pos: &Chess::Game) -> ProbeResult<Wdl> {
         trace_span!("wdl table").in_scope(|| {
             assert_eq!(T::METRIC, Metric::Wdl);
 
@@ -1476,7 +1480,11 @@ impl<T: TableTag, S: Position> Table<T, S> {
         })
     }
 
-    pub fn probe_dtz(&self, pos: &S, wdl: DecisiveWdl) -> ProbeResult<Option<MaybeRounded<u32>>> {
+    pub fn probe_dtz(
+        &self,
+        pos: &Chess::Game,
+        wdl: DecisiveWdl,
+    ) -> ProbeResult<Option<MaybeRounded<u32>>> {
         trace_span!("dtz table").in_scope(|| {
             assert_eq!(T::METRIC, Metric::Dtz);
 
@@ -1508,32 +1516,42 @@ impl<T: TableTag, S: Position> Table<T, S> {
 
 /// A WDL Table.
 #[derive(Debug)]
-pub struct WdlTable<S: Position> {
-    table: Table<WdlTag, S>,
+pub struct WdlTable<Chess: SyzygyChess> {
+    table: Table<WdlTag, Chess>,
 }
 
-impl<S: Position> WdlTable<S> {
-    pub fn new(raf: Box<dyn RandomAccessFile>, material: &Material) -> ProbeResult<WdlTable<S>> {
+impl<Chess: SyzygyChess> WdlTable<Chess> {
+    pub fn new(
+        raf: Box<dyn RandomAccessFile>,
+        material: &Material,
+    ) -> ProbeResult<WdlTable<Chess>> {
         Table::new(raf, material).map(|table| WdlTable { table })
     }
 
-    pub fn probe_wdl(&self, pos: &S) -> ProbeResult<Wdl> {
+    pub fn probe_wdl(&self, pos: &Chess::Game) -> ProbeResult<Wdl> {
         self.table.probe_wdl(pos)
     }
 }
 
 /// A DTZ Table.
 #[derive(Debug)]
-pub struct DtzTable<S: Position> {
-    table: Table<DtzTag, S>,
+pub struct DtzTable<Chess: SyzygyChess> {
+    table: Table<DtzTag, Chess>,
 }
 
-impl<S: Position> DtzTable<S> {
-    pub fn new(raf: Box<dyn RandomAccessFile>, material: &Material) -> ProbeResult<DtzTable<S>> {
+impl<Chess: SyzygyChess> DtzTable<Chess> {
+    pub fn new(
+        raf: Box<dyn RandomAccessFile>,
+        material: &Material,
+    ) -> ProbeResult<DtzTable<Chess>> {
         Table::new(raf, material).map(|table| DtzTable { table })
     }
 
-    pub fn probe_dtz(&self, pos: &S, wdl: DecisiveWdl) -> ProbeResult<Option<MaybeRounded<u32>>> {
+    pub fn probe_dtz(
+        &self,
+        pos: &Chess::Game,
+        wdl: DecisiveWdl,
+    ) -> ProbeResult<Option<MaybeRounded<u32>>> {
         self.table.probe_dtz(pos, wdl)
     }
 }

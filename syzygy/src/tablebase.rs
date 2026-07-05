@@ -9,11 +9,11 @@ use std::{
 use arrayvec::ArrayVec;
 use once_cell::sync::OnceCell;
 use rustc_hash::FxHashMap;
-use shakmaty::{Move, Position, Role};
 use tracing::trace_span;
 
 use crate::{
     AmbiguousWdl,
+    chess::{SyzygyChess, SyzygyChessGame},
     errors::{ProbeResultExt as _, SyzygyError, SyzygyResult},
     filesystem,
     filesystem::Filesystem,
@@ -35,14 +35,14 @@ enum ProbeState {
 }
 
 /// A collection of tables.
-pub struct Tablebase<S: Position + Clone> {
+pub struct Tablebase<Chess: SyzygyChess> {
     filesystem: Arc<dyn Filesystem>,
-    wdl: FxHashMap<NormalizedMaterial, (PathBuf, OnceCell<WdlTable<S>>)>,
-    dtz: FxHashMap<NormalizedMaterial, (PathBuf, OnceCell<DtzTable<S>>)>,
+    wdl: FxHashMap<NormalizedMaterial, (PathBuf, OnceCell<WdlTable<Chess>>)>,
+    dtz: FxHashMap<NormalizedMaterial, (PathBuf, OnceCell<DtzTable<Chess>>)>,
     max_pieces: usize,
 }
 
-impl<S: Position + Clone + fmt::Debug> fmt::Debug for Tablebase<S> {
+impl<Chess: SyzygyChess + fmt::Debug> fmt::Debug for Tablebase<Chess> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Tablebase")
             .field("wdl", &self.wdl)
@@ -53,17 +53,17 @@ impl<S: Position + Clone + fmt::Debug> fmt::Debug for Tablebase<S> {
 }
 
 #[cfg(any(unix, windows))]
-impl<S: Position + Clone> Default for Tablebase<S> {
-    fn default() -> Tablebase<S> {
+impl<Chess: SyzygyChess> Default for Tablebase<Chess> {
+    fn default() -> Tablebase<Chess> {
         Tablebase::new()
     }
 }
 
-impl<S: Position + Clone> Tablebase<S> {
+impl<Chess: SyzygyChess> Tablebase<Chess> {
     /// Creates an empty collection of tables. A safe default filesystem
     /// implementation will be used to read table files.
     #[cfg(any(unix, windows))]
-    pub fn new() -> Tablebase<S> {
+    pub fn new() -> Tablebase<Chess> {
         Tablebase::with_filesystem(Arc::new(filesystem::OsFilesystem::new()))
     }
 
@@ -81,7 +81,7 @@ impl<S: Position + Clone> Tablebase<S> {
     ///   consequences). For example, I/O errors will generate
     ///   `SIGSEV`/`SIGBUS` on Linux.
     #[cfg(all(feature = "mmap", target_pointer_width = "64"))]
-    pub unsafe fn with_mmap_filesystem() -> Tablebase<S> {
+    pub unsafe fn with_mmap_filesystem() -> Tablebase<Chess> {
         // Safety: Forwarding contract of memmap2::MmapOptions::map()
         // to caller.
         Tablebase::with_filesystem(unsafe { Arc::new(filesystem::MmapFilesystem::new()) })
@@ -89,7 +89,7 @@ impl<S: Position + Clone> Tablebase<S> {
 
     /// Creates an empty collection of tables. A custom filesystem
     /// implementation will be used to read table files.
-    pub fn with_filesystem(filesystem: Arc<dyn Filesystem>) -> Tablebase<S> {
+    pub fn with_filesystem(filesystem: Arc<dyn Filesystem>) -> Tablebase<Chess> {
         Tablebase {
             filesystem,
             wdl: FxHashMap::with_capacity_and_hasher(145, Default::default()),
@@ -211,7 +211,7 @@ impl<S: Position + Clone> Tablebase<S> {
         Ok(())
     }
 
-    fn wdl_table(&self, material: &NormalizedMaterial) -> SyzygyResult<&WdlTable<S>> {
+    fn wdl_table(&self, material: &NormalizedMaterial) -> SyzygyResult<&WdlTable<Chess>> {
         if let Some((path, table)) = self.wdl.get(material) {
             table
                 .get_or_try_init(|| WdlTable::new(self.filesystem.open(path)?, material.inner()))
@@ -224,7 +224,7 @@ impl<S: Position + Clone> Tablebase<S> {
         }
     }
 
-    fn dtz_table(&self, material: &NormalizedMaterial) -> SyzygyResult<&DtzTable<S>> {
+    fn dtz_table(&self, material: &NormalizedMaterial) -> SyzygyResult<&DtzTable<Chess>> {
         if let Some((path, table)) = self.dtz.get(material) {
             table
                 .get_or_try_init(|| DtzTable::new(self.filesystem.open(path)?, material.inner()))
@@ -245,7 +245,7 @@ impl<S: Position + Clone> Tablebase<S> {
     /// # Errors
     ///
     /// See [`SyzygyError`] for possible error conditions.
-    pub fn probe_wdl_after_zeroing(&self, pos: &S) -> SyzygyResult<Wdl> {
+    pub fn probe_wdl_after_zeroing(&self, pos: &Chess::Game) -> SyzygyResult<Wdl> {
         self.probe(pos).map(|entry| entry.wdl_after_zeroing())
     }
 
@@ -258,7 +258,7 @@ impl<S: Position + Clone> Tablebase<S> {
     /// # Errors
     ///
     /// See [`SyzygyError`] for possible error conditions.
-    pub fn probe_wdl(&self, pos: &S) -> SyzygyResult<AmbiguousWdl> {
+    pub fn probe_wdl(&self, pos: &Chess::Game) -> SyzygyResult<AmbiguousWdl> {
         trace_span!("probe wdl", pieces = pos.board().occupied().count()).in_scope(|| {
             self.probe(pos)
                 .and_then(|entry| entry.dtz())
@@ -273,7 +273,7 @@ impl<S: Position + Clone> Tablebase<S> {
     /// # Errors
     ///
     /// See [`SyzygyError`] for possible error conditions.
-    pub fn probe_dtz(&self, pos: &S) -> SyzygyResult<MaybeRounded<Dtz>> {
+    pub fn probe_dtz(&self, pos: &Chess::Game) -> SyzygyResult<MaybeRounded<Dtz>> {
         trace_span!("probe dtz", pieces = pos.board().occupied().count())
             .in_scope(|| self.probe(pos).and_then(|entry| entry.dtz()))
     }
@@ -292,19 +292,22 @@ impl<S: Position + Clone> Tablebase<S> {
     /// # Errors
     ///
     /// See [`SyzygyError`] for possible error conditions.
-    pub fn best_move(&self, pos: &S) -> SyzygyResult<Option<(Move, MaybeRounded<Dtz>)>> {
-        struct WithAfter<S> {
-            m: Move,
-            after: S,
+    pub fn best_move(
+        &self,
+        pos: &Chess::Game,
+    ) -> SyzygyResult<Option<(Chess::Move, MaybeRounded<Dtz>)>> {
+        struct WithAfter<Chess: SyzygyChess> {
+            m: Chess::Move,
+            after: Chess::Game,
         }
 
-        struct WithWdlEntry<'a, S: Position + Clone> {
-            m: Move,
-            entry: WdlEntry<'a, S>,
+        struct WithWdlEntry<'a, Chess: SyzygyChess> {
+            m: Chess::Move,
+            entry: WdlEntry<'a, Chess>,
         }
 
-        struct WithDtz {
-            m: Move,
+        struct WithDtz<Chess: SyzygyChess> {
+            m: Chess::Move,
             immediate_loss: bool,
             zeroing: bool,
             dtz: MaybeRounded<Dtz>,
@@ -368,7 +371,7 @@ impl<S: Position + Clone> Tablebase<S> {
             .map(|m| (m.m, m.dtz)))
     }
 
-    fn probe<'a>(&'a self, pos: &'a S) -> SyzygyResult<WdlEntry<'a, S>> {
+    fn probe<'a>(&'a self, pos: &'a Chess::Game) -> SyzygyResult<WdlEntry<'a, Chess>> {
         // Probing resolves captures, so sometimes we can obtain results
         // for positions that have more pieces than the maximum amount of
         // supported pieces. We artificially limit this to one additional
@@ -395,12 +398,12 @@ impl<S: Position + Clone> Tablebase<S> {
         //     If the best move is zeroing, then we need remember this to avoid
         //     probing the DTZ tables.
 
-        if let Some(outcome) = pos.variant_outcome().known() {
+        if let Some(wdl) = pos.outcome() {
             // Handle game-end postions of chess variants.
             return Ok(WdlEntry {
                 tablebase: self,
                 pos,
-                wdl: Wdl::from_outcome(outcome, pos.turn()),
+                wdl,
                 state: ProbeState::ZeroingBestMove,
             });
         }
@@ -485,7 +488,7 @@ impl<S: Position + Clone> Tablebase<S> {
         })
     }
 
-    fn probe_ab_no_ep(&self, pos: &S, mut alpha: Wdl, beta: Wdl) -> SyzygyResult<Wdl> {
+    fn probe_ab_no_ep(&self, pos: &Chess::Game, mut alpha: Wdl, beta: Wdl) -> SyzygyResult<Wdl> {
         // Use alpha-beta to recursively resolve captures. This is only called
         // for positions without ep rights.
         assert!(pos.maybe_ep_square().is_none());
@@ -504,10 +507,10 @@ impl<S: Position + Clone> Tablebase<S> {
         Ok(max(alpha, v))
     }
 
-    fn probe_wdl_table(&self, pos: &S) -> SyzygyResult<Wdl> {
+    fn probe_wdl_table(&self, pos: &Chess::Game) -> SyzygyResult<Wdl> {
         // Variant game end.
-        if let Some(outcome) = pos.variant_outcome().known() {
-            return Ok(Wdl::from_outcome(outcome, pos.turn()));
+        if let Some(wdl) = pos.outcome() {
+            return Ok(wdl);
         }
 
         // Test for KvK.
@@ -528,7 +531,7 @@ impl<S: Position + Clone> Tablebase<S> {
 
     fn probe_dtz_table(
         &self,
-        pos: &S,
+        pos: &Chess::Game,
         wdl: DecisiveWdl,
     ) -> SyzygyResult<Option<MaybeRounded<u32>>> {
         // Get raw DTZ value from the appropriate table.
@@ -540,14 +543,14 @@ impl<S: Position + Clone> Tablebase<S> {
 
 /// WDL entry. Prerequisite for probing DTZ tables.
 #[derive(Debug)]
-struct WdlEntry<'a, S: Position + Clone> {
-    tablebase: &'a Tablebase<S>,
-    pos: &'a S,
+struct WdlEntry<'a, Chess: SyzygyChess> {
+    tablebase: &'a Tablebase<Chess>,
+    pos: &'a Chess::Game,
     wdl: Wdl,
     state: ProbeState,
 }
 
-impl<'a, S: Position + Clone + 'a> WdlEntry<'a, S> {
+impl<'a, Chess: SyzygyChess> WdlEntry<'a, Chess> {
     fn wdl_after_zeroing(&self) -> Wdl {
         self.wdl
     }
@@ -557,7 +560,9 @@ impl<'a, S: Position + Clone + 'a> WdlEntry<'a, S> {
             return Ok(MaybeRounded::Precise(Dtz(0)));
         };
 
-        if self.state == ProbeState::ZeroingBestMove || self.pos.us() == self.pos.our(Role::Pawn) {
+        if self.state == ProbeState::ZeroingBestMove
+            || self.pos.us() == self.pos.our(Chess::PieceType::Pawn)
+        {
             return Ok(MaybeRounded::Precise(Dtz::before_zeroing(wdl.into())));
         }
 
@@ -570,7 +575,7 @@ impl<'a, S: Position + Clone + 'a> WdlEntry<'a, S> {
         // captures again, they were already handled above.
         if wdl >= DecisiveWdl::CursedWin {
             let mut pawn_advances = self.pos.legal_moves();
-            pawn_advances.retain(|m| !m.is_capture() && m.role() == Role::Pawn);
+            pawn_advances.retain(|m| !m.is_capture() && m.role() == Chess::PieceType::Pawn);
 
             for m in pawn_advances {
                 let mut after = self.pos.clone();
@@ -622,22 +627,23 @@ impl<'a, S: Position + Clone + 'a> WdlEntry<'a, S> {
 
 #[cfg(test)]
 mod tests {
-    use shakmaty::{CastlingMode, Chess, Square, fen::Fen};
+    use shakmaty::{CastlingMode, Chess, Move, Role, Square, fen::Fen};
 
     use super::*;
+    use crate::chess::ShakmatyChess;
 
     #[test]
     fn test_send_sync() {
         fn assert_send<T: Send>(_: T) {}
         fn assert_sync<T: Sync>(_: T) {}
 
-        assert_send(Tablebase::<Chess>::new());
-        assert_sync(Tablebase::<Chess>::new());
+        assert_send(Tablebase::<ShakmatyChess>::new());
+        assert_sync(Tablebase::<ShakmatyChess>::new());
     }
 
     #[test]
     fn test_mating_best_move() {
-        let mut tables = Tablebase::new();
+        let mut tables = Tablebase::<ShakmatyChess>::new();
         tables
             .add_directory("tables/chess")
             .expect("read directory");
@@ -665,7 +671,7 @@ mod tests {
 
     #[test]
     fn test_black_escapes_via_underpromotion() {
-        let mut tables = Tablebase::new();
+        let mut tables = Tablebase::<ShakmatyChess>::new();
         tables
             .add_directory("tables/chess")
             .expect("read directory");
@@ -694,7 +700,7 @@ mod tests {
     #[test]
     #[ignore]
     fn test_many_pawns() {
-        let mut tables = Tablebase::new();
+        let mut tables = Tablebase::<ShakmatyChess>::new();
         tables
             .add_directory("tables/chess")
             .expect("read directory");

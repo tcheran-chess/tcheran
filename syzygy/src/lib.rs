@@ -42,6 +42,7 @@
 
 #[macro_use]
 mod errors;
+mod chess;
 pub mod filesystem;
 mod material;
 mod table;

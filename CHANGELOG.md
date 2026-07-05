@@ -9,6 +9,7 @@
 * Added TT clusters (6.28 +- 4.04)
 * SPSA tune - 2682 iters at 20+0.20 (5.58 +- 3.78)
 * Score quiet moves that give check higher for picking (4.97 +- 3.54)
+* Added late move pruning to quiescence (4.79 +- 3.45)
 * Preparation for making time management tunable (4.68 +- 4.31)
 * Game::is_direct_check is now used in LMP (4.57 +- 3.35)
 * Re-introduce futility pruning and make it depth dependent (4.38 +- 3.25)

@@ -68,20 +68,5 @@ fn test_chess() {
 fn test_chess_mmap() {
     // Safety: No modifications to table files and I/O errors please.
     // Fingers crossed.
-    test_csv::<Chess>(
-        unsafe { Tablebase::with_mmap_filesystem() },
-        "tests/chess.csv",
-    );
-}
-
-#[cfg(all(any(unix, windows), feature = "variant"))]
-#[test]
-fn test_atomic() {
-    test_csv::<shakmaty::variant::Atomic>(Tablebase::new(), "tests/atomic.csv");
-}
-
-#[cfg(all(any(unix, windows), feature = "variant"))]
-#[test]
-fn test_antichess() {
-    test_csv::<shakmaty::variant::Antichess>(Tablebase::new(), "tests/antichess.csv");
+    test_csv::<Chess>(unsafe { Tablebase::with_mmap_filesystem() }, "tests/chess.csv");
 }

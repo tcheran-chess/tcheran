@@ -53,47 +53,6 @@ impl Syzygy for Chess {
     const MAX_PIECES: usize = 7;
 }
 
-#[cfg(feature = "variant")]
-impl Syzygy for shakmaty::variant::Atomic {
-    const TBW: TableType = TableType {
-        ext: "atbw",
-        magic: [0x55, 0x8d, 0xa4, 0x49],
-    };
-    const TBZ: TableType = TableType {
-        ext: "atbz",
-        magic: [0x91, 0xa9, 0x5e, 0xeb],
-    };
-
-    const ONE_KING: bool = true;
-    const CONNECTED_KINGS: bool = true;
-    const CAPTURES_COMPULSORY: bool = false;
-}
-
-#[cfg(feature = "variant")]
-impl Syzygy for shakmaty::variant::Antichess {
-    const TBW: TableType = TableType {
-        ext: "gtbw",
-        magic: [0xbc, 0x55, 0xbc, 0x21],
-    };
-    const TBZ: TableType = TableType {
-        ext: "gtbz",
-        magic: [0xd6, 0xf5, 0x1b, 0x50],
-    };
-
-    const PAWNLESS_TBW: Option<TableType> = Some(TableType {
-        ext: "stbw",
-        magic: [0x7b, 0xf6, 0x93, 0x15],
-    });
-    const PAWNLESS_TBZ: Option<TableType> = Some(TableType {
-        ext: "stbz",
-        magic: [0xe4, 0xcf, 0xe7, 0x23],
-    });
-
-    const ONE_KING: bool = false;
-    const CONNECTED_KINGS: bool = true;
-    const CAPTURES_COMPULSORY: bool = true;
-}
-
 /// A value that may be affected by DTZ rounding.
 ///
 /// # DTZ

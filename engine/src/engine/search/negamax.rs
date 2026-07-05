@@ -105,40 +105,37 @@ pub fn negamax(
 
     let (mut syzygy_min, mut syzygy_max) = (Eval::mated_in(0), Eval::mate_in(0));
 
-    let tb_cardinality = ctx.tablebase.n_men();
-    if !is_root && excluded_mv.is_none() && tb_cardinality > 0 {
-        let piece_count = game.board.occupancy().count();
+    if !is_root
+        && excluded_mv.is_none()
+        && ctx.tablebase.can_probe(game)
+        && let Some(wdl) = ctx.tablebase.wdl(game)
+    {
+        ctx.tbhits.incr();
 
-        if piece_count <= tb_cardinality
-            && let Some(wdl) = ctx.tablebase.wdl(game)
+        let (score, bound) = match wdl {
+            Wdl::Win => (Eval::tb_mate_in(plies), NodeBound::Lower),
+            Wdl::Draw => (Eval::DRAW, NodeBound::Exact),
+            Wdl::Loss => (Eval::tb_mated_in(plies), NodeBound::Upper),
+        };
+
+        if bound == NodeBound::Exact
+            || (bound == NodeBound::Lower && score >= s.beta)
+            || (bound == NodeBound::Upper && score <= s.alpha)
         {
-            ctx.tbhits.incr();
+            ctx.tt
+                .insert(game.hash, bound, None, score, Eval::NONE, depth, plies, tt_pv);
 
-            let (score, bound) = match wdl {
-                Wdl::Win => (Eval::tb_mate_in(plies), NodeBound::Lower),
-                Wdl::Draw => (Eval::DRAW, NodeBound::Exact),
-                Wdl::Loss => (Eval::tb_mated_in(plies), NodeBound::Upper),
-            };
+            return score;
+        }
 
-            if bound == NodeBound::Exact
-                || (bound == NodeBound::Lower && score >= s.beta)
-                || (bound == NodeBound::Upper && score <= s.alpha)
-            {
-                ctx.tt
-                    .insert(game.hash, bound, None, score, Eval::NONE, depth, plies, tt_pv);
-
-                return score;
+        if is_pv {
+            if bound == NodeBound::Upper {
+                syzygy_max = score;
             }
 
-            if is_pv {
-                if bound == NodeBound::Upper {
-                    syzygy_max = score;
-                }
-
-                if bound == NodeBound::Lower {
-                    s.clamp_alpha(score);
-                    syzygy_min = score;
-                }
+            if bound == NodeBound::Lower {
+                s.clamp_alpha(score);
+                syzygy_min = score;
             }
         }
     }

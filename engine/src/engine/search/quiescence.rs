@@ -124,11 +124,6 @@ pub fn quiescence(
             break;
         }
 
-        // As long as we've found a move that gets us out of mate, we can stop looking at other quiets
-        if mv.is_quiet() && !best_score.is_loss() {
-            moves.skip_quiets();
-            continue;
-        }
 
         if !best_score.is_loss()
             && !in_check
@@ -155,6 +150,10 @@ pub fn quiescence(
 
         if ctx.stopped() {
             return Eval::MIN;
+        }
+
+        if mv.is_quiet() && !move_score.is_loss() {
+            moves.skip_quiets();
         }
 
         if move_score > best_score {

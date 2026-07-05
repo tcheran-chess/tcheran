@@ -18,6 +18,7 @@
 * Fixed TT relative age calculation (2.91 +- 2.35)
 * Network #19, upping the number of input buckets from 4 to 8 (2.95 +- 2.37)
 * The reverse futility pruning margin is adjusted if we are improving (2.68 +- 2.34)
+* Do qsearch evasion check after making move (2.37 +- 2.42)
 * Legal killer moves are now yielded before generating quiet moves for a minor speedup
 * A single stop flag is now used for all threads (5.69 +- 4.73 reg)
 

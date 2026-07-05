@@ -2,6 +2,7 @@
 resolver = "3"
 members = [
     "engine",
+    "syzygy",
     "tools/data",
     "tools/zobrist",
     "tools/trainer"

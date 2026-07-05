@@ -19,7 +19,7 @@ use crate::{
     filesystem::Filesystem,
     material::{Material, NormalizedMaterial},
     table::{DtzTable, WdlTable},
-    types::{DecisiveWdl, Dtz, MaybeRounded, Metric, Syzygy, Wdl},
+    types::{DecisiveWdl, Dtz, MAX_PIECES, MaybeRounded, Metric, TBW, TBZ, Wdl},
 };
 
 /// Additional probe information from a brief alpha-beta search.
@@ -35,14 +35,14 @@ enum ProbeState {
 }
 
 /// A collection of tables.
-pub struct Tablebase<S: Position + Clone + Syzygy> {
+pub struct Tablebase<S: Position + Clone> {
     filesystem: Arc<dyn Filesystem>,
     wdl: FxHashMap<NormalizedMaterial, (PathBuf, OnceCell<WdlTable<S>>)>,
     dtz: FxHashMap<NormalizedMaterial, (PathBuf, OnceCell<DtzTable<S>>)>,
     max_pieces: usize,
 }
 
-impl<S: Position + Clone + Syzygy + fmt::Debug> fmt::Debug for Tablebase<S> {
+impl<S: Position + Clone + fmt::Debug> fmt::Debug for Tablebase<S> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Tablebase")
             .field("wdl", &self.wdl)
@@ -53,13 +53,13 @@ impl<S: Position + Clone + Syzygy + fmt::Debug> fmt::Debug for Tablebase<S> {
 }
 
 #[cfg(any(unix, windows))]
-impl<S: Position + Clone + Syzygy> Default for Tablebase<S> {
+impl<S: Position + Clone> Default for Tablebase<S> {
     fn default() -> Tablebase<S> {
         Tablebase::new()
     }
 }
 
-impl<S: Position + Clone + Syzygy> Tablebase<S> {
+impl<S: Position + Clone> Tablebase<S> {
     /// Creates an empty collection of tables. A safe default filesystem
     /// implementation will be used to read table files.
     #[cfg(any(unix, windows))]
@@ -176,7 +176,7 @@ impl<S: Position + Clone + Syzygy> Tablebase<S> {
             return Err(io::Error::from(io::ErrorKind::InvalidInput));
         };
         let pieces = material.count();
-        if pieces > S::MAX_PIECES
+        if pieces > MAX_PIECES
             || material.by_color.white.count() < 1
             || material.by_color.black.count() < 1
         {
@@ -187,20 +187,16 @@ impl<S: Position + Clone + Syzygy> Tablebase<S> {
         let Some(ext) = path.extension() else {
             return Err(io::Error::from(io::ErrorKind::InvalidInput));
         };
-        let is_tbw = ext == S::TBW.ext
-            || (!material.has_pawns() && S::PAWNLESS_TBW.is_some_and(|t| ext == t.ext));
-        let is_tbz = ext == S::TBZ.ext
-            || (!material.has_pawns() && S::PAWNLESS_TBZ.is_some_and(|t| ext == t.ext));
+        let is_tbw = ext == TBW.ext;
+        let is_tbz = ext == TBZ.ext;
+
         if !is_tbw && !is_tbz {
             return Err(io::Error::from(io::ErrorKind::InvalidInput));
         }
 
         // Check meta data.
         if self.filesystem.regular_file_size(path)? % 64 != 16 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "unexpected file size",
-            ));
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "unexpected file size"));
         }
 
         // Add path.
@@ -302,7 +298,7 @@ impl<S: Position + Clone + Syzygy> Tablebase<S> {
             after: S,
         }
 
-        struct WithWdlEntry<'a, S: Position + Clone + Syzygy> {
+        struct WithWdlEntry<'a, S: Position + Clone> {
             m: Move,
             entry: WdlEntry<'a, S>,
         }
@@ -377,7 +373,7 @@ impl<S: Position + Clone + Syzygy> Tablebase<S> {
         // for positions that have more pieces than the maximum amount of
         // supported pieces. We artificially limit this to one additional
         // level, to make sure search remains somewhat bounded.
-        if pos.board().occupied().count() > S::MAX_PIECES + 1 {
+        if pos.board().occupied().count() > MAX_PIECES + 1 {
             return Err(SyzygyError::TooManyPieces);
         }
 
@@ -399,24 +395,7 @@ impl<S: Position + Clone + Syzygy> Tablebase<S> {
         //     If the best move is zeroing, then we need remember this to avoid
         //     probing the DTZ tables.
 
-        if S::CAPTURES_COMPULSORY {
-            // Tables for antichess variants take advantage of the rule that
-            // captures are compulsory. Forced captures are resolved in a brief
-            // alpha-beta search. Additionally 6-piece tables need a 1-ply
-            // search to find threat moves that will force a losing capture.
-            //
-            // Here we search for threat moves unconditionally. Strictly
-            // speaking this is not required when there are less than 6 pieces,
-            // but we need to know if there are threat moves when continuing
-            // with a DTZ probe.
-            let (v, state) = self.probe_compulsory_captures(pos, Wdl::Loss, Wdl::Win, true)?;
-            return Ok(WdlEntry {
-                tablebase: self,
-                pos,
-                wdl: v,
-                state,
-            });
-        } else if let Some(outcome) = pos.variant_outcome().known() {
+        if let Some(outcome) = pos.variant_outcome().known() {
             // Handle game-end postions of chess variants.
             return Ok(WdlEntry {
                 tablebase: self,
@@ -525,101 +504,6 @@ impl<S: Position + Clone + Syzygy> Tablebase<S> {
         Ok(max(alpha, v))
     }
 
-    fn probe_compulsory_captures(
-        &self,
-        pos: &S,
-        mut alpha: Wdl,
-        beta: Wdl,
-        threats: bool,
-    ) -> SyzygyResult<(Wdl, ProbeState)> {
-        assert!(S::CAPTURES_COMPULSORY);
-
-        if let Some(outcome) = pos.variant_outcome().known() {
-            return Ok((
-                Wdl::from_outcome(outcome, pos.turn()),
-                ProbeState::ZeroingBestMove,
-            ));
-        }
-
-        // Explore compulsory captures in antichess variants.
-        if pos.them().count() > 1 {
-            if let Some(v) = self.probe_captures(pos, alpha, beta)? {
-                return Ok((v, ProbeState::ZeroingBestMove));
-            }
-        } else {
-            // The opponent only has one piece left. If we need to capture it
-            // this immediately ends the game.
-            if !pos.capture_moves().is_empty() {
-                return Ok((Wdl::Loss, ProbeState::ZeroingBestMove));
-            }
-        }
-
-        let mut threats_found = false;
-
-        // For 6 piece endgames (or if indicated by the threats flag) also
-        // explore threat moves that will force a capture on following move.
-        if threats || pos.board().occupied().count() >= 6 {
-            for threat in pos.legal_moves() {
-                if threat.role() != Role::Pawn {
-                    let mut after = pos.clone();
-                    after.play_unchecked(threat);
-
-                    if let Some(v_plus) = self.probe_captures(&after, -beta, -alpha)? {
-                        let v = -v_plus;
-                        if v > alpha {
-                            threats_found = true;
-                            alpha = v;
-                            if alpha >= beta {
-                                return Ok((v, ProbeState::Threat));
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        let v = self.probe_wdl_table(pos)?;
-        if v > alpha {
-            Ok((v, ProbeState::Normal))
-        } else {
-            Ok((
-                alpha,
-                if threats_found {
-                    ProbeState::Threat
-                } else {
-                    ProbeState::Normal
-                },
-            ))
-        }
-    }
-
-    fn probe_captures(&self, pos: &S, mut alpha: Wdl, beta: Wdl) -> SyzygyResult<Option<Wdl>> {
-        assert!(S::CAPTURES_COMPULSORY);
-
-        // Explore capture moves in antichess variants. If captures exists they
-        // are also the only moves, because captures are compulsory.
-        let captures = pos.capture_moves();
-
-        for m in pos.capture_moves() {
-            let mut after = pos.clone();
-            after.play_unchecked(m);
-
-            let (v_plus, _) = self.probe_compulsory_captures(&after, -beta, -alpha, false)?;
-            let v = -v_plus;
-
-            alpha = max(v, alpha);
-            if alpha >= beta {
-                break;
-            }
-        }
-
-        Ok(if captures.is_empty() {
-            None
-        } else {
-            Some(alpha)
-        })
-    }
-
     fn probe_wdl_table(&self, pos: &S) -> SyzygyResult<Wdl> {
         // Variant game end.
         if let Some(outcome) = pos.variant_outcome().known() {
@@ -627,7 +511,7 @@ impl<S: Position + Clone + Syzygy> Tablebase<S> {
         }
 
         // Test for KvK.
-        if S::ONE_KING && pos.board().kings() == pos.board().occupied() {
+        if pos.board().kings() == pos.board().occupied() {
             return Ok(Wdl::Draw);
         }
 
@@ -656,14 +540,14 @@ impl<S: Position + Clone + Syzygy> Tablebase<S> {
 
 /// WDL entry. Prerequisite for probing DTZ tables.
 #[derive(Debug)]
-struct WdlEntry<'a, S: Position + Clone + Syzygy> {
+struct WdlEntry<'a, S: Position + Clone> {
     tablebase: &'a Tablebase<S>,
     pos: &'a S,
     wdl: Wdl,
     state: ProbeState,
 }
 
-impl<'a, S: Position + Clone + Syzygy + 'a> WdlEntry<'a, S> {
+impl<'a, S: Position + Clone + 'a> WdlEntry<'a, S> {
     fn wdl_after_zeroing(&self) -> Wdl {
         self.wdl
     }
@@ -679,9 +563,7 @@ impl<'a, S: Position + Clone + Syzygy + 'a> WdlEntry<'a, S> {
 
         if self.state == ProbeState::Threat && wdl >= DecisiveWdl::CursedWin {
             // The position is a win or a cursed win by a threat move.
-            return Ok(MaybeRounded::Precise(
-                Dtz::before_zeroing(wdl.into()).add_plies(1),
-            ));
+            return Ok(MaybeRounded::Precise(Dtz::before_zeroing(wdl.into()).add_plies(1)));
         }
 
         // If winning, check for a winning pawn move. No need to look at
@@ -733,10 +615,8 @@ impl<'a, S: Position + Clone + Syzygy + 'a> WdlEntry<'a, S> {
             }
         }
 
-        (|| Ok(u!(best)))().ctx(
-            Metric::Dtz,
-            &Material::from_board(self.pos.board()).to_normalized(),
-        )
+        (|| Ok(u!(best)))()
+            .ctx(Metric::Dtz, &Material::from_board(self.pos.board()).to_normalized())
     }
 }
 
@@ -825,9 +705,6 @@ mod tests {
             .into_position(CastlingMode::Chess960)
             .expect("legal position");
 
-        assert!(matches!(
-            tables.probe_dtz(&pos),
-            Ok(MaybeRounded::Precise(Dtz(1)))
-        ));
+        assert!(matches!(tables.probe_dtz(&pos), Ok(MaybeRounded::Precise(Dtz(1)))));
     }
 }

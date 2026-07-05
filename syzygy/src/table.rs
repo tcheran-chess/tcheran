@@ -10,7 +10,7 @@ use crate::{
     errors::{ProbeError, ProbeResult},
     filesystem::{RandomAccessFile, ReadHint},
     material::Material,
-    types::{DecisiveWdl, MAX_PIECES, MaybeRounded, Metric, Pieces, Syzygy, Wdl},
+    types::{DecisiveWdl, MAX_PIECES, MaybeRounded, Metric, Pieces, TBW, TBZ, Wdl},
 };
 
 const fn binomial(mut n: u64, k: u64) -> u64 {
@@ -486,7 +486,7 @@ struct GroupData {
 }
 
 impl GroupData {
-    pub fn new<S: Syzygy>(pieces: Pieces, order: [u8; 2], file: usize) -> ProbeResult<GroupData> {
+    pub fn new(pieces: Pieces, order: [u8; 2], file: usize) -> ProbeResult<GroupData> {
         ensure!(pieces.len() >= 2);
 
         let material = Material::from_iter(pieces.clone());
@@ -513,7 +513,7 @@ impl GroupData {
                 } else if material.unique_pieces() >= 3 {
                     idx *= 31_332;
                 } else if material.unique_pieces() == 2 {
-                    idx *= if S::CONNECTED_KINGS { 518 } else { 462 };
+                    idx *= 462;
                 } else if material.min_like_man() == 2 {
                     idx *= 278;
                 } else {
@@ -637,7 +637,7 @@ struct PairsData {
 }
 
 impl PairsData {
-    pub fn parse<S: Syzygy, T: TableTag>(
+    pub fn parse<T: TableTag>(
         raf: &dyn RandomAccessFile,
         mut ptr: u64,
         groups: GroupData,
@@ -649,7 +649,7 @@ impl PairsData {
                 raf.read_u8_at(ptr + 1, ReadHint::Header)?
             } else {
                 // http://www.talkchess.com/forum/viewtopic.php?p=698093#698093
-                u8::from(S::CAPTURES_COMPULSORY)
+                u8::from(false)
             };
 
             return Ok((
@@ -777,11 +777,7 @@ fn read_symbols(
     }
 
     let mut symbol = Symbol::new();
-    raf.read_exact_at(
-        &mut symbol.lr[..],
-        btree + 3 * u64::from(sym),
-        ReadHint::Header,
-    )?;
+    raf.read_exact_at(&mut symbol.lr[..], btree + 3 * u64::from(sym), ReadHint::Header)?;
 
     if symbol.right() == 0xfff {
         symbol.len = 0;
@@ -877,7 +873,7 @@ impl BlockLengthBuffer {
 }
 
 /// A Syzygy table.
-struct Table<T: TableTag, P: Position + Syzygy> {
+struct Table<T: TableTag, P: Position> {
     is_wdl: PhantomData<T>,
     syzygy: PhantomData<P>,
 
@@ -888,7 +884,7 @@ struct Table<T: TableTag, P: Position + Syzygy> {
     files: ArrayVec<FileData, 4>,
 }
 
-impl<T: TableTag, P: Position + Syzygy> fmt::Debug for Table<T, P> {
+impl<T: TableTag, P: Position> fmt::Debug for Table<T, P> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Table")
             .field("num_unique_pieces", &self.num_unique_pieces)
@@ -898,7 +894,7 @@ impl<T: TableTag, P: Position + Syzygy> fmt::Debug for Table<T, P> {
     }
 }
 
-impl<T: TableTag, S: Position + Syzygy> Table<T, S> {
+impl<T: TableTag, S: Position> Table<T, S> {
     /// Open a table, parse the header, the headers of the subtables and
     /// prepare meta data required for decompression.
     ///
@@ -914,8 +910,8 @@ impl<T: TableTag, S: Position + Syzygy> Table<T, S> {
 
         // Check magic.
         let (magic, pawnless_magic) = match T::METRIC {
-            Metric::Wdl => (S::TBW.magic, S::PAWNLESS_TBW.map(|t| t.magic)),
-            Metric::Dtz => (S::TBZ.magic, S::PAWNLESS_TBZ.map(|t| t.magic)),
+            Metric::Wdl => (TBW.magic, None),
+            Metric::Dtz => (TBZ.magic, None),
         };
 
         let magic_header = read_magic_header(&*raf)?;
@@ -975,7 +971,7 @@ impl<T: TableTag, S: Position + Syzygy> Table<T, S> {
                         let pieces = parse_pieces(&*raf, ptr, material.count(), *side)?;
                         let key = Material::from_iter(pieces.clone());
                         ensure!(&key == material || &key.into_swapped() == material);
-                        GroupData::new::<S>(pieces, order[side.fold_wb(0, 1)], file)
+                        GroupData::new(pieces, order[side.fold_wb(0, 1)], file)
                     })
                     .collect::<ProbeResult<ArrayVec<_, 2>>>()?;
 
@@ -1005,14 +1001,7 @@ impl<T: TableTag, S: Position + Syzygy> Table<T, S> {
                 let sides = file
                     .into_iter()
                     .map(|side| {
-                        let (mut pairs, next_ptr) = PairsData::parse::<S, T>(&*raf, ptr, side)?;
-
-                        if T::METRIC == Metric::Dtz
-                            && S::CAPTURES_COMPULSORY
-                            && pairs.flags.contains(Flag::SINGLE_VALUE)
-                        {
-                            pairs.min_symlen = 1;
-                        }
+                        let (pairs, next_ptr) = PairsData::parse::<T>(&*raf, ptr, side)?;
 
                         ptr = next_ptr;
 
@@ -1305,22 +1294,7 @@ impl<T: TableTag, S: Position + Syzygy> Table<T, S> {
                         + (squares[2].rank() as u64 - adjust2)
                 }
             } else if self.num_unique_pieces == 2 {
-                if S::CONNECTED_KINGS {
-                    let adjust = u64::from(squares[1] > squares[0]);
-
-                    if offdiag(squares[0]) {
-                        TRIANGLE[usize::from(squares[0])] * 63 + (u64::from(squares[1]) - adjust)
-                    } else if offdiag(squares[1]) {
-                        6 * 63 + squares[0].rank() as u64 * 28 + LOWER[usize::from(squares[1])]
-                    } else {
-                        6 * 63
-                            + 4 * 28
-                            + squares[0].rank() as u64 * 7
-                            + (squares[1].rank() as u64 - adjust)
-                    }
-                } else {
-                    KK_IDX[TRIANGLE[usize::from(squares[0])] as usize][usize::from(squares[1])]
-                }
+                KK_IDX[TRIANGLE[usize::from(squares[0])] as usize][usize::from(squares[1])]
             } else if self.min_like_man == 2 {
                 if TRIANGLE[usize::from(squares[0])] > TRIANGLE[usize::from(squares[1])] {
                     squares.swap(0, 1);
@@ -1534,11 +1508,11 @@ impl<T: TableTag, S: Position + Syzygy> Table<T, S> {
 
 /// A WDL Table.
 #[derive(Debug)]
-pub struct WdlTable<S: Position + Syzygy> {
+pub struct WdlTable<S: Position> {
     table: Table<WdlTag, S>,
 }
 
-impl<S: Position + Syzygy> WdlTable<S> {
+impl<S: Position> WdlTable<S> {
     pub fn new(raf: Box<dyn RandomAccessFile>, material: &Material) -> ProbeResult<WdlTable<S>> {
         Table::new(raf, material).map(|table| WdlTable { table })
     }
@@ -1550,11 +1524,11 @@ impl<S: Position + Syzygy> WdlTable<S> {
 
 /// A DTZ Table.
 #[derive(Debug)]
-pub struct DtzTable<S: Position + Syzygy> {
+pub struct DtzTable<S: Position> {
     table: Table<DtzTag, S>,
 }
 
-impl<S: Position + Syzygy> DtzTable<S> {
+impl<S: Position> DtzTable<S> {
     pub fn new(raf: Box<dyn RandomAccessFile>, material: &Material) -> ProbeResult<DtzTable<S>> {
         Table::new(raf, material).map(|table| DtzTable { table })
     }

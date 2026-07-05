@@ -8,7 +8,7 @@
 //!
 //! ```
 //! use shakmaty::{CastlingMode, Chess, fen::Fen};
-//! use shakmaty_syzygy::{Tablebase, MaybeRounded, Wdl, Dtz, Syzygy};
+//! use shakmaty_syzygy::{Tablebase, MaybeRounded, Wdl, Dtz};
 //!
 //! let mut tables = Tablebase::new();
 //! tables.add_directory("tables/chess")?;
@@ -52,5 +52,5 @@ pub use crate::{
     errors::{ProbeError, SyzygyError},
     material::Material,
     tablebase::Tablebase,
-    types::{AmbiguousWdl, Dtz, MaybeRounded, Metric, Syzygy, TableType, Wdl},
+    types::{AmbiguousWdl, Dtz, MaybeRounded, Metric, TableType, Wdl},
 };

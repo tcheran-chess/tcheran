@@ -11,7 +11,6 @@ pub fn search(
     ctx: &mut SearchContext<'_>,
     reporter: &dyn Reporter,
 ) -> SearchResult {
-    let mut pv = PrincipalVariation::new();
     let mut result: Option<SearchResult> = None;
 
     ctx.max_depth_reached = 0;
@@ -26,6 +25,8 @@ pub fn search(
         ctx.root_depth = depth;
 
         let previous_eval = result.as_ref().map(|r| r.score);
+
+        let mut pv = PrincipalVariation::new();
         let eval = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
 
         if ctx.stopped() {

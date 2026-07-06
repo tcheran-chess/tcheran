@@ -17,6 +17,9 @@ use bullet_lib::{
 
 use crate::bullet_extensions::*;
 
+type Optimiser = Ranger;
+type Params = RangerParams;
+
 const SCALE: f32 = 400.0;
 const QA: i16 = 255;
 const QB: i16 = 64;
@@ -42,7 +45,7 @@ const OUTPUT_BUCKETS: usize = 8;
 pub fn run(net_name: &str) {
     let mut trainer = ValueTrainerBuilder::default()
         .dual_perspective()
-        .optimiser(Ranger)
+        .optimiser(Optimiser::default())
         .inputs(ChessBucketsMirrored::new(NON_MIRRORED_BUCKET_LAYOUT))
         .output_buckets(MaterialCount::<OUTPUT_BUCKETS>)
         .save_format(&[
@@ -78,13 +81,9 @@ pub fn run(net_name: &str) {
         });
 
     // Accounting for factoriser weight magnitudes (as per Bullet example)
-    let stricter_clipping = RangerParams {
-        max_weight: 0.99,
-        min_weight: -0.99,
-        ..Default::default()
-    };
-    trainer.optimiser.set_params_for_weight("l0w", stricter_clipping);
-    trainer.optimiser.set_params_for_weight("l0f", stricter_clipping);
+    let l0_clipping = Params::clipped(-0.99..0.99);
+    trainer.optimiser.set_params_for_weight("l0w", l0_clipping);
+    trainer.optimiser.set_params_for_weight("l0f", l0_clipping);
 
     // Schedule 1
     let schedule1_superbatches: usize = 400;

@@ -16,22 +16,20 @@ const ENABLE_ISLEGAL_PERFT: bool = false;
 fn test_perft(fen: &str, depth: u8, expected_positions: usize) {
     crate::init();
 
-    test_perft_default(fen, depth, expected_positions);
+    let mut game = Game::from_fen(fen).unwrap();
+
+    assert_eq!(expected_positions, perft(depth, &mut game));
 
     if ENABLE_MOVEPICKER_PERFT {
-        test_perft_with_movepicker(fen, depth, expected_positions);
+        assert_eq!(
+            expected_positions,
+            movepicker_perft(depth, &mut game, &mut Tables::new(), &mut SearchStack::new())
+        );
     }
 
     if ENABLE_ISLEGAL_PERFT {
-        test_islegal_perft(fen, depth);
+        islegal_perft(depth, &mut game);
     }
-}
-
-fn test_perft_default(fen: &str, depth: u8, expected_positions: usize) {
-    let mut game = Game::from_fen(fen).unwrap();
-    let actual_positions = perft(depth, &mut game);
-
-    assert_eq!(expected_positions, actual_positions);
 }
 
 fn movepicker_perft(
@@ -112,14 +110,6 @@ fn movepicker_perft(
     moves
 }
 
-fn test_perft_with_movepicker(fen: &str, depth: u8, expected_positions: usize) {
-    let mut game = Game::from_fen(fen).unwrap();
-    let actual_positions =
-        movepicker_perft(depth, &mut game, &mut Tables::new(), &mut SearchStack::new());
-
-    assert_eq!(expected_positions, actual_positions);
-}
-
 fn islegal_movegen(game: &Game) -> MoveList {
     let mut moves = MoveList::new();
 
@@ -186,145 +176,39 @@ fn islegal_perft(depth: u8, game: &mut Game) {
     }
 }
 
-fn test_islegal_perft(fen: &str, depth: u8) {
-    let mut game = Game::from_fen(fen).unwrap();
-    islegal_perft(depth, &mut game);
+macro_rules! perft_test {
+    ($pos:ident, $fen:expr, [$($nodes:literal),*]) => {
+        #[test]
+        #[expect(clippy::cast_possible_truncation, reason = "Will only use reasonable depth values")]
+        fn $pos() {
+            for (depth, expected_nodes) in [$($nodes as usize),*].iter().enumerate() {
+                test_perft($fen, depth as u8 + 1, *expected_nodes);
+            }
+        }
+    };
 }
 
-#[test]
-fn perft_startpos_1() {
-    test_perft(START_POS, 1, 20);
-}
+perft_test!(startpos, START_POS, [20, 400, 8902, 197_281, 4_865_609]);
 
-#[test]
-fn perft_startpos_2() {
-    test_perft(START_POS, 2, 400);
-}
+perft_test!(
+    kiwipete,
+    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+    [48, 2039, 97862, 4_085_603, 193_690_690]
+);
 
-#[test]
-fn perft_startpos_3() {
-    test_perft(START_POS, 3, 8902);
-}
+perft_test!(cpw_pos3, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1", [14, 191, 2812, 43238, 674_624]);
 
-#[test]
-fn perft_startpos_4() {
-    test_perft(START_POS, 4, 197_281);
-}
+perft_test!(
+    cpw_pos4,
+    "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
+    [6, 264, 9467, 422_333, 15_833_292]
+);
 
-#[test]
-fn perft_startpos_5() {
-    test_perft(START_POS, 5, 4_865_609);
-}
-
-const KIWIPETE_POS: &str = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-
-#[test]
-fn perft_kiwipete_1() {
-    test_perft(KIWIPETE_POS, 1, 48);
-}
-
-#[test]
-fn perft_kiwipete_2() {
-    test_perft(KIWIPETE_POS, 2, 2039);
-}
-
-#[test]
-fn perft_kiwipete_3() {
-    test_perft(KIWIPETE_POS, 3, 97862);
-}
-
-#[test]
-fn perft_kiwipete_4() {
-    test_perft(KIWIPETE_POS, 4, 4_085_603);
-}
-
-#[test]
-fn perft_kiwipete_5() {
-    test_perft(KIWIPETE_POS, 5, 193_690_690);
-}
-
-const CHESSPROGRAMMING_WIKI_POS3: &str = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1";
-
-#[test]
-fn perft_chessprogramming_pos3_1() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS3, 1, 14);
-}
-
-#[test]
-fn perft_chessprogramming_pos3_2() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS3, 2, 191);
-}
-
-#[test]
-fn perft_chessprogramming_pos3_3() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS3, 3, 2812);
-}
-
-#[test]
-fn perft_chessprogramming_pos3_4() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS3, 4, 43238);
-}
-
-#[test]
-fn perft_chessprogramming_pos3_5() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS3, 5, 674_624);
-}
-
-const CHESSPROGRAMMING_WIKI_POS4: &str =
-    "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
-
-#[test]
-fn perft_chessprogramming_pos4_1() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS4, 1, 6);
-}
-
-#[test]
-fn perft_chessprogramming_pos4_2() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS4, 2, 264);
-}
-
-#[test]
-fn perft_chessprogramming_pos4_3() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS4, 3, 9467);
-}
-
-#[test]
-fn perft_chessprogramming_pos4_4() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS4, 4, 422_333);
-}
-
-#[test]
-fn perft_chessprogramming_pos4_5() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS4, 5, 15_833_292);
-}
-
-const CHESSPROGRAMMING_WIKI_POS5: &str =
-    "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
-
-#[test]
-fn perft_chessprogramming_pos5_1() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS5, 1, 44);
-}
-
-#[test]
-fn perft_chessprogramming_pos5_2() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS5, 2, 1486);
-}
-
-#[test]
-fn perft_chessprogramming_pos5_3() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS5, 3, 62379);
-}
-
-#[test]
-fn perft_chessprogramming_pos5_4() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS5, 4, 2_103_487);
-}
-
-#[test]
-fn perft_chessprogramming_pos5_5() {
-    test_perft(CHESSPROGRAMMING_WIKI_POS5, 5, 89_941_194);
-}
+perft_test!(
+    cpw_pos5,
+    "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8",
+    [44, 1486, 62379, 2_103_487, 89_941_194]
+);
 
 // Extra perft tests positions taken from https://gist.github.com/peterellisjones/8c46c28141c162d1d8a0f0badbc9cff9
 #[test]

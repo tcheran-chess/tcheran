@@ -124,7 +124,6 @@ pub fn quiescence(
             break;
         }
 
-
         if !best_score.is_loss()
             && !in_check
             && futility_score <= s.alpha

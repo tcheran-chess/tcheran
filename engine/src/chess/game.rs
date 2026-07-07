@@ -581,19 +581,14 @@ impl Game {
                 return false;
             }
 
-            let king_dst;
-            let rook_dst;
-
             // We have to have rights to castle
-            if Some(to) == self.castle_rights[us].king_side {
-                king_dst = squares::kingside_king_castle_end(us);
-                rook_dst = squares::kingside_rook_castle_end(us);
+            let (king_dst, rook_dst) = if Some(to) == self.castle_rights[us].king_side {
+                (squares::kingside_king_castle_end(us), squares::kingside_rook_castle_end(us))
             } else if Some(to) == self.castle_rights[us].queen_side {
-                king_dst = squares::queenside_king_castle_end(us);
-                rook_dst = squares::queenside_rook_castle_end(us);
+                (squares::queenside_king_castle_end(us), squares::queenside_rook_castle_end(us))
             } else {
                 return false;
-            }
+            };
 
             return if self.is_frc {
                 if self.pinned[us].contains(to) {

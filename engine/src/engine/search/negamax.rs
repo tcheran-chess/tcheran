@@ -339,8 +339,6 @@ pub fn negamax(
         }
     }
 
-    ctx.tables.killer_moves.clear(plies + 1);
-
     let mut tt_node_bound = NodeBound::Upper;
     let mut best_move = None;
     let mut best_score = Eval::MIN;
@@ -575,12 +573,7 @@ pub fn negamax(
                 .tactical_history
                 .update(mv, game, depth, &tacticals_tried);
 
-            // 'Killers': if a move was so good that it caused a beta cutoff,
-            // but it wasn't a capture, we remember it so that we can try it
-            // before other quiet moves.
             if mv.is_quiet() {
-                ctx.tables.killer_moves.set(plies, mv);
-
                 ctx.tables
                     .conthist
                     .update(game, ctx.stack, plies, mv, depth, &quiets_tried);

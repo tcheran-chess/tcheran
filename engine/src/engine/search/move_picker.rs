@@ -17,7 +17,6 @@ pub enum GenStage {
     BestMove,
     GenTacticals,
     GoodTacticals,
-    Killer,
     GenQuiets,
     ScoreQuiets,
     Quiets,
@@ -102,19 +101,7 @@ impl MovePicker {
                 return Some(entry.mv);
             }
 
-            self.stage = Killer;
-        }
-
-        if self.stage == Killer {
             self.stage = GenQuiets;
-
-            if !self.skip_quiets
-                && let Some(killer) = tables.killer_moves.get(plies)
-                && Some(killer) != self.previous_best_move
-                && game.is_legal(killer)
-            {
-                return Some(killer);
-            }
         }
 
         if self.stage == GenQuiets {
@@ -123,12 +110,6 @@ impl MovePicker {
             if !self.skip_quiets {
                 generate_quiets(game, &mut |mv| {
                     if Some(mv) == self.previous_best_move {
-                        return;
-                    }
-
-                    if let Some(killer) = tables.killer_moves.get(plies)
-                        && mv == killer
-                    {
                         return;
                     }
 
@@ -316,10 +297,7 @@ mod tests {
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(Some(Move::quiet(D8, E7)));
 
-        let mut tables = Tables::new();
-        tables.killer_moves.set(0, Move::quiet(B7, D5));
-
-        while let Some(m) = move_provider.next(&game, &tables, &SearchStack::new(), 0) {
+        while let Some(m) = move_provider.next(&game, &Tables::new(), &SearchStack::new(), 0) {
             moves.push(m);
         }
 

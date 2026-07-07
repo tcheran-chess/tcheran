@@ -53,22 +53,17 @@ fn movepicker_perft(
         generate_tacticals(game, &mut |mv| tacticals_movelist.push(mv));
         generate_quiets(game, &mut |mv| quiets_movelist.push(mv));
 
-        // We want to make sure that we don't generate the best_move more than once, or any of the
-        // killer moves more than once.
+        // We want to make sure that we don't generate the best_move more than once.
         //
         // There's no easy way to do that without specific scenarios to reproduce (which if found are
         // unit tests). But for refactoring there may be new scenarios which aren't captured in unit tests.
         //
         // To get good coverage, we use the length of the move list to determine whether to try tacticals/quiets
-        // in best move/killers.
+        // in best move.
         if tacticals_movelist.len() >= 3 {
             best_move = Some(*tacticals_movelist.iter().next().unwrap());
         } else if quiets_movelist.len() >= 3 {
             best_move = Some(*quiets_movelist.iter().next().unwrap());
-        }
-
-        if quiets_movelist.len() >= 3 {
-            tables.killer_moves.set(depth, *quiets_movelist.get(2));
         }
     }
 
@@ -92,14 +87,13 @@ fn movepicker_perft(
                 .collect::<Vec<_>>();
 
             panic!(
-                "At fen {}\n{} legal moves, but only picked {}\nLegal moves: {:?}\nPicked moves: {:?}\nTT move: {:?}\nKiller moves: {:?}\nMissing moves: {:?}",
+                "At fen {}\n{} legal moves, but only picked {}\nLegal moves: {:?}\nPicked moves: {:?}\nTT move: {:?}\nMissing moves: {:?}",
                 game.to_fen(),
                 legal_moves.len(),
                 moves_at_this_node.len(),
                 legal_moves.iter().copied().collect::<Vec<_>>(),
                 moves_at_this_node,
                 best_move,
-                tables.killer_moves.get(depth),
                 missing_moves
             );
         }

@@ -10,8 +10,9 @@
 
 #### Non-regression
 
-* Saturating behaviour in LMR is no longer used (2.29 +- 3.43 non-reg)
-* Post-LMR re-search no longer happens if we didn't actually reduce due to clamping (-0.36 +- 2.51 non-reg)
+* Saturating behaviour in LMR is no longer used (2.29 +- 3.43)
+* Post-LMR re-search no longer happens if we didn't actually reduce due to clamping (-0.36 +- 2.51)
+* Simplify killer moves (-0.81 +- 2.01)
 
 ## [13.0]
 

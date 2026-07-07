@@ -71,7 +71,6 @@ impl<const MAX: i16> HistoryEntry<MAX> {
 pub struct Tables {
     pub quiet_history: Box<QuietHistoryTable>,
     pub tactical_history: Box<TacticalHistoryTable>,
-    pub killer_moves: KillersTable,
     pub conthist: Box<ContHistTable>,
     pub corrhist: CorrectionHistories,
 }
@@ -81,34 +80,9 @@ impl Tables {
         Self {
             quiet_history: QuietHistoryTable::new(),
             tactical_history: TacticalHistoryTable::new(),
-            killer_moves: KillersTable::new(),
             conthist: ContHistTable::new(),
             corrhist: CorrectionHistories::new(),
         }
-    }
-
-    pub fn new_search(&mut self) {
-        self.killer_moves = KillersTable::new();
-    }
-}
-
-pub struct KillersTable([Option<Move>; MAX_PLIES_ARRAY_SIZE]);
-
-impl KillersTable {
-    pub const fn new() -> Self {
-        Self([None; MAX_PLIES_ARRAY_SIZE])
-    }
-
-    pub fn get(&self, plies: u8) -> Option<Move> {
-        self.0[plies as usize]
-    }
-
-    pub fn set(&mut self, plies: u8, mv: Move) {
-        self.0[plies as usize] = Some(mv);
-    }
-
-    pub fn clear(&mut self, plies: u8) {
-        self.0[plies as usize] = None;
     }
 }
 

@@ -11,7 +11,7 @@ use crate::{
         search::{
             iterative_deepening,
             principal_variation::PrincipalVariation,
-            tables::{KillersTable, Tables},
+            tables::Tables,
             time_control::{StopControl, TimeStrategy},
             types::{Depth, SearchResults},
         },
@@ -84,7 +84,6 @@ impl ThreadData {
     }
 
     pub fn new_search(&mut self, game: &Game) {
-        self.tables.killer_moves = KillersTable::new();
         self.nnue.setup(&game.board);
         self.stack = SearchStack::new();
     }

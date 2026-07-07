@@ -5,8 +5,6 @@ use std::arch::x86_64::*;
 pub type I16s = __m512i;
 pub type I32s = __m512i;
 
-pub const I16_LANES: usize = size_of::<I16s>() / size_of::<i16>();
-
 #[inline(always)]
 pub unsafe fn zeroed_i16() -> I16s {
     _mm512_setzero_si512()
@@ -30,11 +28,6 @@ pub unsafe fn min_i16(n: I16s, min: I16s) -> I16s {
 #[inline(always)]
 pub unsafe fn max_i16(n: I16s, max: I16s) -> I16s {
     _mm512_max_epi16(n, max)
-}
-
-#[inline(always)]
-pub unsafe fn clamp_i16(n: I16s, min: I16s, max: I16s) -> I16s {
-    min_i16(max_i16(n, min), max)
 }
 
 #[inline(always)]

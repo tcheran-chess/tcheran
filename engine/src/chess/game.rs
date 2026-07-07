@@ -119,7 +119,6 @@ pub struct History {
     pub check_zones: [Bitboard; 4],
     pub pinned: [Bitboard; Player::N],
     pub threats: Bitboard,
-    pub recapture_square: Option<Square>,
 }
 
 #[inline]
@@ -153,7 +152,6 @@ pub struct Game {
     pub check_zones: [Bitboard; 4],
     pub pinned: [Bitboard; Player::N],
     pub threats: Bitboard,
-    pub recapture_square: Option<Square>,
 
     pub is_frc: bool,
 }
@@ -189,7 +187,6 @@ impl Game {
             check_zones: [Bitboard::EMPTY; 4],
             pinned: [Bitboard::EMPTY; Player::N],
             threats: Bitboard::EMPTY,
-            recapture_square: None,
 
             hash: ZobristHash::uninit(),
             pawn_hash: ZobristHash::uninit(),
@@ -347,11 +344,6 @@ impl Game {
         };
 
         zones.contains(mv.to())
-    }
-
-    #[inline(always)]
-    pub fn is_recapture(&self, mv: Move) -> bool {
-        mv.is_capture() && Some(mv.to()) == self.recapture_square
     }
 
     fn set_at(&mut self, sq: Square, piece: Piece, observer: &mut impl MoveObserver) {
@@ -746,7 +738,6 @@ impl Game {
             check_zones: self.check_zones,
             pinned: self.pinned,
             threats: self.threats,
-            recapture_square: self.recapture_square,
         };
 
         self.history.push(history);
@@ -756,8 +747,6 @@ impl Game {
         if maybe_captured_piece.is_some() {
             self.remove_at(to, observer);
         }
-
-        self.recapture_square = if mv.is_capture() { Some(mv.to()) } else { None };
 
         // Move the piece to the destination, unless we're castling.
         // If we're castling, the destination square is the rook's square, which is not where the king
@@ -875,7 +864,6 @@ impl Game {
             check_zones: self.check_zones,
             pinned: self.pinned,
             threats: self.threats,
-            recapture_square: self.recapture_square,
         };
 
         self.history.push(history);
@@ -884,7 +872,6 @@ impl Game {
             self.hash.toggle_en_passant(previous_en_passant_target);
         }
 
-        self.recapture_square = None;
         self.en_passant_target = None;
 
         self.plies += 1;
@@ -921,7 +908,6 @@ impl Game {
         self.check_zones = history.check_zones;
         self.pinned = history.pinned;
         self.threats = history.threats;
-        self.recapture_square = history.recapture_square;
 
         // Undo castling, if we castled
         if mv.is_castling()
@@ -969,7 +955,6 @@ impl Game {
         self.check_zones = history.check_zones;
         self.pinned = history.pinned;
         self.threats = history.threats;
-        self.recapture_square = history.recapture_square;
     }
 
     pub fn check_en_passant_square_is_valid(&mut self) {
@@ -1133,32 +1118,5 @@ mod tests {
             Game::from_fen("5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28")
                 .unwrap();
         assert!(game.is_legal(Move::en_passant(G4, F3)));
-    }
-
-    #[test]
-    fn test_is_recapture() {
-        crate::init();
-
-        let mut game = Game::new();
-        game.make_move(game.moves().expect_matching(E2, E4, None));
-        assert!(game.recapture_square.is_none());
-
-        {
-            let mut game = Game::from_fen("k7/8/8/2R3q1/8/2Q5/8/K7 b - - 0 1").unwrap();
-            game.make_move(game.moves().expect_matching(G5, C5, None));
-            assert_eq!(game.recapture_square, Some(C5));
-
-            let recapture = game.moves().expect_matching(C3, C5, None);
-            assert!(game.is_recapture(recapture));
-        }
-
-        {
-            let mut game = Game::from_fen("k7/8/8/8/2Pp4/6Q1/8/K7 b - c3 0 1").unwrap();
-            game.make_move(game.moves().expect_matching(D4, C3, None));
-            assert_eq!(game.recapture_square, Some(C3));
-
-            let recapture = game.moves().expect_matching(G3, C3, None);
-            assert!(game.is_recapture(recapture));
-        }
     }
 }

@@ -1,4 +1,7 @@
-use crate::engine::eval::nnue::{Accumulator, HIDDEN_SIZE, NETWORK, QA};
+use crate::engine::eval::nnue::{
+    Accumulator,
+    network::{HIDDEN_SIZE, NETWORK, QA},
+};
 
 pub fn sum_output_weights(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> i32 {
     cfg_select! {
@@ -20,7 +23,7 @@ pub fn sum_output_weights(us: &Accumulator, them: &Accumulator, output_bucket: u
 #[cfg(any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon"))]
 #[allow(unused, reason = "May be unused when SIMD is unavailable")]
 fn sum_output_weights_simd(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> i32 {
-    use crate::engine::eval::simd::*;
+    use crate::engine::eval::nnue::simd::*;
 
     let output_weights = &NETWORK.output_weights[output_bucket];
 

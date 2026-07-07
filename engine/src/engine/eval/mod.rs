@@ -1,11 +1,5 @@
 mod eval;
-mod inference;
 pub mod nnue;
-mod player_eval;
-mod simd;
 pub mod wdl;
-mod white_eval;
 
-pub use eval::eval;
-pub use player_eval::Eval;
-pub use white_eval::WhiteEval;
+pub use eval::{Eval, WhiteEval, eval};

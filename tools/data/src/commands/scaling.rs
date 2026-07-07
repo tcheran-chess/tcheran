@@ -56,7 +56,7 @@ pub fn run(options: &ScalingOptions) -> Result<()> {
 
     // Average from network v10 run against the Lichess Big3 dataset
     let original_avg = 838.36;
-    let scale = original_avg / abs_mean * f64::from(nnue::SCALE);
+    let scale = original_avg / abs_mean * f64::from(nnue::network::SCALE);
 
     println!("\nScale: {scale:.6}");
 

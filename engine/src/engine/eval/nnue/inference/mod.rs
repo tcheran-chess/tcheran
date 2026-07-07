@@ -27,14 +27,10 @@ pub fn forward(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> i3
 
 fn sum_output_weights(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> i32 {
     cfg_select! {
-        target_feature = "avx512bw" => {
-            vectorised::sum_output_weights(us, them, output_bucket)
-        },
-        target_feature = "avx2" => {
-            vectorised::sum_output_weights(us, them, output_bucket)
-        }
-        target_feature = "neon" => {
-            vectorised::sum_output_weights(us, them, output_bucket)
+        any(target_feature = "avx512bw",
+        target_feature = "avx2",
+        target_feature = "neon") => {
+            unsafe { vectorised::sum_output_weights(us, them, output_bucket) }
         }
         _ => {
             scalar::sum_output_weights(us, them, output_bucket)

@@ -25,8 +25,8 @@ pub const SCALE: i32 = 267;
 /// Container for all network parameters
 #[repr(C, align(64))]
 pub struct Network {
-    pub feature_weights: [Accumulator; INPUT_BUCKETS * FEATURES],
-    pub feature_bias: Accumulator,
+    pub feature_weights: [[i16; HIDDEN_SIZE]; INPUT_BUCKETS * FEATURES],
+    pub feature_bias: [i16; HIDDEN_SIZE],
     pub output_weights: [[i16; HIDDEN_SIZE * 2]; OUTPUT_BUCKETS],
     pub output_bias: [i16; OUTPUT_BUCKETS],
 }
@@ -188,7 +188,7 @@ pub struct CacheEntry {
 impl CacheEntry {
     fn new() -> Self {
         Self {
-            value: NETWORK.feature_bias.clone(),
+            value: Accumulator(NETWORK.feature_bias),
             board: Board::EMPTY,
         }
     }
@@ -368,7 +368,10 @@ pub struct NNUE {
 impl Default for NNUE {
     fn default() -> Self {
         Self {
-            accumulators: [NETWORK.feature_bias.clone(), NETWORK.feature_bias.clone()],
+            accumulators: [
+                Accumulator(NETWORK.feature_bias),
+                Accumulator(NETWORK.feature_bias),
+            ],
         }
     }
 }
@@ -433,7 +436,7 @@ impl NNUE {
 
     #[expect(clippy::needless_range_loop, reason = "Readability")]
     fn add1(acc: &mut Accumulator, add1: usize) {
-        let add1_features = &NETWORK.feature_weights[add1].0;
+        let add1_features = &NETWORK.feature_weights[add1];
 
         for i in 0..HIDDEN_SIZE {
             acc.0[i] += add1_features[i];
@@ -442,7 +445,7 @@ impl NNUE {
 
     #[expect(clippy::needless_range_loop, reason = "Readability")]
     fn sub1(acc: &mut Accumulator, sub1: usize) {
-        let sub1_features = &NETWORK.feature_weights[sub1].0;
+        let sub1_features = &NETWORK.feature_weights[sub1];
 
         for i in 0..HIDDEN_SIZE {
             acc.0[i] -= sub1_features[i];
@@ -450,8 +453,8 @@ impl NNUE {
     }
 
     fn add1_sub1(previous_acc: &Accumulator, acc: &mut Accumulator, add1: usize, sub1: usize) {
-        let add1_features = &NETWORK.feature_weights[add1].0;
-        let sub1_features = &NETWORK.feature_weights[sub1].0;
+        let add1_features = &NETWORK.feature_weights[add1];
+        let sub1_features = &NETWORK.feature_weights[sub1];
 
         for i in 0..HIDDEN_SIZE {
             acc.0[i] = previous_acc.0[i] + add1_features[i] - sub1_features[i];
@@ -465,9 +468,9 @@ impl NNUE {
         sub1: usize,
         sub2: usize,
     ) {
-        let add1_features = &NETWORK.feature_weights[add1].0;
-        let sub1_features = &NETWORK.feature_weights[sub1].0;
-        let sub2_features = &NETWORK.feature_weights[sub2].0;
+        let add1_features = &NETWORK.feature_weights[add1];
+        let sub1_features = &NETWORK.feature_weights[sub1];
+        let sub2_features = &NETWORK.feature_weights[sub2];
 
         for i in 0..HIDDEN_SIZE {
             acc.0[i] = previous_acc.0[i] + add1_features[i] - sub1_features[i] - sub2_features[i];
@@ -482,10 +485,10 @@ impl NNUE {
         sub1: usize,
         sub2: usize,
     ) {
-        let add1_features = &NETWORK.feature_weights[add1].0;
-        let add2_features = &NETWORK.feature_weights[add2].0;
-        let sub1_features = &NETWORK.feature_weights[sub1].0;
-        let sub2_features = &NETWORK.feature_weights[sub2].0;
+        let add1_features = &NETWORK.feature_weights[add1];
+        let add2_features = &NETWORK.feature_weights[add2];
+        let sub1_features = &NETWORK.feature_weights[sub1];
+        let sub2_features = &NETWORK.feature_weights[sub2];
 
         for i in 0..HIDDEN_SIZE {
             acc.0[i] = previous_acc.0[i] + add1_features[i] + add2_features[i]

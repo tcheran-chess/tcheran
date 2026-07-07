@@ -82,6 +82,8 @@ fn relative_to_project_root(path: impl Into<PathBuf>) -> PathBuf {
 fn download_network(download_to: &Path) {
     let download_succeeded = Command::new("curl")
         .args(vec![
+            "--fail",
+            "--silent",
             "--location",
             "--create-dirs",
             "--output",

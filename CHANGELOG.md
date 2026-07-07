@@ -48,6 +48,7 @@
 * Implement a proper thread pool
 * Add mate distance pruning
 * Stop returning mate scores from NMP
+* The default move overhead is now set at 20ms
 
 #### Misc
 

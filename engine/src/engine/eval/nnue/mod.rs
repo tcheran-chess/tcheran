@@ -1,4 +1,4 @@
-mod inference;
+pub mod inference;
 pub mod network;
 mod nnue;
 mod simd;

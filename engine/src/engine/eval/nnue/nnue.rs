@@ -10,7 +10,6 @@ use crate::{
                 inference,
                 network::{
                     BUCKET_LAYOUT, FEATURES, HIDDEN_SIZE, INPUT_BUCKETS, NETWORK, OUTPUT_BUCKETS,
-                    QA, QB, SCALE,
                 },
             },
         },
@@ -442,21 +441,7 @@ impl NNUE {
     pub fn evaluate(&self, player: Player, game: &Game) -> Eval {
         let (us, them) = (&self[player], &self[player.other()]);
         let output_bucket = Self::bucket(game);
-        let mut output = inference::sum_output_weights(us, them, output_bucket);
-
-        // Reduce quantization from QA * QA * QB to QA * QB.
-        output /= i32::from(QA);
-
-        // Add bias.
-        let output_bias = &NETWORK.output_bias[output_bucket];
-        output += i32::from(*output_bias);
-
-        // Apply eval scale.
-        output *= SCALE;
-
-        // Remove quantisation altogether.
-        output /= i32::from(QA) * i32::from(QB);
-
+        let output = inference::forward(us, them, output_bucket);
         Eval(output)
     }
 

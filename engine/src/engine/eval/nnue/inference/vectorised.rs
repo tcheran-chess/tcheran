@@ -35,10 +35,10 @@ pub unsafe fn sum_output_weights(
         let us2 = load_i16(us.add(i + 2 * I16_LANES));
         let us3 = load_i16(us.add(i + 3 * I16_LANES));
 
-        let us_clamped0 = min_i16(max_i16(us0, zero), qa);
-        let us_clamped1 = min_i16(max_i16(us1, zero), qa);
-        let us_clamped2 = min_i16(max_i16(us2, zero), qa);
-        let us_clamped3 = min_i16(max_i16(us3, zero), qa);
+        let us_clamped0 = clamp_i16(us0, zero, qa);
+        let us_clamped1 = clamp_i16(us1, zero, qa);
+        let us_clamped2 = clamp_i16(us2, zero, qa);
+        let us_clamped3 = clamp_i16(us3, zero, qa);
 
         let us_weights0 = load_i16(us_weights.add(i));
         let us_weights1 = load_i16(us_weights.add(i + I16_LANES));
@@ -50,10 +50,10 @@ pub unsafe fn sum_output_weights(
         let them2 = load_i16(them.add(i + 2 * I16_LANES));
         let them3 = load_i16(them.add(i + 3 * I16_LANES));
 
-        let them_clamped0 = min_i16(max_i16(them0, zero), qa);
-        let them_clamped1 = min_i16(max_i16(them1, zero), qa);
-        let them_clamped2 = min_i16(max_i16(them2, zero), qa);
-        let them_clamped3 = min_i16(max_i16(them3, zero), qa);
+        let them_clamped0 = clamp_i16(them0, zero, qa);
+        let them_clamped1 = clamp_i16(them1, zero, qa);
+        let them_clamped2 = clamp_i16(them2, zero, qa);
+        let them_clamped3 = clamp_i16(them3, zero, qa);
 
         let them_weights0 = load_i16(them_weights.add(i));
         let them_weights1 = load_i16(them_weights.add(i + I16_LANES));

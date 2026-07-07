@@ -33,6 +33,11 @@ pub unsafe fn max_i16(n: I16s, max: I16s) -> I16s {
 }
 
 #[inline(always)]
+pub unsafe fn clamp_i16(n: I16s, min: I16s, max: I16s) -> I16s {
+    min_i16(max_i16(n, min), max)
+}
+
+#[inline(always)]
 pub unsafe fn add_i16_into_i32(a: I16s, b: I16s) -> I32s {
     let low = vmull_s16(vget_low_s16(a), vget_low_s16(b));
     let high = vmull_high_s16(a, b);

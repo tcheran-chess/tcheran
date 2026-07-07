@@ -34,7 +34,7 @@ pub struct Network {
 pub static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
 
 #[rustfmt::skip]
-const NON_MIRRORED_BUCKET_LAYOUT: [usize; Square::N / 2] = [
+const BUCKET_SCHEME: [usize; Square::N / 2] = [
     0, 1, 2, 3,
     4, 4, 5, 5,
     6, 6, 6, 6,
@@ -53,7 +53,7 @@ const BUCKET_LAYOUT: [usize; Square::N] = const {
     while rank < Rank::N {
         let mut file = 0;
         while file < File::N / 2 {
-            let bucket = NON_MIRRORED_BUCKET_LAYOUT[rank * Rank::N / 2 + file];
+            let bucket = BUCKET_SCHEME[rank * Rank::N / 2 + file];
 
             layout[rank * Rank::N + file] = bucket;
             layout[rank * Rank::N + (max_file_idx - file)] = bucket;

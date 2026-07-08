@@ -5,7 +5,7 @@ use bullet_lib::{
     },
     nn::{
         InitSettings, Shape,
-        optimiser::{AdamW, AdamWOptimiser, AdamWParams},
+        optimiser::{Ranger, RangerOptimiser, RangerParams},
     },
     trainer::{
         save::SavedFormat,
@@ -17,9 +17,9 @@ use bullet_lib::{
 
 use crate::bullet_extensions::*;
 
-type Optimiser = AdamW;
-type OptimiserT = AdamWOptimiser;
-type Params = AdamWParams;
+type Optimiser = Ranger;
+type OptimiserT = RangerOptimiser;
+type Params = RangerParams;
 
 pub const SCALE: f32 = 400.0;
 
@@ -107,11 +107,7 @@ pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount
 
             // loss
             let main_loss = output.sigmoid().squared_error(target);
-
-            let ones_l1_vec = builder.new_constant(Shape::new(1, L1), &[1.0 / L1 as f32; L1]);
-            let sparsity_loss = ones_l1_vec.matmul(h1);
-
-            let loss = main_loss + 0.005 * sparsity_loss;
+            let loss = main_loss;
 
             (output, loss)
         });

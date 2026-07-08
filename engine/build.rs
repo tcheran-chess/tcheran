@@ -11,7 +11,7 @@ mod preprocessing;
 // Make the network architecture definition available for preprocessing
 include!("src/engine/eval/nnue/network.rs");
 
-const NETWORK_FILE: &str = "v21-46233aea.nnue";
+const NETWORK_FILE: &str = "v22-e81d7256.nnue";
 const DOWNLOAD_BASE_URL: &str =
     "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks";
 

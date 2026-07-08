@@ -12,6 +12,7 @@
 * Score quiet moves that give check higher for picking (4.97 +- 3.54)
 * Preparation for making time management tunable (4.68 +- 4.31)
 * Game::is_direct_check is now used in LMP (4.57 +- 3.35)
+* Network #22, switching back to training multi-layer with Ranger (4.47 +- 3.26)
 * Re-introduce futility pruning and make it depth dependent (4.38 +- 3.25)
 * Add quiescence futility pruning (4.32 +- 3.18)
 * Network #20, trained with Ranger instead of AdamW (3.54 +- 2.80)

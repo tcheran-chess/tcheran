@@ -11,7 +11,7 @@ default-members = ["engine"]
 [workspace.package]
 version = "13.0.0-dev"
 edition = "2024"
-rust-version = "1.96"
+rust-version = "1.97"
 
 [workspace.lints.rust]
 static_mut_refs = "allow"

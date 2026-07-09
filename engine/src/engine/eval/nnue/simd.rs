@@ -46,6 +46,12 @@ pub type I32s = simd!(
     neon { int32x4_t }
 );
 
+pub type UI8s = simd!(
+    avx2 { __m256i }
+    avx512 { __m512i }
+    neon { int8x16_t }
+);
+
 pub const I16_LANES: usize = size_of::<I16s>() / size_of::<i16>();
 pub const I32_LANES: usize = size_of::<I32s>() / size_of::<i32>();
 
@@ -244,17 +250,17 @@ pub unsafe fn rshift_i32<
 }
 
 #[inline(always)]
-pub unsafe fn reinterpret_i32_as_u8s(n: *const i32) -> U8s {
+pub unsafe fn reinterpret_i32_as_u8s(n: *const i32) -> UI8s {
     simd!(
         avx2 { _mm256_set1_epi32(*n) }
         avx512 { _mm512_set1_epi32(*n) }
-        neon { vreinterpretq_u8_s32(vdupq_n_s32(*n)) }
+        neon { vreinterpretq_s8_s32(vdupq_n_s32(*n)) }
     )
 }
 
 #[inline(always)]
 #[allow(unused, reason = "Not yet used")]
-pub unsafe fn dpbusd(acc: I32s, u8s: U8s, i8s: I8s) -> I32s {
+pub unsafe fn dpbusd(acc: I32s, u8s: UI8s, i8s: UI8s) -> I32s {
     simd!(
         avx2 {{
             let products = _mm256_maddubs_epi16(u8s, i8s);
@@ -301,7 +307,7 @@ pub unsafe fn dpbusd(acc: I32s, u8s: U8s, i8s: I8s) -> I32s {
 }
 
 #[inline(always)]
-pub unsafe fn dpbusdx2(acc: I32s, u8s1: U8s, i8s1: I8s, u8s2: U8s, i8s2: I8s) -> I32s {
+pub unsafe fn dpbusdx2(acc: I32s, u8s1: UI8s, i8s1: UI8s, u8s2: UI8s, i8s2: UI8s) -> I32s {
     simd!(
         avx2 {{
             let p1 = _mm256_maddubs_epi16(u8s1, i8s1);
@@ -323,12 +329,12 @@ pub unsafe fn dpbusdx2(acc: I32s, u8s1: U8s, i8s1: I8s, u8s2: U8s, i8s2: I8s) ->
                     dpbusd(dpbusd(acc, u8s1, i8s1), u8s2, i8s2)
                 }
                 _ => {
-                    let lo1 = vmull_s8(vget_low_s8(u1), vget_low_s8(w1));
-                    let hi1 = vmull_high_s8(u1, w1);
+                    let lo1 = vmull_s8(vget_low_s8(u8s1), vget_low_s8(i8s1));
+                    let hi1 = vmull_high_s8(u8s1, i8s1);
                     let p1 = vpaddq_s16(lo1, hi1);
 
-                    let lo2 = vmull_s8(vget_low_s8(u2), vget_low_s8(w2));
-                    let hi2 = vmull_high_s8(u2, w2);
+                    let lo2 = vmull_s8(vget_low_s8(u8s2), vget_low_s8(i8s2));
+                    let hi2 = vmull_high_s8(u8s2, i8s2);
                     let p2 = vpaddq_s16(lo2, hi2);
 
                     vpadalq_s16(acc, vaddq_s16(p1, p2))

@@ -145,12 +145,8 @@ pub unsafe fn shift_left_mul_high_i16(a: I16s, b: I16s) -> I16s {
 pub unsafe fn packus(l: I16s, r: I16s) -> U8s {
     // From sp00ph - reverse the permutation applied by packus
     simd!(
-        avx2 { _mm256_permute4x64_epi64(_mm256_packus_epi16(l, r), 0xd8) }
-        avx512 {{
-            let lo = _mm512_shuffle_i64x2(l, r, 136);
-            let hi = _mm512_shuffle_i64x2(l, r, 221);
-            _mm512_packus_epi16(lo, hi)
-        }}
+        avx2 { _mm256_packus_epi16(l, r) }
+        avx512 { _mm512_packus_epi16(l, r) }
         neon { vqmovun_high_s16(vqmovun_s16(l), r) }
     )
 }

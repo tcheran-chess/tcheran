@@ -12,34 +12,29 @@ pub enum File {
     H,
 }
 
+static FILE_NOTATION: [&str; File::N] = ["a", "b", "c", "d", "e", "f", "g", "h"];
+static FILE_BITBOARDS: [Bitboard; File::N] = [
+    bitboards::A_FILE,
+    bitboards::B_FILE,
+    bitboards::C_FILE,
+    bitboards::D_FILE,
+    bitboards::E_FILE,
+    bitboards::F_FILE,
+    bitboards::G_FILE,
+    bitboards::H_FILE,
+];
+
 impl File {
-    pub const ALL: [Self; 8] = [
-        Self::A,
-        Self::B,
-        Self::C,
-        Self::D,
-        Self::E,
-        Self::F,
-        Self::G,
-        Self::H,
-    ];
+    pub const ALL: [Self; 8] = {
+        use File::*;
+        [A, B, C, D, E, F, G, H]
+    };
 
     pub const N: usize = Self::ALL.len();
 
-    pub fn from_idx(idx: u8) -> Self {
+    pub const fn from_idx(idx: u8) -> Self {
         debug_assert!(idx < 8);
-
-        match idx {
-            0 => Self::A,
-            1 => Self::B,
-            2 => Self::C,
-            3 => Self::D,
-            4 => Self::E,
-            5 => Self::F,
-            6 => Self::G,
-            7 => Self::H,
-            _ => unreachable!(),
-        }
+        unsafe { std::mem::transmute::<u8, Self>(idx) }
     }
 
     #[inline(always)]
@@ -48,42 +43,11 @@ impl File {
     }
 
     pub const fn notation(self) -> &'static str {
-        match self {
-            Self::A => "a",
-            Self::B => "b",
-            Self::C => "c",
-            Self::D => "d",
-            Self::E => "e",
-            Self::F => "f",
-            Self::G => "g",
-            Self::H => "h",
-        }
+        FILE_NOTATION[self as usize]
     }
 
-    pub const fn notation_upper(self) -> &'static str {
-        match self {
-            Self::A => "A",
-            Self::B => "B",
-            Self::C => "C",
-            Self::D => "D",
-            Self::E => "E",
-            Self::F => "F",
-            Self::G => "G",
-            Self::H => "H",
-        }
-    }
-
-    pub fn bitboard(self) -> Bitboard {
-        match self {
-            Self::A => bitboards::A_FILE,
-            Self::B => bitboards::B_FILE,
-            Self::C => bitboards::C_FILE,
-            Self::D => bitboards::D_FILE,
-            Self::E => bitboards::E_FILE,
-            Self::F => bitboards::F_FILE,
-            Self::G => bitboards::G_FILE,
-            Self::H => bitboards::H_FILE,
-        }
+    pub const fn bitboard(self) -> Bitboard {
+        FILE_BITBOARDS[self as usize]
     }
 }
 
@@ -125,35 +89,20 @@ pub enum Rank {
     R8,
 }
 
+static RANK_NOTATION: [&str; File::N] = ["1", "2", "3", "4", "5", "6", "7", "8"];
+
 impl Rank {
-    pub const ALL: [Self; 8] = [
-        Self::R1,
-        Self::R2,
-        Self::R3,
-        Self::R4,
-        Self::R5,
-        Self::R6,
-        Self::R7,
-        Self::R8,
-    ];
+    pub const ALL: [Self; 8] = {
+        use Rank::*;
+        [R1, R2, R3, R4, R5, R6, R7, R8]
+    };
 
     pub const N: usize = Self::ALL.len();
 
     #[inline(always)]
     pub fn from_idx(idx: u8) -> Self {
         debug_assert!(idx < 8);
-
-        match idx {
-            0 => Self::R1,
-            1 => Self::R2,
-            2 => Self::R3,
-            3 => Self::R4,
-            4 => Self::R5,
-            5 => Self::R6,
-            6 => Self::R7,
-            7 => Self::R8,
-            _ => unreachable!(),
-        }
+        unsafe { std::mem::transmute::<u8, Self>(idx) }
     }
 
     #[inline(always)]
@@ -162,16 +111,7 @@ impl Rank {
     }
 
     pub const fn notation(self) -> &'static str {
-        match self {
-            Self::R1 => "1",
-            Self::R2 => "2",
-            Self::R3 => "3",
-            Self::R4 => "4",
-            Self::R5 => "5",
-            Self::R6 => "6",
-            Self::R7 => "7",
-            Self::R8 => "8",
-        }
+        RANK_NOTATION[self as usize]
     }
 }
 
@@ -209,15 +149,6 @@ impl Square {
 
     pub const fn from_file_and_rank(file: File, rank: Rank) -> Self {
         Self::from_idxs(file.idx(), rank.idx())
-    }
-
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "At most 63 from .trailing_zeros() of a u64"
-    )]
-    pub const fn from_bitboard(bitboard: Bitboard) -> Self {
-        debug_assert!(bitboard.count() == 1);
-        Self(bitboard.trailing_zeros() as u8)
     }
 
     pub const fn from_index(idx: u8) -> Self {

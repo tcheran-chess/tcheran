@@ -76,6 +76,14 @@ fn format_current_player(game: &Game) -> String {
 fn format_castle_rights(game: &Game) -> String {
     let [white_castle_rights, black_castle_rights] = game.castle_rights;
 
+    let file_for = |s: Option<Square>| {
+        if let Some(s) = s {
+            s.file().notation().to_string()
+        } else {
+            String::new()
+        }
+    };
+
     match (
         white_castle_rights.king_side,
         white_castle_rights.queen_side,
@@ -85,26 +93,10 @@ fn format_castle_rights(game: &Game) -> String {
         (None, None, None, None) => "-".to_string(),
         (white_king, white_queen, black_king, black_queen) if game.is_frc => format!(
             "{}{}{}{}",
-            if let Some(white_king) = white_king {
-                white_king.file().notation_upper()
-            } else {
-                ""
-            },
-            if let Some(white_queen) = white_queen {
-                white_queen.file().notation_upper()
-            } else {
-                ""
-            },
-            if let Some(black_king) = black_king {
-                black_king.file().notation()
-            } else {
-                ""
-            },
-            if let Some(black_queen) = black_queen {
-                black_queen.file().notation()
-            } else {
-                ""
-            }
+            file_for(white_king).to_ascii_uppercase(),
+            file_for(white_queen).to_ascii_uppercase(),
+            file_for(black_king),
+            file_for(black_queen),
         ),
         (white_king, white_queen, black_king, black_queen) => format!(
             "{}{}{}{}",

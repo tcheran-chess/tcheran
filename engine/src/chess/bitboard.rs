@@ -38,7 +38,7 @@ impl Bitboard {
     #[inline(always)]
     pub const fn single(self) -> Square {
         debug_assert!(self.count() == 1);
-        Square::from_bitboard(self)
+        Square::from_array_index(self.trailing_zeros())
     }
 
     #[inline(always)]
@@ -48,7 +48,7 @@ impl Bitboard {
 
     #[inline(always)]
     pub const fn lsb(self) -> Self {
-        Self((1_u64).wrapping_shl(self.0.trailing_zeros()))
+        Self(1_u64.wrapping_shl(self.0.trailing_zeros()))
     }
 
     #[inline(always)]

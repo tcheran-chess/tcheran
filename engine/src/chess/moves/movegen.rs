@@ -162,7 +162,7 @@ fn generate_pawn_tacticals(
 
     // Left promotion captures
     for dst in left_attacks & their_pieces & promotion_rank {
-        let src = dst.bb().backward(us).east().single();
+        let src = dst.backward(us).east();
 
         f(Move::capture_promotion(src, dst, PromotionPieceKind::Queen));
         f(Move::capture_promotion(src, dst, PromotionPieceKind::Rook));
@@ -172,7 +172,7 @@ fn generate_pawn_tacticals(
 
     // Right promotion captures
     for dst in right_attacks & their_pieces & promotion_rank {
-        let src = dst.bb().backward(us).west().single();
+        let src = dst.backward(us).west();
 
         f(Move::capture_promotion(src, dst, PromotionPieceKind::Queen));
         f(Move::capture_promotion(src, dst, PromotionPieceKind::Rook));
@@ -186,17 +186,17 @@ fn generate_pawn_tacticals(
 
     // Queen promotions
     for dst in promotion_destinations {
-        let src = dst.bb().backward(us).single();
+        let src = dst.backward(us);
         f(Move::push_promotion(src, dst, PromotionPieceKind::Queen));
     }
 
     for dst in left_attacks & !promotion_rank {
-        let src = dst.bb().backward(us).east().single();
+        let src = dst.backward(us).east();
         f(Move::capture(src, dst));
     }
 
     for dst in right_attacks & !promotion_rank {
-        let src = dst.bb().backward(us).west().single();
+        let src = dst.backward(us).west();
         f(Move::capture(src, dst));
     }
 
@@ -235,7 +235,7 @@ fn generate_pawn_quiets(
 
     let single_push_destinations = non_promotion_pushes.forward(us) & !all_pieces;
     for dst in single_push_destinations & dst_mask {
-        let src = dst.bb().backward(us).single();
+        let src = dst.backward(us);
         f(Move::quiet(src, dst));
     }
 
@@ -243,13 +243,13 @@ fn generate_pawn_quiets(
         (single_push_destinations & double_push_rank(us)).forward(us) & !all_pieces;
 
     for dst in double_push_destinations & dst_mask {
-        let src = dst.bb().backward(us).backward(us).single();
+        let src = dst.backward(us).backward(us);
         f(Move::double_push(src, dst));
     }
 
     let underpromotion_destinations = promotion_pushes.forward(us) & !all_pieces;
     for dst in underpromotion_destinations & dst_mask {
-        let src = dst.bb().backward(us).single();
+        let src = dst.backward(us);
         f(Move::push_promotion(src, dst, PromotionPieceKind::Rook));
         f(Move::push_promotion(src, dst, PromotionPieceKind::Knight));
         f(Move::push_promotion(src, dst, PromotionPieceKind::Bishop));

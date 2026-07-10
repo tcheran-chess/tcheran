@@ -218,6 +218,16 @@ impl Square {
     }
 
     #[inline(always)]
+    pub fn east(self) -> Self {
+        Self(self.0 + 1)
+    }
+
+    #[inline(always)]
+    pub fn west(self) -> Self {
+        Self(self.0 - 1)
+    }
+
+    #[inline(always)]
     pub const fn relative_for(self, player: Player) -> Self {
         match player {
             Player::White => self,

@@ -164,11 +164,6 @@ impl Bitboard {
         // If we go west and land on H, we wrapped around.
         Self(self.0 << 7) & Self::NOT_H_FILE
     }
-
-    #[inline(always)]
-    pub const fn flip_vertically(self) -> Self {
-        Self(u64::swap_bytes(self.0))
-    }
 }
 
 pub struct SquareIterator(Bitboard);

@@ -469,19 +469,20 @@ impl NNUE {
 }
 
 fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
-    const KING_BUCKET_STRIDE: usize = FEATURES;
+    const INPUT_BUCKET_STRIDE: usize = FEATURES;
     const COLOR_STRIDE: usize = Square::N * PieceKind::N;
     const PIECE_STRIDE: usize = Square::N;
 
     let p = piece.kind as usize;
-    let c = piece.player as usize;
 
-    let square_idx = sq.relative_for(pov).idx();
-    let king_flip = 7 * u8::from(should_mirror(king));
+    let c = piece.player as usize ^ pov as usize;
+
+    let square_idx = sq
+        .relative_for(pov)
+        .mirrored_horizontally_if(should_mirror(king))
+        .idx();
+
     let input_bucket = input_bucket(king, pov);
 
-    input_bucket * KING_BUCKET_STRIDE
-        + (c ^ pov as usize) * COLOR_STRIDE
-        + p * PIECE_STRIDE
-        + (square_idx ^ king_flip) as usize
+    input_bucket * INPUT_BUCKET_STRIDE + c * COLOR_STRIDE + p * PIECE_STRIDE + square_idx as usize
 }

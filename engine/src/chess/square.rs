@@ -228,11 +228,21 @@ impl Square {
     }
 
     #[inline(always)]
+    pub const fn mirror_vertically(self) -> Self {
+        Self(self.idx() ^ 0b11_1000)
+    }
+
+    #[inline(always)]
     pub const fn relative_for(self, player: Player) -> Self {
         match player {
             Player::White => self,
-            Player::Black => self.bb().flip_vertically().single(),
+            Player::Black => self.mirror_vertically(),
         }
+    }
+
+    #[inline(always)]
+    pub fn mirrored_horizontally_if(self, should_mirror: bool) -> Self {
+        Self(self.0 ^ (7 * u8::from(should_mirror)))
     }
 }
 

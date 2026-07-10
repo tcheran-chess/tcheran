@@ -194,7 +194,7 @@ impl Game {
             minor_piece_hash: ZobristHash::uninit(),
             non_pawn_hash: [ZobristHash::uninit(); Player::N],
 
-            history: Vec::new(),
+            history: Vec::with_capacity(1024),
 
             is_frc,
         };

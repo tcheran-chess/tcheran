@@ -477,7 +477,7 @@ fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
     let c = piece.player as usize;
 
     let square_idx = sq.relative_for(pov).idx();
-    let king_flip = 7 * u8::from(king.file().idx() >= 4);
+    let king_flip = 7 * u8::from(should_mirror(king));
     let input_bucket = input_bucket(king, pov);
 
     input_bucket * KING_BUCKET_STRIDE

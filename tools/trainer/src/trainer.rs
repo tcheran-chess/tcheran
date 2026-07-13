@@ -92,7 +92,7 @@ pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount
 
             // weights
             let l1 = builder.new_affine("l1", L1, OUTPUT_BUCKETS * L2);
-            let l2 = builder.new_affine("l2", L2, OUTPUT_BUCKETS * L3);
+            let l2 = builder.new_affine("l2", L2 * 2, OUTPUT_BUCKETS * L3);
             let l3 = builder.new_affine("l3", L3, OUTPUT_BUCKETS);
 
             // inference
@@ -101,7 +101,9 @@ pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount
             let ntm_hidden = ft(ntm_inputs, 0, L1 / 2) * ft(ntm_inputs, L1 / 2, L1);
 
             let h1 = stm_hidden.concat(ntm_hidden);
-            let h2 = l1.forward(h1).select(output_buckets).screlu();
+
+            let l1_out = l1.forward(h1).select(output_buckets);
+            let h2 = l1_out.concat(l1_out.abs_pow(2.0)).crelu();
             let h3 = l2.forward(h2).select(output_buckets).crelu();
             let output = l3.forward(h3).select(output_buckets);
 

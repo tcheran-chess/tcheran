@@ -6,6 +6,7 @@
 * Network #21, a multi-layer net (16.47 +- 7.08)
 * Network #17, adding ~185M DFRC positions (91.09 +- 18.98 DFRC)
 * Network #18, with a new much longer training schedule about half way between my existing one and Hobbes' (14.19 +- 6.56)
+* Network #23, with dual activation for L2 (7.21 +- 4.45)
 * Cut off if the singular beta beats beta (6.97 +- 4.40)
 * Added TT clusters (6.28 +- 4.04)
 * SPSA tune - 2682 iters at 20+0.20 (5.58 +- 3.78)

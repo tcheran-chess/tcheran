@@ -233,6 +233,23 @@ pub unsafe fn clamp_i32(x: I32s, min: I32s, max: I32s) -> I32s {
 }
 
 #[inline(always)]
+pub unsafe fn lshift_i32<
+    const SHIFT: simd!(
+        avx2 { i32 }
+        avx512 { u32 }
+        neon { i32 }
+    ),
+>(
+    n: I32s,
+) -> I32s {
+    simd!(
+        avx2 { _mm256_slli_epi32::<SHIFT>(n) }
+        avx512 { _mm512_slli_epi32::<SHIFT>(n) }
+        neon { vshlq_n_s32::<SHIFT>(n) }
+    )
+}
+
+#[inline(always)]
 pub unsafe fn rshift_i32<
     const SHIFT: simd!(
         avx2 { i32 }

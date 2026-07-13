@@ -6,7 +6,7 @@ pub struct RawNetwork {
     pub l0_biases: [i16; L1],
     pub l1_weights: [[[i8; L2]; OUTPUT_BUCKETS]; L1],
     pub l1_biases: [[i32; L2]; OUTPUT_BUCKETS],
-    pub l2_weights: [[[i32; L3]; OUTPUT_BUCKETS]; L2],
+    pub l2_weights: [[[i32; L3]; OUTPUT_BUCKETS]; L2 * 2],
     pub l2_biases: [[i32; L3]; OUTPUT_BUCKETS],
     pub l3_weights: [[i32; OUTPUT_BUCKETS]; L3],
     pub l3_biases: [i32; OUTPUT_BUCKETS],
@@ -31,7 +31,7 @@ pub fn preprocess(src: &RawNetwork, dst: &mut Network) {
         std::ptr::copy_nonoverlapping(&raw const src.l1_biases, &raw mut dst.l1_biases, 1);
 
         for bucket in 0..OUTPUT_BUCKETS {
-            for l2 in 0..L2 {
+            for l2 in 0..L2 * 2 {
                 for l3 in 0..L3 {
                     dst.l2_weights[bucket][l2][l3] = src.l2_weights[l2][bucket][l3];
                 }

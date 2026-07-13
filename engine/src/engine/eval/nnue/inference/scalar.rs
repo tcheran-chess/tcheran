@@ -7,7 +7,7 @@
 
 use crate::engine::eval::nnue::{
     Accumulator,
-    network::{L0_SHIFT, L1, L1_SHIFT, L2, L3, Q, Q0},
+    network::{L0_SHIFT, L1, L1_SHIFT, L2, L3, Q, Q_BITS, Q0},
     nnue::NETWORK,
 };
 
@@ -35,7 +35,7 @@ pub fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: usize) -
     output
 }
 
-pub fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2] {
+pub fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 * 2] {
     let mut intermediate = [0i32; L2];
 
     for l2 in 0..L2 {
@@ -48,25 +48,27 @@ pub fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2] {
         }
     }
 
-    let mut output = [0i32; L2];
+    let mut output = [0i32; L2 * 2];
 
     for l2 in 0..L2 {
         let bias = NETWORK.l1_biases[output_bucket][l2];
 
         let out = (intermediate[l2] + bias) >> L1_SHIFT;
 
-        let screlu = out.clamp(0, Q).pow(2);
+        let act1 = out.clamp(0, Q) << Q_BITS;
+        let act2 = (out * out).clamp(0, Q * Q);
 
-        output[l2] = screlu;
+        output[l2] = act1;
+        output[l2 + L2] = act2;
     }
 
     output
 }
 
-pub fn propagate_l2(input: &[i32; L2], output_bucket: usize) -> [i32; L3] {
+pub fn propagate_l2(input: &[i32; L2 * 2], output_bucket: usize) -> [i32; L3] {
     let mut output = NETWORK.l2_biases[output_bucket];
 
-    for l2 in 0..L2 {
+    for l2 in 0..L2 * 2 {
         let i = input[l2];
 
         for l3 in 0..L3 {

@@ -12,6 +12,11 @@ pub const Q0: i32 = 255;
 pub const _Q1: i32 = 128;
 pub const Q: i32 = 64;
 
+pub const Q_BITS: cfg_select!(
+    target_feature = "avx512bw" => u32,
+    _ => i32,
+) = 6;
+
 pub const L0_SHIFT: u32 = 9;
 
 pub const L1_SHIFT: cfg_select!(
@@ -20,7 +25,7 @@ pub const L1_SHIFT: cfg_select!(
 ) = 8;
 
 // Eval scaling factor
-pub const SCALE: i32 = 318;
+pub const SCALE: i32 = 321;
 
 // Redefinitions of Square::N / File::N / Rank::N so this file can be
 // included directly in build.rs
@@ -35,7 +40,7 @@ pub struct Network {
     pub l0_biases: [i16; L1],
     pub l1_weights: [[[i8; L2 * 4]; L1 / 4]; OUTPUT_BUCKETS],
     pub l1_biases: [[i32; L2]; OUTPUT_BUCKETS],
-    pub l2_weights: [[[i32; L3]; L2]; OUTPUT_BUCKETS],
+    pub l2_weights: [[[i32; L3]; L2 * 2]; OUTPUT_BUCKETS],
     pub l2_biases: [[i32; L3]; OUTPUT_BUCKETS],
     pub l3_weights: [[i32; L3]; OUTPUT_BUCKETS],
     pub l3_biases: [i32; OUTPUT_BUCKETS],

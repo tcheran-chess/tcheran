@@ -7,7 +7,7 @@
 
 use crate::engine::eval::nnue::{
     Accumulator,
-    network::{L1, L1_SHIFT, L2, L3, Q, Q0},
+    network::{L1, L1_SHIFT, L2, L3, Q, Q_BITS, Q0},
     nnue::NETWORK,
     simd::*,
 };
@@ -60,7 +60,7 @@ pub unsafe fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: u
     output
 }
 
-pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2] {
+pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 * 2] {
     const N_TILES: usize = L1 / 4;
     const N_CHUNKS: usize = L2 / I32_LANES;
     const WEIGHT_STRIDE: usize = I32_LANES * 4;
@@ -71,7 +71,6 @@ pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2] 
     let biases = NETWORK.l1_biases[output_bucket].as_ptr();
 
     let mut sums = [zero; N_CHUNKS];
-    let mut output = [0; L2];
 
     #[expect(
         clippy::cast_ptr_alignment,
@@ -91,23 +90,26 @@ pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2] 
         }
     }
 
+    let mut output = [0; L2 * 2];
     let q = splat_i32(Q);
+    let q2 = splat_i32(Q * Q);
 
     for (lane, acc_lane) in sums.iter().enumerate() {
         let bias = load_i32(biases.add(lane * I32_LANES));
         let sum = add_i32(*acc_lane, bias);
         let shifted = rshift_i32::<L1_SHIFT>(sum);
 
-        let clamped = clamp_i32(shifted, zero, q);
-        let screlu = mul_i32(clamped, clamped);
+        let act1 = lshift_i32::<Q_BITS>(clamp_i32(shifted, zero, q));
+        let act2 = clamp_i32(mul_i32(shifted, shifted), zero, q2);
 
-        store_i32(output.as_mut_ptr().add(lane * I32_LANES), screlu);
+        store_i32(output.as_mut_ptr().add(lane * I32_LANES), act1);
+        store_i32(output.as_mut_ptr().add(L2 + lane * I32_LANES), act2);
     }
 
     output
 }
 
-pub unsafe fn propagate_l2(input: &[i32; L2], output_bucket: usize) -> [i32; L3] {
+pub unsafe fn propagate_l2(input: &[i32; L2 * 2], output_bucket: usize) -> [i32; L3] {
     const L3_LANES: usize = L3 / I32_LANES;
 
     let biases = &NETWORK.l2_biases[output_bucket].as_ptr();
@@ -117,7 +119,7 @@ pub unsafe fn propagate_l2(input: &[i32; L2], output_bucket: usize) -> [i32; L3]
         *acc_lane = load_i32(biases.add(lane * I32_LANES));
     }
 
-    for l2 in 0..L2 {
+    for l2 in 0..L2 * 2 {
         let i = splat_i32(input[l2]);
 
         for l3 in 0..L3_LANES {

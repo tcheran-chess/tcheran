@@ -31,7 +31,7 @@ fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> [u
     }
 }
 
-fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2] {
+fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 * 2] {
     cfg_select! {
         any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon") => {
             unsafe { vectorised::propagate_l1(input, output_bucket) }
@@ -42,7 +42,7 @@ fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2] {
     }
 }
 
-fn propagate_l2(input: &[i32; L2], output_bucket: usize) -> [i32; L3] {
+fn propagate_l2(input: &[i32; L2 * 2], output_bucket: usize) -> [i32; L3] {
     cfg_select! {
         any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon") => {
             unsafe { vectorised::propagate_l2(input, output_bucket) }

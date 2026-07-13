@@ -37,4 +37,5 @@ Network training schedules can be found in the project's history in [tools/train
 | 19 | `(768x8hm->1024)x2->8`             | `2.95 +- 2.37`      | Ups the number of input buckets from 4 to 8 |
 | 20 | `(768x8hm->1024)x2->8`             | `3.54 +- 2.80`      | Trained with Ranger instead of AdamW |
 | 21 | `(768x8hm->1024)x2->(16->32->1)x8` | `16.47 +- 7.08`     | Switched to a multi-layer net |
-| 21 | `(768x8hm->1024)x2->(16->32->1)x8` | `4.47 +- 3.26`      | Switch back to training the multi-layer net with Ranger |
+| 22 | `(768x8hm->1024)x2->(16->32->1)x8` | `4.47 +- 3.26`      | Switch back to training the multi-layer net with Ranger |
+| 23 | `(768x8hm->1024)x2->(16->32->1)x8` | `7.21 +- 4.45`      | Use dual activation for L2 |

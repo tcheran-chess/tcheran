@@ -35,6 +35,7 @@
 * Threading code was rewritten to use the stdlib, removing the atomic-wait dependency
 * The 'Move Overhead' UCI option is now 'MoveOverhead'
 * The transposition table is now cleared using multiple threads
+* bmi2 instructions are no longer disabled in some release builds
 
 ## [12.0]
 

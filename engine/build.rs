@@ -22,6 +22,7 @@ fn main() {
     let network_file = preprocess_network(&network_file);
     println!("cargo:rustc-env=NETWORK={}", network_file.display());
 
+    #[cfg(feature = "syzygy")]
     build_fathom();
 }
 
@@ -139,6 +140,7 @@ pub fn preprocess_network(file: &PathBuf) -> PathBuf {
     output_file
 }
 
+#[cfg(feature = "syzygy")]
 fn build_fathom() {
     println!("cargo:rerun-if-changed=src/engine/tablebases/fathom/src");
 

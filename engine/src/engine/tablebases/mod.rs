@@ -8,6 +8,7 @@
     clippy::unreadable_literal,
     clippy::use_self
 )]
+#[cfg(feature = "syzygy")]
 mod bindings;
 mod tablebases;
 

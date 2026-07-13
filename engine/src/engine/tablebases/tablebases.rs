@@ -1,12 +1,6 @@
-use std::{
-    ffi::{CString, c_uint},
-    ptr,
-};
-
-use crate::{
-    chess::{Game, Move, Player, PromotionPieceKind, Square, moves::MoveListExt},
-    engine::tablebases::bindings,
-};
+use crate::chess::{Game, Move};
+#[cfg(feature = "syzygy")]
+use crate::engine::tablebases::bindings;
 
 pub enum Wdl {
     Win,
@@ -19,6 +13,7 @@ pub struct Tablebase {
     pub is_enabled: bool,
 }
 
+#[cfg(feature = "syzygy")]
 impl Tablebase {
     pub fn new() -> Self {
         Self { is_enabled: false }
@@ -49,7 +44,7 @@ impl Tablebase {
     }
 
     pub fn set_paths(&mut self, path: &str) {
-        let path = CString::new(path).unwrap();
+        let path = std::ffi::CString::new(path).unwrap();
         let was_set = unsafe { bindings::tb_init(path.as_ptr()) };
         let n_men = unsafe { bindings::TB_LARGEST as usize };
 
@@ -69,8 +64,12 @@ impl Tablebase {
 
         unsafe {
             let wdl = bindings::tb_probe_wdl(
-                game.board.occupancy_for(Player::White).as_u64(),
-                game.board.occupancy_for(Player::Black).as_u64(),
+                game.board
+                    .occupancy_for(crate::chess::Player::White)
+                    .as_u64(),
+                game.board
+                    .occupancy_for(crate::chess::Player::Black)
+                    .as_u64(),
                 game.board.all_kings().as_u64(),
                 game.board.all_queens().as_u64(),
                 game.board.all_rooks().as_u64(),
@@ -80,7 +79,7 @@ impl Tablebase {
                 0,
                 0,
                 0,
-                game.player == Player::White,
+                game.player == crate::chess::Player::White,
             );
 
             Self::to_wdl(wdl)
@@ -89,14 +88,16 @@ impl Tablebase {
 
     #[rustfmt::skip]
     pub fn best_move(&self, game: &Game) -> Option<Move> {
+        use crate::chess::moves::MoveListExt;
+
         if !self.is_enabled {
             return None;
         }
 
         unsafe {
             let result = bindings::tb_probe_root(
-                game.board.occupancy_for(Player::White).as_u64(),
-                game.board.occupancy_for(Player::Black).as_u64(),
+                game.board.occupancy_for(crate::chess::Player::White).as_u64(),
+                game.board.occupancy_for(crate::chess::Player::Black).as_u64(),
                 game.board.all_kings().as_u64(),
                 game.board.all_queens().as_u64(),
                 game.board.all_rooks().as_u64(),
@@ -106,8 +107,8 @@ impl Tablebase {
                 game.halfmove_clock,
                 0,
                 0,
-                game.player == Player::White,
-                ptr::null_mut(),
+                game.player == crate::chess::Player::White,
+                std::ptr::null_mut(),
             );
 
             if result == bindings::TB_RESULT_FAILED {
@@ -120,14 +121,14 @@ impl Tablebase {
             let to_bits = (result & bindings::TB_RESULT_TO_MASK) >> bindings::TB_RESULT_TO_SHIFT;
             let promotion_bits = (result & bindings::TB_RESULT_PROMOTES_MASK) >> bindings::TB_RESULT_PROMOTES_SHIFT;
 
-            let from = Square::from_index(from_bits as u8);
-            let to = Square::from_index(to_bits as u8);
+            let from = crate::chess::Square::from_index(from_bits as u8);
+            let to = crate::chess::Square::from_index(to_bits as u8);
 
             let promotion = match promotion_bits {
-                bindings::TB_PROMOTES_QUEEN => Some(PromotionPieceKind::Queen),
-                bindings::TB_PROMOTES_ROOK => Some(PromotionPieceKind::Rook),
-                bindings::TB_PROMOTES_BISHOP => Some(PromotionPieceKind::Bishop),
-                bindings::TB_PROMOTES_KNIGHT => Some(PromotionPieceKind::Knight),
+                bindings::TB_PROMOTES_QUEEN => Some(crate::chess::PromotionPieceKind::Queen),
+                bindings::TB_PROMOTES_ROOK => Some(crate::chess::PromotionPieceKind::Rook),
+                bindings::TB_PROMOTES_BISHOP => Some(crate::chess::PromotionPieceKind::Bishop),
+                bindings::TB_PROMOTES_KNIGHT => Some(crate::chess::PromotionPieceKind::Knight),
                 _ => None,
             };
 
@@ -141,7 +142,7 @@ impl Tablebase {
         }
     }
 
-    fn to_wdl(outcome: c_uint) -> Option<Wdl> {
+    fn to_wdl(outcome: std::ffi::c_uint) -> Option<Wdl> {
         use Wdl::*;
 
         match outcome {
@@ -151,5 +152,34 @@ impl Tablebase {
             bindings::TB_RESULT_FAILED => None,
             _ => unreachable!(),
         }
+    }
+}
+
+#[cfg(not(feature = "syzygy"))]
+impl Tablebase {
+    pub fn new() -> Self {
+        Self { is_enabled: false }
+    }
+
+    pub fn can_probe(&self, _game: &Game) -> bool {
+        false
+    }
+
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "n_men will be at most 7 as these are the largest syzygy tablebases"
+    )]
+    pub fn n_men(&self) -> u8 {
+        0
+    }
+
+    pub fn set_paths(&mut self, _path: &str) {}
+
+    pub fn wdl(&self, _game: &Game) -> Option<Wdl> {
+        None
+    }
+
+    pub fn best_move(&self, _game: &Game) -> Option<Move> {
+        None
     }
 }

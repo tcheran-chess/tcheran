@@ -12,7 +12,6 @@ use crate::{
             types::{Depth, DepthReduction, ScoreWindow},
         },
         see::see,
-        tablebases::Wdl,
         transposition_table::NodeBound,
     },
 };
@@ -103,13 +102,17 @@ pub fn negamax(
         previous_best_move = tt_entry.best_move;
     }
 
+    #[allow(unused_mut, reason = "Will be mutated if compiled with syzygy")]
     let (mut syzygy_min, mut syzygy_max) = (Eval::mated_in(0), Eval::mate_in(0));
 
+    #[cfg(feature = "syzygy")]
     if !is_root
         && excluded_mv.is_none()
         && ctx.tablebase.can_probe(game)
         && let Some(wdl) = ctx.tablebase.wdl(game)
     {
+        use crate::engine::tablebases::Wdl;
+
         ctx.tbhits.incr();
 
         let (score, bound) = match wdl {

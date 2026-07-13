@@ -6,6 +6,8 @@ rust-version.workspace = true
 default-run = "tcheran"
 
 [features]
+default = ["syzygy"]
+syzygy = []
 spsa = []
 datagen = ["dep:rand"]
 

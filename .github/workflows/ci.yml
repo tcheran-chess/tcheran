@@ -7,16 +7,118 @@ on:
 
 jobs:
 
-  check-bench:
-    runs-on: ubuntu-latest
+  ci:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-generic
+            os: ubuntu-latest
+            flags: ""
+            rustflags: "-C target-cpu=x86-64"
+            cflags: ""
+            exec: true
+
+          - name: linux-v2
+            os: ubuntu-latest
+            flags: ""
+            rustflags: "-C target-cpu=x86-64-v2"
+            cflags: ""
+            exec: true
+
+          - name: linux-v3
+            os: ubuntu-latest
+            flags: ""
+            rustflags: "-C target-cpu=x86-64-v3"
+            cflags: ""
+            exec: true
+
+          - name: linux-v4
+            os: ubuntu-latest
+            flags: "--no-default-features"
+            rustflags: "-C target-cpu=x86-64-v4"
+            cflags: ""
+            exec: false
+
+          - name: linux-v5
+            os: ubuntu-latest
+            flags: "--no-default-features"
+            rustflags: "-C target-cpu=x86-64-v4 -C target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"
+            cflags: ""
+            exec: false
+
+          - name: windows-generic
+            os: windows-latest
+            flags: ""
+            rustflags: "-C target-cpu=x86-64"
+            cflags: "/std:c11 /experimental:c11atomics"
+            exec: true
+
+          - name: windows-v2
+            os: windows-latest
+            flags: ""
+            rustflags: "-C target-cpu=x86-64-v2"
+            cflags: "/std:c11 /experimental:c11atomics"
+            exec: true
+
+          - name: windows-v3
+            os: windows-latest
+            flags: ""
+            rustflags: "-C target-cpu=x86-64-v3"
+            cflags: "/std:c11 /experimental:c11atomics"
+            exec: true
+
+          - name: windows-v4
+            os: windows-latest
+            flags: "--no-default-features"
+            rustflags: "-C target-cpu=x86-64-v4"
+            cflags: "/std:c11 /experimental:c11atomics"
+            exec: false
+
+          - name: windows-v5
+            os: windows-latest
+            flags: "--no-default-features"
+            rustflags: "-C target-cpu=x86-64-v4 -C target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"
+            cflags: "/std:c11 /experimental:c11atomics"
+            exec: false
+
+          - name: macos
+            os: macos-latest
+            flags: ""
+            rustflags: "-C target-cpu=native"
+            cflags: ""
+            exec: true
+
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install nightly
+        run: |
+          rustup toolchain install nightly
+          rustup component add clippy --toolchain nightly
+
+      - name: Build
+        run: cargo build --release ${{ matrix.flags }}
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+          CFLAGS: ${{ matrix.cflags }}
+
+      - name: Test
+        if: ${{ matrix.exec }}
+        run: cargo test --release --lib --bins --tests ${{ matrix.flags }}
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+          CFLAGS: ${{ matrix.cflags }}
+
       - name: Check bench
+        if: ${{ matrix.exec }}
+        shell: bash
         run: |
           existing_bench=$(cat .bench)
-          new_bench=$(cargo run --release --package engine -- benchnodes)
+          new_bench=$(cargo run --release --package engine ${{ matrix.flags }} -- benchnodes)
 
           if [ "${existing_bench}" != "${new_bench}" ]; then
             echo "Bench mismatch"
@@ -26,33 +128,18 @@ jobs:
           else
             echo "Benches match: ${new_bench}"
           fi
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+          CFLAGS: ${{ matrix.cflags }}
 
-  build-and-test:
-    runs-on: ubuntu-latest
+      - name: Lints
+        run: cargo +nightly clippy --keep-going --package engine ${{ matrix.flags }}
+        env:
+          RUSTFLAGS: ${{ matrix.rustflags }}
+          CFLAGS: ${{ matrix.cflags }}
+          CARGO_BUILD_WARNINGS: deny 
 
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Test
-        run: |
-          # Exclude the trainer as it requires CUDA
-          cargo test --release --lib --bins --tests --workspace --exclude trainer
-
-  clippy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup toolchain
-        run: |
-          rustup override set nightly
-          rustup component add clippy
-
-      - name: Clippy
-        run: CARGO_BUILD_WARNINGS=deny cargo clippy --keep-going
-
-  build-datagen:
+  check-datagen:
     runs-on: ubuntu-latest
 
     steps:
@@ -61,7 +148,7 @@ jobs:
       - name: Check
         run: cargo check --package engine --features datagen
 
-  build-spsa:
+  check-spsa:
     runs-on: ubuntu-latest
 
     steps:
@@ -69,3 +156,34 @@ jobs:
 
       - name: Check
         run: cargo check --package engine --features spsa
+
+  check-no-syzygy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check
+        run: cargo check --package engine --no-default-features
+
+  check-other-packages:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install nightly
+        run: |
+          rustup toolchain install nightly
+          rustup component add clippy --toolchain nightly
+
+      - name: Build
+        run: cargo build --release --workspace --exclude engine --exclude trainer
+
+      - name: Test
+        run: cargo test --release --workspace --exclude engine --exclude trainer
+
+      - name: Lints
+        run: cargo +nightly clippy --keep-going --workspace --exclude engine --exclude trainer
+        env:
+          CARGO_BUILD_WARNINGS: deny 

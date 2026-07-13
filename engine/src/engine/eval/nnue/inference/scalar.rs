@@ -35,7 +35,7 @@ pub fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: usize) -
     output
 }
 
-pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2] {
+pub fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2] {
     let mut intermediate = [0i32; L2];
 
     for l2 in 0..L2 {
@@ -63,7 +63,7 @@ pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2] 
     output
 }
 
-pub unsafe fn propagate_l2(input: &[i32; L2], output_bucket: usize) -> [i32; L3] {
+pub fn propagate_l2(input: &[i32; L2], output_bucket: usize) -> [i32; L3] {
     let mut output = NETWORK.l2_biases[output_bucket];
 
     for l2 in 0..L2 {
@@ -82,7 +82,7 @@ pub unsafe fn propagate_l2(input: &[i32; L2], output_bucket: usize) -> [i32; L3]
     output
 }
 
-pub unsafe fn propagate_l3(input: &[i32; L3], output_bucket: usize) -> i32 {
+pub fn propagate_l3(input: &[i32; L3], output_bucket: usize) -> i32 {
     let mut output = NETWORK.l3_biases[output_bucket];
 
     for l3 in 0..L3 {

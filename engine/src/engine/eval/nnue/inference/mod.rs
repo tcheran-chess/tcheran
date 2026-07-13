@@ -1,4 +1,5 @@
 mod scalar;
+#[cfg(any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon"))]
 mod vectorised;
 
 use crate::engine::eval::nnue::{

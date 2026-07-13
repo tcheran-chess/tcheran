@@ -165,10 +165,6 @@ impl Tablebase {
         false
     }
 
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "n_men will be at most 7 as these are the largest syzygy tablebases"
-    )]
     pub fn n_men(&self) -> u8 {
         0
     }

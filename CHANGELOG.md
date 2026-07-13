@@ -36,6 +36,7 @@
 * The 'Move Overhead' UCI option is now 'MoveOverhead'
 * The transposition table is now cleared using multiple threads
 * bmi2 instructions are no longer disabled in some release builds
+* A linux-aarch64 build is now available
 
 ## [12.0]
 

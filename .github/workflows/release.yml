@@ -11,18 +11,10 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      rust-version: ${{ steps.determine-rust-version.outputs.version }}
       engine-version: ${{ steps.determine-engine-version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
-
-      - id: determine-rust-version
-        name: Determine Rust version
-        run: |
-          version=$(grep -m 1 'rust-version' Cargo.toml | tr -s ' ' | tr -d '"' | tr -d "'" | cut -d' ' -f3)
-          echo "Rust version: $version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
 
       - id: determine-engine-version
         name: Determine Engine version
@@ -31,102 +23,127 @@ jobs:
           echo "Engine version: $version"
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
-  build-linux:
-    runs-on: ubuntu-latest
+  build-release-binary:
     needs: [metadata]
 
     strategy:
       matrix:
         include:
-          - exec_postfix: "x86_64-v4"
-            rustflags: "-Ctarget-feature=+crt-static,-bmi2 -Ctarget-cpu=x86-64-v4"
-          - exec_postfix: "x86_64-v3"
-            rustflags: "-Ctarget-feature=+crt-static,-bmi2 -Ctarget-cpu=x86-64-v3"
-          - exec_postfix: "x86_64-v2"
-            rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v2"
-          - exec_postfix: "x86_64-v1"
+          - name: linux-generic
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            exec_postfix: "linux-x86_64-v1"
             rustflags: "-Ctarget-feature=+crt-static"
+            cflags: ""
+            ext: ""
+
+          - name: linux-v2
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            exec_postfix: "linux-x86_64-v2"
+            rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v2"
+            cflags: ""
+            ext: ""
+
+          - name: linux-v3
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            exec_postfix: "linux-x86_64-v3"
+            rustflags: "-Ctarget-feature=+crt-static,-bmi2 -Ctarget-cpu=x86-64-v3"
+            cflags: ""
+            ext: ""
+
+          - name: linux-v4
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            exec_postfix: "linux-x86_64-v4"
+            rustflags: "-Ctarget-feature=+crt-static,-bmi2 -Ctarget-cpu=x86-64-v4"
+            cflags: ""
+            ext: ""
+
+          - name: linux-v5
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            exec_postfix: "linux-x86_64-v5"
+            rustflags: "-Ctarget-feature=+crt-static,-bmi2 -Ctarget-cpu=x86-64-v4 -C target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"
+            cflags: ""
+            ext: ""
+
+          - name: windows-generic
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            exec_postfix: "windows-x86_64-v1"
+            rustflags: "-Ctarget-feature=+crt-static"
+            cflags: "/std:c11 /experimental:c11atomics"
+            ext: ".exe"
+
+          - name: windows-v2
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            exec_postfix: "windows-x86_64-v2"
+            rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v2"
+            cflags: "/std:c11 /experimental:c11atomics"
+            ext: ".exe"
+
+          - name: windows-v3
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            exec_postfix: "windows-x86_64-v3"
+            rustflags: "-Ctarget-feature=+crt-static,-bmi2 -Ctarget-cpu=x86-64-v3"
+            cflags: "/std:c11 /experimental:c11atomics"
+            ext: ".exe"
+
+          - name: windows-v4
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            exec_postfix: "windows-x86_64-v4"
+            rustflags: "-Ctarget-feature=+crt-static,-bmi2 -Ctarget-cpu=x86-64-v4"
+            cflags: "/std:c11 /experimental:c11atomics"
+            ext: ".exe"
+
+          - name: windows-v5
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            exec_postfix: "windows-x86_64-v5"
+            rustflags: "-Ctarget-feature=+crt-static,-bmi2 -Ctarget-cpu=x86-64-v4 -C target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"
+            cflags: "/std:c11 /experimental:c11atomics"
+            ext: ".exe"
+
+          - name: macos
+            os: macos-latest
+            target: aarch64-apple-darwin
+            exec_postfix: "macos"
+            rustflags: ""
+            cflags: ""
+            ext: ""
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install musl
+        if: contains(matrix.target, 'musl')
         run: sudo apt-get install -y musl-tools
 
       - name: Build
         env:
-          RUSTFLAGS: '${{ matrix.rustflags }}'
+          RUSTFLAGS: ${{ matrix.rustflags }}
+          CFLAGS: ${{ matrix.cflags }}
         run: |
-          rustup override set ${{ needs.metadata.outputs.rust-version }}
-          rustup target add x86_64-unknown-linux-musl
-          cargo build --release --package engine --target x86_64-unknown-linux-musl
-          mv target/x86_64-unknown-linux-musl/release/engine tcheran-${{ needs.metadata.outputs.engine-version }}-linux-${{ matrix.exec_postfix }}
+          rustup target add ${{ matrix.target }}
+          cargo build --release --package engine --target ${{ matrix.target }}
+          mv target/${{ matrix.target }}/release/tcheran${{ matrix.ext }} tcheran-${{ needs.metadata.outputs.engine-version }}-${{ matrix.exec_postfix }}${{ matrix.ext }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: tcheran-linux-${{ matrix.exec_postfix }}
-          path: tcheran-${{ needs.metadata.outputs.engine-version }}-linux-${{ matrix.exec_postfix }}
-
-  build-windows:
-    runs-on: windows-latest
-    needs: [metadata]
-
-    strategy:
-      matrix:
-        include:
-          - exec_postfix: "x86_64-v4"
-            rustflags: "-Ctarget-feature=+crt-static,-bmi2 -Ctarget-cpu=x86-64-v4"
-          - exec_postfix: "x86_64-v3"
-            rustflags: "-Ctarget-feature=+crt-static,-bmi2 -Ctarget-cpu=x86-64-v3"
-          - exec_postfix: "x86_64-v2"
-            rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v2"
-          - exec_postfix: "x86_64-v1"
-            rustflags: "-Ctarget-feature=+crt-static"
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build
-        env:
-          RUSTFLAGS: '${{ matrix.rustflags }}'
-          CFLAGS: '/std:c11 /experimental:c11atomics'
-        run: |
-          rustup override set ${{ needs.metadata.outputs.rust-version }}
-          rustup target add x86_64-pc-windows-msvc
-          cargo build --release --package engine --target x86_64-pc-windows-msvc
-          mv .\target\x86_64-pc-windows-msvc\release\engine.exe tcheran-${{ needs.metadata.outputs.engine-version }}-windows-${{ matrix.exec_postfix }}.exe
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: tcheran-windows-${{ matrix.exec_postfix }}
-          path: tcheran-${{ needs.metadata.outputs.engine-version }}-windows-${{ matrix.exec_postfix }}.exe
-
-  build-macos:
-    runs-on: macos-latest
-    needs: [metadata]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build
-        env:
-          RUSTFLAGS: '${{ matrix.rustflags }}'
-        run: |
-          rustup override set ${{ needs.metadata.outputs.rust-version }}
-          rustup target add aarch64-apple-darwin
-          cargo build --release --package engine --target aarch64-apple-darwin
-          mv target/aarch64-apple-darwin/release/engine tcheran-${{ needs.metadata.outputs.engine-version }}-macos
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: tcheran-macos
-          path: tcheran-${{ needs.metadata.outputs.engine-version }}-macos
+          name: tcheran-${{ matrix.exec_postfix }}
+          path: tcheran-${{ needs.metadata.outputs.engine-version }}-${{ matrix.exec_postfix }}${{ matrix.ext }}
 
   release:
-    needs: [metadata, build-linux, build-windows, build-macos]
+    needs: [metadata, build-release-binary]
     runs-on: ubuntu-latest
 
     permissions:

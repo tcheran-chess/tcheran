@@ -14,7 +14,7 @@ jobs:
       engine-version: ${{ steps.determine-engine-version.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - id: determine-engine-version
         name: Determine Engine version
@@ -129,7 +129,7 @@ jobs:
     name: ${{ matrix.name }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install musl
         if: contains(matrix.target, 'musl')
@@ -145,7 +145,7 @@ jobs:
           mv target/${{ matrix.target }}/release/tcheran${{ matrix.ext }} tcheran-${{ needs.metadata.outputs.engine-version }}-${{ matrix.exec_postfix }}${{ matrix.ext }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v8
         with:
           name: tcheran-${{ matrix.exec_postfix }}
           path: tcheran-${{ needs.metadata.outputs.engine-version }}-${{ matrix.exec_postfix }}${{ matrix.ext }}
@@ -158,9 +158,9 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: tcheran-*
           path: bins

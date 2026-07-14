@@ -24,6 +24,7 @@
 * Do qsearch evasion check after making move (2.37 +- 2.42)
 * Legal killer moves are now yielded before generating quiet moves for a minor speedup
 * A single stop flag is now used for all threads (5.69 +- 4.73 reg)
+* Network #24, trained with Tcheran's actual max eval (30000) and tested non-reg
 
 #### Misc
 

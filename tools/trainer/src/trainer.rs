@@ -158,11 +158,12 @@ pub fn run(net_name: &str) {
     };
 
     let filter = viriformat::dataformat::Filter {
+        // Tcheran's max eval value
+        max_eval: 30000,
+
         // Defaults
         min_ply: 16,
         min_pieces: 4,
-
-        max_eval: 31339,
 
         filter_tactical: true,
         filter_check: true,

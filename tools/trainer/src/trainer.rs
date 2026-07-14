@@ -157,12 +157,32 @@ pub fn run(net_name: &str) {
         save_rate: 10,
     };
 
-    let data = ViriBinpackLoader::new(
-        "etc/data/data.viri",
-        1024 * 8,
-        4,
-        viriformat::dataformat::Filter::default(),
-    );
+    let filter = viriformat::dataformat::Filter {
+        // Defaults
+        min_ply: 16,
+        min_pieces: 4,
+
+        max_eval: 31339,
+
+        filter_tactical: true,
+        filter_check: true,
+        filter_castling: false,
+
+        max_eval_incorrectness: u32::MAX,
+
+        random_fen_skipping: false,
+        random_fen_skip_probability: 0.0,
+
+        wdl_filtered: false,
+        wdl_model_params_a: [6.871_558_62, -39.652_263_91, 90.684_603_52, 170.669_963_64],
+        wdl_model_params_b: [-7.198_907_10, 56.139_471_85, -139.910_911_83, 182.810_074_27],
+        material_min: 17,
+        material_max: 78,
+        mom_target: 58,
+        wdl_heuristic_scale: 1.5,
+    };
+
+    let data = ViriBinpackLoader::new("etc/data/data.viri", 1024 * 8, 4, filter);
 
     let settings = LocalSettings {
         threads: 8,

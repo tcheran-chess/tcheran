@@ -72,12 +72,12 @@ pub fn quiescence(
             tt_entry.eval
         };
 
-        let eval = (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate();
+        let eval = (raw_eval + ctx.tables.corrhist.get(game, ctx, plies)).clamp_to_non_mate();
 
         (raw_eval, eval)
     } else {
         let raw_eval = eval::eval(ctx.nnue, game);
-        let eval = (raw_eval + ctx.tables.corrhist.get(game)).clamp_to_non_mate();
+        let eval = (raw_eval + ctx.tables.corrhist.get(game, ctx, plies)).clamp_to_non_mate();
 
         ctx.tt.insert(
             game.hash,

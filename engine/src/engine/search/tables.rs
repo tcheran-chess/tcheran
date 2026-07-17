@@ -5,7 +5,7 @@ use crate::{
     engine::{
         eval::Eval,
         params::*,
-        search::{MAX_PLIES_ARRAY_SIZE, SearchStack, types::Depth},
+        search::{MAX_PLIES_ARRAY_SIZE, SearchContext, SearchStack, types::Depth},
     },
 };
 
@@ -290,6 +290,10 @@ pub struct CorrectionHistories {
     minor: Box<CorrectionHistoryTable>,
     non_pawn: [Box<CorrectionHistoryTable>; Player::N],
     threat: Box<CorrectionHistoryTable>,
+    oneply: Box<
+        [[[[HistoryEntry<{ CorrectionHistoryTable::MAX }>; Square::N]; Piece::N]; Square::N];
+            Piece::N],
+    >,
 }
 
 impl CorrectionHistories {
@@ -300,11 +304,13 @@ impl CorrectionHistories {
             minor: CorrectionHistoryTable::new(),
             non_pawn: [CorrectionHistoryTable::new(), CorrectionHistoryTable::new()],
             threat: CorrectionHistoryTable::new(),
+            oneply: unsafe { Box::new_zeroed().assume_init() },
         }
     }
 
-    pub fn get(&self, game: &mut Game) -> Eval {
-        let corr = self.pawn.get(game.player, game.pawn_hash) * pawn_correction_history_weight()
+    pub fn get(&self, game: &mut Game, ctx: &SearchContext<'_>, plies: u8) -> Eval {
+        let mut corr = self.pawn.get(game.player, game.pawn_hash)
+            * pawn_correction_history_weight()
             + self.major.get(game.player, game.major_piece_hash)
                 * major_correction_history_weight()
             + self.minor.get(game.player, game.minor_piece_hash)
@@ -317,10 +323,29 @@ impl CorrectionHistories {
                 .get(game.player, ZobristHash(game.threats.as_u64()))
                 * threat_correction_history_weight();
 
+        if let Some(their_last_ply) = ctx.stack.get_prev(plies, 1)
+            && let Some(our_last_ply) = ctx.stack.get_prev(plies, 2)
+            && let Some((their_last_move, their_moved_piece)) = their_last_ply.mv
+            && let Some((our_last_mv, our_moved_piece)) = our_last_ply.mv
+        {
+            corr += Eval(
+                self.oneply[our_moved_piece][our_last_mv.to()][their_moved_piece]
+                    [their_last_move.to()]
+                .get(),
+            ) * one_ply_contcorrhist_weight();
+        }
+
         corr / 2048
     }
 
-    pub fn update(&mut self, game: &mut Game, depth: Depth, eval_diff: Eval) {
+    pub fn update(
+        &mut self,
+        game: &mut Game,
+        stack: &SearchStack,
+        plies: u8,
+        depth: Depth,
+        eval_diff: Eval,
+    ) {
         self.pawn
             .update(game.player, game.pawn_hash, depth, eval_diff);
 
@@ -346,6 +371,22 @@ impl CorrectionHistories {
 
         self.threat
             .update(game.player, ZobristHash(game.threats.as_u64()), depth, eval_diff);
+
+        if let Some(their_last_ply) = stack.get_prev(plies, 1)
+            && let Some(our_last_ply) = stack.get_prev(plies, 2)
+            && let Some((their_last_move, their_moved_piece)) = their_last_ply.mv
+            && let Some((our_last_mv, our_moved_piece)) = our_last_ply.mv
+        {
+            let raw_bonus = eval_diff.0 * depth.as_i32() / 8;
+            let bonus = i32::clamp(
+                raw_bonus,
+                -CorrectionHistoryTable::MAX_UPDATE,
+                CorrectionHistoryTable::MAX_UPDATE,
+            );
+
+            self.oneply[our_moved_piece][our_last_mv.to()][their_moved_piece][their_last_move.to()]
+                .update(bonus);
+        }
     }
 }
 

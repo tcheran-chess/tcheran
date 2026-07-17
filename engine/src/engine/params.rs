@@ -88,6 +88,7 @@ parameters!(
     minor_correction_history_weight: i32 = 168 [48..256];
     non_pawn_correction_history_weight: i32 = 88 [48..256];
     threat_correction_history_weight: i32 = 149 [48..256];
+    one_ply_contcorrhist_weight: i32 = 150 [48..256];
 
     // Time Management
     max_time_per_move: u32 = 90 [50..100];

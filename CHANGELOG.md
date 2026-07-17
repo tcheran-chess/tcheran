@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+* Added 1-ply continuation correction history (8.23 +- 5.04)
+
 ## [13.0]
 
 * Network #16, adding 4 input buckets and trained with an additional ~2.1B positions (19.04 +- 7.72)

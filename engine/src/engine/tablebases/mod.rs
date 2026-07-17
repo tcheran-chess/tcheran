@@ -12,4 +12,6 @@
 mod bindings;
 mod tablebases;
 
+mod syzygy;
+
 pub use tablebases::*;

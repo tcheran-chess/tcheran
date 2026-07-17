@@ -12,7 +12,7 @@ use rustc_hash::FxHashMap;
 use shakmaty::{Move, Position, Role};
 use tracing::trace_span;
 
-use crate::{
+use super::{
     AmbiguousWdl,
     errors::{ProbeResultExt as _, SyzygyError, SyzygyResult},
     filesystem,
@@ -197,10 +197,7 @@ impl<S: Position + Clone + Syzygy> Tablebase<S> {
 
         // Check meta data.
         if self.filesystem.regular_file_size(path)? % 64 != 16 {
-            return Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "unexpected file size",
-            ));
+            return Err(io::Error::new(io::ErrorKind::InvalidData, "unexpected file size"));
         }
 
         // Add path.
@@ -535,10 +532,7 @@ impl<S: Position + Clone + Syzygy> Tablebase<S> {
         assert!(S::CAPTURES_COMPULSORY);
 
         if let Some(outcome) = pos.variant_outcome().known() {
-            return Ok((
-                Wdl::from_outcome(outcome, pos.turn()),
-                ProbeState::ZeroingBestMove,
-            ));
+            return Ok((Wdl::from_outcome(outcome, pos.turn()), ProbeState::ZeroingBestMove));
         }
 
         // Explore compulsory captures in antichess variants.
@@ -679,9 +673,7 @@ impl<'a, S: Position + Clone + Syzygy + 'a> WdlEntry<'a, S> {
 
         if self.state == ProbeState::Threat && wdl >= DecisiveWdl::CursedWin {
             // The position is a win or a cursed win by a threat move.
-            return Ok(MaybeRounded::Precise(
-                Dtz::before_zeroing(wdl.into()).add_plies(1),
-            ));
+            return Ok(MaybeRounded::Precise(Dtz::before_zeroing(wdl.into()).add_plies(1)));
         }
 
         // If winning, check for a winning pawn move. No need to look at
@@ -733,10 +725,8 @@ impl<'a, S: Position + Clone + Syzygy + 'a> WdlEntry<'a, S> {
             }
         }
 
-        (|| Ok(u!(best)))().ctx(
-            Metric::Dtz,
-            &Material::from_board(self.pos.board()).to_normalized(),
-        )
+        (|| Ok(u!(best)))()
+            .ctx(Metric::Dtz, &Material::from_board(self.pos.board()).to_normalized())
     }
 }
 
@@ -759,7 +749,7 @@ mod tests {
     fn test_mating_best_move() {
         let mut tables = Tablebase::new();
         tables
-            .add_directory("tables/chess")
+            .add_directory("src/engine/tablebases/syzygy/tables/chess")
             .expect("read directory");
 
         let pos: Chess = "5BrN/8/8/8/8/2k5/8/2K5 b - -"
@@ -787,7 +777,7 @@ mod tests {
     fn test_black_escapes_via_underpromotion() {
         let mut tables = Tablebase::new();
         tables
-            .add_directory("tables/chess")
+            .add_directory("src/engine/tablebases/syzygy/tables/chess")
             .expect("read directory");
 
         let pos: Chess = "8/6B1/8/8/B7/8/K1pk4/8 b - - 0 1"
@@ -816,7 +806,7 @@ mod tests {
     fn test_many_pawns() {
         let mut tables = Tablebase::new();
         tables
-            .add_directory("tables/chess")
+            .add_directory("src/engine/tablebases/syzygy/tables/chess")
             .expect("read directory");
 
         let pos: Chess = "3k4/5P2/8/8/4K3/2P3P1/PP6/8 w - - 0 1"
@@ -825,9 +815,6 @@ mod tests {
             .into_position(CastlingMode::Chess960)
             .expect("legal position");
 
-        assert!(matches!(
-            tables.probe_dtz(&pos),
-            Ok(MaybeRounded::Precise(Dtz(1)))
-        ));
+        assert!(matches!(tables.probe_dtz(&pos), Ok(MaybeRounded::Precise(Dtz(1)))));
     }
 }

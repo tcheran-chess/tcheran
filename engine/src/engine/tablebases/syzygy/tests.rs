@@ -1,18 +1,19 @@
 use shakmaty::{CastlingMode, Chess, FromSetup, Position, fen::Fen};
-use shakmaty_syzygy::{Syzygy, Tablebase};
+
+use super::{Syzygy, Tablebase};
 
 fn test_csv<S>(mut tables: Tablebase<S>, path: &str)
 where
     S: Position + FromSetup + Syzygy + Clone,
 {
     tables
-        .add_directory("tables/chess")
+        .add_directory("src/engine/tablebases/syzygy/tables/chess")
         .expect("read directory");
     tables
-        .add_directory("tables/atomic")
+        .add_directory("src/engine/tablebases/syzygy/tables/atomic")
         .expect("read directory");
     tables
-        .add_directory("tables/antichess")
+        .add_directory("src/engine/tablebases/syzygy/tables/antichess")
         .expect("read directory");
 
     let mut reader = csv::Reader::from_path(path).expect("reader");
@@ -60,7 +61,7 @@ where
 #[cfg(any(unix, windows))]
 #[test]
 fn test_chess() {
-    test_csv::<Chess>(Tablebase::new(), "tests/chess.csv");
+    test_csv::<Chess>(Tablebase::new(), "src/engine/tablebases/syzygy/tests/chess.csv");
 }
 
 #[cfg(all(feature = "mmap", target_pointer_width = "64"))]
@@ -70,18 +71,24 @@ fn test_chess_mmap() {
     // Fingers crossed.
     test_csv::<Chess>(
         unsafe { Tablebase::with_mmap_filesystem() },
-        "tests/chess.csv",
+        "src/engine/tablebases/syzygy/tests/chess.csv",
     );
 }
 
 #[cfg(all(any(unix, windows), feature = "variant"))]
 #[test]
 fn test_atomic() {
-    test_csv::<shakmaty::variant::Atomic>(Tablebase::new(), "tests/atomic.csv");
+    test_csv::<shakmaty::variant::Atomic>(
+        Tablebase::new(),
+        "src/engine/tablebases/syzygy/tests/atomic.csv",
+    );
 }
 
 #[cfg(all(any(unix, windows), feature = "variant"))]
 #[test]
 fn test_antichess() {
-    test_csv::<shakmaty::variant::Antichess>(Tablebase::new(), "tests/antichess.csv");
+    test_csv::<shakmaty::variant::Antichess>(
+        Tablebase::new(),
+        "src/engine/tablebases/syzygy/tests/antichess.csv",
+    );
 }

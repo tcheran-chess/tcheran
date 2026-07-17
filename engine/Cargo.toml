@@ -34,6 +34,7 @@ rustc-hash = "2"
 once_cell = "1.12"
 tracing = "0.1.6"
 memmap2 = { version = "0.9", optional = true }
+csv = "1.4.0"
 
 # Syzygy dependencies
 [target.'cfg(target_os = "linux")'.dependencies]

@@ -11,7 +11,7 @@
 //! use shakmaty_syzygy::{Tablebase, MaybeRounded, Wdl, Dtz, Syzygy};
 //!
 //! let mut tables = Tablebase::new();
-//! tables.add_directory("tables/chess")?;
+//! tables.add_directory("src/engine/tablebases/syzygy/tables/chess")?;
 //!
 //! let pos: Chess = "8/8/8/8/B7/N7/K2k4/8 b - - 0 1"
 //!     .parse::<Fen>()?
@@ -46,9 +46,10 @@ pub mod filesystem;
 mod material;
 mod table;
 mod tablebase;
+mod tests;
 mod types;
 
-pub use crate::{
+pub use self::{
     errors::{ProbeError, SyzygyError},
     material::Material,
     tablebase::Tablebase,

@@ -6,7 +6,7 @@ use byteorder::{BE, ByteOrder as _, LE, ReadBytesExt as _};
 use shakmaty::{Bitboard, Color, File, Piece, Position, Rank, Role, Square};
 use tracing::{trace, trace_span};
 
-use crate::{
+use super::{
     errors::{ProbeError, ProbeResult},
     filesystem::{RandomAccessFile, ReadHint},
     material::Material,
@@ -777,11 +777,7 @@ fn read_symbols(
     }
 
     let mut symbol = Symbol::new();
-    raf.read_exact_at(
-        &mut symbol.lr[..],
-        btree + 3 * u64::from(sym),
-        ReadHint::Header,
-    )?;
+    raf.read_exact_at(&mut symbol.lr[..], btree + 3 * u64::from(sym), ReadHint::Header)?;
 
     if symbol.right() == 0xfff {
         symbol.len = 0;

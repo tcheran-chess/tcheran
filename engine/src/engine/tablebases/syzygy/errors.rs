@@ -1,6 +1,6 @@
 use std::{backtrace::Backtrace, error::Error, fmt, io};
 
-use crate::{
+use super::{
     material::{Material, NormalizedMaterial},
     types::Metric,
 };
@@ -39,10 +39,9 @@ pub enum SyzygyError {
 impl fmt::Display for SyzygyError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SyzygyError::Castling => write!(
-                f,
-                "syzygy tables do not contain position with castling rights"
-            ),
+            SyzygyError::Castling => {
+                write!(f, "syzygy tables do not contain position with castling rights")
+            }
             SyzygyError::TooManyPieces => write!(f, "too many pieces"),
             SyzygyError::MissingTable { metric, material } => {
                 write!(f, "required {metric} table not found: {material}")
@@ -132,7 +131,7 @@ impl From<io::Error> for ProbeError {
 /// Return a `CorruptedTable` error.
 macro_rules! throw {
     () => {
-        return Err(crate::errors::ProbeError::CorruptedTable {
+        return Err(super::errors::ProbeError::CorruptedTable {
             backtrace: ::std::backtrace::Backtrace::capture(),
         })
     };

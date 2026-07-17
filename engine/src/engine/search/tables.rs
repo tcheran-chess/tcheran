@@ -197,7 +197,7 @@ pub fn continuation_history_bonus(depth: Depth) -> i32 {
 
 impl ContHistTable {
     const MAX: i16 = 16384;
-    const PLIES: [usize; 2] = [1, 2];
+    const PLIES: [usize; 3] = [1, 2, 4];
 
     pub fn new() -> Box<Self> {
         unsafe { Box::new_zeroed().assume_init() }

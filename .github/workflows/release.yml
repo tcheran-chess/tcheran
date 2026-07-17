@@ -145,7 +145,7 @@ jobs:
           mv target/${{ matrix.target }}/release/tcheran${{ matrix.ext }} tcheran-${{ needs.metadata.outputs.engine-version }}-${{ matrix.exec_postfix }}${{ matrix.ext }}
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v8
+        uses: actions/upload-artifact@v7
         with:
           name: tcheran-${{ matrix.exec_postfix }}
           path: tcheran-${{ needs.metadata.outputs.engine-version }}-${{ matrix.exec_postfix }}${{ matrix.ext }}

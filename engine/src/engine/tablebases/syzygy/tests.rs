@@ -1,11 +1,7 @@
-use shakmaty::{CastlingMode, Chess, FromSetup, Position, fen::Fen};
-
 use super::Tablebase;
+use crate::chess::Game;
 
-fn test_csv<S>(mut tables: Tablebase<S>, path: &str)
-where
-    S: Position + FromSetup + Clone,
-{
+fn test_csv(mut tables: Tablebase, path: &str) {
     tables
         .add_directory("src/engine/tablebases/syzygy/tables/chess")
         .expect("read directory");
@@ -15,7 +11,7 @@ where
     for line in reader.records() {
         let record = line.expect("record");
 
-        let fen: Fen = record
+        let fen: String = record
             .get(0)
             .expect("fen field")
             .parse()
@@ -33,10 +29,7 @@ where
             .parse()
             .expect("valid dtz");
 
-        let pos: S = fen
-            .clone()
-            .into_position(CastlingMode::Chess960)
-            .expect("legal");
+        let pos: Game = Game::from_frc_fen(&fen).expect("pos");
 
         println!("{fen} | wdl: {expected_wdl} | dtz: {expected_dtz}");
 
@@ -55,7 +48,7 @@ where
 #[cfg(any(unix, windows))]
 #[test]
 fn test_chess() {
-    test_csv::<Chess>(Tablebase::new(), "src/engine/tablebases/syzygy/tests/chess.csv");
+    test_csv(Tablebase::new(), "src/engine/tablebases/syzygy/tests/chess.csv");
 }
 
 #[cfg(all(feature = "mmap", target_pointer_width = "64"))]

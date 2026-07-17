@@ -141,7 +141,7 @@ impl<T> std::ops::IndexMut<Rank> for [T; Rank::N] {
     }
 }
 
-#[derive(PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub struct Square(u8);
 
 impl Square {

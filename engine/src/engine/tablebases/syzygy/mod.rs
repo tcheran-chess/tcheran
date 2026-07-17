@@ -42,6 +42,7 @@
 
 #[macro_use]
 mod errors;
+mod extensions;
 pub mod filesystem;
 mod material;
 mod table;

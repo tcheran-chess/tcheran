@@ -3,7 +3,6 @@ use std::{fmt, io, iter, marker::PhantomData};
 use arrayvec::ArrayVec;
 use bitflags::bitflags;
 use byteorder::{BE, ByteOrder as _, LE, ReadBytesExt as _};
-use shakmaty::{Bitboard, Color, File, Piece, Position, Rank, Role, Square};
 use tracing::{trace, trace_span};
 
 use super::{
@@ -12,7 +11,13 @@ use super::{
     material::Material,
     types::{DecisiveWdl, MAX_PIECES, MaybeRounded, Metric, Pieces, Wdl},
 };
-use crate::engine::tablebases::syzygy::types::{TBW, TBZ};
+use crate::{
+    chess::{Bitboard, File, Game, Piece, PieceKind, Player, Rank, Square},
+    engine::tablebases::syzygy::{
+        extensions::{FlipDiagonalExt, PlayerExt},
+        types::{TBW, TBZ},
+    },
+};
 
 const fn binomial(mut n: u64, k: u64) -> u64 {
     if k > n {
@@ -320,7 +325,7 @@ const PP_IDX: [[u64; 64]; 10] = [[
 ]];
 
 /// The a7-a5-c5 triangle.
-const TEST45: Bitboard = Bitboard(0x1_0307_0000_0000);
+const TEST45: Bitboard = Bitboard::new(0x1_0307_0000_0000);
 
 const CONSTS: Consts = Consts::new();
 
@@ -410,14 +415,19 @@ fn read_magic_header(raf: &dyn RandomAccessFile) -> ProbeResult<[u8; 4]> {
 
 /// Header nibble to piece.
 fn nibble_to_piece(p: u8) -> Option<Piece> {
-    let color = Color::from_white(p & 8 == 0);
+    let color = if p & 8 == 0 {
+        Player::White
+    } else {
+        Player::Black
+    };
+
     Some(match p & !8 {
-        1 => color.pawn(),
-        2 => color.knight(),
-        3 => color.bishop(),
-        4 => color.rook(),
-        5 => color.queen(),
-        6 => color.king(),
+        1 => Piece::new(color, PieceKind::Pawn),
+        2 => Piece::new(color, PieceKind::Knight),
+        3 => Piece::new(color, PieceKind::Bishop),
+        4 => Piece::new(color, PieceKind::Rook),
+        5 => Piece::new(color, PieceKind::Queen),
+        6 => Piece::new(color, PieceKind::King),
         _ => return None,
     })
 }
@@ -432,7 +442,7 @@ fn parse_pieces(
     raf: &dyn RandomAccessFile,
     ptr: u64,
     count: usize,
-    side: Color,
+    side: Player,
 ) -> ProbeResult<Pieces> {
     let mut buffer = [0; MAX_PIECES];
     let bytes = &mut buffer[..count];
@@ -496,7 +506,8 @@ impl GroupData {
         let lens = group_pieces(&pieces);
 
         // Compute a factor for each group.
-        let pp = material.by_color.white.has_pawns() && material.by_color.black.has_pawns();
+        let pp = material.by_color[Player::White].has_pawns()
+            && material.by_color[Player::Black].has_pawns();
         let mut factors = ArrayVec::from([0; MAX_PIECES + 1]);
         factors.truncate(lens.len() + 1);
         let mut free_squares = 64 - lens[0] - if pp { lens[1] } else { 0 };
@@ -874,9 +885,8 @@ impl BlockLengthBuffer {
 }
 
 /// A Syzygy table.
-struct Table<T: TableTag, P: Position> {
+struct Table<T: TableTag> {
     is_wdl: PhantomData<T>,
-    syzygy: PhantomData<P>,
 
     raf: Box<dyn RandomAccessFile>,
 
@@ -885,7 +895,7 @@ struct Table<T: TableTag, P: Position> {
     files: ArrayVec<FileData, 4>,
 }
 
-impl<T: TableTag, P: Position> fmt::Debug for Table<T, P> {
+impl<T: TableTag> fmt::Debug for Table<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Table")
             .field("num_unique_pieces", &self.num_unique_pieces)
@@ -895,7 +905,7 @@ impl<T: TableTag, P: Position> fmt::Debug for Table<T, P> {
     }
 }
 
-impl<T: TableTag, S: Position> Table<T, S> {
+impl<T: TableTag> Table<T> {
     /// Open a table, parse the header, the headers of the subtables and
     /// prepare meta data required for decompression.
     ///
@@ -904,10 +914,10 @@ impl<T: TableTag, S: Position> Table<T, S> {
     /// Panics if the `material` configuration is not supported by Syzygy
     /// tablebases (more than 7 pieces or side without pieces).
     #[track_caller]
-    pub fn new(raf: Box<dyn RandomAccessFile>, material: &Material) -> ProbeResult<Table<T, S>> {
+    pub fn new(raf: Box<dyn RandomAccessFile>, material: &Material) -> ProbeResult<Table<T>> {
         assert!(material.count() <= MAX_PIECES);
-        assert!(material.by_color.white.count() >= 1);
-        assert!(material.by_color.black.count() >= 1);
+        assert!(material.by_color[Player::White].count() >= 1);
+        assert!(material.by_color[Player::Black].count() >= 1);
 
         // Check magic.
         let (magic, pawnless_magic) = match T::METRIC {
@@ -932,7 +942,8 @@ impl<T: TableTag, S: Position> Table<T, S> {
         ensure!(split != material.is_symmetric());
 
         // Read group data.
-        let pp = material.by_color.white.has_pawns() && material.by_color.black.has_pawns();
+        let pp = material.by_color[Player::White].has_pawns()
+            && material.by_color[Player::Black].has_pawns();
         let num_files = if has_pawns { 4 } else { 1 };
         let num_sides = if T::METRIC == Metric::Wdl && !material.is_symmetric() {
             2
@@ -965,7 +976,7 @@ impl<T: TableTag, S: Position> Table<T, S> {
 
                 ptr += 1 + u64::from(pp);
 
-                let sides = [Color::White, Color::Black]
+                let sides = [Player::White, Player::Black]
                     .iter()
                     .take(num_sides)
                     .map(|side| {
@@ -985,7 +996,7 @@ impl<T: TableTag, S: Position> Table<T, S> {
         ptr += ptr & 1;
 
         // Ensure reference pawn goes first.
-        ensure!((files[0][0].pieces[0].role == Role::Pawn) == has_pawns);
+        ensure!((files[0][0].pieces[0].kind == PieceKind::Pawn) == has_pawns);
 
         // Ensure material is consistent with first file.
         for file in &files {
@@ -1066,7 +1077,6 @@ impl<T: TableTag, S: Position> Table<T, S> {
         // Result.
         Ok(Table {
             is_wdl: PhantomData,
-            syzygy: PhantomData,
             raf,
             num_unique_pieces: material.unique_pieces(),
             min_like_man: material.min_like_man(),
@@ -1152,44 +1162,44 @@ impl<T: TableTag, S: Position> Table<T, S> {
 
     /// Given a position, determine the unique (modulo symmetries) index into
     /// the corresponding subtable.
-    fn encode(&self, pos: &S) -> ProbeResult<Option<(&PairsData, u64)>> {
-        let key = Material::from_board(pos.board());
+    fn encode(&self, pos: &Game) -> ProbeResult<Option<(&PairsData, u64)>> {
+        let key = Material::from_board(&pos.board);
         let material = Material::from_iter(self.files[0].sides[0].groups.pieces.clone());
         assert!(key == material || key == material.clone().into_swapped());
 
-        let symmetric_btm = material.is_symmetric() && pos.turn().is_black();
+        let symmetric_btm = material.is_symmetric() && pos.player == Player::Black;
         let black_stronger = key != material;
         let flip = symmetric_btm || black_stronger;
-        let bside = pos.turn().is_black() ^ flip;
+        let bside = pos.player == Player::Black ^ flip;
 
         let mut squares: ArrayVec<Square, MAX_PIECES> = ArrayVec::new();
-        let mut used = Bitboard(0);
+        let mut used = Bitboard::EMPTY;
 
         // For pawns there are subtables for each file (a, b, c, d) the
         // leading pawn can be placed on.
         let file = &self.files[if material.has_pawns() {
             let reference_pawn = self.files[0].sides[0].groups.pieces[0];
-            assert_eq!(reference_pawn.role, Role::Pawn);
-            let color = reference_pawn.color ^ flip;
+            assert_eq!(reference_pawn.kind, PieceKind::Pawn);
+            let color = reference_pawn.player ^ flip;
 
-            let lead_pawns = pos.board().pawns() & pos.board().by_color(color);
-            used.extend(lead_pawns);
+            let lead_pawns = pos.board.pawns(color);
+            used |= lead_pawns;
             squares.extend(
                 lead_pawns
                     .into_iter()
-                    .map(|sq| if flip { sq.flip_vertical() } else { sq }),
+                    .map(|sq| if flip { sq.mirror_vertically() } else { sq }),
             );
 
             // Ensure squares[0] is the maximum with regard to map_pawns.
             for i in 1..squares.len() {
-                if CONSTS.map_pawns[usize::from(squares[0])]
-                    < CONSTS.map_pawns[usize::from(squares[i])]
+                if CONSTS.map_pawns[usize::from(squares[0].idx())]
+                    < CONSTS.map_pawns[usize::from(squares[i].idx())]
                 {
                     squares.swap(0, i);
                 }
             }
             if squares[0].file() >= File::E {
-                squares[0].flip_horizontal().file() as usize
+                squares[0].mirrored_horizontally_if(true).file() as usize
             } else {
                 squares[0].file() as usize
             }
@@ -1216,10 +1226,16 @@ impl<T: TableTag, S: Position> Table<T, S> {
         let lead_pawns_count = squares.len();
 
         for piece in side.groups.pieces.iter().skip(lead_pawns_count) {
-            let color = piece.color ^ flip;
-            let square = u!((pos.board().by_piece(piece.role.of(color)) & !used).first());
-            squares.push(if flip { square.flip_vertical() } else { square });
-            used.add(square);
+            let color = piece.player ^ flip;
+            let square = (pos.board.pieces_of_kind(piece.kind, color) & !used)
+                .lsb()
+                .single();
+            squares.push(if flip {
+                square.mirror_vertically()
+            } else {
+                square
+            });
+            used.set(square);
         }
 
         assert!(squares.len() >= 2);
@@ -1227,25 +1243,25 @@ impl<T: TableTag, S: Position> Table<T, S> {
         // Now we can compute the index according to the piece positions.
         if squares[0].file() >= File::E {
             for square in &mut squares {
-                *square = square.flip_horizontal();
+                *square = square.mirrored_horizontally_if(true);
             }
         }
 
         let mut idx = if material.has_pawns() {
-            let mut idx = CONSTS.lead_pawn_idx[lead_pawns_count][usize::from(squares[0])];
+            let mut idx = CONSTS.lead_pawn_idx[lead_pawns_count][usize::from(squares[0].idx())];
 
             squares[1..lead_pawns_count]
-                .sort_unstable_by_key(|sq| CONSTS.map_pawns[usize::from(*sq)]);
+                .sort_unstable_by_key(|sq| CONSTS.map_pawns[usize::from(sq.idx())]);
 
             for (i, &square) in squares.iter().enumerate().take(lead_pawns_count).skip(1) {
-                idx += binomial(CONSTS.map_pawns[usize::from(square)], i as u64);
+                idx += binomial(CONSTS.map_pawns[usize::from(square.idx())], i as u64);
             }
 
             idx
         } else {
-            if squares[0].rank() >= Rank::Fifth {
+            if squares[0].rank() >= Rank::R5 {
                 for square in &mut squares {
-                    *square = square.flip_vertical();
+                    *square = square.mirror_vertically();
                 }
             }
 
@@ -1269,21 +1285,21 @@ impl<T: TableTag, S: Position> Table<T, S> {
                     u64::from(squares[2] > squares[0]) + u64::from(squares[2] > squares[1]);
 
                 if offdiag(squares[0]) {
-                    TRIANGLE[usize::from(squares[0])] * 63 * 62
-                        + (u64::from(squares[1]) - adjust1) * 62
-                        + (u64::from(squares[2]) - adjust2)
+                    TRIANGLE[usize::from(squares[0].idx())] * 63 * 62
+                        + (u64::from(squares[1].idx()) - adjust1) * 62
+                        + (u64::from(squares[2].idx()) - adjust2)
                 } else if offdiag(squares[1]) {
                     6 * 63 * 62
                         + squares[0].rank() as u64 * 28 * 62
-                        + LOWER[usize::from(squares[1])] * 62
-                        + u64::from(squares[2])
+                        + LOWER[usize::from(squares[1].idx())] * 62
+                        + u64::from(squares[2].idx())
                         - adjust2
                 } else if offdiag(squares[2]) {
                     6 * 63 * 62
                         + 4 * 28 * 62
                         + squares[0].rank() as u64 * 7 * 28
                         + (squares[1].rank() as u64 - adjust1) * 28
-                        + LOWER[usize::from(squares[2])]
+                        + LOWER[usize::from(squares[2].idx())]
                 } else {
                     6 * 63 * 62
                         + 4 * 28 * 62
@@ -1293,21 +1309,23 @@ impl<T: TableTag, S: Position> Table<T, S> {
                         + (squares[2].rank() as u64 - adjust2)
                 }
             } else if self.num_unique_pieces == 2 {
-                KK_IDX[TRIANGLE[usize::from(squares[0])] as usize][usize::from(squares[1])]
+                KK_IDX[TRIANGLE[usize::from(squares[0].idx())] as usize]
+                    [usize::from(squares[1].idx())]
             } else if self.min_like_man == 2 {
-                if TRIANGLE[usize::from(squares[0])] > TRIANGLE[usize::from(squares[1])] {
+                if TRIANGLE[usize::from(squares[0].idx())] > TRIANGLE[usize::from(squares[1].idx())]
+                {
                     squares.swap(0, 1);
                 }
 
                 if squares[0].file() >= File::E {
                     for square in &mut squares {
-                        *square = square.flip_horizontal();
+                        *square = square.mirrored_horizontally_if(true);
                     }
                 }
 
-                if squares[0].rank() >= Rank::Fifth {
+                if squares[0].rank() >= Rank::R5 {
                     for square in &mut squares {
-                        *square = square.flip_vertical();
+                        *square = square.mirror_vertically();
                     }
                 }
 
@@ -1321,32 +1339,36 @@ impl<T: TableTag, S: Position> Table<T, S> {
                 }
 
                 if TEST45.contains(squares[1])
-                    && TRIANGLE[usize::from(squares[0])] == TRIANGLE[usize::from(squares[1])]
+                    && TRIANGLE[usize::from(squares[0].idx())]
+                        == TRIANGLE[usize::from(squares[1].idx())]
                 {
                     squares.swap(0, 1);
 
                     for square in &mut squares {
-                        *square = square.flip_vertical().flip_diagonal();
+                        *square = square.mirror_vertically().flip_diagonal();
                     }
                 }
 
-                PP_IDX[TRIANGLE[usize::from(squares[0])] as usize][usize::from(squares[1])]
+                PP_IDX[TRIANGLE[usize::from(squares[0].idx())] as usize]
+                    [usize::from(squares[1].idx())]
             } else {
                 for i in 1..side.groups.lens[0] {
-                    if TRIANGLE[usize::from(squares[0])] > TRIANGLE[usize::from(squares[i])] {
+                    if TRIANGLE[usize::from(squares[0].idx())]
+                        > TRIANGLE[usize::from(squares[i].idx())]
+                    {
                         squares.swap(0, i);
                     }
                 }
 
                 if squares[0].file() >= File::E {
                     for square in &mut squares {
-                        *square = square.flip_horizontal();
+                        *square = square.mirrored_horizontally_if(true);
                     }
                 }
 
-                if squares[0].rank() >= Rank::Fifth {
+                if squares[0].rank() >= Rank::R5 {
                     for square in &mut squares {
-                        *square = square.flip_vertical();
+                        *square = square.mirror_vertically();
                     }
                 }
 
@@ -1358,7 +1380,8 @@ impl<T: TableTag, S: Position> Table<T, S> {
 
                 for i in 1..side.groups.lens[0] {
                     for j in (i + 1)..side.groups.lens[0] {
-                        if MULT_TWIST[usize::from(squares[i])] > MULT_TWIST[usize::from(squares[j])]
+                        if MULT_TWIST[usize::from(squares[i].idx())]
+                            > MULT_TWIST[usize::from(squares[j].idx())]
                         {
                             squares.swap(i, j);
                         }
@@ -1366,9 +1389,9 @@ impl<T: TableTag, S: Position> Table<T, S> {
                 }
 
                 let mut idx = CONSTS.mult_idx[side.groups.lens[0] - 1]
-                    [TRIANGLE[usize::from(squares[0])] as usize];
+                    [TRIANGLE[usize::from(squares[0].idx())] as usize];
                 for i in 1..side.groups.lens[0] {
-                    idx += binomial(MULT_TWIST[usize::from(squares[i])], i as u64);
+                    idx += binomial(MULT_TWIST[usize::from(squares[i].idx())], i as u64);
                 }
 
                 idx
@@ -1378,8 +1401,8 @@ impl<T: TableTag, S: Position> Table<T, S> {
         idx *= side.groups.factors[0];
 
         // Encode remaining pawns.
-        let mut remaining_pawns =
-            material.by_color.white.has_pawns() && material.by_color.black.has_pawns();
+        let mut remaining_pawns = material.by_color[Player::White].has_pawns()
+            && material.by_color[Player::Black].has_pawns();
         let mut group_sq = side.groups.lens[0];
         for (&len, &factor) in iter::zip(&side.groups.lens[1..], &side.groups.factors[1..]) {
             let (prev_squares, group_squares) = squares.split_at_mut(group_sq);
@@ -1393,7 +1416,7 @@ impl<T: TableTag, S: Position> Table<T, S> {
                     .filter(|sq| group_square > **sq)
                     .count() as u64;
                 n += binomial(
-                    u64::from(group_square) - adjust - if remaining_pawns { 8 } else { 0 },
+                    u64::from(group_square.idx()) - adjust - if remaining_pawns { 8 } else { 0 },
                     i as u64 + 1,
                 );
             }
@@ -1457,7 +1480,7 @@ impl<T: TableTag, S: Position> Table<T, S> {
         Ok((block, lit_idx))
     }
 
-    pub fn probe_wdl(&self, pos: &S) -> ProbeResult<Wdl> {
+    pub fn probe_wdl(&self, pos: &Game) -> ProbeResult<Wdl> {
         trace_span!("wdl table").in_scope(|| {
             assert_eq!(T::METRIC, Metric::Wdl);
 
@@ -1475,7 +1498,11 @@ impl<T: TableTag, S: Position> Table<T, S> {
         })
     }
 
-    pub fn probe_dtz(&self, pos: &S, wdl: DecisiveWdl) -> ProbeResult<Option<MaybeRounded<u32>>> {
+    pub fn probe_dtz(
+        &self,
+        pos: &Game,
+        wdl: DecisiveWdl,
+    ) -> ProbeResult<Option<MaybeRounded<u32>>> {
         trace_span!("dtz table").in_scope(|| {
             assert_eq!(T::METRIC, Metric::Dtz);
 
@@ -1507,32 +1534,36 @@ impl<T: TableTag, S: Position> Table<T, S> {
 
 /// A WDL Table.
 #[derive(Debug)]
-pub struct WdlTable<S: Position> {
-    table: Table<WdlTag, S>,
+pub struct WdlTable {
+    table: Table<WdlTag>,
 }
 
-impl<S: Position> WdlTable<S> {
-    pub fn new(raf: Box<dyn RandomAccessFile>, material: &Material) -> ProbeResult<WdlTable<S>> {
+impl WdlTable {
+    pub fn new(raf: Box<dyn RandomAccessFile>, material: &Material) -> ProbeResult<WdlTable> {
         Table::new(raf, material).map(|table| WdlTable { table })
     }
 
-    pub fn probe_wdl(&self, pos: &S) -> ProbeResult<Wdl> {
+    pub fn probe_wdl(&self, pos: &Game) -> ProbeResult<Wdl> {
         self.table.probe_wdl(pos)
     }
 }
 
 /// A DTZ Table.
 #[derive(Debug)]
-pub struct DtzTable<S: Position> {
-    table: Table<DtzTag, S>,
+pub struct DtzTable {
+    table: Table<DtzTag>,
 }
 
-impl<S: Position> DtzTable<S> {
-    pub fn new(raf: Box<dyn RandomAccessFile>, material: &Material) -> ProbeResult<DtzTable<S>> {
+impl DtzTable {
+    pub fn new(raf: Box<dyn RandomAccessFile>, material: &Material) -> ProbeResult<DtzTable> {
         Table::new(raf, material).map(|table| DtzTable { table })
     }
 
-    pub fn probe_dtz(&self, pos: &S, wdl: DecisiveWdl) -> ProbeResult<Option<MaybeRounded<u32>>> {
+    pub fn probe_dtz(
+        &self,
+        pos: &Game,
+        wdl: DecisiveWdl,
+    ) -> ProbeResult<Option<MaybeRounded<u32>>> {
         self.table.probe_dtz(pos, wdl)
     }
 }

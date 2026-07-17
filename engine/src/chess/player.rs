@@ -8,6 +8,11 @@ impl Player {
     pub const N: usize = 2;
     pub const ALL: [Self; Self::N] = [Self::White, Self::Black];
 
+    pub const fn from_idx(idx: u8) -> Self {
+        debug_assert!(idx < 2);
+        unsafe { std::mem::transmute::<u8, Self>(idx) }
+    }
+
     pub const fn idx(self) -> usize {
         self as usize
     }

@@ -13,7 +13,6 @@ datagen = ["dep:rand"]
 
 # Syzygy features
 mmap = ["memmap2"]
-variant = ["shakmaty/variant"]
 
 [lib]
 path = "src/lib.rs"

@@ -9,12 +9,6 @@ where
     tables
         .add_directory("src/engine/tablebases/syzygy/tables/chess")
         .expect("read directory");
-    tables
-        .add_directory("src/engine/tablebases/syzygy/tables/atomic")
-        .expect("read directory");
-    tables
-        .add_directory("src/engine/tablebases/syzygy/tables/antichess")
-        .expect("read directory");
 
     let mut reader = csv::Reader::from_path(path).expect("reader");
 
@@ -72,23 +66,5 @@ fn test_chess_mmap() {
     test_csv::<Chess>(
         unsafe { Tablebase::with_mmap_filesystem() },
         "src/engine/tablebases/syzygy/tests/chess.csv",
-    );
-}
-
-#[cfg(all(any(unix, windows), feature = "variant"))]
-#[test]
-fn test_atomic() {
-    test_csv::<shakmaty::variant::Atomic>(
-        Tablebase::new(),
-        "src/engine/tablebases/syzygy/tests/atomic.csv",
-    );
-}
-
-#[cfg(all(any(unix, windows), feature = "variant"))]
-#[test]
-fn test_antichess() {
-    test_csv::<shakmaty::variant::Antichess>(
-        Tablebase::new(),
-        "src/engine/tablebases/syzygy/tests/antichess.csv",
     );
 }

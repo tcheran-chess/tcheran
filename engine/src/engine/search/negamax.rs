@@ -443,7 +443,9 @@ pub fn negamax(
         let search_depth = depth + extension - 1;
         let mut score = Eval::NONE;
 
-        if depth >= lmr_start_depth() && moves_tried >= lmr_move_threshold() as usize {
+        if depth >= lmr_start_depth()
+            && moves_tried >= lmr_move_threshold() as usize + usize::from(is_root)
+        {
             let reduction = {
                 let mut r = DepthReduction::new(lmr_reduction(depth, moves_tried));
 
@@ -460,7 +462,7 @@ pub fn negamax(
                 // Reducing less:
                 r.reduce_less_if(in_check, lmr_in_check_factor());
 
-                r.reduce_less_if(tt_pv, lmr_ttpv_factor());
+                r.reduce_less_if(!is_root && tt_pv, lmr_ttpv_factor());
 
                 r.value()
             };

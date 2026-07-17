@@ -4,6 +4,7 @@
 
 * Added 1-ply continuation correction history (8.23 +- 5.04)
 * The TT score is now used for RFP if conditions allow (4.11 +- 3.09)
+* LMR is now done later in the root node (0.50 +- 1.83)
 
 ## [13.0]
 

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [13.0]
+
 * Network #16, adding 4 input buckets and trained with an additional ~2.1B positions (19.04 +- 7.72)
 * Network #21, a multi-layer net (16.47 +- 7.08)
 * Network #17, adding ~185M DFRC positions (91.09 +- 18.98 DFRC)
@@ -474,7 +476,8 @@ Initial release with the following major features:
     * Tapered midgame vs. endgame evaluation
     * Incremental updates
 
-[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v12.0...HEAD
+[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v13.0...HEAD
+[13.0]: https://github.com/jgilchrist/chess-engine/compare/v12.0..v13.0
 [12.0]: https://github.com/jgilchrist/chess-engine/compare/v11.0..v12.0
 [11.0]: https://github.com/jgilchrist/chess-engine/compare/v10.0..v11.0
 [10.0]: https://github.com/jgilchrist/chess-engine/compare/v9.0..v10.0

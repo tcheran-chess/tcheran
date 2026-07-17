@@ -12,46 +12,14 @@ pub struct TableType {
     pub magic: [u8; 4],
 }
 
-/// A chess variant with Syzygy support.
-pub trait Syzygy {
-    /// WDL table type.
-    const TBW: TableType;
-    /// DTZ table type.
-    const TBZ: TableType;
-
-    /// Alternative WDL table type for pawnless endgames.
-    const PAWNLESS_TBW: Option<TableType> = None;
-    /// Alternative DTZ table type for pawnless endgames.
-    const PAWNLESS_TBZ: Option<TableType> = None;
-
-    /// Whether both players will have exactly one king unless the game
-    /// is over.
-    const ONE_KING: bool;
-    /// Whether kings are allowed to be on adjacent squares.
-    const CONNECTED_KINGS: bool;
-    /// Whether captures are compulsory.
-    const CAPTURES_COMPULSORY: bool;
-
-    /// Maximum number of supported pieces.
-    const MAX_PIECES: usize = 6;
-}
-
-impl Syzygy for Chess {
-    const TBW: TableType = TableType {
-        ext: "rtbw",
-        magic: [0x71, 0xe8, 0x23, 0x5d],
-    };
-    const TBZ: TableType = TableType {
-        ext: "rtbz",
-        magic: [0xd7, 0x66, 0x0c, 0xa5],
-    };
-
-    const ONE_KING: bool = true;
-    const CONNECTED_KINGS: bool = false;
-    const CAPTURES_COMPULSORY: bool = false;
-
-    const MAX_PIECES: usize = 7;
-}
+pub const TBW: TableType = TableType {
+    ext: "rtbw",
+    magic: [0x71, 0xe8, 0x23, 0x5d],
+};
+pub const TBZ: TableType = TableType {
+    ext: "rtbz",
+    magic: [0xd7, 0x66, 0x0c, 0xa5],
+};
 
 /// A value that may be affected by DTZ rounding.
 ///

@@ -1,10 +1,10 @@
 use shakmaty::{CastlingMode, Chess, FromSetup, Position, fen::Fen};
 
-use super::{Syzygy, Tablebase};
+use super::Tablebase;
 
 fn test_csv<S>(mut tables: Tablebase<S>, path: &str)
 where
-    S: Position + FromSetup + Syzygy + Clone,
+    S: Position + FromSetup + Clone,
 {
     tables
         .add_directory("src/engine/tablebases/syzygy/tables/chess")

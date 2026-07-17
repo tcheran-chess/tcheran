@@ -53,5 +53,5 @@ pub use self::{
     errors::{ProbeError, SyzygyError},
     material::Material,
     tablebase::Tablebase,
-    types::{AmbiguousWdl, Dtz, MaybeRounded, Metric, Syzygy, TableType, Wdl},
+    types::{AmbiguousWdl, Dtz, MaybeRounded, Metric, TableType, Wdl},
 };

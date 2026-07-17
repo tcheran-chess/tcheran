@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 * Added 1-ply continuation correction history (8.23 +- 5.04)
+* The TT score is now used for RFP if conditions allow (4.11 +- 3.09)
 
 ## [13.0]
 

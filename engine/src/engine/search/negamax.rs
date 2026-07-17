@@ -175,6 +175,20 @@ pub fn negamax(
         (raw_eval, eval)
     };
 
+    let mut score_estimate = eval;
+    if !in_check
+        && excluded_mv.is_none()
+        && let Some(ref tt_entry) = tt_entry
+        && match tt_entry.bound {
+            NodeBound::None => false,
+            NodeBound::Exact => true,
+            NodeBound::Lower => tt_entry.score > eval,
+            NodeBound::Upper => tt_entry.score < eval,
+        }
+    {
+        score_estimate = tt_entry.score;
+    }
+
     ctx.stack.get(plies).eval = eval;
     ctx.stack.get(plies + 1).fail_highs = 0;
 
@@ -202,12 +216,12 @@ pub fn negamax(
         && !in_check
         && excluded_mv.is_none()
         && depth <= reverse_futility_prune_depth()
-        && eval - rfp_margin >= s.beta
+        && score_estimate - rfp_margin >= s.beta
     {
-        return if !eval.is_decisive() && !s.beta.is_decisive() {
-            s.beta + (eval - s.beta) / 3
+        return if !score_estimate.is_decisive() && !s.beta.is_decisive() {
+            s.beta + (score_estimate - s.beta) / 3
         } else {
-            eval
+            score_estimate
         };
     }
 

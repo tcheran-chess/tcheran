@@ -29,42 +29,23 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: linux-generic
+          - name: linux-x64_64-generic
             os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            exec_postfix: "linux-x86_64-v1"
             rustflags: "-Ctarget-feature=+crt-static"
             cflags: ""
             ext: ""
 
-          - name: linux-v2
+          - name: linux-x64_64-avx2
             os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            exec_postfix: "linux-x86_64-v2"
-            rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v2"
-            cflags: ""
-            ext: ""
-
-          - name: linux-v3
-            os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            exec_postfix: "linux-x86_64-v3"
             rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v3"
             cflags: ""
             ext: ""
 
-          - name: linux-v4
+          - name: linux-x64_64-avx512
             os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            exec_postfix: "linux-x86_64-v4"
-            rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v4"
-            cflags: ""
-            ext: ""
-
-          - name: linux-v5
-            os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            exec_postfix: "linux-x86_64-v5"
             rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v4 -C target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"
             cflags: ""
             ext: ""
@@ -72,47 +53,27 @@ jobs:
           - name: linux-aarch64
             os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
-            exec_postfix: "linux-aarch64"
             rustflags: "-Ctarget-feature=+crt-static"
             cflags: ""
             ext: ""
 
-          - name: windows-generic
+          - name: windows-x64_64-generic
             os: windows-latest
             target: x86_64-pc-windows-msvc
-            exec_postfix: "windows-x86_64-v1"
             rustflags: "-Ctarget-feature=+crt-static"
             cflags: "/std:c11 /experimental:c11atomics"
             ext: ".exe"
 
-          - name: windows-v2
+          - name: windows-x64_64-avx2
             os: windows-latest
             target: x86_64-pc-windows-msvc
-            exec_postfix: "windows-x86_64-v2"
-            rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v2"
-            cflags: "/std:c11 /experimental:c11atomics"
-            ext: ".exe"
-
-          - name: windows-v3
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-            exec_postfix: "windows-x86_64-v3"
             rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v3"
             cflags: "/std:c11 /experimental:c11atomics"
             ext: ".exe"
 
-          - name: windows-v4
+          - name: windows-x64_64-avx512
             os: windows-latest
             target: x86_64-pc-windows-msvc
-            exec_postfix: "windows-x86_64-v4"
-            rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v4"
-            cflags: "/std:c11 /experimental:c11atomics"
-            ext: ".exe"
-
-          - name: windows-v5
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-            exec_postfix: "windows-x86_64-v5"
             rustflags: "-Ctarget-feature=+crt-static -Ctarget-cpu=x86-64-v4 -C target-feature=+gfni,+avx512bw,+avx512vl,+avx512vbmi,+avx512vbmi2,+avx512vnni,+avx512bitalg"
             cflags: "/std:c11 /experimental:c11atomics"
             ext: ".exe"
@@ -120,7 +81,6 @@ jobs:
           - name: macos
             os: macos-latest
             target: aarch64-apple-darwin
-            exec_postfix: "macos"
             rustflags: ""
             cflags: ""
             ext: ""
@@ -142,13 +102,13 @@ jobs:
         run: |
           rustup target add ${{ matrix.target }}
           cargo build --release --package engine --target ${{ matrix.target }}
-          mv target/${{ matrix.target }}/release/tcheran${{ matrix.ext }} tcheran-${{ needs.metadata.outputs.engine-version }}-${{ matrix.exec_postfix }}${{ matrix.ext }}
+          mv target/${{ matrix.target }}/release/tcheran${{ matrix.ext }} tcheran-${{ needs.metadata.outputs.engine-version }}-${{ matrix.name }}${{ matrix.ext }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: tcheran-${{ matrix.exec_postfix }}
-          path: tcheran-${{ needs.metadata.outputs.engine-version }}-${{ matrix.exec_postfix }}${{ matrix.ext }}
+          name: tcheran-${{ matrix.name }}
+          path: tcheran-${{ needs.metadata.outputs.engine-version }}-${{ matrix.name }}${{ matrix.ext }}
 
   release:
     needs: [metadata, build-release-binary]

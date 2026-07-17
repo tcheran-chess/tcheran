@@ -39,6 +39,7 @@
 * The transposition table is now cleared using multiple threads
 * bmi2 instructions are no longer disabled in some release builds
 * A linux-aarch64 build is now available
+* The WDL model has been updated
 
 ## [12.0]
 

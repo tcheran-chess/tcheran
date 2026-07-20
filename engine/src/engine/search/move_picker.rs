@@ -5,6 +5,7 @@ use crate::{
     },
     engine::{
         eval::Eval,
+        params::*,
         search::{SearchStack, tables::Tables},
         see::{see, see_value},
     },
@@ -211,7 +212,7 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
 pub fn score_quiet(game: &Game, mv: Move, tables: &Tables, stack: &SearchStack, plies: u8) -> i32 {
     tables.quiet_history.get(game, mv)
         + tables.conthist.get(game, stack, plies, mv)
-        + 1000 * i32::from(game.is_direct_check(mv))
+        + movepick_direct_check_weight() * i32::from(game.is_direct_check(mv))
 }
 
 #[cfg(test)]

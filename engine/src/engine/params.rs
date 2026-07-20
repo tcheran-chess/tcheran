@@ -59,6 +59,9 @@ parameters!(
     // Quiescence
     quiescence_futility_margin: i32 = 400 [64..1024];
 
+    // Move picking
+    movepick_direct_check_weight: i32 = 1000 [256..4098];
+
     // Eval
     material_scale_base: i32 = 986 [512..1024];
     material_scale_divisor: i32 = 24 [16..128];

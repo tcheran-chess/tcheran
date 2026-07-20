@@ -70,7 +70,7 @@ If you would instead like to build it from source:
     * Rust (the minimum supported version is listed in [Cargo.toml](./Cargo.toml))
     * A C compiler to build [Fathom][fathom] for tablebase probing support
 * Run `cargo build --release` - this will download the latest network and build the engine.
-* The engine binary will be available as `target/release/engine`.
+* The engine binary will be available as `target/release/tcheran`.
 
 [releases]: https://github.com/tcheran-chess/tcheran/releases
 

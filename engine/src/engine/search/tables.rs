@@ -16,25 +16,39 @@ use crate::{
     reason = "Calculation is intentionally approximate"
 )]
 pub fn init() {
-    unsafe {
-        let base = lmr_base() as f32 / 100.0;
-        let factor = lmr_factor() as f32 / 100.0;
+    let tactial_base = tactical_lmr_base() as f32 / 100.0;
+    let tactial_factor = tactical_lmr_factor() as f32 / 100.0;
+    let quiet_base = quiet_lmr_base() as f32 / 100.0;
+    let quiet_factor = quiet_lmr_factor() as f32 / 100.0;
 
+    unsafe {
         for depth in 1..MAX_PLIES_ARRAY_SIZE {
             for move_count in 1..64 {
-                let reduction =
-                    (base + (f32::ln(depth as f32) * f32::ln(move_count as f32) / factor)) as u8;
+                for is_quiet in [false, true] {
+                    let base = if is_quiet { quiet_base } else { tactial_base };
+                    let factor = if is_quiet {
+                        quiet_factor
+                    } else {
+                        tactial_factor
+                    };
 
-                LMR_TABLE[depth][move_count] = reduction;
+                    let reduction = (base
+                        + (f32::ln(depth as f32) * f32::ln(move_count as f32) / factor))
+                        as u8;
+
+                    LMR_TABLE[depth][move_count][is_quiet as usize] = reduction;
+                }
             }
         }
     }
 }
 
-static mut LMR_TABLE: [[u8; 64]; MAX_PLIES_ARRAY_SIZE] = [[0; 64]; MAX_PLIES_ARRAY_SIZE];
+static mut LMR_TABLE: [[[u8; 2]; 64]; MAX_PLIES_ARRAY_SIZE] = [[[0; 2]; 64]; MAX_PLIES_ARRAY_SIZE];
 
-pub fn lmr_reduction(depth: Depth, move_count: usize) -> u8 {
-    unsafe { LMR_TABLE[depth.idx().min(MAX_PLIES_ARRAY_SIZE - 1)][move_count.min(63)] }
+pub fn lmr_reduction(depth: Depth, move_count: usize, is_quiet: bool) -> u8 {
+    unsafe {
+        LMR_TABLE[depth.idx().min(MAX_PLIES_ARRAY_SIZE - 1)][move_count.min(63)][is_quiet as usize]
+    }
 }
 
 pub struct HistoryEntry<const MAX: i16>(i16);

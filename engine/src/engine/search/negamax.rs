@@ -361,7 +361,7 @@ pub fn negamax(
 
         node_pv.clear();
 
-        let lmr_depth = depth - lmr_reduction(depth, moves_tried);
+        let lmr_depth = depth - lmr_reduction(depth, moves_tried, mv.is_quiet());
 
         // Futility pruning
         if !is_root
@@ -447,7 +447,7 @@ pub fn negamax(
             && moves_tried >= lmr_move_threshold() as usize + usize::from(is_root)
         {
             let reduction = {
-                let mut r = i32::from(lmr_reduction(depth, moves_tried)) * 1024;
+                let mut r = i32::from(lmr_reduction(depth, moves_tried, mv.is_quiet())) * 1024;
 
                 // Reducing more
                 r += i32::from(cut_node) * lmr_cut_node_factor();

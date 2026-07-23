@@ -45,8 +45,10 @@ parameters!(
     lmp_depth: u8 = 6 [1..10];
     lmp_move_threshold: u8 = 5 [2..16];
 
-    lmr_base: i32 = 24 [16..256];
-    lmr_factor: i32 = 225 [64..1028];
+    tactical_lmr_base: i32 = 24 [16..256];
+    tactical_lmr_factor: i32 = 225 [64..1028];
+    quiet_lmr_base: i32 = 24 [16..256];
+    quiet_lmr_factor: i32 = 225 [64..1028];
     lmr_start_depth: u8 = 2 [1..8];
     lmr_move_threshold: u8 = 2 [2..16];
 

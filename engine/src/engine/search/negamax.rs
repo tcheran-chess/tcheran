@@ -359,6 +359,13 @@ pub fn negamax(
 
         node_pv.clear();
 
+        let history = if mv.is_quiet() {
+            ctx.tables.quiet_history.get(game, mv)
+                + ctx.tables.conthist.get(game, ctx.stack, plies, mv)
+        } else {
+            ctx.tables.tactical_history.get(game, mv)
+        };
+
         let lmr_depth = depth - lmr_reduction(depth, moves_tried, mv.is_quiet());
 
         // Futility pruning
@@ -375,15 +382,12 @@ pub fn negamax(
             continue;
         }
 
-        let quiet_history = ctx.tables.quiet_history.get(game, mv)
-            + ctx.tables.conthist.get(game, ctx.stack, plies, mv);
-
         if !is_root
             && !is_pv
             && !best_score.is_loss()
             && mv.is_quiet()
             && lmr_depth <= history_prune_depth()
-            && quiet_history < history_prune_offset() + lmr_depth * history_prune_margin()
+            && history < history_prune_offset() + lmr_depth * history_prune_margin()
         {
             moves.skip_quiets();
             continue;
@@ -398,10 +402,7 @@ pub fn negamax(
             let margin = if mv.is_quiet() {
                 lmr_depth * lmr_depth * see_quiet_margin()
             } else {
-                let history_mod =
-                    ctx.tables.tactical_history.get(game, mv) / see_prune_history_divisor();
-
-                lmr_depth * see_capture_margin() - history_mod
+                lmr_depth * see_capture_margin() - (history / see_prune_history_divisor())
             };
 
             if !see(game, mv, Eval(margin)) {

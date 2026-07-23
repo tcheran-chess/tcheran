@@ -36,7 +36,7 @@ pub fn init() {
                         + (f32::ln(depth as f32) * f32::ln(move_count as f32) / factor))
                         as u8;
 
-                    LMR_TABLE[depth][move_count][is_quiet as usize] = reduction;
+                    LMR_TABLE[depth][move_count][usize::from(is_quiet)] = reduction;
                 }
             }
         }
@@ -47,7 +47,8 @@ static mut LMR_TABLE: [[[u8; 2]; 64]; MAX_PLIES_ARRAY_SIZE] = [[[0; 2]; 64]; MAX
 
 pub fn lmr_reduction(depth: Depth, move_count: usize, is_quiet: bool) -> u8 {
     unsafe {
-        LMR_TABLE[depth.idx().min(MAX_PLIES_ARRAY_SIZE - 1)][move_count.min(63)][is_quiet as usize]
+        LMR_TABLE[depth.idx().min(MAX_PLIES_ARRAY_SIZE - 1)][move_count.min(63)]
+            [usize::from(is_quiet)]
     }
 }
 

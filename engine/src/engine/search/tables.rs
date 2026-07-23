@@ -20,19 +20,21 @@ pub fn init() {
         let base = lmr_base() as f32 / 100.0;
         let factor = lmr_factor() as f32 / 100.0;
 
-        for (depth, table) in LMR_TABLE.iter_mut().enumerate().skip(1) {
-            for (move_count, reduction) in table.iter_mut().enumerate().skip(1) {
-                *reduction =
-                    (base + f32::ln(depth as f32) * f32::ln(move_count as f32) / factor) as u8;
+        for depth in 1..MAX_PLIES_ARRAY_SIZE {
+            for move_count in 1..64 {
+                let reduction =
+                    (base + (f32::ln(depth as f32) * f32::ln(move_count as f32) / factor)) as u8;
+
+                LMR_TABLE[depth][move_count] = reduction;
             }
         }
     }
 }
 
-static mut LMR_TABLE: [[u8; 64]; 64] = [[0; 64]; 64];
+static mut LMR_TABLE: [[u8; 64]; MAX_PLIES_ARRAY_SIZE] = [[0; 64]; MAX_PLIES_ARRAY_SIZE];
 
 pub fn lmr_reduction(depth: Depth, move_count: usize) -> u8 {
-    unsafe { LMR_TABLE[depth.idx().min(63)][move_count.min(63)] }
+    unsafe { LMR_TABLE[depth.idx().min(MAX_PLIES_ARRAY_SIZE - 1)][move_count.min(63)] }
 }
 
 pub struct HistoryEntry<const MAX: i16>(i16);

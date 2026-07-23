@@ -486,7 +486,7 @@ pub fn negamax(
 
             // If we raised alpha, but we were searching with reduced depth, we probably want to double
             // check we didn't miss something, so search without the reduction.
-            if score > s.alpha && reduction > 0 {
+            if score > s.alpha && search_depth > reduced_search_depth {
                 score = -negamax(
                     game,
                     -s.zero_window_around_alpha(),

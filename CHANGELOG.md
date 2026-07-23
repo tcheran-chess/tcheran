@@ -7,6 +7,8 @@
 * Add 4-ply continuation history (2.16 +- 1.73)
 * LMR is now done later in the root node (0.50 +- 1.83)
 
+* Saturating behaviour in LMR is no longer used (2.29 +- 3.43 non-reg)
+
 ## [13.0]
 
 * Network #16, adding 4 input buckets and trained with an additional ~2.1B positions (19.04 +- 7.72)

@@ -50,11 +50,11 @@ parameters!(
     lmr_start_depth: u8 = 2 [1..8];
     lmr_move_threshold: u8 = 2 [2..16];
 
-    lmr_cut_node_factor: u32 = 400 [128..2048];
-    lmr_is_not_pv_factor: u32 = 940 [128..2048];
-    lmr_many_fail_highs_factor: u32 = 760 [128..2048];
-    lmr_in_check_factor: u32 = 320 [128..2048];
-    lmr_ttpv_factor: u32 = 1148 [128..2048];
+    lmr_cut_node_factor: i32 = 400 [128..2048];
+    lmr_is_not_pv_factor: i32 = 940 [128..2048];
+    lmr_many_fail_highs_factor: i32 = 760 [128..2048];
+    lmr_in_check_factor: i32 = 320 [128..2048];
+    lmr_ttpv_factor: i32 = 1148 [128..2048];
 
     // Quiescence
     quiescence_futility_margin: i32 = 400 [64..1024];

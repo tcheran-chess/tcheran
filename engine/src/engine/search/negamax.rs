@@ -9,7 +9,7 @@ use crate::{
             principal_variation::PrincipalVariation,
             quiescence::quiescence,
             tables::lmr_reduction,
-            types::{Depth, DepthReduction, ScoreWindow},
+            types::{Depth, ScoreWindow},
         },
         see::see,
         transposition_table::NodeBound,
@@ -447,27 +447,29 @@ pub fn negamax(
             && moves_tried >= lmr_move_threshold() as usize + usize::from(is_root)
         {
             let reduction = {
-                let mut r = DepthReduction::new(lmr_reduction(depth, moves_tried));
+                let mut r = i32::from(lmr_reduction(depth, moves_tried)) * 1024;
 
-                // Reducing more:
-                r.reduce_more_if(cut_node, lmr_cut_node_factor());
-
-                r.reduce_more_if(!is_pv, lmr_is_not_pv_factor());
-
-                r.reduce_more_if(
-                    ctx.stack.get(plies + 1).fail_highs > 2,
-                    lmr_many_fail_highs_factor(),
-                );
+                // Reducing more
+                r += i32::from(cut_node) * lmr_cut_node_factor();
+                r += i32::from(!is_pv) * lmr_is_not_pv_factor();
+                r += i32::from(ctx.stack.get(plies + 1).fail_highs > 2)
+                    * lmr_many_fail_highs_factor();
 
                 // Reducing less:
-                r.reduce_less_if(in_check, lmr_in_check_factor());
+                r -= i32::from(in_check) * lmr_in_check_factor();
+                r -= i32::from(!is_root && tt_pv) * lmr_ttpv_factor();
 
-                r.reduce_less_if(!is_root && tt_pv, lmr_ttpv_factor());
-
-                r.value()
+                r / 1024
             };
 
-            let reduced_search_depth = search_depth - reduction;
+            #[expect(
+                clippy::cast_possible_truncation,
+                clippy::cast_sign_loss,
+                reason = "Value is clamped"
+            )]
+            let reduced_search_depth = Depth::new(
+                (search_depth.as_i32() - reduction).clamp(1, search_depth.as_i32()) as u8,
+            );
 
             // We already found a good move (i.e. we raised alpha).
             // Now, we just need to prove that the other moves are worse.

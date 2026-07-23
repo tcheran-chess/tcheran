@@ -176,33 +176,6 @@ impl std::fmt::Display for Depth {
     }
 }
 
-pub struct DepthReduction(u32);
-
-impl DepthReduction {
-    pub fn new(v: u8) -> Self {
-        Self(u32::from(v) * 1024)
-    }
-
-    #[inline]
-    pub fn reduce_more_if(&mut self, predicate: bool, factor: u32) {
-        self.0 = self.0.saturating_add(u32::from(predicate) * factor);
-    }
-
-    #[inline]
-    pub fn reduce_less_if(&mut self, predicate: bool, factor: u32) {
-        self.0 = self.0.saturating_sub(u32::from(predicate) * factor);
-    }
-
-    #[inline]
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "In practice, we won't reduce by more than u8::MAX"
-    )]
-    pub fn value(&self) -> u8 {
-        (self.0 / 1024) as u8
-    }
-}
-
 pub struct SearchResults(Vec<OnceLock<SearchResult>>);
 
 impl SearchResults {

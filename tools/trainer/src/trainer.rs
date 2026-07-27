@@ -152,7 +152,7 @@ pub fn run(net_name: &str) {
         net_id: format!("{net_name}-s2"),
         eval_scale: SCALE,
         steps: TrainingSteps::default(schedule2_superbatches),
-        wdl_scheduler: wdl::ConstantWDL { value: 0.75 },
+        wdl_scheduler: wdl::ConstantWDL { value: 0.9 },
         lr_scheduler: lr::ConstantLR { value: 0.00000081 },
         save_rate: 10,
     };

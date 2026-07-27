@@ -14,6 +14,10 @@
 * Post-LMR re-search no longer happens if we didn't actually reduce due to clamping (-0.36 +- 2.51)
 * Simplify killer moves (-0.81 +- 2.01)
 
+#### Misc
+
+* All of the individual search files under search/ are merged into a search.rs
+
 ## [13.0]
 
 * Network #16, adding 4 input buckets and trained with an additional ~2.1B positions (19.04 +- 7.72)

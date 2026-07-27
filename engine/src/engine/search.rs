@@ -267,18 +267,6 @@ pub fn iterative_deepening(
     result.expect("Should always end iterative deepening with a result")
 }
 
-fn clamp_alpha(eval: Eval) -> Eval {
-    std::cmp::max(Eval::MIN, eval)
-}
-
-fn clamp_beta(eval: Eval) -> Eval {
-    std::cmp::min(Eval::MAX, eval)
-}
-
-fn increase_width(width: i32) -> i32 {
-    width + width / 2
-}
-
 pub fn aspiration_search(
     game: &mut Game,
     depth: Depth,
@@ -286,6 +274,10 @@ pub fn aspiration_search(
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
+    const CLAMP_ALPHA: fn(Eval) -> Eval = |eval: Eval| -> Eval { std::cmp::max(Eval::MIN, eval) };
+    const CLAMP_BETA: fn(Eval) -> Eval = |eval: Eval| -> Eval { std::cmp::min(Eval::MAX, eval) };
+    const INCREASE_WIDTH: fn(i32) -> i32 = |width: i32| -> i32 { width + width / 2 };
+
     let mut width = aspiration_window_size();
 
     let mut window = if depth < aspiration_min_depth() || eval.is_some_and(Eval::is_decisive) {
@@ -293,7 +285,7 @@ pub fn aspiration_search(
     } else {
         let eval =
             eval.expect("Aspiration search should have an evaluation after it reaches min depth");
-        ScoreWindow::new(clamp_alpha(eval - width), clamp_beta(eval + width))
+        ScoreWindow::new(CLAMP_ALPHA(eval - width), CLAMP_BETA(eval + width))
     };
 
     let mut reduction = 0;
@@ -311,12 +303,12 @@ pub fn aspiration_search(
 
         if eval <= window.alpha {
             window.beta = (window.alpha + window.beta) / 2;
-            window.alpha = clamp_alpha(eval - width);
-            width = increase_width(width);
+            window.alpha = CLAMP_ALPHA(eval - width);
+            width = INCREASE_WIDTH(width);
             reduction = 0;
         } else if eval >= window.beta {
-            window.beta = clamp_beta(eval + width);
-            width = increase_width(width);
+            window.beta = CLAMP_BETA(eval + width);
+            width = INCREASE_WIDTH(width);
             reduction = (reduction + 1).min(aspiration_max_reduction());
         } else {
             return eval;

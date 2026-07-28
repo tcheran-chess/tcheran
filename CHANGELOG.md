@@ -14,6 +14,7 @@
 #### Non-regression
 
 * Saturating behaviour in LMR is no longer used (2.29 +- 3.43)
+* Don't apply tacthist bonus for quiet moves (-0.23 +- 2.25)
 * Post-LMR re-search no longer happens if we didn't actually reduce due to clamping (-0.36 +- 2.51)
 * Simplify killer moves (-0.81 +- 2.01)
 

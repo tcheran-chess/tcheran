@@ -199,7 +199,9 @@ impl TacticalHistoryTable {
         let bonus = capture_history_bonus(depth);
         let malus = capture_history_malus(depth);
 
-        self.update_for_move(mv, game, bonus);
+        if !mv.is_quiet() {
+            self.update_for_move(mv, game, bonus);
+        }
 
         for other_capture in other_captures_tried {
             self.update_for_move(*other_capture, game, malus);

@@ -116,6 +116,13 @@ pub fn quiet_history_bonus(depth: Depth) -> i32 {
     )
 }
 
+pub fn quiet_history_malus(depth: Depth) -> i32 {
+    -min(
+        depth * quiet_history_malus_factor() - quiet_history_malus_offset(),
+        quiet_history_max_malus(),
+    )
+}
+
 impl QuietHistoryTable {
     const MAX: i16 = 8192;
 
@@ -135,11 +142,12 @@ impl QuietHistoryTable {
 
     pub fn update(&mut self, game: &Game, mv: Move, depth: Depth, other_quiets_tried: &MoveList) {
         let bonus = quiet_history_bonus(depth);
+        let malus = quiet_history_malus(depth);
 
         self.update_for_move(game, mv, bonus);
 
         for other_quiet in other_quiets_tried {
-            self.update_for_move(game, *other_quiet, -bonus);
+            self.update_for_move(game, *other_quiet, malus);
         }
     }
 }
@@ -150,6 +158,13 @@ pub fn capture_history_bonus(depth: Depth) -> i32 {
     min(
         depth * capture_history_bonus_factor() - capture_history_bonus_offset(),
         capture_history_max_bonus(),
+    )
+}
+
+pub fn capture_history_malus(depth: Depth) -> i32 {
+    -min(
+        depth * capture_history_malus_factor() - capture_history_malus_offset(),
+        capture_history_max_malus(),
     )
 }
 
@@ -182,11 +197,12 @@ impl TacticalHistoryTable {
 
     pub fn update(&mut self, mv: Move, game: &Game, depth: Depth, other_captures_tried: &MoveList) {
         let bonus = capture_history_bonus(depth);
+        let malus = capture_history_malus(depth);
 
         self.update_for_move(mv, game, bonus);
 
         for other_capture in other_captures_tried {
-            self.update_for_move(*other_capture, game, -bonus);
+            self.update_for_move(*other_capture, game, malus);
         }
     }
 }
@@ -197,6 +213,13 @@ pub fn continuation_history_bonus(depth: Depth) -> i32 {
     min(
         depth * continuation_history_bonus_factor() - continuation_history_bonus_offset(),
         continuation_history_max_bonus(),
+    )
+}
+
+pub fn continuation_history_malus(depth: Depth) -> i32 {
+    -min(
+        depth * continuation_history_malus_factor() - continuation_history_malus_offset(),
+        continuation_history_max_malus(),
     )
 }
 
@@ -257,6 +280,7 @@ impl ContHistTable {
         total: i32,
     ) {
         let bonus = continuation_history_bonus(depth);
+        let malus = continuation_history_malus(depth);
 
         let moved = game.board.piece_guaranteed_at(mv.from());
         self.update_for_move(
@@ -276,7 +300,7 @@ impl ContHistTable {
                 try_moved,
                 quiet_tried.to(),
                 total,
-                -bonus,
+                malus,
             );
         }
     }

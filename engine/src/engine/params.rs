@@ -80,14 +80,23 @@ parameters!(
     quiet_history_max_bonus: i32 = 2054 [1..4096];
     quiet_history_bonus_factor: i32 = 637 [1..2048];
     quiet_history_bonus_offset: i32 = 307 [1..2048];
+    quiet_history_max_malus: i32 = 2054 [1..4096];
+    quiet_history_malus_factor: i32 = 637 [1..2048];
+    quiet_history_malus_offset: i32 = 307 [1..2048];
 
     capture_history_max_bonus: i32 = 2381 [1..4096];
     capture_history_bonus_factor: i32 = 681 [1..2048];
     capture_history_bonus_offset: i32 = 246 [1..2048];
+    capture_history_max_malus: i32 = 2381 [1..4096];
+    capture_history_malus_factor: i32 = 681 [1..2048];
+    capture_history_malus_offset: i32 = 246 [1..2048];
 
     continuation_history_max_bonus: i32 = 1353 [1..4096];
     continuation_history_bonus_factor: i32 = 413 [1..2048];
     continuation_history_bonus_offset: i32 = 84 [1..2048];
+    continuation_history_max_malus: i32 = 1353 [1..4096];
+    continuation_history_malus_factor: i32 = 413 [1..2048];
+    continuation_history_malus_offset: i32 = 84 [1..2048];
 
     pawn_correction_history_weight: i32 = 196 [48..256];
     major_correction_history_weight: i32 = 101 [48..256];

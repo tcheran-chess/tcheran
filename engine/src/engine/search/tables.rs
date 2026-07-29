@@ -110,7 +110,10 @@ fn threat_indices(game: &Game, mv: Move) -> (usize, usize) {
 pub struct QuietHistoryTable(ByPlayer<FromTo<Threats<HistoryEntry<{ Self::MAX }>>>>);
 
 pub fn quiet_history_bonus(depth: Depth) -> i32 {
-    min(depth * quiet_history_factor() - quiet_history_offset(), quiet_history_max_bonus())
+    min(
+        depth * quiet_history_bonus_factor() - quiet_history_bonus_offset(),
+        quiet_history_max_bonus(),
+    )
 }
 
 impl QuietHistoryTable {
@@ -144,7 +147,10 @@ impl QuietHistoryTable {
 pub struct TacticalHistoryTable(PieceTo<[Threats<HistoryEntry<{ Self::MAX }>>; PieceKind::N + 1]>);
 
 pub fn capture_history_bonus(depth: Depth) -> i32 {
-    min(depth * capture_history_factor() - capture_history_offset(), capture_history_max_bonus())
+    min(
+        depth * capture_history_bonus_factor() - capture_history_bonus_offset(),
+        capture_history_max_bonus(),
+    )
 }
 
 impl TacticalHistoryTable {
@@ -189,7 +195,7 @@ pub struct ContHistTable(PieceTo<PieceTo<HistoryEntry<{ Self::MAX }>>>);
 
 pub fn continuation_history_bonus(depth: Depth) -> i32 {
     min(
-        depth * continuation_history_factor() - continuation_history_offset(),
+        depth * continuation_history_bonus_factor() - continuation_history_bonus_offset(),
         continuation_history_max_bonus(),
     )
 }

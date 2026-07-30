@@ -17,6 +17,7 @@
 
 #### Misc
 
+* We now prefetch transposition table entries on aarch64 (13.79 +- 6.45 VSTC)
 * All of the individual search files under search/ are merged into a search.rs
 
 ## [13.0]

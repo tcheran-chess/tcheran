@@ -424,6 +424,22 @@ impl TranspositionTable {
                     _mm_prefetch::<_MM_HINT_T0>(ptr);
                 }
             }
+
+            target_arch = "aarch64" => {
+                let idx = self.get_cluster_idx(hash);
+
+                #[expect(clippy::pointers_in_nomem_asm_block, reason = "Pointer is not read/written")]
+                unsafe {
+                    let ptr: *const RawCluster = self.data.as_ptr().add(idx).cast();
+
+                    std::arch::asm!(
+                        "prfm pldl1keep, [{}]",
+                        in(reg) ptr,
+                        options(nostack, nomem, preserves_flags),
+                    );
+                }
+            }
+
             _ => {
                 // Prevent warnings on platforms that can't prefetch TT entries
                 _ = hash;

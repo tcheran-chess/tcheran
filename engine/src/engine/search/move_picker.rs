@@ -221,8 +221,8 @@ mod tests {
     fn test_movepicker_does_not_skip_bad_tacticals_when_no_good_tacticals() {
         crate::init();
 
-        let game = Game::from_fen("rnbqkbnr/pp1ppppp/8/2p5/3P4/5N2/PPP1PPPP/RNBQKB1R b KQkq - 0 2")
-            .unwrap();
+        let game =
+            Game::from_valid_fen("rnbqkbnr/pp1ppppp/8/2p5/3P4/5N2/PPP1PPPP/RNBQKB1R b KQkq - 0 2");
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
@@ -238,9 +238,9 @@ mod tests {
     fn test_movepicker_does_not_return_to_start_if_no_bad_tacticals() {
         crate::init();
 
-        let game =
-            Game::from_fen("rnbqkb1r/ppp1pppp/5n2/3p4/4P3/2N5/PPPP1PPP/R1BQKBNR w KQkq - 0 3")
-                .unwrap();
+        let game = Game::from_valid_fen(
+            "rnbqkb1r/ppp1pppp/5n2/3p4/4P3/2N5/PPPP1PPP/R1BQKBNR w KQkq - 0 3",
+        );
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
@@ -256,9 +256,9 @@ mod tests {
     fn test_movepicker_yields_en_passant_correctly() {
         crate::init();
 
-        let game =
-            Game::from_fen("r1bqkb1r/ppp1pppp/2n2n2/2Pp4/8/5N2/PP1PPPPP/RNBQKB1R w KQkq d6 0 4")
-                .unwrap();
+        let game = Game::from_valid_fen(
+            "r1bqkb1r/ppp1pppp/2n2n2/2Pp4/8/5N2/PP1PPPPP/RNBQKB1R w KQkq d6 0 4",
+        );
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
@@ -275,7 +275,7 @@ mod tests {
         crate::init();
 
         let game =
-            Game::from_fen("rnb1kbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2").unwrap();
+            Game::from_valid_fen("rnb1kbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
@@ -292,7 +292,7 @@ mod tests {
     fn test_movepicker_bug_after_see_move_ordering_1() {
         crate::init();
 
-        let game = Game::from_fen("r2k3r/1b4bq/8/3R4/8/8/7B/4K2R b K - 3 2").unwrap();
+        let game = Game::from_valid_fen("r2k3r/1b4bq/8/3R4/8/8/7B/4K2R b K - 3 2");
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(Some(Move::quiet(D8, E7)));

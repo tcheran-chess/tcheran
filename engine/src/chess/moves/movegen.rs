@@ -462,7 +462,7 @@ mod tests {
     #[inline(always)]
     fn should_allow_move(fen: &str, mv: (Square, Square)) {
         crate::init();
-        let game = Game::from_fen(fen).unwrap();
+        let game = Game::from_valid_fen(fen);
         let mut movelist = MoveList::new();
         generate_legal_moves(&game, |m| movelist.push(m));
 
@@ -472,7 +472,7 @@ mod tests {
     #[inline(always)]
     fn should_not_allow_move(fen: &str, mv: (Square, Square)) {
         crate::init();
-        let game = Game::from_fen(fen).unwrap();
+        let game = Game::from_valid_fen(fen);
         let mut movelist = MoveList::new();
         generate_legal_moves(&game, |m| movelist.push(m));
 
@@ -516,7 +516,7 @@ mod tests {
     fn test_forbid_en_passant_revealed_check() {
         crate::init();
 
-        let mut game = Game::from_fen("8/8/8/8/k3p2Q/8/3P4/3K4 w - - 0 1").unwrap();
+        let mut game = Game::from_valid_fen("8/8/8/8/k3p2Q/8/3P4/3K4 w - - 0 1");
         game.make_move(game.moves().expect_matching(D2, D4, None));
 
         assert!(game.moves().iter().all(|m| (m.from(), m.to()) != (E4, D3)));
@@ -557,7 +557,7 @@ mod tests {
         crate::init();
 
         let mut game =
-            Game::from_fen("q7/2p3k1/3b2p1/pp1Pnp1p/3Q3P/P1P3P1/1P3PK1/2NB4 b - - 1 33").unwrap();
+            Game::from_valid_fen("q7/2p3k1/3b2p1/pp1Pnp1p/3Q3P/P1P3P1/1P3PK1/2NB4 b - - 1 33");
         game.make_move(game.moves().expect_matching(C7, C5, None));
 
         assert!(game.moves().iter().any(|m| (m.from(), m.to()) == (D5, C6)));

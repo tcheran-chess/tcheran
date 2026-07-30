@@ -107,7 +107,7 @@ pub fn speedtest(threads: Option<u64>, hash: Option<u64>, duration: Option<u64>)
         eprint!("Warmup {} of {}\r", index + 1, WARMUP_POSITIONS_COUNT);
 
         state.new_search();
-        let game = Game::from_fen(position).unwrap();
+        let game = Game::from_valid_fen(position);
         threads.send(opts(game));
         threads.wait();
     }
@@ -120,7 +120,7 @@ pub fn speedtest(threads: Option<u64>, hash: Option<u64>, duration: Option<u64>)
         eprint!("Position {} of {}\r", index + 1, POSITIONS.len());
 
         state.new_search();
-        let game = Game::from_frc_fen(position).unwrap();
+        let game = Game::from_valid_frc_fen(position);
         threads.send(opts(game));
         threads.wait();
 

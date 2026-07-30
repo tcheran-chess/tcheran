@@ -241,10 +241,12 @@ impl Uci {
 
                 let mut game = match position {
                     commands::Position::StartPos => Game::new(),
-                    commands::Position::Fen(fen) => if !self.options.frc {
-                        Game::from_fen(fen)
-                    } else {
-                        Game::from_frc_fen(fen)
+                    commands::Position::Fen(fen) => {
+                        if !self.options.frc {
+                            Game::from_fen(fen)
+                        } else {
+                            Game::from_frc_fen(fen)
+                        }
                     }
                     .map_err(|e| e.to_string())?,
                 };

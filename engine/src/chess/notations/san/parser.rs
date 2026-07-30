@@ -274,7 +274,7 @@ mod tests {
     fn test_parse_san(fen: &'static str, expected_mv: (Square, Square), san: &'static str) {
         crate::init();
 
-        let game = Game::from_fen(fen).unwrap();
+        let game = Game::from_valid_fen(fen);
         let mv = parse_move(&game, san).unwrap();
 
         let expected_mv = game
@@ -291,7 +291,7 @@ mod tests {
     ) {
         crate::init();
 
-        let game = Game::from_fen(fen).unwrap();
+        let game = Game::from_valid_fen(fen);
         let mv = parse_move(&game, san).unwrap();
 
         let expected_mv =

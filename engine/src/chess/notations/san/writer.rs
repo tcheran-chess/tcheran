@@ -142,7 +142,7 @@ mod tests {
     fn test_san_string(fen: &'static str, mv: (Square, Square), expected_san: &'static str) {
         crate::init();
 
-        let game = Game::from_fen(fen).unwrap();
+        let game = Game::from_valid_fen(fen);
         let (from, to) = mv;
         let mv = game.moves().expect_matching(from, to, None);
         let san = format_move(&game, mv);
@@ -157,7 +157,7 @@ mod tests {
     ) {
         crate::init();
 
-        let game = Game::from_fen(fen).unwrap();
+        let game = Game::from_valid_fen(fen);
         let (from, to, promotion) = mv;
         let mv = game.moves().expect_matching(from, to, Some(promotion));
         let san = format_move(&game, mv);
@@ -208,7 +208,7 @@ mod tests {
         crate::init();
 
         let fen = "R6R/8/8/8/8/8/8/1k4K1 w - - 0 1";
-        let game = Game::from_fen(fen).unwrap();
+        let game = Game::from_valid_fen(fen);
         let ambiguous_move = (A8, B8);
 
         assert_eq!(
@@ -228,7 +228,7 @@ mod tests {
         crate::init();
 
         let fen = "R7/8/8/8/8/1k4K1/8/R7 w - - 0 1";
-        let game = Game::from_fen(fen).unwrap();
+        let game = Game::from_valid_fen(fen);
         let ambiguous_move = (A1, A3);
 
         assert_eq!(
@@ -248,7 +248,7 @@ mod tests {
         crate::init();
 
         let fen = "1k1K4/8/8/8/4Q2Q/8/8/7Q w - - 0 1";
-        let game = Game::from_fen(fen).unwrap();
+        let game = Game::from_valid_fen(fen);
         let ambiguous_move = (H4, E1);
 
         assert_eq!(

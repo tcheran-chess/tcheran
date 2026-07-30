@@ -10,7 +10,7 @@ use crate::{
 
 fn test_expected_move(fen: &str, depth: Depth, mv: (Square, Square)) -> SearchResult {
     crate::init();
-    let game = Game::from_fen(fen).unwrap();
+    let game = Game::from_valid_fen(fen);
 
     let result =
         st_search(&game, &PersistentState::new(16), TimeControl::Depth(depth), &NullReporter);

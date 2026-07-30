@@ -142,7 +142,7 @@ pub fn bench(depth: Option<Depth>) -> (u64, Duration) {
 
     for position in POSITIONS {
         let bench_reporter = Box::new(BenchReporter::new());
-        let game = Game::from_fen(position).unwrap();
+        let game = Game::from_valid_fen(position);
         let now = Instant::now();
 
         search::st_search(

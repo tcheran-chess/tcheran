@@ -172,7 +172,7 @@ mod tests {
         crate::init();
         use_basic_see_values();
 
-        let game = Game::from_fen(fen).unwrap();
+        let game = Game::from_valid_fen(fen);
         let mv = game.moves().expect_matching(mv.0, mv.1, None);
 
         assert!(see(&game, mv, Eval(0)));
@@ -182,7 +182,7 @@ mod tests {
         crate::init();
         use_basic_see_values();
 
-        let game = Game::from_fen(fen).unwrap();
+        let game = Game::from_valid_fen(fen);
         let mv = game.moves().expect_matching(mv.0, mv.1, None);
 
         assert!(!see(&game, mv, Eval(0)));
@@ -227,7 +227,7 @@ mod tests {
 
         for (fen, ucimv, threshold, result) in SEE_SUITE {
             println!("{fen}");
-            let game = Game::from_fen(fen).unwrap();
+            let game = Game::from_valid_fen(fen);
             let moves = game.moves();
 
             let mv = moves.iter().find(|m| format!("{m:?}") == ucimv).unwrap();
@@ -319,7 +319,7 @@ mod tests {
 
         for (fen, ucimv, threshold, result) in suite {
             println!("{fen}");
-            let game = Game::from_fen(fen).unwrap();
+            let game = Game::from_valid_fen(fen);
             let moves = game.moves();
 
             let mv = moves.iter().find(|m| format!("{m:?}") == ucimv).unwrap();

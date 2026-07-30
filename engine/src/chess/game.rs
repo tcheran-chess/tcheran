@@ -158,7 +158,7 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
-        Self::from_fen(notations::fen::START_POS).unwrap()
+        Self::from_valid_fen(notations::fen::START_POS)
     }
 
     pub fn new_dfrc(white_idx: usize, black_idx: usize) -> Self {
@@ -219,8 +219,16 @@ impl Game {
         notations::fen::parse(fen, false)
     }
 
+    pub fn from_valid_fen(fen: &str) -> Self {
+        Self::from_fen(fen).unwrap()
+    }
+
     pub fn from_frc_fen(fen: &str) -> Result<Self, notations::fen::ParseError> {
         notations::fen::parse(fen, true)
+    }
+
+    pub fn from_valid_frc_fen(fen: &str) -> Self {
+        Self::from_frc_fen(fen).unwrap()
     }
 
     pub fn to_fen(&self) -> String {
@@ -1049,22 +1057,19 @@ mod tests {
 
         // Knight vs Bishop mate
         assert!(
-            !Game::from_fen("5b1K/5k1N/8/8/8/8/8/8 b - - 1 1")
-                .unwrap()
+            !Game::from_valid_fen("5b1K/5k1N/8/8/8/8/8/8 b - - 1 1")
                 .is_stalemate_by_insufficient_material()
         );
 
         // Bishop vs Knight - draw
         assert!(
-            Game::from_fen("8/8/3k4/4n3/8/2KB4/8/8 w - - 0 1")
-                .unwrap()
+            Game::from_valid_fen("8/8/3k4/4n3/8/2KB4/8/8 w - - 0 1")
                 .is_stalemate_by_insufficient_material()
         );
 
         // Rook vs Knight mate
         assert!(
-            !Game::from_fen("8/8/4k3/4n3/8/2KR4/8/8 w - - 0 1")
-                .unwrap()
+            !Game::from_valid_fen("8/8/4k3/4n3/8/2KR4/8/8 w - - 0 1")
                 .is_stalemate_by_insufficient_material()
         );
     }
@@ -1073,28 +1078,28 @@ mod tests {
     fn test_en_passant_target_not_set_if_not_legal() {
         crate::init();
 
-        let mut game = Game::from_fen("k7/3p4/8/K3P2r/8/8/8/8 b - - 0 1").unwrap();
+        let mut game = Game::from_valid_fen("k7/3p4/8/K3P2r/8/8/8/8 b - - 0 1");
         game.make_move(game.moves().expect_matching(D7, D5, None));
 
         assert_eq!(game.en_passant_target, None);
 
         // Bishop pinning the capturing pawn diagonally
-        let mut game =
-            Game::from_fen("r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 b kq - 0 1")
-                .unwrap();
+        let mut game = Game::from_valid_fen(
+            "r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 b kq - 0 1",
+        );
         game.make_move(game.moves().expect_matching(D7, D5, None));
 
         assert_eq!(game.en_passant_target, None);
 
         let mut game =
-            Game::from_fen("r7/r7/bp1k3p/2p1p1pP/Pp1pP1P1/1P3P2/2P3K1/1R1RN3 w - - 9 40").unwrap();
+            Game::from_valid_fen("r7/r7/bp1k3p/2p1p1pP/Pp1pP1P1/1P3P2/2P3K1/1R1RN3 w - - 9 40");
         game.make_move(game.moves().expect_matching(C2, C4, None));
 
         assert_eq!(game.en_passant_target, Some(C3));
 
-        let mut game =
-            Game::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
-                .unwrap();
+        let mut game = Game::from_valid_fen(
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        );
         game.make_move(game.moves().expect_matching(A2, A4, None));
 
         assert_eq!(game.en_passant_target, Some(A3));
@@ -1104,9 +1109,9 @@ mod tests {
     fn test_islegal_castling_in_kiwipete() {
         crate::init();
 
-        let game =
-            Game::from_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1")
-                .unwrap();
+        let game = Game::from_valid_fen(
+            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
+        );
         assert!(game.is_legal(Move::castles(E1, H1)));
     }
 
@@ -1115,8 +1120,7 @@ mod tests {
         crate::init();
 
         let game =
-            Game::from_fen("5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28")
-                .unwrap();
+            Game::from_valid_fen("5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28");
         assert!(game.is_legal(Move::en_passant(G4, F3)));
     }
 }

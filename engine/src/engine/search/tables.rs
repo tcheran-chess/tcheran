@@ -63,6 +63,14 @@ impl<const MAX: i16> HistoryEntry<MAX> {
         self.0 = (old + bonus - old * bonus.abs() / max) as i16;
     }
 
+    #[expect(clippy::cast_possible_truncation, reason = "Dipped into i32 to avoid overflows")]
+    pub fn update_with_base(&mut self, base: i32, bonus: i32) {
+        let old = i32::from(self.0);
+        let max = i32::from(MAX);
+
+        self.0 = (old + bonus - (base * bonus.abs()) / max) as i16;
+    }
+
     pub fn get(&self) -> i32 {
         i32::from(self.0)
     }
@@ -225,9 +233,11 @@ impl ContHistTable {
         previous_moved_to: Square,
         moved: Piece,
         moved_to: Square,
+        total: i32,
         bonus: i32,
     ) {
-        self.0[previous_piece_moved][previous_moved_to][moved][moved_to].update(bonus);
+        self.0[previous_piece_moved][previous_moved_to][moved][moved_to]
+            .update_with_base(total, bonus);
     }
 
     fn update_ply(
@@ -238,11 +248,19 @@ impl ContHistTable {
         mv: Move,
         depth: Depth,
         quiets_tried: &MoveList,
+        total: i32,
     ) {
         let bonus = continuation_history_bonus(depth);
 
         let moved = game.board.piece_guaranteed_at(mv.from());
-        self.update_for_move(previous_piece_moved, previous_move.to(), moved, mv.to(), bonus);
+        self.update_for_move(
+            previous_piece_moved,
+            previous_move.to(),
+            moved,
+            mv.to(),
+            total,
+            bonus,
+        );
 
         for quiet_tried in quiets_tried {
             let try_moved = game.board.piece_guaranteed_at(quiet_tried.from());
@@ -251,6 +269,7 @@ impl ContHistTable {
                 previous_move.to(),
                 try_moved,
                 quiet_tried.to(),
+                total,
                 -bonus,
             );
         }
@@ -265,11 +284,13 @@ impl ContHistTable {
         depth: Depth,
         quiets_tried: &MoveList,
     ) {
+        let total = self.get(game, stack, plies, mv);
+
         for i in Self::PLIES {
             if let Some(last_ply) = stack.get_prev(plies, i)
                 && let Some((last_move, last_moved)) = last_ply.mv
             {
-                self.update_ply(game, last_moved, last_move, mv, depth, quiets_tried);
+                self.update_ply(game, last_moved, last_move, mv, depth, quiets_tried, total);
             }
         }
     }

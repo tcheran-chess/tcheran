@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+* Use the sum of all conthist scores as the base for updates (9.09 +- 5.17)
 * Added 1-ply continuation correction history (8.23 +- 5.04)
 * Tweak LMR params: tacticals less, quiets more (7.42 +- 4.53)
 * The TT score is now used for RFP if conditions allow (4.11 +- 3.09)

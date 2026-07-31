@@ -871,43 +871,39 @@ pub fn negamax(
 
     best_score = best_score.clamp(syzygy_min, syzygy_max);
 
-    if excluded_mv.is_none() {
-        if tt_node_bound == NodeBound::Lower
-            && let Some(mv) = best_move
-        {
-            let static_eval_failed_low = !in_check && eval <= s.alpha;
-            let history_depth = depth + u8::from(static_eval_failed_low);
+    if tt_node_bound == NodeBound::Lower
+        && let Some(mv) = best_move
+    {
+        let static_eval_failed_low = !in_check && eval <= s.alpha;
+        let history_depth = depth + u8::from(static_eval_failed_low);
+
+        ctx.tables
+            .tactical_history
+            .update(mv, game, history_depth, &tacticals_tried);
+
+        if mv.is_quiet() {
+            ctx.tables
+                .conthist
+                .update(game, ctx.stack, plies, mv, history_depth, &quiets_tried);
 
             ctx.tables
-                .tactical_history
-                .update(mv, game, history_depth, &tacticals_tried);
-
-            if mv.is_quiet() {
-                ctx.tables.conthist.update(
-                    game,
-                    ctx.stack,
-                    plies,
-                    mv,
-                    history_depth,
-                    &quiets_tried,
-                );
-
-                ctx.tables
-                    .quiet_history
-                    .update(game, mv, history_depth, &quiets_tried);
-            }
+                .quiet_history
+                .update(game, mv, history_depth, &quiets_tried);
         }
+    }
 
-        if !(in_check
+    if excluded_mv.is_none()
+        && !(in_check
             || best_move.is_some_and(|m| !m.is_quiet())
             || tt_node_bound == NodeBound::Lower && best_score <= eval
             || tt_node_bound == NodeBound::Upper && best_score >= eval)
-        {
-            ctx.tables
-                .corrhist
-                .update(game, ctx.stack, plies, depth, best_score - eval);
-        }
+    {
+        ctx.tables
+            .corrhist
+            .update(game, ctx.stack, plies, depth, best_score - eval);
+    }
 
+    if excluded_mv.is_none() {
         ctx.tt.insert(
             game.hash,
             tt_node_bound,

@@ -60,7 +60,7 @@ impl<const MAX: i16> HistoryEntry<MAX> {
         let old = i32::from(self.0);
         let max = i32::from(MAX);
 
-        self.0 = (old + bonus - (old * bonus.abs()) / max) as i16;
+        self.0 = (old + bonus - old * bonus.abs() / max) as i16;
     }
 
     pub fn get(&self) -> i32 {

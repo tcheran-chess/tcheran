@@ -82,9 +82,11 @@ pub struct UciReporter {
 mod colors {
     pub const BRIGHT_BLACK: &str = if cfg!(unix) { "\x1B[90m" } else { "" };
     pub const BRIGHT_WHITE: &str = if cfg!(unix) { "\x1B[97m" } else { "" };
-    pub const RED: &str = if cfg!(unix) { "\x1B[31m" } else { "" };
     pub const WHITE: &str = if cfg!(unix) { "\x1B[37m" } else { "" };
+    pub const RED: &str = if cfg!(unix) { "\x1B[31m" } else { "" };
     pub const GREEN: &str = if cfg!(unix) { "\x1B[32m" } else { "" };
+    pub const YELLOW: &str = if cfg!(unix) { "\x1B[33m" } else { "" };
+    pub const BLUE: &str = if cfg!(unix) { "\x1B[34m" } else { "" };
     pub const RESET: &str = if cfg!(unix) { "\x1B[0m" } else { "" };
 }
 
@@ -296,9 +298,16 @@ impl UciReporter {
             format!("{:.0}%", result.stats.hashfull as f64 / 10.0)
         );
 
+        let first_ten_moves: Vec<Move> = result.pv.iter().take(10).copied().collect();
+        let remaining_plies: Vec<Move> = result.pv.iter().skip(10).copied().collect();
+
         print!("  ");
-        for mv in result.pv.iter() {
+        for mv in &first_ten_moves {
             let san_mv = san::format_move(&game, *mv);
+
+            let san_mv = san_mv.replace('=', &format!("{GREEN}={RESET}"));
+            let san_mv = san_mv.replace('+', &format!("{YELLOW}+{RESET}"));
+            let san_mv = san_mv.replace('#', &format!("{BLUE}#{RESET}"));
 
             print!(
                 " {}",
@@ -309,6 +318,40 @@ impl UciReporter {
             );
 
             game.make_move(*mv);
+        }
+
+        if !remaining_plies.is_empty() {
+            let mut checkmate_move = None;
+
+            for mv in &remaining_plies {
+                let san_mv = san::format_move(&game, *mv);
+                if san_mv.contains('#') {
+                    let san_mv = san_mv.replace('=', &format!("{GREEN}={RESET}"));
+                    let san_mv = san_mv.replace('+', &format!("{YELLOW}+{RESET}"));
+                    let san_mv = san_mv.replace('#', &format!("{BLUE}#{RESET}"));
+
+                    checkmate_move = Some(format!(
+                        " {}",
+                        match game.player {
+                            Player::White => format!("{BRIGHT_WHITE}{san_mv}{RESET}"),
+                            Player::Black => format!("{BRIGHT_BLACK}{san_mv}{RESET}"),
+                        }
+                    ));
+                }
+
+                game.make_move(*mv);
+            }
+
+            let mut remaining_plies = remaining_plies.len();
+            if checkmate_move.is_some() {
+                remaining_plies -= 1;
+            }
+
+            print!(" {BRIGHT_BLACK}[{remaining_plies} plies]{RESET}");
+
+            if let Some(checkmate_move) = checkmate_move {
+                print!("{checkmate_move}");
+            }
         }
 
         println!();

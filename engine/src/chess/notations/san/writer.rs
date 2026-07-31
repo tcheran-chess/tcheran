@@ -76,7 +76,12 @@ pub fn format_move(game: &Game, mv: Move) -> String {
     };
 
     let opponent_in_check_specifier = if places_opponent_in_check {
-        constants::CHECK.to_string()
+        if game_after_move.moves().is_empty() {
+            constants::CHECKMATE
+        } else {
+            constants::CHECK
+        }
+        .to_string()
     } else {
         String::new()
     };

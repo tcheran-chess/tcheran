@@ -21,6 +21,7 @@
 
 * We now prefetch transposition table entries on aarch64 (13.79 +- 6.45 VSTC)
 * All of the individual search files under search/ are merged into a search.rs
+* SAN checkmate moves are now correctly suffixed with #
 
 ## [13.0]
 

@@ -59,6 +59,7 @@ parameters!(
     lmr_ttpv_factor: i32 = 1148 [128..2048];
 
     // Quiescence
+    quiescence_lmp_move_threshold: u8 = 3 [2..8];
     quiescence_futility_margin: i32 = 400 [64..1024];
 
     // Move picking

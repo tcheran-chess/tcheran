@@ -13,7 +13,7 @@ use crate::{
             UciMove,
             options::{UciOption, UciOptionType},
         },
-        util::{metrics, metrics::UnitPrefix},
+        util::metrics,
     },
 };
 
@@ -285,27 +285,11 @@ impl UciReporter {
         print!("  {BRIGHT_BLACK}{time:>6}{RESET}");
 
         let (nodes, nodes_unit) = metrics::unit_suffix(result.stats.nodes);
-        let nodes_suffix = match nodes_unit {
-            UnitPrefix::None => "n",
-            UnitPrefix::Kilo => "kn",
-            UnitPrefix::Mega => "mn",
-            UnitPrefix::Giga => "gn",
-            UnitPrefix::Tera => "tn",
-        };
-
-        print!(" {BRIGHT_BLACK}{:>7}{RESET}", format!("{nodes}{nodes_suffix}"));
+        print!(" {BRIGHT_BLACK}{:>7}{RESET}", format!("{nodes}{}n", nodes_unit.str()));
 
         let nps = metrics::nodes_per_second(result.stats.nodes, result.stats.time);
         let (nps, nps_unit) = metrics::unit_suffix(nps);
-        let nps_suffix = match nps_unit {
-            UnitPrefix::None => "nps",
-            UnitPrefix::Kilo => "knps",
-            UnitPrefix::Mega => "mnps",
-            UnitPrefix::Giga => "gnps",
-            UnitPrefix::Tera => "tnps",
-        };
-
-        print!("  {BRIGHT_BLACK}{:>8}{RESET}", format!("{}{}", nps, nps_suffix));
+        print!("  {BRIGHT_BLACK}{:>8}{RESET}", format!("{}{}nps", nps, nps_unit.str()));
 
         print!(
             "  {BRIGHT_BLACK}{:>4}{RESET}",

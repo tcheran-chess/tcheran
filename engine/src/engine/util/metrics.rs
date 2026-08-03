@@ -18,6 +18,18 @@ pub enum UnitPrefix {
     Tera,
 }
 
+impl UnitPrefix {
+    pub fn str(&self) -> &'static str {
+        match self {
+            Self::None => "",
+            Self::Kilo => "k",
+            Self::Mega => "m",
+            Self::Giga => "g",
+            Self::Tera => "t",
+        }
+    }
+}
+
 #[expect(
     clippy::cast_precision_loss,
     reason = "This is intended to be approximate so we don't care about this being lossy"

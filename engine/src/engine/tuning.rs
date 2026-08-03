@@ -11,6 +11,19 @@ macro_rules! parameters {
                     $default
                 }
             )*
+
+            pub fn spsa_params() -> Vec<crate::engine::uci::options::UciOption> {
+                vec![
+                    $(
+                        crate::engine::uci::options::UciOption::spin(stringify!($name), |_refs, _value| {
+                          panic!("set spsa option outside of spsa")
+                       })
+                       .default($default)
+                       .with_bounds($min, $max)
+                       .build(),
+                    )*
+                ]
+            }
         }
 
         #[cfg(not(feature = "spsa"))]

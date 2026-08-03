@@ -108,3 +108,28 @@ parameters!(
     node_tm_multiplier: u32 = 170 [1..512];
     node_tm_min: u32 = 90 [1..100];
 );
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::engine::uci::options::UciOptionType;
+
+    #[test]
+    fn test_param_bounds() {
+        let params = spsa_params();
+
+        for param in params {
+            match param.t {
+                UciOptionType::Spin {
+                    default, min, max, ..
+                } => {
+                    assert!(default >= min, "{} is less than its min, {}", param.name, min);
+                    assert!(default <= max, "{} is greater than its min, {}", param.name, max);
+                }
+                UciOptionType::Check { .. }
+                | UciOptionType::String { .. }
+                | UciOptionType::Button { .. } => {}
+            }
+        }
+    }
+}

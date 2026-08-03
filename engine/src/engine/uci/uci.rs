@@ -288,9 +288,21 @@ impl Uci {
                 let persistent_state = self.persistent_state.clone();
                 let options = self.options.clone();
                 let reporter = self.reporter.clone();
-                let time_control = time_control.clone();
+                let mut time_control = time_control.clone();
                 let stop_control = self.threads.thread_control.clone();
                 let results = Arc::new(SearchResults::new(self.options.threads));
+
+                // Adapt time control for soft nodes if the corresponding option is set
+                if options.soft_nodes
+                    && let TimeControl::Nodes { hard, .. } = time_control
+                {
+                    let nodes = hard.expect("Hard nodes should be set after parsing go nodes");
+
+                    time_control = TimeControl::Nodes {
+                        soft: Some(nodes),
+                        hard: options.soft_notes_hard_factor.map(|f| f as u64 * nodes),
+                    }
+                }
 
                 self.threads.send(ThreadCommand::Search {
                     game,
@@ -700,7 +712,7 @@ fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
         match command {
             ThreadCommand::Search {
                 game,
-                mut time_control,
+                time_control,
                 stop_control,
                 options,
                 persistent_state,
@@ -715,18 +727,6 @@ fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
                 } else {
                     Arc::new(NullReporter)
                 };
-
-                // Adapt time control for soft nodes if the corresponding option is set
-                if options.soft_nodes
-                    && let TimeControl::Nodes { hard, .. } = time_control
-                {
-                    let nodes = hard.expect("Hard nodes should be set after parsing go nodes");
-
-                    time_control = TimeControl::Nodes {
-                        soft: Some(nodes),
-                        hard: options.soft_notes_hard_factor.map(|f| f as u64 * nodes),
-                    }
-                }
 
                 // Only do time control on the main thread
                 let time_control = if is_main_thread {

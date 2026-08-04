@@ -38,7 +38,7 @@ pub fn init_see_values(
 
 pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
     if mv.is_castling() {
-        return true;
+        return threshold.0 <= 0;
     }
 
     let from = mv.from();

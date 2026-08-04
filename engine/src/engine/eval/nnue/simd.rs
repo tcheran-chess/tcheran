@@ -13,13 +13,19 @@ macro_rules! simd {
             target_feature = "avx2" => $avx2block,
             target_feature = "neon" => $neonblock,
         )
-    }
+    };
 }
 
 cfg_select!(
-    target_feature = "avx512bw" => { use std::arch::x86_64::*; },
-    target_feature = "avx2" => { use std::arch::x86_64::*; },
-    target_feature = "neon" => { use std::arch::aarch64::*; },
+    target_feature = "avx512bw" => {
+        use std::arch::x86_64::*;
+    }
+    target_feature = "avx2" => {
+        use std::arch::x86_64::*;
+    }
+    target_feature = "neon" => {
+        use std::arch::aarch64::*;
+    }
 );
 
 pub type U8s = simd!(

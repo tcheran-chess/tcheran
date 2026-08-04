@@ -428,7 +428,10 @@ impl TranspositionTable {
             target_arch = "aarch64" => {
                 let idx = self.get_cluster_idx(hash);
 
-                #[expect(clippy::pointers_in_nomem_asm_block, reason = "Pointer is not read/written")]
+                #[expect(
+                    clippy::pointers_in_nomem_asm_block,
+                    reason = "Pointer is not read/written"
+                )]
                 unsafe {
                     let ptr: *const RawCluster = self.data.as_ptr().add(idx).cast();
 

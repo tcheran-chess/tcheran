@@ -22,44 +22,36 @@ pub fn forward(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> i3
 
 fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> [u8; L1] {
     cfg_select! {
-        any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon") => {
-            unsafe { vectorised::activate_ft(us, them, output_bucket) }
-        }
-        _ => {
-            scalar::activate_ft(us, them, output_bucket)
-        }
+        any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon") => unsafe {
+            vectorised::activate_ft(us, them, output_bucket)
+        },
+        _ => scalar::activate_ft(us, them, output_bucket),
     }
 }
 
 fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 * 2] {
     cfg_select! {
-        any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon") => {
-            unsafe { vectorised::propagate_l1(input, output_bucket) }
-        }
-        _ => {
-            scalar::propagate_l1(input, output_bucket)
-        }
+        any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon") => unsafe {
+            vectorised::propagate_l1(input, output_bucket)
+        },
+        _ => scalar::propagate_l1(input, output_bucket),
     }
 }
 
 fn propagate_l2(input: &[i32; L2 * 2], output_bucket: usize) -> [i32; L3] {
     cfg_select! {
-        any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon") => {
-            unsafe { vectorised::propagate_l2(input, output_bucket) }
-        }
-        _ => {
-            scalar::propagate_l2(input, output_bucket)
-        }
+        any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon") => unsafe {
+            vectorised::propagate_l2(input, output_bucket)
+        },
+        _ => scalar::propagate_l2(input, output_bucket),
     }
 }
 
 fn propagate_l3(input: &[i32; L3], output_bucket: usize) -> i32 {
     cfg_select! {
-        any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon") => {
-            unsafe { vectorised::propagate_l3(input, output_bucket) }
-        }
-        _ => {
-            scalar::propagate_l3(input, output_bucket)
-        }
+        any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon") => unsafe {
+            vectorised::propagate_l3(input, output_bucket)
+        },
+        _ => scalar::propagate_l3(input, output_bucket),
     }
 }

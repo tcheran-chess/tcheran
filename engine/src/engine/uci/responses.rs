@@ -208,8 +208,8 @@ impl UciReporter {
 
     fn uci_report_search_progress(&self, game: &Game, result: &search::SearchResult) {
         self.send(&UciResponse::Info(InfoFields {
-            depth: Some(result.stats.depth),
-            seldepth: Some(result.stats.seldepth),
+            depth: Some(result.depth),
+            seldepth: Some(result.seldepth),
             score: Some(InfoScore::from(result.score, game)),
             wdl: Some(wdl::wdl(result.score, &game.board)),
             pv: Some(
@@ -237,8 +237,8 @@ impl UciReporter {
         let score = InfoScore::from(result.score, game);
         let mut game = game.clone();
 
-        print!(" {:>3}", result.stats.depth);
-        print!("{BRIGHT_BLACK}/{:<3}{RESET}", result.stats.seldepth);
+        print!(" {:>3}", result.depth);
+        print!("{BRIGHT_BLACK}/{:<3}{RESET}", result.seldepth);
 
         let (formatted_score, score_color) = match score {
             InfoScore::Centipawns(cp) => {

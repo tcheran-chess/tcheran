@@ -81,7 +81,7 @@ pub fn search(
         stop_control.stop();
         stop_control.wait_until_last();
 
-        let result = best_result(results);
+        let mut result = best_result(results);
 
         let send_final_info =
              // We picked a different thread, so we want to report *that* thread's info
@@ -98,6 +98,9 @@ pub fn search(
         stop_control.stopped();
 
         if send_final_info {
+            // Refresh stats from the search context as they may have changed from result.stats if we
+            // hard-stopped.
+            result.stats = SearchStats::from_ctx(&ctx);
             reporter.report_search_progress(game, &result);
         }
 
@@ -203,11 +206,11 @@ pub fn probe_tb_at_root(
         id: 0,
         mv: best_move,
         pv,
+        depth,
+        seldepth: depth,
         score,
         stats: SearchStats {
             time: elapsed,
-            depth,
-            seldepth: depth,
             nodes: u64::from(depth),
             tbhits: u64::from(depth),
             hashfull: 0,
@@ -252,6 +255,8 @@ pub fn iterative_deepening(
         let this_result = SearchResult {
             id: ctx.id,
             mv: new_best_move,
+            depth: depth.as_u8(),
+            seldepth: ctx.max_depth_reached,
             score: eval,
             pv: pv.clone(),
             stats: SearchStats::from_ctx(ctx),

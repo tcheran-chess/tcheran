@@ -109,7 +109,6 @@ pub struct SearchContext<'s> {
 
     pub id: usize,
     pub max_depth_reached: u8,
-    pub completed_depth: Depth,
     pub root_depth: Depth,
     pub was_hard_stopped: bool,
     pub nodes: BufferedAtomicU64<'s>,
@@ -143,7 +142,6 @@ impl<'s> SearchContext<'s> {
 
             id,
             max_depth_reached: 0,
-            completed_depth: Depth::ZERO,
             root_depth: Depth::ZERO,
             was_hard_stopped: false,
             nodes: BufferedAtomicU64::new(node_counter),
@@ -167,7 +165,6 @@ impl SearchContext<'_> {
     }
 
     pub fn update_after_search(&mut self, best_move: Move, depth: Depth) {
-        self.completed_depth = depth;
         self.time_control
             .update_after_search(best_move, depth, self.nodes.get());
     }
@@ -258,6 +255,8 @@ pub struct SearchResult {
     pub id: usize,
     pub mv: Move,
     pub score: Eval,
+    pub depth: u8,
+    pub seldepth: u8,
     pub pv: PrincipalVariation,
     pub stats: SearchStats,
 }
@@ -265,8 +264,6 @@ pub struct SearchResult {
 #[derive(Clone)]
 pub struct SearchStats {
     pub time: Duration,
-    pub depth: u8,
-    pub seldepth: u8,
     pub nodes: u64,
     pub tbhits: u64,
     pub hashfull: u64,
@@ -276,8 +273,6 @@ impl SearchStats {
     pub fn from_ctx(ctx: &SearchContext<'_>) -> Self {
         Self {
             time: ctx.time_control.elapsed(),
-            depth: ctx.completed_depth.as_u8(),
-            seldepth: ctx.max_depth_reached,
             nodes: ctx.nodes.get_global(),
             tbhits: ctx.tbhits.get_global(),
             hashfull: ctx.tt.occupancy(),

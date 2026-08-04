@@ -24,6 +24,7 @@
 * All of the individual search files under search/ are merged into a search.rs
 * SAN checkmate moves are now correctly suffixed with #
 * Pretty info PVs are now truncated for readability, and checks, promotions and checkmates are colored
+* Exact nodes/time reporting behaviour for hard-stopped searches which was broken accidentally has been restored 
 
 ## [13.0]
 

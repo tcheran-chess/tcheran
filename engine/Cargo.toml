@@ -20,6 +20,7 @@ name = "tcheran"
 path = "src/main.rs"
 
 [dependencies]
+libc = "0.2.189"
 rand = { version = "0.10.0", optional = true }
 
 [build-dependencies]

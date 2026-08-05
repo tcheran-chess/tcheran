@@ -29,6 +29,7 @@
 #### Misc
 
 * We now prefetch transposition table entries on aarch64 (13.79 +- 6.45 VSTC)
+* hugepages are now used for the transposition table on Linux
 * All of the individual search files under search/ are merged into a search.rs
 * SAN checkmate moves are now correctly suffixed with #
 * Pretty info PVs are now truncated for readability, and checks, promotions and checkmates are colored

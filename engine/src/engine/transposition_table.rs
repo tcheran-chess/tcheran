@@ -1,6 +1,8 @@
+#![allow(unsafe_op_in_unsafe_fn, reason = "")]
+
 use std::{
     mem::transmute,
-    sync::atomic::{AtomicU8, AtomicU64, Ordering},
+    sync::atomic::{AtomicPtr, AtomicU8, AtomicU64, AtomicUsize, Ordering},
 };
 
 use crate::{
@@ -9,9 +11,10 @@ use crate::{
 };
 
 pub struct TranspositionTable {
-    data: Vec<RawCluster>,
+    data: AtomicPtr<RawCluster>,
+    len: AtomicUsize,
+
     generation: AtomicU8,
-    size: usize,
 }
 
 #[derive(Clone)]
@@ -144,8 +147,9 @@ pub const fn calculate_number_of_clusters(size_mb: usize) -> usize {
 impl TranspositionTable {
     pub fn new(size_mb: usize) -> Self {
         let mut tt = Self {
-            data: Vec::new(),
-            size: 0,
+            data: AtomicPtr::new(std::ptr::null_mut()),
+            len: AtomicUsize::new(0),
+
             generation: AtomicU8::default(),
         };
 
@@ -154,10 +158,15 @@ impl TranspositionTable {
     }
 
     pub fn reset(&mut self, threads: usize) {
+        if self.len() == 0 {
+            return;
+        }
+
         unsafe {
             std::thread::scope(|scope| {
-                let len = self.data.len();
-                let slice = std::slice::from_raw_parts_mut(self.data.as_mut_ptr(), len);
+                let len = self.len();
+
+                let slice = std::slice::from_raw_parts_mut(self.data.load(Ordering::Relaxed), len);
 
                 let chunk_size = len.div_ceil(threads);
                 for chunk in slice.chunks_mut(chunk_size) {
@@ -170,41 +179,75 @@ impl TranspositionTable {
     }
 
     // Safety: Does not zero the memory it returns so all callers must zero it
-    unsafe fn allocate(len: usize) -> Vec<RawCluster> {
-        use std::{
-            alloc::{Layout, alloc, handle_alloc_error},
-            ptr::slice_from_raw_parts_mut,
+    unsafe fn allocate(size_mb: usize) -> AtomicPtr<RawCluster> {
+        let size = size_mb * 1024 * 1024;
+
+        let ptr = {
+            cfg_select! {
+                target_os = "linux" => {
+                    use libc::{
+                        MADV_HUGEPAGE, MAP_ANONYMOUS, MAP_PRIVATE, PROT_READ, PROT_WRITE, madvise,
+                        mmap,
+                    };
+
+                    let ptr = mmap(
+                        std::ptr::null_mut(),
+                        size,
+                        PROT_READ | PROT_WRITE,
+                        MAP_PRIVATE | MAP_ANONYMOUS,
+                        -1,
+                        0,
+                    );
+
+                    madvise(ptr, size, MADV_HUGEPAGE);
+                    ptr.cast()
+                }
+                _ => {
+                    use std::alloc::{Layout, alloc_zeroed};
+                    let layout = Layout::from_size_align(size, align_of::<Cluster>()).unwrap();
+                    unsafe { alloc_zeroed(layout).cast() }
+                }
+            }
         };
 
-        unsafe {
-            let layout = Layout::array::<RawCluster>(len).unwrap();
+        AtomicPtr::new(ptr)
+    }
 
-            let ptr = alloc(layout);
-            if ptr.is_null() {
-                handle_alloc_error(layout);
+    unsafe fn deallocate(&mut self) {
+        if self.len() == 0 {
+            return;
+        }
+
+        let data = self.data.load(Ordering::Relaxed);
+        let size = self.len() * size_of::<RawCluster>();
+
+        cfg_select! {
+            target_os = "linux" => {
+                let _ = libc::munmap(data.cast(), size);
             }
-
-            Box::from_raw(slice_from_raw_parts_mut(ptr.cast(), len)).into()
+            _ => {
+                let layout =
+                    std::alloc::Layout::from_size_align(size, align_of::<Cluster>()).unwrap();
+                unsafe { std::alloc::dealloc(data.cast(), layout) };
+            }
         }
     }
 
     pub fn resize(&mut self, size_mb: usize, threads: usize) {
-        if self.size == size_mb {
+        let len = calculate_number_of_clusters(size_mb);
+
+        if self.len() == len {
             return;
         }
 
-        // Force deallocation of the existing memory
-        self.data.clear();
-        self.data.shrink_to_fit();
-
-        let number_of_clusters = calculate_number_of_clusters(size_mb);
-
         unsafe {
-            self.data = Self::allocate(number_of_clusters);
+            self.deallocate();
+
+            self.data = Self::allocate(size_mb);
+            self.len.store(len, Ordering::Relaxed);
+
             self.reset(threads);
         }
-
-        self.size = size_mb;
     }
 
     pub fn new_generation(&self) {
@@ -218,15 +261,16 @@ impl TranspositionTable {
 
     fn get_cluster_idx(&self, key: ZobristHash) -> usize {
         // (from Reckless: For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction)
-        ((u128::from(key.0) * (self.data.len() as u128)) >> 64) as usize
+        ((u128::from(key.0) * (self.len() as u128)) >> 64) as usize
     }
 
     pub fn occupancy(&self) -> u64 {
         let mut occupied = 0;
-        let estimate_n = 1000;
+        let estimate_n = 1000.min(self.len());
         let generation = self.generation.load(Ordering::Relaxed);
 
-        for raw_cluster in self.data.iter().take(estimate_n) {
+        for i in 0..estimate_n {
+            let raw_cluster = unsafe { self.get_cluster(i) };
             let cluster = raw_cluster.read();
 
             for entry in cluster.entries {
@@ -320,7 +364,8 @@ impl TranspositionTable {
         let idx = self.get_cluster_idx(key);
         let key = tt_key(key);
 
-        let mut cluster = self.data[idx].read();
+        let raw_cluster = unsafe { self.get_cluster(idx) };
+        let mut cluster = raw_cluster.read();
         let age = self.generation.load(Ordering::Relaxed);
 
         let mut least_valuable_entry_idx = 0;
@@ -365,7 +410,7 @@ impl TranspositionTable {
             || Self::should_overwrite(least_valuable_entry.unwrap(), &new_entry)
         {
             cluster.entries[least_valuable_entry_idx] = new_entry;
-            self.data[idx].write(cluster);
+            raw_cluster.write(cluster);
         }
     }
 
@@ -374,23 +419,18 @@ impl TranspositionTable {
         let key = tt_key(key);
 
         // !: We know the exact size of the table and will always access within the bounds.
-        unsafe {
-            let cluster = self.data.get_unchecked(idx).read();
+        let cluster = unsafe { self.get_cluster(idx) }.read();
 
-            for entry in cluster.entries {
-                if entry.key == key {
-                    return Some(TranspositionTableHit {
-                        bound: entry.bound(),
-                        score: Self::with_mate_distance_from_root(
-                            Eval(i32::from(entry.score)),
-                            plies,
-                        ),
-                        depth: Depth::new(entry.depth),
-                        eval: Eval(i32::from(entry.eval)),
-                        best_move: entry.best_move,
-                        was_pv: entry.was_pv(),
-                    });
-                }
+        for entry in cluster.entries {
+            if entry.key == key {
+                return Some(TranspositionTableHit {
+                    bound: entry.bound(),
+                    score: Self::with_mate_distance_from_root(Eval(i32::from(entry.score)), plies),
+                    depth: Depth::new(entry.depth),
+                    eval: Eval(i32::from(entry.eval)),
+                    best_move: entry.best_move,
+                    was_pv: entry.was_pv(),
+                });
             }
         }
 
@@ -405,7 +445,7 @@ impl TranspositionTable {
                 let idx = self.get_cluster_idx(hash);
 
                 unsafe {
-                    let ptr = self.data.as_ptr().add(idx).cast();
+                    let ptr = self.data.load(Ordering::Relaxed).add(idx).cast();
                     _mm_prefetch::<_MM_HINT_T0>(ptr);
                 }
             }
@@ -418,7 +458,7 @@ impl TranspositionTable {
                     reason = "Pointer is not read/written"
                 )]
                 unsafe {
-                    let ptr: *const RawCluster = self.data.as_ptr().add(idx).cast();
+                    let ptr: *const RawCluster = self.data.load(Ordering::Relaxed).add(idx).cast();
 
                     std::arch::asm!(
                         "prfm pldl1keep, [{}]",
@@ -433,5 +473,13 @@ impl TranspositionTable {
                 _ = hash;
             }
         }
+    }
+
+    unsafe fn get_cluster(&self, idx: usize) -> &RawCluster {
+        unsafe { &*self.data.load(Ordering::Relaxed).add(idx) }
+    }
+
+    fn len(&self) -> usize {
+        self.len.load(Ordering::Relaxed)
     }
 }

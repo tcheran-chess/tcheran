@@ -25,6 +25,9 @@ parameters!(
 
     iir_depth: u8 = 3 [2..10];
 
+    probcut_depth_diff: u8 = 2 [1..8];
+    probcut_margin: i32 = 375 [128..1024];
+
     singular_extension_depth: u8 = 5 [2..10];
     singular_extension_entry_depth_delta: u8 = 3 [2..10];
     singular_extension_margin: i32 = 2 [2..10];

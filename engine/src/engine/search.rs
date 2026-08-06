@@ -617,6 +617,21 @@ pub fn negamax(
         depth -= 1;
     }
 
+    // Probcut
+    if !is_pv
+        && excluded_mv.is_none()
+        && !in_check
+        && let Some(ref e) = tt_entry
+        && e.score != Eval::NONE
+        && !e.score.is_decisive()
+        && !s.beta.is_decisive()
+        && (e.bound == NodeBound::Lower || e.bound == NodeBound::Exact)
+        && e.score >= (s.beta + probcut_margin()).clamp_to_non_mate()
+        && e.depth >= depth - probcut_depth_diff()
+    {
+        return e.score;
+    }
+
     // Singular extension
     let mut extension: i8 = 0;
 

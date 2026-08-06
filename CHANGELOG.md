@@ -7,6 +7,7 @@
 * Tweak LMR params: tacticals less, quiets more (7.42 +- 4.53)
 * Add hindsight reductions (4.52 +- 3.31)
 * The TT score is now used for RFP if conditions allow (4.11 +- 3.09)
+* Add 'simple' probcut (3.62 +- 2.81)
 * Add late move pruning in quiescence (3.51 +- 2.75)
 * Add hindsight extensions (3.31 +- 2.61)
 * Give a higher history bonus for moves that failed high but where the static eval was below alpha (2.66 +- 2.14)

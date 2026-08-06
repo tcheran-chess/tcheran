@@ -113,6 +113,8 @@ pub struct SearchContext<'s> {
     pub was_hard_stopped: bool,
     pub nodes: BufferedAtomicU64<'s>,
     pub tbhits: BufferedAtomicU64<'s>,
+
+    pub min_nmp_ply: u8,
 }
 
 impl<'s> SearchContext<'s> {
@@ -146,6 +148,8 @@ impl<'s> SearchContext<'s> {
             was_hard_stopped: false,
             nodes: BufferedAtomicU64::new(node_counter),
             tbhits: BufferedAtomicU64::new(tbhits_counter),
+
+            min_nmp_ply: 0,
         }
     }
 }

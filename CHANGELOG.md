@@ -21,6 +21,7 @@
 * Separate legal_moves and moves_tried counters in search (3.64 +- 4.07)
 * Saturating behaviour in LMR is no longer used (2.29 +- 3.43)
 * Histories are now updated in singular search (0.88 +- 2.70)
+* Null move scores are now verified (0.48 +- 2.39)
 * Give castling moves SEE of 0 instead of always passing (0.02 +- 2.32)
 * Make l0 multi-dimensional (-0.11 +- 2.61)
 * Don't apply tacthist bonus for quiet moves (-0.23 +- 2.25)

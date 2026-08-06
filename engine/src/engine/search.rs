@@ -575,6 +575,7 @@ pub fn negamax(
     if cut_node
         && !in_check
         && !in_singular_search
+        && plies >= ctx.min_nmp_ply
         && eval >= s.beta
         // Don't let a player play a null move in response to a null move
         && ctx.stack.last(plies).is_some_and(|s| s.mv.is_some())
@@ -606,11 +607,33 @@ pub fn negamax(
         }
 
         if null_score >= s.beta {
-            return if null_score.is_decisive() {
-                s.beta
-            } else {
-                null_score
-            };
+            if depth <= 14 || ctx.min_nmp_ply > 0 {
+                return if null_score.is_decisive() {
+                    s.beta
+                } else {
+                    null_score
+                };
+            }
+
+            ctx.min_nmp_ply = plies + u8::try_from(((depth - reduction) * 3) / 4).unwrap_or(0);
+            let verify_null_score = negamax(
+                game,
+                s.zero_window_around_beta(),
+                depth - reduction,
+                plies,
+                false,
+                &mut PrincipalVariation::new(),
+                ctx,
+            );
+            ctx.min_nmp_ply = 0;
+
+            if ctx.stopped() {
+                return Eval::MIN;
+            }
+
+            if verify_null_score >= s.beta {
+                return verify_null_score;
+            }
         }
     }
 

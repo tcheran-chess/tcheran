@@ -523,6 +523,19 @@ pub fn negamax(
         depth += 1;
     }
 
+    if !is_root
+        && !is_pv
+        && !in_check
+        && excluded_mv.is_none()
+        && depth >= hindsight_extension_depth()
+        && let Some(last) = ctx.stack.last(plies)
+        && last.reduction >= 1
+        && last.eval != Eval::NONE
+        && eval + last.eval > Eval(hindsight_extension_margin())
+    {
+        depth -= 1;
+    }
+
     let mut rfp_margin = 0;
     rfp_margin += depth * reverse_futility_prune_depth_margin();
     rfp_margin -= i32::from(improving) * reverse_futility_prune_improving_margin();

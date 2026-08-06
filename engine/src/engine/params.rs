@@ -10,6 +10,9 @@ parameters!(
     aspiration_max_reduction: u8 = 3 [2..10];
 
     // Whole node techniques
+    hindsight_extension_depth: u8 = 2 [1..8];
+    hindsight_extension_margin: i32 = 80 [32..256];
+
     reverse_futility_prune_depth_margin: i32 = 111 [16..256];
     reverse_futility_prune_improving_margin: i32 = 95 [16..256];
     reverse_futility_prune_depth: u8 = 5 [2..10];

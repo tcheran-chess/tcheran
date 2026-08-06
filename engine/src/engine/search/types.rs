@@ -204,6 +204,7 @@ pub struct SearchStackEntry {
     pub excluded_mv: Option<Move>,
     pub double_extensions: u8,
     pub fail_highs: u8,
+    pub reduction: i32,
 }
 
 impl SearchStackEntry {
@@ -215,6 +216,7 @@ impl SearchStackEntry {
             excluded_mv: None,
             double_extensions: 0,
             fail_highs: 0,
+            reduction: 0,
         }
     }
 }

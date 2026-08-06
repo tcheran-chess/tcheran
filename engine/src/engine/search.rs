@@ -511,6 +511,18 @@ pub fn negamax(
         false
     };
 
+    // Hindsight extension
+    if !is_root
+        && !in_check
+        && excluded_mv.is_none()
+        && let Some(last) = ctx.stack.last(plies)
+        && last.reduction >= 3
+        && last.eval != Eval::NONE
+        && eval + last.eval < Eval(0)
+    {
+        depth += 1;
+    }
+
     let mut rfp_margin = 0;
     rfp_margin += depth * reverse_futility_prune_depth_margin();
     rfp_margin -= i32::from(improving) * reverse_futility_prune_improving_margin();
@@ -778,6 +790,8 @@ pub fn negamax(
             // We already found a good move (i.e. we raised alpha).
             // Now, we just need to prove that the other moves are worse.
             // We search them with a reduced window to prove that they are at least worse.
+
+            ctx.stack.get(plies).reduction = reduction;
             score = -negamax(
                 game,
                 -s.zero_window_around_alpha(),
@@ -787,6 +801,7 @@ pub fn negamax(
                 &mut node_pv,
                 ctx,
             );
+            ctx.stack.get(plies).reduction = 0;
 
             // If we raised alpha, but we were searching with reduced depth, we probably want to double
             // check we didn't miss something, so search without the reduction.

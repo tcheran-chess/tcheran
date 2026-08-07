@@ -70,15 +70,10 @@ fn generate_sliding_attacks(
     for direction in directions {
         let mut current_square = square.bb();
 
-        // Until we're off the board
-        while current_square.any() {
+        // Until we're off the board or blocked
+        while current_square.any() && !pieces.contains(current_square.single()) {
             current_square = current_square.in_direction(*direction);
             attacks |= current_square;
-
-            // Future squares blocked
-            if (pieces & current_square).any() {
-                break;
-            }
         }
     }
 

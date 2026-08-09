@@ -143,7 +143,6 @@ impl UciOption {
                 let value = value.parse::<bool>().map_err(|_| "Invalid value")?;
 
                 set_fn(&mut refs, value);
-                Ok(())
             }
             UciOptionType::Spin {
                 min, max, set_fn, ..
@@ -159,19 +158,18 @@ impl UciOption {
                 }
 
                 set_fn(&mut refs, SpinValue::new(value));
-                Ok(())
             }
             UciOptionType::String { set_fn, .. } => {
                 let value = value.parse::<String>().map_err(|_| "Invalid value")?;
 
                 set_fn(&mut refs, value);
-                Ok(())
             }
             UciOptionType::Button { set_fn } => {
                 set_fn(&mut refs, ());
-                Ok(())
             }
         }
+
+        Ok(())
     }
 }
 

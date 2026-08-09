@@ -12,17 +12,17 @@ pub const Q0: i32 = 255;
 pub const _Q1: i32 = 128;
 pub const Q: i32 = 64;
 
-pub const Q_BITS: cfg_select!(
+pub const Q_BITS: cfg_select! {
     target_feature = "avx512bw" => u32,
     _ => i32,
-) = 6;
+} = 6;
 
 pub const L0_SHIFT: u32 = 9;
 
-pub const L1_SHIFT: cfg_select!(
+pub const L1_SHIFT: cfg_select! {
     target_feature = "avx512bw" => u32,
     _ => i32,
-) = 8;
+} = 8;
 
 // Eval scaling factor
 pub const SCALE: i32 = 321;

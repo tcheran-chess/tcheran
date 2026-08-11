@@ -690,6 +690,7 @@ pub fn negamax(
     let mut best_score = Eval::MIN;
 
     let mut moves = MovePicker::new(previous_best_move);
+    let mut legal_moves = 0;
     let mut moves_tried = 0;
     let mut node_pv = PrincipalVariation::new();
 
@@ -697,6 +698,8 @@ pub fn negamax(
     let mut quiets_tried = MoveList::new();
 
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
+        legal_moves += 1;
+
         if Some(mv) == excluded_mv {
             continue;
         }
@@ -896,7 +899,7 @@ pub fn negamax(
         }
     }
 
-    if moves_tried == 0 {
+    if legal_moves == 0 {
         if in_singular_search {
             return s.alpha;
         }
@@ -1053,6 +1056,7 @@ pub fn quiescence(
     let mut best_score = eval;
     let mut best_move = None;
     let mut node_bound = NodeBound::Upper;
+    let mut legal_moves = 0;
     let mut moves_tried = 0;
     let futility_score = eval + quiescence_futility_margin();
 
@@ -1063,7 +1067,7 @@ pub fn quiescence(
     }
 
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
-        moves_tried += 1;
+        legal_moves += 1;
 
         if !best_score.is_loss() && moves.stage >= GenStage::BadTacticals {
             break;
@@ -1086,6 +1090,7 @@ pub fn quiescence(
         ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.from())));
 
         game.make_move_observed(mv, ctx.nnue.next_changes());
+        moves_tried += 1;
 
         let move_score = -quiescence(game, -s, plies + 1, ctx);
 
@@ -1117,7 +1122,7 @@ pub fn quiescence(
         }
     }
 
-    if in_check && moves_tried == 0 {
+    if in_check && legal_moves == 0 {
         return Eval::mated_in(plies);
     }
 

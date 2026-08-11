@@ -314,13 +314,13 @@ impl ScoreWindow {
     pub fn zero_window_around_alpha(&self) -> Self {
         Self {
             alpha: self.alpha,
-            beta: self.alpha + Eval(1),
+            beta: self.alpha + 1,
         }
     }
 
     pub fn zero_window_around_beta(&self) -> Self {
         Self {
-            alpha: self.beta - Eval(1),
+            alpha: self.beta - 1,
             beta: self.beta,
         }
     }
@@ -334,7 +334,7 @@ impl ScoreWindow {
     }
 
     pub fn is_zero_window(&self) -> bool {
-        self.alpha == self.beta - Eval(1)
+        self.alpha == self.beta - 1
     }
 }
 

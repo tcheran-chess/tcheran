@@ -291,11 +291,11 @@ impl TranspositionTable {
         }
 
         if eval.is_win() {
-            return Eval(eval.0 + i32::from(plies));
+            return eval + i32::from(plies);
         }
 
         if eval.is_loss() {
-            return Eval(eval.0 - i32::from(plies));
+            return eval - i32::from(plies);
         }
 
         eval
@@ -307,11 +307,11 @@ impl TranspositionTable {
         }
 
         if eval.is_win() {
-            return Eval(eval.0 - i32::from(plies));
+            return eval - i32::from(plies);
         }
 
         if eval.is_loss() {
-            return Eval(eval.0 + i32::from(plies));
+            return eval + i32::from(plies);
         }
 
         eval

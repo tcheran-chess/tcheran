@@ -657,7 +657,7 @@ pub fn negamax(
         ctx.stack.get(plies).excluded_mv = Some(mv);
         let se_score = negamax(
             game,
-            ScoreWindow::new(se_beta - Eval(1), se_beta),
+            ScoreWindow::new(se_beta - 1, se_beta),
             se_depth,
             plies,
             cut_node,

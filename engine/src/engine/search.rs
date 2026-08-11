@@ -338,6 +338,7 @@ pub fn negamax(
     let is_root = plies == 0;
     let is_pv = !s.is_zero_window();
     let excluded_mv = ctx.stack.get(plies).excluded_mv;
+    let in_singular_search = excluded_mv.is_some();
 
     ctx.stack.get(plies).double_extensions = if is_root {
         0
@@ -412,7 +413,7 @@ pub fn negamax(
 
     #[cfg(feature = "syzygy")]
     if !is_root
-        && excluded_mv.is_none()
+        && !in_singular_search
         && ctx.tablebase.can_probe(game)
         && let Some(wdl) = ctx.tablebase.wdl(game)
     {
@@ -450,7 +451,7 @@ pub fn negamax(
 
     let (raw_eval, eval) = if in_check {
         (Eval::NONE, Eval::NONE)
-    } else if excluded_mv.is_some() {
+    } else if in_singular_search {
         (Eval::NONE, ctx.stack.get(plies).eval)
     } else if let Some(tt_entry) = &tt_entry {
         let raw_eval = if tt_entry.eval == Eval::NONE {
@@ -482,7 +483,7 @@ pub fn negamax(
 
     let mut score_estimate = eval;
     if !in_check
-        && excluded_mv.is_none()
+        && !in_singular_search
         && let Some(ref tt_entry) = tt_entry
         && match tt_entry.bound {
             NodeBound::None => false,
@@ -514,7 +515,7 @@ pub fn negamax(
     // Hindsight extension
     if !is_root
         && !in_check
-        && excluded_mv.is_none()
+        && !in_singular_search
         && let Some(last) = ctx.stack.last(plies)
         && last.reduction >= 3
         && last.eval != Eval::NONE
@@ -526,7 +527,7 @@ pub fn negamax(
     if !is_root
         && !is_pv
         && !in_check
-        && excluded_mv.is_none()
+        && !in_singular_search
         && depth >= hindsight_extension_depth()
         && let Some(last) = ctx.stack.last(plies)
         && last.reduction >= 1
@@ -544,7 +545,7 @@ pub fn negamax(
     if !is_root
         && !is_pv
         && !in_check
-        && excluded_mv.is_none()
+        && !in_singular_search
         && depth <= reverse_futility_prune_depth()
         && score_estimate - rfp_margin >= s.beta
     {
@@ -559,7 +560,7 @@ pub fn negamax(
     if !is_root
         && !is_pv
         && !in_check
-        && excluded_mv.is_none()
+        && !in_singular_search
         && depth <= razoring_depth()
         && s.alpha.0.abs() < 2000
         && eval + depth * razoring_margin() <= s.alpha
@@ -573,7 +574,7 @@ pub fn negamax(
     // Null move pruning
     if cut_node
         && !in_check
-        && excluded_mv.is_none()
+        && !in_singular_search
         && eval >= s.beta
         // Don't let a player play a null move in response to a null move
         && ctx.stack.last(plies).is_some_and(|s| s.mv.is_some())
@@ -619,7 +620,7 @@ pub fn negamax(
 
     // Probcut
     if !is_pv
-        && excluded_mv.is_none()
+        && !in_singular_search
         && !in_check
         && let Some(ref e) = tt_entry
         && e.score != Eval::NONE
@@ -640,7 +641,7 @@ pub fn negamax(
         .filter(|entry| {
             depth >= singular_extension_depth()
                 && !is_root
-                && excluded_mv.is_none()
+                && !in_singular_search
                 && entry.bound != NodeBound::Upper
                 && entry.depth >= depth - singular_extension_entry_depth_delta()
                 && !entry.score.is_decisive()
@@ -901,7 +902,7 @@ pub fn negamax(
     }
 
     if moves_tried == 0 {
-        if excluded_mv.is_some() {
+        if in_singular_search {
             return s.alpha;
         }
 
@@ -935,18 +936,18 @@ pub fn negamax(
         }
     }
 
-    if excluded_mv.is_none()
-        && !(in_check
-            || best_move.is_some_and(|m| !m.is_quiet())
-            || tt_node_bound == NodeBound::Lower && best_score <= eval
-            || tt_node_bound == NodeBound::Upper && best_score >= eval)
+    if !(in_singular_search
+        || in_check
+        || best_move.is_some_and(|m| !m.is_quiet())
+        || tt_node_bound == NodeBound::Lower && best_score <= eval
+        || tt_node_bound == NodeBound::Upper && best_score >= eval)
     {
         ctx.tables
             .corrhist
             .update(game, ctx.stack, plies, depth, best_score - eval);
     }
 
-    if excluded_mv.is_none() {
+    if !in_singular_search {
         ctx.tt.insert(
             game.hash,
             tt_node_bound,

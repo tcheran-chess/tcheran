@@ -2,6 +2,29 @@
 
 use crate::engine::eval::nnue::network;
 
+#[allow(
+    clippy::cast_possible_truncation,
+    reason = "Won't compile for platforms with 16-bit pointers"
+)]
+#[cfg(not(target_feature = "avx512bw"))]
+pub static NNZ_TABLE: [[i16; 8]; 256] = {
+    let mut table = [[0i16; 8]; 256];
+
+    let mut i = 0;
+    while i < 256 {
+        let mut j = i;
+        let mut k = 0;
+        while j != 0 {
+            table[i][k] = j.trailing_zeros() as i16;
+            j &= j - 1;
+            k += 1;
+        }
+        i += 1;
+    }
+
+    table
+};
+
 macro_rules! simd {
     (
         avx2 $avx2block:tt
@@ -64,8 +87,18 @@ pub type UI8s = simd!(
     neon { int8x16_t }
 );
 
+pub const I8_LANES: usize = size_of::<I8s>() / size_of::<i8>();
 pub const I16_LANES: usize = size_of::<I16s>() / size_of::<i16>();
 pub const I32_LANES: usize = size_of::<I32s>() / size_of::<i32>();
+
+#[inline(always)]
+pub unsafe fn load_u8(ptr: *const u8) -> U8s {
+    simd!(
+        avx2 { _mm256_loadu_si256(ptr.cast()) }
+        avx512 { _mm512_loadu_si512(ptr.cast()) }
+        neon { vld1q_u8(ptr) }
+    )
+}
 
 #[inline(always)]
 pub unsafe fn store_u8(ptr: *mut u8, n: U8s) {
@@ -109,6 +142,24 @@ pub unsafe fn load_i16(ptr: *const i16) -> I16s {
         avx2 { _mm256_loadu_si256(ptr.cast()) }
         avx512 { _mm512_loadu_si512(ptr.cast()) }
         neon { vld1q_s16(ptr) }
+    )
+}
+
+#[inline(always)]
+pub unsafe fn store_i16(ptr: *mut i16, n: I16s) {
+    simd!(
+        avx2 { _mm256_storeu_si256(ptr.cast(), n) }
+        avx512 { _mm512_storeu_si512(ptr.cast(), n) }
+        neon { vst1q_s16(ptr, n) }
+    );
+}
+
+#[inline(always)]
+pub unsafe fn add_i16(a: I16s, b: I16s) -> I16s {
+    simd!(
+        avx2 { _mm256_add_epi16(a, b) }
+        avx512 { _mm512_add_epi16(a, b) }
+        neon { vaddq_s16(a, b) }
     )
 }
 
@@ -275,6 +326,15 @@ pub unsafe fn reinterpret_i32_as_u8s(n: *const i32) -> UI8s {
 }
 
 #[inline(always)]
+pub unsafe fn reinterpret_u8s_as_i32(n: U8s) -> I32s {
+    simd!(
+        avx2 { n }
+        avx512 { n }
+        neon { vreinterpretq_s32_u8(n) }
+    )
+}
+
+#[inline(always)]
 #[allow(unused, reason = "Not yet used")]
 pub unsafe fn dpbusd(acc: I32s, u8s: UI8s, i8s: UI8s) -> I32s {
     simd!(
@@ -371,5 +431,42 @@ pub unsafe fn reduce_sum(n: I32s) -> i32 {
         }}
         avx512 { _mm512_reduce_add_epi32(n) }
         neon { vaddvq_s32(n) }
+    )
+}
+
+#[inline(always)]
+#[allow(
+    clippy::cast_possible_truncation,
+    clippy::cast_possible_wrap,
+    reason = "Won't compile for platforms with 16-bit pointers"
+)]
+#[allow(clippy::cast_sign_loss, reason = "Will only cast for values where this is safe")]
+pub unsafe fn nnz_indices(n: I32s) -> (I16s, u16) {
+    simd!(
+        avx2 {{
+            let nnz_mask = _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(n, zeroed_i32())));
+            let idxs = unsafe { _mm_loadu_si128(NNZ_TABLE[nnz_mask as usize].as_ptr().cast()) };
+
+            (
+                _mm256_castsi128_si256(idxs),
+                nnz_mask.count_ones() as u16,
+            )
+        }}
+        avx512 {{
+            let nnz_mask = _mm512_test_epi32_mask(n, n);
+            let idxs: [i16; 16] = std::array::from_fn(|i| i as i16);
+            let idxs = unsafe { _mm256_loadu_si256(idxs.as_ptr().cast()) };
+
+            (
+                _mm512_castsi256_si512(_mm256_maskz_compress_epi16(nnz_mask, idxs)),
+                nnz_mask.count_ones() as u16,
+            )
+        }}
+        neon {{
+            let mask = vtstq_s32(n, n);
+            let bitmask = vaddvq_u32(vandq_u32(mask, unsafe { vld1q_u32([1, 2, 4, 8].as_ptr()) }));
+            let idxs = unsafe { vld1q_s16(NNZ_TABLE[bitmask as usize].as_ptr()) };
+            (idxs, bitmask.count_ones() as u16)
+        }}
     )
 }

@@ -156,5 +156,22 @@ pub fn bench(depth: Option<Depth>) -> (u64, Duration) {
         search_time += now.elapsed();
     }
 
+    #[cfg(feature = "nnue-stats")]
+    {
+        use std::sync::atomic::Ordering;
+
+        use crate::engine::eval::nnue::inference::stats;
+
+        stats::write_activation_counts();
+
+        #[cfg(feature = "nnue-stats")]
+        println!(
+            "{:.2}%",
+            stats::NNZ_COUNT.load(Ordering::Relaxed) as f64
+                / stats::NNZ_TOTAL.load(Ordering::Relaxed) as f64
+                * 100.0
+        );
+    }
+
     (nodes, search_time)
 }

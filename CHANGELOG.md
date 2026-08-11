@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+* Implement NNZ inference and permute the network for sparsity (12.06 +- 5.91 STC)
 * Use the sum of all conthist scores as the base for updates (9.09 +- 5.17)
 * Added 1-ply continuation correction history (8.23 +- 5.04)
 * Tweak LMR params: tacticals less, quiets more (7.42 +- 4.53)

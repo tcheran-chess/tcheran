@@ -10,6 +10,7 @@ default = ["syzygy"]
 syzygy = []
 spsa = []
 datagen = ["dep:rand"]
+nnue-stats = []
 
 [lib]
 path = "src/lib.rs"

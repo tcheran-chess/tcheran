@@ -66,17 +66,41 @@ pub unsafe fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: u
     output
 }
 
+#[allow(clippy::cast_possible_wrap, reason = "Won't compile for targets with 16-bit pointers")]
+#[allow(clippy::cast_sign_loss, reason = "Guaranteed that indices are >0")]
 pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 * 2] {
-    const N_TILES: usize = L1 / 4;
-    const N_CHUNKS: usize = L2 / I32_LANES;
-    const WEIGHT_STRIDE: usize = I32_LANES * 4;
-
     let zero = zeroed_i32();
 
     let weights = &NETWORK.l1_weights[output_bucket];
     let biases = NETWORK.l1_biases[output_bucket].as_ptr();
 
-    let mut sums = [zero; N_CHUNKS];
+    let mut nnz_idxs = [0i16; L1 / 4];
+    let mut nnz_count = 0;
+
+    unsafe {
+        let mut base = zeroed_i16();
+
+        for i in (0..L1).step_by(I8_LANES) {
+            let chunk = reinterpret_u8s_as_i32(load_u8(input.as_ptr().add(i)));
+            let (idxs, count) = nnz_indices(chunk);
+
+            store_i16(nnz_idxs.as_mut_ptr().add(nnz_count).cast(), add_i16(base, idxs));
+            nnz_count += count as usize;
+
+            base = add_i16(base, splat_i16(I32_LANES as i16));
+        }
+    }
+
+    #[cfg(feature = "nnue-stats")]
+    {
+        use std::sync::atomic::Ordering;
+
+        super::stats::NNZ_COUNT.fetch_add(nnz_count, Ordering::Relaxed);
+        super::stats::NNZ_TOTAL.fetch_add(L1 / 4, Ordering::Relaxed);
+    }
+
+    let (pairs, remainder) = nnz_idxs[..nnz_count].as_chunks::<2>();
+    let mut sums = [zero; L2 / I32_LANES];
 
     #[expect(
         clippy::cast_ptr_alignment,
@@ -84,15 +108,27 @@ pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 *
     )]
     let input_i32 = input.as_ptr().cast::<i32>();
 
-    for i in (0..N_TILES).step_by(2) {
-        let ft1 = reinterpret_i32_as_u8s(input_i32.add(i));
-        let ft2 = reinterpret_i32_as_u8s(input_i32.add(i + 1));
+    for &[idx1, idx2] in pairs {
+        let ft1 = reinterpret_i32_as_u8s(input_i32.add(idx1 as usize));
+        let ft2 = reinterpret_i32_as_u8s(input_i32.add(idx2 as usize));
 
-        for r in 0..N_CHUNKS {
-            let w1 = load_i8(weights[i].as_ptr().add(r * WEIGHT_STRIDE));
-            let w2 = load_i8(weights[i + 1].as_ptr().add(r * WEIGHT_STRIDE));
+        for j in (0..L2).step_by(I32_LANES) {
+            let w1 = load_i8(weights[idx1 as usize].as_ptr().add(j * 4));
+            let w2 = load_i8(weights[idx2 as usize].as_ptr().add(j * 4));
 
-            sums[r] = dpbusdx2(sums[r], ft1, w1, ft2, w2);
+            let sum = &mut sums[j / I32_LANES];
+            *sum = dpbusdx2(*sum, ft1, w1, ft2, w2);
+        }
+    }
+
+    for &idx in remainder {
+        let ft1 = reinterpret_i32_as_u8s(input_i32.add(idx as usize));
+
+        for j in (0..L2).step_by(I32_LANES) {
+            let w1 = load_i8(weights[idx as usize].as_ptr().add(j * 4));
+
+            let sum = &mut sums[j / I32_LANES];
+            *sum = dpbusd(*sum, ft1, w1);
         }
     }
 
@@ -100,16 +136,16 @@ pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 *
     let q = splat_i32(Q);
     let q2 = splat_i32(Q * Q);
 
-    for (lane, acc_lane) in sums.iter().enumerate() {
-        let bias = load_i32(biases.add(lane * I32_LANES));
-        let sum = add_i32(*acc_lane, bias);
+    for i in (0..L2).step_by(I32_LANES) {
+        let bias = load_i32(biases.add(i));
+        let sum = add_i32(sums[i / I32_LANES], bias);
         let shifted = rshift_i32::<L1_SHIFT>(sum);
 
         let act1 = lshift_i32::<Q_BITS>(clamp_i32(shifted, zero, q));
         let act2 = clamp_i32(mul_i32(shifted, shifted), zero, q2);
 
-        store_i32(output.as_mut_ptr().add(lane * I32_LANES), act1);
-        store_i32(output.as_mut_ptr().add(L2 + lane * I32_LANES), act2);
+        store_i32(output.as_mut_ptr().add(i), act1);
+        store_i32(output.as_mut_ptr().add(i + L2), act2);
     }
 
     output

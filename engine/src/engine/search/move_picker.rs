@@ -4,7 +4,6 @@ use crate::{
         moves::{MAX_LEGAL_MOVES, generate_quiets, generate_tacticals},
     },
     engine::{
-        eval::Eval,
         params::*,
         search::{SearchStack, tables::Tables},
         see::{see, see_value},
@@ -93,7 +92,7 @@ impl MovePicker {
                 // early even if its SEE score is poor.
                 let threshold = -entry.score / 4;
 
-                if !see(game, entry.mv, Eval(threshold)) {
+                if !see(game, entry.mv, threshold) {
                     self.bad_tacticals.push(entry);
                     continue;
                 }

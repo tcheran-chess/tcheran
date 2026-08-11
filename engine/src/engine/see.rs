@@ -36,9 +36,9 @@ pub fn init_see_values(
     }
 }
 
-pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
+pub fn see(game: &Game, mv: Move, threshold: i32) -> bool {
     if mv.is_castling() {
-        return threshold.0 <= 0;
+        return threshold <= 0;
     }
 
     let from = mv.from();
@@ -49,7 +49,7 @@ pub fn see(game: &Game, mv: Move, threshold: Eval) -> bool {
     // We have to beat the threshold in order to pass, which is the same as saying that
     //      score - threshold = 0
     // We can initialise the score to -threshold to avoid having to repeatedly subtract threshold
-    let mut score = -threshold;
+    let mut score = Eval(-threshold);
 
     // First, make the move and adjust the score accordingly
     //
@@ -175,7 +175,7 @@ mod tests {
         let game = Game::from_valid_fen(fen);
         let mv = game.moves().expect_matching(mv.0, mv.1, None);
 
-        assert!(see(&game, mv, Eval(0)));
+        assert!(see(&game, mv, 0));
     }
 
     fn should_be_bad_capture(fen: &str, mv: (Square, Square)) {
@@ -185,7 +185,7 @@ mod tests {
         let game = Game::from_valid_fen(fen);
         let mv = game.moves().expect_matching(mv.0, mv.1, None);
 
-        assert!(!see(&game, mv, Eval(0)));
+        assert!(!see(&game, mv, 0));
     }
 
     #[test]
@@ -232,7 +232,7 @@ mod tests {
 
             let mv = moves.iter().find(|m| format!("{m:?}") == ucimv).unwrap();
 
-            assert_eq!(see(&game, *mv, Eval(threshold)), result);
+            assert_eq!(see(&game, *mv, threshold), result);
         }
     }
 
@@ -324,7 +324,7 @@ mod tests {
 
             let mv = moves.iter().find(|m| format!("{m:?}") == ucimv).unwrap();
 
-            assert_eq!(see(&game, *mv, Eval(threshold)), result);
+            assert_eq!(see(&game, *mv, threshold), result);
         }
     }
 }

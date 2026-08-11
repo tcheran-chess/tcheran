@@ -751,7 +751,7 @@ pub fn negamax(
                 lmr_depth * see_capture_margin() - (history / see_prune_history_divisor())
             };
 
-            if !see(game, mv, Eval(margin)) {
+            if !see(game, mv, margin) {
                 continue;
             }
         }
@@ -1078,11 +1078,7 @@ pub fn quiescence(
             break;
         }
 
-        if !best_score.is_loss()
-            && !in_check
-            && futility_score <= s.alpha
-            && !see(game, mv, Eval(1))
-        {
+        if !best_score.is_loss() && !in_check && futility_score <= s.alpha && !see(game, mv, 1) {
             if best_score < futility_score {
                 best_score = futility_score;
             }

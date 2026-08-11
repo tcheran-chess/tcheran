@@ -184,6 +184,18 @@ impl std::ops::Div<i32> for Eval {
     }
 }
 
+impl PartialEq<i32> for Eval {
+    fn eq(&self, other: &i32) -> bool {
+        self.0.eq(other)
+    }
+}
+
+impl PartialOrd<i32> for Eval {
+    fn partial_cmp(&self, other: &i32) -> Option<std::cmp::Ordering> {
+        self.0.partial_cmp(other)
+    }
+}
+
 /// A classical evaluation value from the white player's perspective
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct WhiteEval(pub i32);

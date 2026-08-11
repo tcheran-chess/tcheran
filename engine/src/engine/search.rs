@@ -519,7 +519,7 @@ pub fn negamax(
         && let Some(last) = ctx.stack.last(plies)
         && last.reduction >= 3
         && last.eval != Eval::NONE
-        && eval + last.eval < Eval(0)
+        && eval + last.eval < 0
     {
         depth += 1;
     }
@@ -532,7 +532,7 @@ pub fn negamax(
         && let Some(last) = ctx.stack.last(plies)
         && last.reduction >= 1
         && last.eval != Eval::NONE
-        && eval + last.eval > Eval(hindsight_extension_margin())
+        && eval + last.eval > hindsight_extension_margin()
     {
         depth -= 1;
     }

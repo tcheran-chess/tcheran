@@ -3,7 +3,6 @@ use std::sync::Arc;
 use crate::{
     chess::Game,
     engine::{
-        eval::Eval,
         options::EngineOptions,
         search::PersistentState,
         uci::{Threads, responses::UciReporter},
@@ -62,10 +61,6 @@ impl SpinValue {
 
     pub fn as_depth(&self) -> u8 {
         u8::try_from(self.0).expect("Could not convert value to depth")
-    }
-
-    pub fn as_eval(&self) -> Eval {
-        Eval(self.0)
     }
 }
 

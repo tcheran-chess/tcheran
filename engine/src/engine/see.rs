@@ -97,8 +97,7 @@ pub fn see(game: &Game, mv: Move, threshold: i32) -> bool {
         color = color.other();
 
         // If we're winning and it's our turn, we've won the exchange
-        if (color == game.player && score >= Eval(0)) || (color != game.player && score <= Eval(0))
-        {
+        if (color == game.player && score >= 0) || (color != game.player && score <= 0) {
             break;
         }
 
@@ -156,7 +155,7 @@ pub fn see(game: &Game, mv: Move, threshold: i32) -> bool {
         victim = attacker;
     }
 
-    score >= Eval(0)
+    score >= 0
 }
 
 #[cfg(test)]

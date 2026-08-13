@@ -8,7 +8,7 @@ use crate::{
             Eval,
             nnue::{
                 inference,
-                network::{BUCKET_LAYOUT, FEATURES, INPUT_BUCKETS, L1, Network, OUTPUT_BUCKETS},
+                network::{BUCKET_LAYOUT, INPUT_BUCKETS, L1, Network, OUTPUT_BUCKETS},
             },
         },
         search::MAX_PLIES_ARRAY_SIZE,
@@ -254,11 +254,19 @@ impl NetworkStack {
     ) {
         match (entry.changes.adds.as_slice(), entry.changes.subs.as_slice()) {
             ([add1], [sub1]) => {
+                let bucket = input_bucket(king, pov);
                 let add1 = nnue_index(add1.piece, add1.square, king, pov);
                 let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
-                NNUE::add1_sub1(&previous_entry.network[pov], &mut entry.network[pov], add1, sub1);
+                NNUE::add1_sub1(
+                    &previous_entry.network[pov],
+                    &mut entry.network[pov],
+                    bucket,
+                    add1,
+                    sub1,
+                );
             }
             ([add1], [sub1, sub2]) => {
+                let bucket = input_bucket(king, pov);
                 let add1 = nnue_index(add1.piece, add1.square, king, pov);
                 let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
                 let sub2 = nnue_index(sub2.piece, sub2.square, king, pov);
@@ -266,12 +274,14 @@ impl NetworkStack {
                 NNUE::add1_sub2(
                     &previous_entry.network[pov],
                     &mut entry.network[pov],
+                    bucket,
                     add1,
                     sub1,
                     sub2,
                 );
             }
             ([add1, add2], [sub1, sub2]) => {
+                let bucket = input_bucket(king, pov);
                 let add1 = nnue_index(add1.piece, add1.square, king, pov);
                 let add2 = nnue_index(add2.piece, add2.square, king, pov);
                 let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
@@ -280,6 +290,7 @@ impl NetworkStack {
                 NNUE::add2_sub2(
                     &previous_entry.network[pov],
                     &mut entry.network[pov],
+                    bucket,
                     add1,
                     add2,
                     sub1,
@@ -357,12 +368,14 @@ impl NNUE {
             }
         }
 
+        let bucket = input_bucket(king, pov);
+
         for add in &adds {
-            Self::add1(&mut cache_entry.value, *add);
+            Self::add1(&mut cache_entry.value, bucket, *add);
         }
 
         for sub in &subs {
-            Self::sub1(&mut cache_entry.value, *sub);
+            Self::sub1(&mut cache_entry.value, bucket, *sub);
         }
 
         cache_entry.board = board.clone();
@@ -371,8 +384,8 @@ impl NNUE {
     }
 
     #[expect(clippy::needless_range_loop, reason = "Readability")]
-    fn add1(acc: &mut Accumulator, add1: usize) {
-        let add1_features = &NETWORK.l0_weights[add1];
+    fn add1(acc: &mut Accumulator, bucket: usize, add1: usize) {
+        let add1_features = &NETWORK.l0_weights[bucket][add1];
 
         for i in 0..L1 {
             acc.0[i] += add1_features[i];
@@ -380,17 +393,23 @@ impl NNUE {
     }
 
     #[expect(clippy::needless_range_loop, reason = "Readability")]
-    fn sub1(acc: &mut Accumulator, sub1: usize) {
-        let sub1_features = &NETWORK.l0_weights[sub1];
+    fn sub1(acc: &mut Accumulator, bucket: usize, sub1: usize) {
+        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
 
         for i in 0..L1 {
             acc.0[i] -= sub1_features[i];
         }
     }
 
-    fn add1_sub1(previous_acc: &Accumulator, acc: &mut Accumulator, add1: usize, sub1: usize) {
-        let add1_features = &NETWORK.l0_weights[add1];
-        let sub1_features = &NETWORK.l0_weights[sub1];
+    fn add1_sub1(
+        previous_acc: &Accumulator,
+        acc: &mut Accumulator,
+        bucket: usize,
+        add1: usize,
+        sub1: usize,
+    ) {
+        let add1_features = &NETWORK.l0_weights[bucket][add1];
+        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
 
         for i in 0..L1 {
             acc.0[i] = previous_acc.0[i] + add1_features[i] - sub1_features[i];
@@ -400,13 +419,14 @@ impl NNUE {
     pub fn add1_sub2(
         previous_acc: &Accumulator,
         acc: &mut Accumulator,
+        bucket: usize,
         add1: usize,
         sub1: usize,
         sub2: usize,
     ) {
-        let add1_features = &NETWORK.l0_weights[add1];
-        let sub1_features = &NETWORK.l0_weights[sub1];
-        let sub2_features = &NETWORK.l0_weights[sub2];
+        let add1_features = &NETWORK.l0_weights[bucket][add1];
+        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
+        let sub2_features = &NETWORK.l0_weights[bucket][sub2];
 
         for i in 0..L1 {
             acc.0[i] = previous_acc.0[i] + add1_features[i] - sub1_features[i] - sub2_features[i];
@@ -416,15 +436,16 @@ impl NNUE {
     pub fn add2_sub2(
         previous_acc: &Accumulator,
         acc: &mut Accumulator,
+        bucket: usize,
         add1: usize,
         add2: usize,
         sub1: usize,
         sub2: usize,
     ) {
-        let add1_features = &NETWORK.l0_weights[add1];
-        let add2_features = &NETWORK.l0_weights[add2];
-        let sub1_features = &NETWORK.l0_weights[sub1];
-        let sub2_features = &NETWORK.l0_weights[sub2];
+        let add1_features = &NETWORK.l0_weights[bucket][add1];
+        let add2_features = &NETWORK.l0_weights[bucket][add2];
+        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
+        let sub2_features = &NETWORK.l0_weights[bucket][sub2];
 
         for i in 0..L1 {
             acc.0[i] = previous_acc.0[i] + add1_features[i] + add2_features[i]
@@ -453,7 +474,8 @@ impl NNUE {
         // Remove this feature from the accumulator to see what the eval looks like without it
         for pov in Player::ALL {
             let king = game.board.king_square(pov);
-            Self::sub1(&mut self[pov], nnue_index(piece, square, king, pov));
+            let bucket = input_bucket(king, pov);
+            Self::sub1(&mut self[pov], bucket, nnue_index(piece, square, king, pov));
         }
 
         let eval_without_feature = self.evaluate(player, game);
@@ -461,7 +483,8 @@ impl NNUE {
         // Add the feature back again
         for pov in Player::ALL {
             let king = game.board.king_square(pov);
-            Self::add1(&mut self[pov], nnue_index(piece, square, king, pov));
+            let bucket = input_bucket(king, pov);
+            Self::add1(&mut self[pov], bucket, nnue_index(piece, square, king, pov));
         }
 
         eval - eval_without_feature
@@ -469,7 +492,6 @@ impl NNUE {
 }
 
 fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
-    const INPUT_BUCKET_STRIDE: usize = FEATURES;
     const COLOR_STRIDE: usize = Square::N * PieceKind::N;
     const PIECE_STRIDE: usize = Square::N;
 
@@ -482,7 +504,5 @@ fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
         .mirrored_horizontally_if(should_mirror(king))
         .idx();
 
-    let input_bucket = input_bucket(king, pov);
-
-    input_bucket * INPUT_BUCKET_STRIDE + c * COLOR_STRIDE + p * PIECE_STRIDE + square_idx as usize
+    c * COLOR_STRIDE + p * PIECE_STRIDE + square_idx as usize
 }

@@ -2,7 +2,7 @@ use crate::{FEATURES, INPUT_BUCKETS, L1, L2, L3, Network, OUTPUT_BUCKETS};
 
 #[repr(C, align(64))]
 pub struct RawNetwork {
-    pub l0_weights: [[i16; L1]; INPUT_BUCKETS * FEATURES],
+    pub l0_weights: [[[i16; L1]; FEATURES]; INPUT_BUCKETS],
     pub l0_biases: [i16; L1],
     pub l1_weights: [[[i8; L2]; OUTPUT_BUCKETS]; L1],
     pub l1_biases: [[i32; L2]; OUTPUT_BUCKETS],
@@ -14,7 +14,14 @@ pub struct RawNetwork {
 
 pub fn preprocess(src: &RawNetwork, dst: &mut Network) {
     unsafe {
-        std::ptr::copy_nonoverlapping(&raw const src.l0_weights, &raw mut dst.l0_weights, 1);
+        for bucket in 0..INPUT_BUCKETS {
+            std::ptr::copy_nonoverlapping(
+                &raw const src.l0_weights[bucket],
+                &raw mut dst.l0_weights[bucket],
+                1,
+            );
+        }
+
         std::ptr::copy_nonoverlapping(&raw const src.l0_biases, &raw mut dst.l0_biases, 1);
 
         for bucket in 0..OUTPUT_BUCKETS {

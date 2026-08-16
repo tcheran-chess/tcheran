@@ -6,11 +6,17 @@
 #![expect(clippy::cast_possible_truncation, reason = "")]
 
 use crate::engine::eval::nnue::{
-    Accumulator,
-    network::{L1, L1_SHIFT, L2, L3, Q, Q_BITS, Q0},
+    Accumulator, network,
+    network::{L1, L2, L3, Q, Q0},
     nnue::NETWORK,
     simd::*,
 };
+
+#[allow(clippy::cast_possible_wrap, reason = "Value confirmed not to wrap")]
+const Q_BITS: ShiftType = network::Q_BITS as ShiftType;
+
+#[allow(clippy::cast_possible_wrap, reason = "Value confirmed not to wrap")]
+const L1_SHIFT: ShiftType = network::L1_SHIFT as ShiftType;
 
 #[cfg(any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon"))]
 #[allow(unused, reason = "May be unused when SIMD is unavailable")]

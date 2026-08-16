@@ -1,6 +1,6 @@
 #![expect(unsafe_op_in_unsafe_fn, reason = "")]
 
-use crate::engine::eval::nnue::network::L0_SHIFT;
+use crate::engine::eval::nnue::network;
 
 macro_rules! simd {
     (
@@ -16,17 +16,23 @@ macro_rules! simd {
     };
 }
 
-cfg_select! {
-    target_feature = "avx512bw" => {
+simd!(
+    avx2 {
         use std::arch::x86_64::*;
     }
-    target_feature = "avx2" => {
+    avx512 {
         use std::arch::x86_64::*;
     }
-    target_feature = "neon" => {
+    neon {
         use std::arch::aarch64::*;
     }
-}
+);
+
+pub type ShiftType = simd!(
+    avx2 { i32 }
+    avx512 { u32 }
+    neon { i32 }
+);
 
 pub type U8s = simd!(
     avx2 { __m256i }
@@ -131,9 +137,12 @@ pub unsafe fn clamp_i16(n: I16s, min: I16s, max: I16s) -> I16s {
 
 #[inline(always)]
 pub unsafe fn shift_left_mul_high_i16(a: I16s, b: I16s) -> I16s {
+    #[allow(clippy::cast_possible_wrap, reason = "Value confirmed not to wrap")]
+    const L0_SHIFT: ShiftType = network::L0_SHIFT as ShiftType;
+
     simd!(
         avx2 {{
-            const SHIFT: i32 = 16 - L0_SHIFT.cast_signed();
+            const SHIFT: i32 = 16 - L0_SHIFT;
             _mm256_mulhi_epi16(_mm256_slli_epi16::<SHIFT>(a), b)
         }}
         avx512 {{
@@ -141,7 +150,7 @@ pub unsafe fn shift_left_mul_high_i16(a: I16s, b: I16s) -> I16s {
             _mm512_mulhi_epi16(_mm512_slli_epi16::<SHIFT>(a), b)
         }}
         neon {{
-            const SHIFT: i32 = 16 - L0_SHIFT.cast_signed() - 1;
+            const SHIFT: i32 = 16 - L0_SHIFT - 1;
             vqdmulhq_s16(vshlq_n_s16::<SHIFT>(a), b)
         }}
     )
@@ -239,15 +248,7 @@ pub unsafe fn clamp_i32(x: I32s, min: I32s, max: I32s) -> I32s {
 }
 
 #[inline(always)]
-pub unsafe fn lshift_i32<
-    const SHIFT: simd!(
-        avx2 { i32 }
-        avx512 { u32 }
-        neon { i32 }
-    ),
->(
-    n: I32s,
-) -> I32s {
+pub unsafe fn lshift_i32<const SHIFT: ShiftType>(n: I32s) -> I32s {
     simd!(
         avx2 { _mm256_slli_epi32::<SHIFT>(n) }
         avx512 { _mm512_slli_epi32::<SHIFT>(n) }
@@ -256,15 +257,7 @@ pub unsafe fn lshift_i32<
 }
 
 #[inline(always)]
-pub unsafe fn rshift_i32<
-    const SHIFT: simd!(
-        avx2 { i32 }
-        avx512 { u32 }
-        neon { i32 }
-    ),
->(
-    n: I32s,
-) -> I32s {
+pub unsafe fn rshift_i32<const SHIFT: ShiftType>(n: I32s) -> I32s {
     simd!(
         avx2 { _mm256_srai_epi32::<SHIFT>(n) }
         avx512 { _mm512_srai_epi32::<SHIFT>(n) }

@@ -17,6 +17,7 @@
 
 #### Non-regression
 
+* Various SIMD readability improvements (4.71 +- 4.46)
 * Saturating behaviour in LMR is no longer used (2.29 +- 3.43)
 * Histories are now updated in singular search (0.88 +- 2.70)
 * Give castling moves SEE of 0 instead of always passing (0.02 +- 2.32)

@@ -92,7 +92,7 @@ pub const I16_LANES: usize = size_of::<I16s>() / size_of::<i16>();
 pub const I32_LANES: usize = size_of::<I32s>() / size_of::<i32>();
 
 #[inline(always)]
-pub unsafe fn load_u8(ptr: *const u8) -> U8s {
+pub unsafe fn load_u8s(ptr: *const u8) -> U8s {
     simd!(
         avx2 { _mm256_loadu_si256(ptr.cast()) }
         avx512 { _mm512_loadu_si512(ptr.cast()) }
@@ -101,7 +101,7 @@ pub unsafe fn load_u8(ptr: *const u8) -> U8s {
 }
 
 #[inline(always)]
-pub unsafe fn store_u8(ptr: *mut u8, n: U8s) {
+pub unsafe fn store_u8s(ptr: *mut u8, n: U8s) {
     simd!(
         avx2 { _mm256_storeu_si256(ptr.cast(), n) }
         avx512 { _mm512_storeu_si512(ptr.cast(), n) }
@@ -110,7 +110,7 @@ pub unsafe fn store_u8(ptr: *mut u8, n: U8s) {
 }
 
 #[inline(always)]
-pub unsafe fn load_i8(ptr: *const i8) -> I8s {
+pub unsafe fn load_i8s(ptr: *const i8) -> I8s {
     simd!(
         avx2 { _mm256_loadu_si256(ptr.cast()) }
         avx512 { _mm512_loadu_si512(ptr.cast()) }
@@ -119,7 +119,7 @@ pub unsafe fn load_i8(ptr: *const i8) -> I8s {
 }
 
 #[inline(always)]
-pub unsafe fn zeroed_i16() -> I16s {
+pub unsafe fn zero_i16s() -> I16s {
     simd!(
         avx2 { _mm256_setzero_si256() }
         avx512 { _mm512_setzero_si512() }
@@ -137,7 +137,7 @@ pub unsafe fn splat_i16(n: i16) -> I16s {
 }
 
 #[inline(always)]
-pub unsafe fn load_i16(ptr: *const i16) -> I16s {
+pub unsafe fn load_i16s(ptr: *const i16) -> I16s {
     simd!(
         avx2 { _mm256_loadu_si256(ptr.cast()) }
         avx512 { _mm512_loadu_si512(ptr.cast()) }
@@ -146,7 +146,7 @@ pub unsafe fn load_i16(ptr: *const i16) -> I16s {
 }
 
 #[inline(always)]
-pub unsafe fn store_i16(ptr: *mut i16, n: I16s) {
+pub unsafe fn store_i16s(ptr: *mut i16, n: I16s) {
     simd!(
         avx2 { _mm256_storeu_si256(ptr.cast(), n) }
         avx512 { _mm512_storeu_si512(ptr.cast(), n) }
@@ -155,7 +155,7 @@ pub unsafe fn store_i16(ptr: *mut i16, n: I16s) {
 }
 
 #[inline(always)]
-pub unsafe fn add_i16(a: I16s, b: I16s) -> I16s {
+pub unsafe fn add_i16s(a: I16s, b: I16s) -> I16s {
     simd!(
         avx2 { _mm256_add_epi16(a, b) }
         avx512 { _mm512_add_epi16(a, b) }
@@ -164,7 +164,7 @@ pub unsafe fn add_i16(a: I16s, b: I16s) -> I16s {
 }
 
 #[inline(always)]
-pub unsafe fn min_i16(n: I16s, min: I16s) -> I16s {
+pub unsafe fn min_i16s(n: I16s, min: I16s) -> I16s {
     simd!(
         avx2 { _mm256_min_epi16(n, min) }
         avx512 { _mm512_min_epi16(n, min) }
@@ -173,7 +173,7 @@ pub unsafe fn min_i16(n: I16s, min: I16s) -> I16s {
 }
 
 #[inline(always)]
-pub unsafe fn max_i16(n: I16s, max: I16s) -> I16s {
+pub unsafe fn max_i16s(n: I16s, max: I16s) -> I16s {
     simd!(
         avx2 { _mm256_max_epi16(n, max) }
         avx512 { _mm512_max_epi16(n, max) }
@@ -182,12 +182,12 @@ pub unsafe fn max_i16(n: I16s, max: I16s) -> I16s {
 }
 
 #[inline(always)]
-pub unsafe fn clamp_i16(n: I16s, min: I16s, max: I16s) -> I16s {
-    min_i16(max_i16(n, min), max)
+pub unsafe fn clamp_i16s(n: I16s, min: I16s, max: I16s) -> I16s {
+    min_i16s(max_i16s(n, min), max)
 }
 
 #[inline(always)]
-pub unsafe fn shift_left_mul_high_i16(a: I16s, b: I16s) -> I16s {
+pub unsafe fn shift_left_mul_high_i16s(a: I16s, b: I16s) -> I16s {
     #[allow(clippy::cast_possible_wrap, reason = "Value confirmed not to wrap")]
     const L0_SHIFT: ShiftType = network::L0_SHIFT as ShiftType;
 
@@ -222,7 +222,7 @@ pub unsafe fn packus(l: I16s, r: I16s) -> U8s {
 }
 
 #[inline(always)]
-pub unsafe fn zeroed_i32() -> I32s {
+pub unsafe fn zeroed_i32s() -> I32s {
     simd!(
         avx2 { _mm256_setzero_si256() }
         avx512 { _mm512_setzero_si512() }
@@ -240,7 +240,7 @@ pub unsafe fn splat_i32(n: i32) -> I32s {
 }
 
 #[inline(always)]
-pub unsafe fn load_i32(ptr: *const i32) -> I32s {
+pub unsafe fn load_i32s(ptr: *const i32) -> I32s {
     simd!(
         avx2 { _mm256_loadu_si256(ptr.cast()) }
         avx512 { _mm512_loadu_si512(ptr.cast()) }
@@ -249,7 +249,7 @@ pub unsafe fn load_i32(ptr: *const i32) -> I32s {
 }
 
 #[inline(always)]
-pub unsafe fn store_i32(ptr: *mut i32, n: I32s) {
+pub unsafe fn store_i32s(ptr: *mut i32, n: I32s) {
     simd!(
         avx2 { _mm256_storeu_si256(ptr.cast(), n) }
         avx512 { _mm512_storeu_si512(ptr.cast(), n) }
@@ -258,7 +258,7 @@ pub unsafe fn store_i32(ptr: *mut i32, n: I32s) {
 }
 
 #[inline(always)]
-pub unsafe fn add_i32(a: I32s, b: I32s) -> I32s {
+pub unsafe fn add_i32s(a: I32s, b: I32s) -> I32s {
     simd!(
         avx2 { _mm256_add_epi32(a, b) }
         avx512 { _mm512_add_epi32(a, b) }
@@ -267,7 +267,7 @@ pub unsafe fn add_i32(a: I32s, b: I32s) -> I32s {
 }
 
 #[inline(always)]
-pub unsafe fn mul_i32(a: I32s, b: I32s) -> I32s {
+pub unsafe fn mul_i32s(a: I32s, b: I32s) -> I32s {
     simd!(
         avx2 { _mm256_mullo_epi32(a, b) }
         avx512 { _mm512_mullo_epi32(a, b) }
@@ -276,7 +276,7 @@ pub unsafe fn mul_i32(a: I32s, b: I32s) -> I32s {
 }
 
 #[inline(always)]
-pub unsafe fn min_i32(n: I32s, min: I32s) -> I32s {
+pub unsafe fn min_i32s(n: I32s, min: I32s) -> I32s {
     simd!(
         avx2 { _mm256_min_epi32(n, min) }
         avx512 { _mm512_min_epi32(n, min) }
@@ -285,7 +285,7 @@ pub unsafe fn min_i32(n: I32s, min: I32s) -> I32s {
 }
 
 #[inline(always)]
-pub unsafe fn max_i32(n: I32s, max: I32s) -> I32s {
+pub unsafe fn max_i32s(n: I32s, max: I32s) -> I32s {
     simd!(
         avx2 { _mm256_max_epi32(n, max) }
         avx512 { _mm512_max_epi32(n, max) }
@@ -294,12 +294,12 @@ pub unsafe fn max_i32(n: I32s, max: I32s) -> I32s {
 }
 
 #[inline(always)]
-pub unsafe fn clamp_i32(x: I32s, min: I32s, max: I32s) -> I32s {
-    min_i32(max_i32(x, min), max)
+pub unsafe fn clamp_i32s(x: I32s, min: I32s, max: I32s) -> I32s {
+    min_i32s(max_i32s(x, min), max)
 }
 
 #[inline(always)]
-pub unsafe fn lshift_i32<const SHIFT: ShiftType>(n: I32s) -> I32s {
+pub unsafe fn lshift_i32s<const SHIFT: ShiftType>(n: I32s) -> I32s {
     simd!(
         avx2 { _mm256_slli_epi32::<SHIFT>(n) }
         avx512 { _mm512_slli_epi32::<SHIFT>(n) }
@@ -308,7 +308,7 @@ pub unsafe fn lshift_i32<const SHIFT: ShiftType>(n: I32s) -> I32s {
 }
 
 #[inline(always)]
-pub unsafe fn rshift_i32<const SHIFT: ShiftType>(n: I32s) -> I32s {
+pub unsafe fn rshift_i32s<const SHIFT: ShiftType>(n: I32s) -> I32s {
     simd!(
         avx2 { _mm256_srai_epi32::<SHIFT>(n) }
         avx512 { _mm512_srai_epi32::<SHIFT>(n) }
@@ -326,7 +326,7 @@ pub unsafe fn reinterpret_i32_as_u8s(n: *const i32) -> UI8s {
 }
 
 #[inline(always)]
-pub unsafe fn reinterpret_u8s_as_i32(n: U8s) -> I32s {
+pub unsafe fn reinterpret_u8s_as_i32s(n: U8s) -> I32s {
     simd!(
         avx2 { n }
         avx512 { n }
@@ -444,7 +444,7 @@ pub unsafe fn reduce_sum(n: I32s) -> i32 {
 pub unsafe fn nnz_indices(n: I32s) -> (I16s, u16) {
     simd!(
         avx2 {{
-            let nnz_mask = _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(n, zeroed_i32())));
+            let nnz_mask = _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(n, zeroed_i32s())));
             let idxs = unsafe { _mm_loadu_si128(NNZ_TABLE[nnz_mask as usize].as_ptr().cast()) };
 
             (

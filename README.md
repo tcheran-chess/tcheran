@@ -26,7 +26,7 @@ details, including a detailed network history are available in
 
 | Version | [CCRL 40/15][ccrl-ltc] | [CCRL Blitz][ccrl-blitz] | [CCRL FRC][ccrl-frc] | [CEGT][cegt]   | [MCERL][mcerl] |
 | ------- | ---------------------- | ------------------------ | -------------------- | -------------- | -------------- |
-| v13.0   | 3563                   | 3684                     | 3945                 |                |                |
+| v13.0   | 3563                   | 3684                     | 3945                 | 3529           |                |
 | v12.0   | 3534                   | 3651                     | 3806                 | 3488           |                |
 | v11.0   | 3514                   | 3635                     |                      | 3468           |                |
 | v10.0   | 3459                   | 3568                     |                      | 3407           |                |

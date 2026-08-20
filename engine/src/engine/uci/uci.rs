@@ -615,11 +615,6 @@ enum ExecuteResult {
 }
 
 pub enum UciInputMode {
-    #[allow(clippy::allow_attributes, reason = "Lint only present in non-release mode")]
-    #[allow(
-        unused,
-        reason = "Passing a  list of UCI commands is not currently implemented for the CLI"
-    )]
     Commands(Vec<String>),
     Stdin,
 }

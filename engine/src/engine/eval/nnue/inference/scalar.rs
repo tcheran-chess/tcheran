@@ -3,7 +3,6 @@
     clippy::needless_range_loop,
     reason = "Looping over layers rather than outputs for readability"
 )]
-#![expect(clippy::cast_sign_loss, clippy::cast_possible_truncation, reason = "")]
 
 use crate::engine::eval::nnue::{
     Accumulator,

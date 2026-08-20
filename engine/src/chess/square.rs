@@ -156,7 +156,6 @@ impl Square {
         Self(idx)
     }
 
-    #[expect(clippy::cast_possible_truncation, reason = "idx is guaranteed to be 0-63")]
     pub const fn from_array_index(idx: usize) -> Self {
         debug_assert!(idx < 64);
         Self(idx as u8)

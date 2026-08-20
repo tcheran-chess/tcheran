@@ -9,12 +9,6 @@ use crate::{
     },
 };
 
-#[expect(
-    clippy::cast_possible_truncation,
-    clippy::cast_sign_loss,
-    clippy::cast_precision_loss,
-    reason = "Calculation is intentionally approximate"
-)]
 pub fn init() {
     let tactial_base = tactical_lmr_base() as f32 / 100.0;
     let tactial_factor = tactical_lmr_factor() as f32 / 100.0;
@@ -55,7 +49,6 @@ pub fn lmr_reduction(depth: Depth, move_count: usize, is_quiet: bool) -> u8 {
 pub struct HistoryEntry<const MAX: i16>(i16);
 
 impl<const MAX: i16> HistoryEntry<MAX> {
-    #[expect(clippy::cast_possible_truncation, reason = "Dipped into i32 to avoid overflows")]
     pub fn update(&mut self, bonus: i32) {
         let old = i32::from(self.0);
         let max = i32::from(MAX);
@@ -63,7 +56,6 @@ impl<const MAX: i16> HistoryEntry<MAX> {
         self.0 = (old + bonus - old * bonus.abs() / max) as i16;
     }
 
-    #[expect(clippy::cast_possible_truncation, reason = "Dipped into i32 to avoid overflows")]
     pub fn update_with_base(&mut self, base: i32, bonus: i32) {
         let old = i32::from(self.0);
         let max = i32::from(MAX);
@@ -447,12 +439,10 @@ impl CorrectionHistoryTable {
         unsafe { Box::new_zeroed().assume_init() }
     }
 
-    #[expect(clippy::cast_possible_truncation, reason = "u64 to usize")]
     pub fn get(&self, player: Player, key: ZobristHash) -> Eval {
         Eval(self.0[player][key.0 as usize % CORRECTION_HISTORY_SIZE].get())
     }
 
-    #[expect(clippy::cast_possible_truncation, reason = "u64 to usize")]
     pub fn update(&mut self, player: Player, key: ZobristHash, depth: Depth, eval_diff: Eval) {
         let raw_bonus = eval_diff.0 * depth.as_i32() / 8;
         let bonus = i32::clamp(raw_bonus, -Self::MAX_UPDATE, Self::MAX_UPDATE);

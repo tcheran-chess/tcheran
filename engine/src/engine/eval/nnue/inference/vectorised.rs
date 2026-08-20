@@ -3,7 +3,6 @@
     clippy::needless_range_loop,
     reason = "Looping over layers rather than outputs for readability"
 )]
-#![expect(clippy::cast_possible_truncation, reason = "")]
 
 use crate::engine::eval::nnue::{
     Accumulator, network,
@@ -12,10 +11,8 @@ use crate::engine::eval::nnue::{
     simd::*,
 };
 
-#[allow(clippy::cast_possible_wrap, reason = "Value confirmed not to wrap")]
 const Q_BITS: ShiftType = network::Q_BITS as ShiftType;
 
-#[allow(clippy::cast_possible_wrap, reason = "Value confirmed not to wrap")]
 const L1_SHIFT: ShiftType = network::L1_SHIFT as ShiftType;
 
 #[cfg(any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon"))]
@@ -67,8 +64,6 @@ pub unsafe fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: u
     output
 }
 
-#[allow(clippy::cast_possible_wrap, reason = "Won't compile for targets with 16-bit pointers")]
-#[allow(clippy::cast_sign_loss, reason = "Guaranteed that indices are >0")]
 pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 * 2] {
     let zero = zeroed_i32s();
 

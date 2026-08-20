@@ -15,7 +15,6 @@ pub struct HeadOptions {
     pub games: usize,
 }
 
-#[expect(clippy::cast_precision_loss, reason = "Approx calculations for statistics")]
 pub fn run(options: &HeadOptions) -> Result<()> {
     println!("Writing to [{}]", options.output.display());
     println!("Reading from [{}]", options.input.display());

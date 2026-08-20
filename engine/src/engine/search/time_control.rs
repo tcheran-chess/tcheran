@@ -85,7 +85,6 @@ const CHECK_TERMINATION_NODE_FREQUENCY: u64 = 2048;
 const BEST_MOVE_STABILITY_TIME_MULTIPLIERS: [f32; 5] = [2.50, 1.20, 1.00, 0.80, 0.75];
 
 impl TimeStrategy {
-    #[expect(clippy::cast_precision_loss, reason = "Time management calculations can be approx")]
     pub fn new(
         game: &Game,
         time_control: TimeControl,
@@ -220,7 +219,6 @@ impl TimeStrategy {
         self.nodes_used[mv.from()][mv.to()] += nodes_used;
     }
 
-    #[expect(clippy::cast_precision_loss, reason = "Time management calculations can be approx")]
     pub fn update_after_search(&mut self, best_move: Move, depth: Depth, nodes_visited: u64) {
         // Update best move stability
         if Some(best_move) == self.last_best_move {

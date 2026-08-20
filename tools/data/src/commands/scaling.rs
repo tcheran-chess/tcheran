@@ -26,7 +26,6 @@ struct Stats {
     max: i32,
 }
 
-#[expect(clippy::cast_precision_loss, reason = "All calculations are approximate")]
 pub fn run(options: &ScalingOptions) -> Result<()> {
     let file = File::open(&options.input)?;
 

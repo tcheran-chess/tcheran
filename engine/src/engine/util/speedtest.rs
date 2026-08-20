@@ -70,12 +70,6 @@ const POSITIONS: &[&str] = &[
 
 const WARMUP_POSITIONS_COUNT: usize = 3;
 
-#[expect(
-    clippy::cast_possible_truncation,
-    clippy::cast_precision_loss,
-    clippy::cast_sign_loss,
-    reason = "Won't happen with any reasonable values"
-)]
 pub fn speedtest(threads: Option<u64>, hash: Option<u64>, duration: Option<u64>) {
     let nthreads = threads.unwrap_or(defaults::THREADS as u64);
     let hash = hash.unwrap_or(defaults::HASH_SIZE as u64);

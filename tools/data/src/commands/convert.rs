@@ -139,7 +139,6 @@ impl Visitor for PgnToViri {
             .expect("Move comment should contain '/'")
             .0;
 
-        #[expect(clippy::cast_possible_truncation, reason = "Eval values won't be truncated")]
         let score = if score.contains('M') {
             let is_mated = score.contains('-');
             if is_mated { -i16::MAX } else { i16::MAX }
@@ -193,12 +192,6 @@ pub fn run(options: &ConvertOptions) -> Result<()> {
 
     let elapsed = now.elapsed();
 
-    #[expect(
-        clippy::cast_possible_truncation,
-        clippy::cast_sign_loss,
-        clippy::cast_precision_loss,
-        reason = "Approximate calculation"
-    )]
     let positions_per_second = (positions as f64 / elapsed.as_secs_f64()) as u64;
 
     println!(

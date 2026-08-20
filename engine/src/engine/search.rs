@@ -807,11 +807,6 @@ pub fn negamax(
                 r / 1024
             };
 
-            #[expect(
-                clippy::cast_possible_truncation,
-                clippy::cast_sign_loss,
-                reason = "Value is clamped"
-            )]
             let reduced_search_depth = Depth::new(
                 (search_depth.as_i32() - reduction).clamp(1, search_depth.as_i32()) as u8,
             );

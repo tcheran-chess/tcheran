@@ -139,7 +139,6 @@ impl UciReporter {
                 if let Some(wdl) = wdl
                     && self.show_wdl
                 {
-                    #[expect(clippy::cast_possible_truncation, reason = "Approximate calculation")]
                     let format_wdl = |n: f64| (1000.0 * n).round() as i32;
                     print!(
                         " wdl {} {} {}",
@@ -230,7 +229,6 @@ impl UciReporter {
     }
 
     // Inspired by Simbelmyne's lovely search output
-    #[expect(clippy::cast_precision_loss, reason = "Various approximate calculations")]
     fn pretty_report_search_progress(game: &Game, result: &search::SearchResult) {
         use colors::*;
 
@@ -266,7 +264,6 @@ impl UciReporter {
 
         print!(" {score_color}{formatted_score:>7}{RESET}");
 
-        #[expect(clippy::cast_possible_truncation, reason = "Apresult calculation")]
         let as_percentage = |n: f64| (100.0 * n).round() as i32;
         let wdl = wdl::wdl(result.score, &game.board);
         let formatted_wdl = format!(

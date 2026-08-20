@@ -18,7 +18,6 @@ pub struct InterleaveOptions {
 
 const INTERVAL: u64 = 1024 * 1024 * 256;
 
-#[expect(clippy::cast_precision_loss, reason = "Approx calculations for statistics")]
 pub fn run(options: &InterleaveOptions) -> Result<()> {
     println!("Writing to {}", options.output.display());
     println!("Reading from:\n{:#?}", options.inputs);

@@ -179,10 +179,6 @@ fn initialise_bishop_not_masks() {
     }
 }
 
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "Assuming we only run on 64-bit platforms, u64 -> usize will not truncate"
-)]
 fn table_index_bishop(s: Square, blockers: Bitboard) -> usize {
     let (magic, index) = DEFAULT_BISHOP_MAGICS[s];
     let not_mask = unsafe { BISHOP_NOT_MASKS[s] };
@@ -219,10 +215,6 @@ fn initialise_rook_not_masks() {
     }
 }
 
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "Assuming we only run on 64-bit platforms, u64 -> usize will not truncate"
-)]
 fn table_index_rook(s: Square, blockers: Bitboard) -> usize {
     let (magic, index) = DEFAULT_ROOK_MAGICS[s];
     let not_mask = unsafe { ROOK_NOT_MASKS[s] };

@@ -173,7 +173,6 @@ fn islegal_perft(depth: u8, game: &mut Game) {
 macro_rules! perft_test {
     ($pos:ident, $fen:expr, [$($nodes:literal),*]) => {
         #[test]
-        #[expect(clippy::cast_possible_truncation, reason = "Will only use reasonable depth values")]
         fn $pos() {
             for (depth, expected_nodes) in [$($nodes as usize),*].iter().enumerate() {
                 test_perft($fen, depth as u8 + 1, *expected_nodes);

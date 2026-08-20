@@ -46,7 +46,6 @@ impl Flags {
 }
 
 #[inline]
-#[expect(clippy::cast_possible_truncation, reason = "Truncation is intended")]
 fn tt_key(hash: ZobristHash) -> u16 {
     hash.0 as u16
 }
@@ -217,21 +216,11 @@ impl TranspositionTable {
         self.generation.store(generation, Ordering::Relaxed);
     }
 
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "The truncation is intended to get an index"
-    )]
     fn get_cluster_idx(&self, key: ZobristHash) -> usize {
         // (from Reckless: For details, see: https://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction)
         ((u128::from(key.0) * (self.data.len() as u128)) >> 64) as usize
     }
 
-    #[expect(
-        clippy::cast_precision_loss,
-        clippy::cast_possible_truncation,
-        clippy::cast_sign_loss,
-        reason = "This is just an approximation, so a loss of precision is fine"
-    )]
     pub fn occupancy(&self) -> u64 {
         let mut occupied = 0;
         let estimate_n = 1000;
@@ -317,10 +306,6 @@ impl TranspositionTable {
         eval
     }
 
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "Eval truncated to i16 but is guaranteed to be within those bounds"
-    )]
     pub fn insert(
         &self,
         key: ZobristHash,

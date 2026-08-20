@@ -49,6 +49,13 @@ if_not_else = "allow"
 needless_range_loop = "allow"
 unreadable_literal = "allow"
 
+# Generally useful, but quite noisy as these need to be switched off regularly.
+# Potentially good to re-enable every once in a while.
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+cast_possible_wrap = "allow"
+cast_possible_truncation = "allow"
+
 # Generally desired, but not ideal in a couple of places where we probably
 # want to add more code later which would invalidate the refactoring.
 useless_let_if_seq = "allow"

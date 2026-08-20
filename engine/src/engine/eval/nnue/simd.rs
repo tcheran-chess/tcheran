@@ -166,7 +166,6 @@ pub unsafe fn clamp_i16s(n: I16s, min: I16s, max: I16s) -> I16s {
 
 #[inline(always)]
 pub unsafe fn shift_left_mul_high_i16s(a: I16s, b: I16s) -> I16s {
-    #[allow(clippy::cast_possible_wrap, reason = "Value confirmed not to wrap")]
     const L0_SHIFT: ShiftType = network::L0_SHIFT as ShiftType;
 
     simd!(
@@ -414,10 +413,6 @@ pub unsafe fn reduce_sum(n: I32s) -> i32 {
 
 macro_rules! nnz_table {
     () => {
-        #[allow(
-            clippy::cast_possible_truncation,
-            reason = "Won't compile for platforms with 16-bit pointers"
-        )]
         static NNZ_TABLE: [[i16; 8]; 256] = {
             let mut table = [[0i16; 8]; 256];
 
@@ -439,12 +434,6 @@ macro_rules! nnz_table {
 }
 
 #[inline(always)]
-#[allow(
-    clippy::cast_possible_truncation,
-    clippy::cast_possible_wrap,
-    reason = "Won't compile for platforms with 16-bit pointers"
-)]
-#[allow(clippy::cast_sign_loss, reason = "Will only cast for values where this is safe")]
 pub unsafe fn nnz_indices(n: I32s) -> (I16s, u16) {
     simd!(
         avx2 {{

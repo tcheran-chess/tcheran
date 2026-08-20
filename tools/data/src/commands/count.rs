@@ -9,7 +9,6 @@ pub struct CountOptions {
     pub input: PathBuf,
 }
 
-#[expect(clippy::cast_precision_loss, reason = "Approx calculations for statistics")]
 pub fn run(options: &CountOptions) -> Result<()> {
     println!("Reading from [{}]", options.input.display());
 

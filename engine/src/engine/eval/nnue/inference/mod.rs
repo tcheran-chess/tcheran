@@ -40,10 +40,6 @@ pub mod stats {
     }
 }
 
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "Truncating down to i32 is safe due to quantisation"
-)]
 pub fn forward(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> i32 {
     let act_ft = activate_ft(us, them, output_bucket);
     #[cfg(feature = "nnue-stats")]

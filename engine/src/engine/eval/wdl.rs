@@ -32,7 +32,6 @@ fn wdl_params(board: &Board) -> (f64, f64) {
     (compute_polynomial(&AS, m), compute_polynomial(&BS, m))
 }
 
-#[expect(clippy::cast_possible_truncation, reason = "Approximate calculation")]
 pub fn normalize(eval: Eval, board: &Board) -> Eval {
     // Don't normalize eval scores in datagen
     if cfg!(feature = "datagen") {

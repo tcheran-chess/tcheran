@@ -274,10 +274,6 @@ impl Uci {
                     return Ok(ExecuteResult::KeepGoing);
                 }
 
-                #[expect(
-                    clippy::cast_possible_truncation,
-                    reason = "Thread limit is below u32 limit"
-                )]
                 self.threads
                     .thread_control
                     .start_search(self.options.threads as u32);
@@ -619,8 +615,6 @@ pub enum UciInputMode {
     Stdin,
 }
 
-#[expect(clippy::cast_possible_truncation, reason = "Default values are too small to be truncated")]
-#[expect(clippy::cast_possible_wrap, reason = "Default values are too small to be wrapped")]
 pub fn uci_options() -> Vec<UciOption> {
     let options = vec![
         UciOption::spin("Hash", |refs, value| {

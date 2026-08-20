@@ -334,20 +334,7 @@ pub unsafe fn dpbusd(acc: I32s, u8s: UI8s, i8s: UI8s) -> I32s {
         }
         neon {
             cfg_select! {
-                // NEON dotprod is unstable, so for now we use inline ASM.
-                target_feature = "dotprod" => {
-                    {
-                        let mut result = acc;
-                        std::arch::asm!(
-                            "sdot {0:v}.4s, {1:v}.16b, {2:v}.16b",
-                            inlateout(vreg) result,
-                            in(vreg) u8s,
-                            in(vreg) i8s,
-                            options(pure, nomem, nostack),
-                        );
-                        result
-                    }
-                }
+                target_feature = "dotprod" => vdotq_s32(acc, u8s, i8s),
                 _ => {{
                     let lo = vmull_s8(vget_low_s8(u8s), vget_low_s8(i8s));
                     let hi = vmull_high_s8(u8s, i8s);

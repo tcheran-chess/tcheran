@@ -33,6 +33,7 @@
 * SAN checkmate moves are now correctly suffixed with #
 * Pretty info PVs are now truncated for readability, and checks, promotions and checkmates are colored
 * Exact nodes/time reporting behaviour for hard-stopped searches which was broken accidentally has been restored 
+* Updated to Rust 1.98
 
 ## [13.0]
 

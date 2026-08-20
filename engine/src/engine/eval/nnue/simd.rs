@@ -1,29 +1,7 @@
 #![expect(unsafe_op_in_unsafe_fn, reason = "")]
+#![allow(unused, reason = "Some functions may not be used on all arches")]
 
 use crate::engine::eval::nnue::network;
-
-#[allow(
-    clippy::cast_possible_truncation,
-    reason = "Won't compile for platforms with 16-bit pointers"
-)]
-#[cfg(not(target_feature = "avx512bw"))]
-pub static NNZ_TABLE: [[i16; 8]; 256] = {
-    let mut table = [[0i16; 8]; 256];
-
-    let mut i = 0;
-    while i < 256 {
-        let mut j = i;
-        let mut k = 0;
-        while j != 0 {
-            table[i][k] = j.trailing_zeros() as i16;
-            j &= j - 1;
-            k += 1;
-        }
-        i += 1;
-    }
-
-    table
-};
 
 macro_rules! simd {
     (
@@ -434,6 +412,32 @@ pub unsafe fn reduce_sum(n: I32s) -> i32 {
     )
 }
 
+macro_rules! nnz_table {
+    () => {
+        #[allow(
+            clippy::cast_possible_truncation,
+            reason = "Won't compile for platforms with 16-bit pointers"
+        )]
+        static NNZ_TABLE: [[i16; 8]; 256] = {
+            let mut table = [[0i16; 8]; 256];
+
+            let mut i = 0;
+            while i < 256 {
+                let mut j = i;
+                let mut k = 0;
+                while j != 0 {
+                    table[i][k] = j.trailing_zeros() as i16;
+                    j &= j - 1;
+                    k += 1;
+                }
+                i += 1;
+            }
+
+            table
+        };
+    };
+}
+
 #[inline(always)]
 #[allow(
     clippy::cast_possible_truncation,
@@ -444,6 +448,8 @@ pub unsafe fn reduce_sum(n: I32s) -> i32 {
 pub unsafe fn nnz_indices(n: I32s) -> (I16s, u16) {
     simd!(
         avx2 {{
+            nnz_table!();
+
             let nnz_mask = _mm256_movemask_ps(_mm256_castsi256_ps(_mm256_cmpgt_epi32(n, zeroed_i32s())));
             let idxs = unsafe { _mm_loadu_si128(NNZ_TABLE[nnz_mask as usize].as_ptr().cast()) };
 
@@ -463,6 +469,8 @@ pub unsafe fn nnz_indices(n: I32s) -> (I16s, u16) {
             )
         }}
         neon {{
+            nnz_table!();
+
             let mask = vtstq_s32(n, n);
             let bitmask = vaddvq_u32(vandq_u32(mask, unsafe { vld1q_u32([1, 2, 4, 8].as_ptr()) }));
             let idxs = unsafe { vld1q_s16(NNZ_TABLE[bitmask as usize].as_ptr()) };

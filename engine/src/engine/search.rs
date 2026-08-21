@@ -408,7 +408,7 @@ pub fn negamax(
         previous_best_move = tt_entry.best_move;
     }
 
-    #[allow(unused_mut, reason = "Will be mutated if compiled with syzygy")]
+    #[cfg(feature = "syzygy")]
     let (mut syzygy_min, mut syzygy_max) = (Eval::mated_in(0), Eval::mate_in(0));
 
     #[cfg(feature = "syzygy")]
@@ -934,7 +934,10 @@ pub fn negamax(
         };
     }
 
-    best_score = best_score.clamp(syzygy_min, syzygy_max);
+    #[cfg(feature = "syzygy")]
+    {
+        best_score = best_score.clamp(syzygy_min, syzygy_max);
+    }
 
     if tt_node_bound == NodeBound::Lower
         && let Some(mv) = best_move

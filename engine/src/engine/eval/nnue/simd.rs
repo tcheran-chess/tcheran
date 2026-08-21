@@ -312,7 +312,7 @@ pub unsafe fn reinterpret_u8s_as_i32s(n: U8s) -> I32s {
 }
 
 #[inline(always)]
-#[allow(unused, reason = "Not yet used")]
+#[allow(unused, reason = "Only used on some platforms")]
 pub unsafe fn dpbusd(acc: I32s, u8s: UI8s, i8s: UI8s) -> I32s {
     simd!(
         avx2 {{

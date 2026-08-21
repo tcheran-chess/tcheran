@@ -12,7 +12,6 @@ static mut ATTACKS_TABLE: AttacksTable = [Bitboard::EMPTY; 87988];
 // See http://talkchess.com/forum/viewtopic.php?t=64790
 
 #[rustfmt::skip]
-#[expect(clippy::unreadable_literal, reason = "Not intended to be readable!")]
 const DEFAULT_BISHOP_MAGICS: [(u64, usize); Square::N] = [
     (0xA7020080601803D8, 60984), (0x13802040400801F1, 66046), (0x0A0080181001F60C, 32910),
     (0x1840802004238008, 16369), (0xC03FE00100000000, 42115), (0x24C00BFFFF400000,   835),
@@ -39,7 +38,6 @@ const DEFAULT_BISHOP_MAGICS: [(u64, usize); Square::N] = [
 ];
 
 #[rustfmt::skip]
-#[expect(clippy::unreadable_literal, reason = "Not intended to be readable!")]
 const DEFAULT_ROOK_MAGICS: [(u64, usize); Square::N] = [
 	(0x80280013FF84FFFF, 10890), (0x5FFBFEFDFEF67FFF, 50579), (0xFFEFFAFFEFFDFFFF, 62020),
     (0x003000900300008A, 67322), (0x0050028010500023, 80251), (0x0020012120A00020, 58503),

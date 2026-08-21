@@ -1,5 +1,3 @@
-#![expect(clippy::unreadable_literal, reason = "AS and BS are taken directly from WDL_model")]
-
 use crate::{chess::Board, engine::eval::Eval};
 
 const AS: [f64; 4] = [-118.68154499, 277.63083411, -236.60232994, 354.05627358];

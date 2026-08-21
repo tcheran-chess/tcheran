@@ -56,9 +56,6 @@ fn main() -> ExitCode {
     // Output components
     //
 
-    println!(
-        "#[expect(clippy::unreadable_literal, reason = \"Zobrist components are not supposed to be human readable\")]"
-    );
     println!("#[rustfmt::skip]");
     println!("mod components {{");
     println!("    use super::*;");

@@ -94,7 +94,6 @@ fn side_to_play() -> ZobristComponent {
     components::SIDE_TO_PLAY
 }
 
-#[expect(clippy::unreadable_literal, reason = "Zobrist components are not supposed to be human readable")]
 #[rustfmt::skip]
 mod components {
     use super::*;

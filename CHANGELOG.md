@@ -11,6 +11,7 @@
 * Add 'simple' probcut (3.62 +- 2.81)
 * Add late move pruning in quiescence (3.51 +- 2.75)
 * Add hindsight extensions (3.31 +- 2.61)
+* Update corrhist if there's an upcoming repetition (3.28 +- 2.59)
 * Add upcoming repetition detection (3.07 +- 2.46)
 * Give a higher history bonus for moves that failed high but where the static eval was below alpha (2.66 +- 2.14)
 * Add 4-ply continuation history (2.16 +- 1.73)

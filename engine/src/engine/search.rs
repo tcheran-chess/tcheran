@@ -387,6 +387,14 @@ pub fn negamax(
         if s.alpha < Eval::DRAW && has_upcoming_repetition(game, plies) {
             s.alpha = Eval::DRAW;
 
+            if !in_check {
+                let eval = correct_eval(game, eval(ctx.nnue, game), ctx, plies);
+
+                ctx.tables
+                    .corrhist
+                    .update(game, ctx.stack, plies, depth, eval, Eval::DRAW);
+            }
+
             if s.alpha >= s.beta {
                 return s.alpha;
             }
@@ -1028,6 +1036,14 @@ pub fn quiescence(
 
     if s.alpha < Eval::DRAW && has_upcoming_repetition(game, plies) {
         s.alpha = Eval::DRAW;
+
+        if !in_check {
+            let eval = correct_eval(game, eval(ctx.nnue, game), ctx, plies);
+
+            ctx.tables
+                .corrhist
+                .update(game, ctx.stack, plies, Depth::new(1), eval, Eval::DRAW);
+        }
 
         if s.alpha >= s.beta {
             return s.alpha;

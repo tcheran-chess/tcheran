@@ -380,8 +380,11 @@ impl CorrectionHistories {
         stack: &SearchStack,
         plies: u8,
         depth: Depth,
-        eval_diff: Eval,
+        eval: Eval,
+        score: Eval,
     ) {
+        let eval_diff = score - eval;
+
         self.pawn
             .update(game.player, game.pawn_hash, depth, eval_diff);
 

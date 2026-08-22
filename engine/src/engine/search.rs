@@ -977,7 +977,7 @@ pub fn negamax(
     {
         ctx.tables
             .corrhist
-            .update(game, ctx.stack, plies, depth, best_score - eval);
+            .update(game, ctx.stack, plies, depth, eval, best_score);
     }
 
     if !in_singular_search {

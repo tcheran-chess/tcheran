@@ -352,7 +352,7 @@ impl CorrectionHistories {
         }
     }
 
-    pub fn get(&self, game: &mut Game, ctx: &SearchContext<'_>, plies: u8) -> Eval {
+    pub fn get(&self, game: &Game, ctx: &SearchContext<'_>, plies: u8) -> Eval {
         let mut corr = self.pawn.get(game.player, game.pawn_hash)
             * pawn_correction_history_weight()
             + self.major.get(game.player, game.major_piece_hash)
@@ -384,7 +384,7 @@ impl CorrectionHistories {
 
     pub fn update(
         &mut self,
-        game: &mut Game,
+        game: &Game,
         stack: &SearchStack,
         plies: u8,
         depth: Depth,

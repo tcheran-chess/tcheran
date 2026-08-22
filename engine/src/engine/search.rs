@@ -460,12 +460,12 @@ pub fn negamax(
             tt_entry.eval
         };
 
-        let eval = (raw_eval + ctx.tables.corrhist.get(game, ctx, plies)).clamp_to_non_mate();
+        let eval = correct_eval(game, raw_eval, ctx, plies);
 
         (raw_eval, eval)
     } else {
         let raw_eval = eval(ctx.nnue, game);
-        let eval = (raw_eval + ctx.tables.corrhist.get(game, ctx, plies)).clamp_to_non_mate();
+        let eval = correct_eval(game, raw_eval, ctx, plies);
 
         ctx.tt.insert(
             game.hash,
@@ -1022,12 +1022,12 @@ pub fn quiescence(
             tt_entry.eval
         };
 
-        let eval = (raw_eval + ctx.tables.corrhist.get(game, ctx, plies)).clamp_to_non_mate();
+        let eval = correct_eval(game, raw_eval, ctx, plies);
 
         (raw_eval, eval)
     } else {
         let raw_eval = eval(ctx.nnue, game);
-        let eval = (raw_eval + ctx.tables.corrhist.get(game, ctx, plies)).clamp_to_non_mate();
+        let eval = correct_eval(game, raw_eval, ctx, plies);
 
         ctx.tt.insert(
             game.hash,
@@ -1138,4 +1138,8 @@ pub fn quiescence(
     );
 
     best_score
+}
+
+fn correct_eval(game: &Game, raw_eval: Eval, ctx: &SearchContext<'_>, plies: u8) -> Eval {
+    (raw_eval + ctx.tables.corrhist.get(game, ctx, plies)).clamp_to_non_mate()
 }

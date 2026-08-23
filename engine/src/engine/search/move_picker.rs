@@ -1,7 +1,7 @@
 use crate::{
     chess::{
-        Game, Move, PieceKind,
         moves::{MAX_LEGAL_MOVES, generate_quiets, generate_tacticals},
+        prelude::*,
     },
     engine::{
         params::*,
@@ -198,7 +198,6 @@ pub fn score_quiet(game: &Game, mv: Move, tables: &Tables, stack: &SearchStack, 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::squares::all::*;
 
     #[test]
     fn test_movepicker_does_not_double_yield_best_move() {

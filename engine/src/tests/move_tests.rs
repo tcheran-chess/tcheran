@@ -1,5 +1,5 @@
 use crate::{
-    chess::{Game, Square, squares::all::*},
+    chess::prelude::*,
     engine::{
         eval::Eval,
         search::{

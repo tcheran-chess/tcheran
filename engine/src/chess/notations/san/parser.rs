@@ -1,9 +1,7 @@
 use std::collections::HashSet;
 
 use super::constants;
-use crate::chess::{
-    File, Game, Move, PieceKind, PromotionPieceKind, Rank, Square, moves::MoveListExt,
-};
+use crate::chess::{moves::MoveListExt, prelude::*};
 
 enum AmbiguityResolution {
     None,
@@ -267,9 +265,7 @@ pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::{
-        game::Game, notations::fen, piece::PromotionPieceKind, square::squares::all::*,
-    };
+    use crate::chess::notations::fen;
 
     fn test_parse_san(fen: &'static str, expected_mv: (Square, Square), san: &'static str) {
         crate::init();

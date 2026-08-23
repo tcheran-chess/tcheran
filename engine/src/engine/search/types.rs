@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    chess::{Game, Move, Piece, Player},
+    chess::prelude::*,
     engine::{
         eval::{Eval, nnue::NetworkStack},
         options::EngineOptions,

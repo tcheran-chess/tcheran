@@ -1,4 +1,4 @@
-use crate::chess::{Game, Move};
+use crate::chess::prelude::*;
 
 pub fn perft(depth: u8, game: &mut Game) -> usize {
     if depth == 1 {

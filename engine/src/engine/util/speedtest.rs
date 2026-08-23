@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    chess::Game,
+    chess::prelude::*,
     engine::{
         options::{EngineOptions, defaults},
         search::{

@@ -1,4 +1,4 @@
-use crate::chess::{Bitboard, Player, bitboards};
+use crate::chess::{bitboards, prelude::*};
 
 #[derive(PartialEq, Eq, Clone, Copy, Ord, PartialOrd)]
 pub enum File {
@@ -409,7 +409,6 @@ pub mod squares {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::square::squares::all::*;
 
     #[test]
     fn square_from_index() {

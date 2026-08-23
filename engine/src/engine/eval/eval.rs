@@ -1,7 +1,4 @@
-use crate::{
-    chess::{Game, Player},
-    engine::eval::nnue::NetworkStack,
-};
+use crate::{chess::prelude::*, engine::eval::nnue::NetworkStack};
 
 #[cfg(not(feature = "datagen"))]
 fn scale_eval(eval: Eval, game: &Game) -> Eval {

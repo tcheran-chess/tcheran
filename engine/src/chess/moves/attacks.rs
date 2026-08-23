@@ -1,4 +1,4 @@
-use crate::chess::{Bitboard, Board, Direction, Player, Square, moves::tables};
+use crate::chess::{direction::Direction, moves::tables, prelude::*};
 
 #[inline]
 pub fn pawn_attacks(s: Square, player: Player) -> Bitboard {

@@ -1,4 +1,4 @@
-use crate::chess::{Board, File, Game, Piece, Rank, Square};
+use crate::chess::prelude::*;
 
 const fn format_piece(piece: Piece) -> char {
     match piece {

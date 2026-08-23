@@ -1,7 +1,7 @@
 use rand::{Rng, RngExt, SeedableRng, prelude::IndexedRandom, rngs::StdRng};
 
 use crate::{
-    chess::Game,
+    chess::prelude::*,
     engine::{
         eval::wdl,
         search::{NullReporter, PersistentState, TimeControl, st_search},

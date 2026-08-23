@@ -1,4 +1,4 @@
-use crate::chess::{Game, Move};
+use crate::chess::prelude::*;
 #[cfg(feature = "syzygy")]
 use crate::engine::tablebases::bindings;
 
@@ -54,18 +54,16 @@ impl Tablebase {
     }
 
     pub fn wdl(&self, game: &Game) -> Option<Wdl> {
+        use crate::chess::prelude::*;
+
         if !self.is_enabled {
             return None;
         }
 
         unsafe {
             let wdl = bindings::tb_probe_wdl(
-                game.board
-                    .occupancy_for(crate::chess::Player::White)
-                    .as_u64(),
-                game.board
-                    .occupancy_for(crate::chess::Player::Black)
-                    .as_u64(),
+                game.board.occupancy_for(White).as_u64(),
+                game.board.occupancy_for(Black).as_u64(),
                 game.board.all_kings().as_u64(),
                 game.board.all_queens().as_u64(),
                 game.board.all_rooks().as_u64(),
@@ -75,7 +73,7 @@ impl Tablebase {
                 0,
                 0,
                 0,
-                game.player == crate::chess::Player::White,
+                game.player == White,
             );
 
             Self::to_wdl(wdl)
@@ -84,6 +82,7 @@ impl Tablebase {
 
     #[rustfmt::skip]
     pub fn best_move(&self, game: &Game) -> Option<Move> {
+        use crate::chess::prelude::*;
         use crate::chess::moves::MoveListExt;
 
         if !self.is_enabled {
@@ -92,8 +91,8 @@ impl Tablebase {
 
         unsafe {
             let result = bindings::tb_probe_root(
-                game.board.occupancy_for(crate::chess::Player::White).as_u64(),
-                game.board.occupancy_for(crate::chess::Player::Black).as_u64(),
+                game.board.occupancy_for(White).as_u64(),
+                game.board.occupancy_for(Black).as_u64(),
                 game.board.all_kings().as_u64(),
                 game.board.all_queens().as_u64(),
                 game.board.all_rooks().as_u64(),
@@ -103,7 +102,7 @@ impl Tablebase {
                 game.halfmove_clock,
                 0,
                 0,
-                game.player == crate::chess::Player::White,
+                game.player == White,
                 std::ptr::null_mut(),
             );
 
@@ -117,14 +116,14 @@ impl Tablebase {
             let to_bits = (result & bindings::TB_RESULT_TO_MASK) >> bindings::TB_RESULT_TO_SHIFT;
             let promotion_bits = (result & bindings::TB_RESULT_PROMOTES_MASK) >> bindings::TB_RESULT_PROMOTES_SHIFT;
 
-            let from = crate::chess::Square::from_index(from_bits as u8);
-            let to = crate::chess::Square::from_index(to_bits as u8);
+            let from = Square::from_index(from_bits as u8);
+            let to = Square::from_index(to_bits as u8);
 
             let promotion = match promotion_bits {
-                bindings::TB_PROMOTES_QUEEN => Some(crate::chess::PromotionPieceKind::Queen),
-                bindings::TB_PROMOTES_ROOK => Some(crate::chess::PromotionPieceKind::Rook),
-                bindings::TB_PROMOTES_BISHOP => Some(crate::chess::PromotionPieceKind::Bishop),
-                bindings::TB_PROMOTES_KNIGHT => Some(crate::chess::PromotionPieceKind::Knight),
+                bindings::TB_PROMOTES_QUEEN => Some(PromotionPieceKind::Queen),
+                bindings::TB_PROMOTES_ROOK => Some(PromotionPieceKind::Rook),
+                bindings::TB_PROMOTES_BISHOP => Some(PromotionPieceKind::Bishop),
+                bindings::TB_PROMOTES_KNIGHT => Some(PromotionPieceKind::Knight),
                 _ => None,
             };
 

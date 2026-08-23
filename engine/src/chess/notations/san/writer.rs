@@ -1,5 +1,5 @@
 use super::constants;
-use crate::chess::{Game, Move, PieceKind, PromotionPieceKind};
+use crate::chess::prelude::*;
 
 #[derive(Debug, Eq, PartialEq)]
 enum AmbiguityResolution {
@@ -137,12 +137,7 @@ fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::{
-        game::Game,
-        moves::MoveListExt,
-        notations::fen,
-        square::{Square, squares::all::*},
-    };
+    use crate::chess::{moves::MoveListExt, notations::fen};
 
     fn test_san_string(fen: &'static str, mv: (Square, Square), expected_san: &'static str) {
         crate::init();

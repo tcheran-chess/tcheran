@@ -1,7 +1,7 @@
 use crate::chess::{
-    Bitboard, Game, Move, PromotionPieceKind, Square, bitboards,
-    bitboards::{back_rank, double_push_rank, pawn_back_rank},
+    bitboards::{self, back_rank, double_push_rank, pawn_back_rank},
     moves::{bishop_attacks, king_attacks, knight_attacks, rook_attacks},
+    prelude::*,
     rays::{ray_between, ray_relative_antidiagonal, ray_relative_diagonal, ray_skewering},
     squares,
 };
@@ -454,10 +454,7 @@ fn generate_castle_move_for_side(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::{
-        moves::{MoveList, MoveListExt},
-        square::squares::all::*,
-    };
+    use crate::chess::moves::{MoveList, MoveListExt};
 
     #[inline(always)]
     fn should_allow_move(fen: &str, mv: (Square, Square)) {

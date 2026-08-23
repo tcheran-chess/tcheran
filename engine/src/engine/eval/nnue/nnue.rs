@@ -1,8 +1,5 @@
 use crate::{
-    chess::{
-        Board, File, Game, MoveObserver, Piece, PieceKind, Player, Square, moves::Move,
-        squares::all::*,
-    },
+    chess::{MoveObserver, prelude::*},
     engine::{
         eval::{
             Eval,

@@ -1,6 +1,4 @@
-use crate::chess::{
-    Board, CastleRights, File, Game, Piece, PieceKind, Player, Square, ranks::back_rank,
-};
+use crate::chess::{CastleRights, prelude::*, ranks::back_rank};
 
 fn place_in_nth_available(
     n: usize,
@@ -121,7 +119,7 @@ pub fn from_idxs(white_idx: usize, black_idx: usize) -> (Board, [CastleRights; P
 
 #[cfg(test)]
 mod tests {
-    use crate::chess::game::Game;
+    use super::*;
 
     fn check_indexes_match_fen(white_idx: usize, black_idx: usize, fen: &str) {
         let game = Game::new_dfrc(white_idx, black_idx);

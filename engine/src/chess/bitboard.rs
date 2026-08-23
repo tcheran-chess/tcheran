@@ -1,4 +1,4 @@
-use crate::chess::{Direction, File, Player, Rank, Square};
+use crate::chess::{direction::Direction, prelude::*};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Bitboard(u64);
@@ -326,7 +326,6 @@ impl std::fmt::Display for Bitboard {
 pub mod bitboards {
     use super::*;
     use crate::chess::player::Player;
-    use crate::chess::square::squares::all::*;
 
     static BACK_RANKS: [Bitboard; Player::N] = [RANK_1, RANK_8];
     pub const fn back_rank(player: Player) -> Bitboard {

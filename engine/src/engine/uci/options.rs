@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::{
-    chess::Game,
+    chess::prelude::*,
     engine::{
         options::EngineOptions,
         search::PersistentState,

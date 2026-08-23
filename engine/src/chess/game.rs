@@ -1,10 +1,11 @@
 use crate::chess::{
-    Bitboard, Board, Move, Piece, PieceKind, Player, PromotionPieceKind, Square, bitboards,
+    bitboard::bitboards,
     moves::{
         MoveList, bishop_attacks, generate_legal_moves, king_attacks, knight_attacks, pawn_attacks,
         rook_attacks,
     },
     notations,
+    prelude::*,
     ranks::{back_rank, pawn_back_rank, promotion_rank},
     rays::{ray_between, ray_intersecting},
     squares,
@@ -1049,7 +1050,7 @@ impl Default for Game {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::{moves::MoveListExt, square::squares::all::*};
+    use crate::chess::moves::MoveListExt;
 
     #[test]
     fn test_draw_by_insufficient_material() {

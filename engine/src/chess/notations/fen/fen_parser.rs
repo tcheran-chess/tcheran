@@ -1,6 +1,4 @@
-use crate::chess::{
-    Board, CastleRights, File, Game, Piece, Player, Rank, Square, ranks::back_rank, squares,
-};
+use crate::chess::{CastleRights, prelude::*, ranks::back_rank, squares};
 
 #[derive(Debug)]
 pub struct FenRank([Option<Piece>; File::N]);
@@ -311,8 +309,6 @@ pub fn parse(input: &str, frc: bool) -> Result<Game, ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use Player::*;
-
     use super::*;
 
     #[test]

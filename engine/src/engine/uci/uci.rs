@@ -14,9 +14,7 @@ use std::{
 
 use crate::{
     ENGINE_NAME, ENGINE_VERSION,
-    chess::{
-        Bitboard, File, Game, PieceKind, Player, Rank, Square, moves::Move, notations::san, perft,
-    },
+    chess::{notations::san, perft, prelude::*},
     engine::{
         eval::{
             WhiteEval,

@@ -46,7 +46,7 @@ impl PrincipalVariation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::squares::all::*;
+    use crate::chess::prelude::*;
 
     #[test]
     fn test_new_pv_has_no_moves() {

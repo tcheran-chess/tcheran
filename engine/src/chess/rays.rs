@@ -1,6 +1,7 @@
 use crate::chess::{
-    Bitboard, Direction, Player, Square,
+    direction::Direction,
     moves::{bishop_attacks, rook_attacks},
+    prelude::*,
 };
 
 static mut BETWEEN_RAYS: [[Bitboard; Square::N]; Square::N] =
@@ -158,7 +159,6 @@ pub fn init() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::square::squares::all::*;
 
     #[test]
     fn test_between_on_rank() {

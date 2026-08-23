@@ -1,9 +1,6 @@
 use std::num::NonZeroU16;
 
-use crate::{
-    chess::{PromotionPieceKind, Square},
-    util::arrayvec::ArrayVec,
-};
+use crate::{chess::prelude::*, util::arrayvec::ArrayVec};
 
 pub const MAX_LEGAL_MOVES: usize = 218;
 
@@ -298,7 +295,6 @@ impl std::fmt::Debug for Move {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::chess::square::squares::all::*;
 
     #[test]
     fn check_move_size() {

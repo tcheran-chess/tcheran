@@ -1,4 +1,4 @@
-use crate::{chess::Board, engine::eval::Eval};
+use crate::{chess::prelude::*, engine::eval::Eval};
 
 const AS: [f64; 4] = [-118.68154499, 277.63083411, -236.60232994, 354.05627358];
 const BS: [f64; 4] = [-4.01916146, 56.34407114, -29.56615164, 57.34649252];

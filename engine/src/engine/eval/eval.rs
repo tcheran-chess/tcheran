@@ -107,8 +107,8 @@ impl Eval {
 
     pub fn to_white_eval(self, player: Player) -> WhiteEval {
         match player {
-            Player::White => WhiteEval(self.0),
-            Player::Black => -WhiteEval(self.0),
+            White => WhiteEval(self.0),
+            Black => -WhiteEval(self.0),
         }
     }
 }
@@ -200,8 +200,8 @@ pub struct WhiteEval(pub i32);
 impl WhiteEval {
     pub fn for_player(self, player: Player) -> Eval {
         match player {
-            Player::White => Eval(self.0),
-            Player::Black => Eval((-self).0),
+            White => Eval(self.0),
+            Black => Eval((-self).0),
         }
     }
 }

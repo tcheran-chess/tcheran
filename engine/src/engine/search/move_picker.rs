@@ -179,7 +179,7 @@ pub fn score_tactical(game: &Game, mv: Move, tables: &Tables) -> i32 {
     }
 
     if let Some(promotion_piece) = mv.promotion() {
-        score += see_value(promotion_piece.piece()).0 - see_value(PieceKind::Pawn).0;
+        score += see_value(promotion_piece.piece()).0 - see_value(Pawn).0;
     }
 
     // Capture history max is 8192, so divide by 8 so max is roughly

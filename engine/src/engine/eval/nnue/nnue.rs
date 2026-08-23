@@ -209,7 +209,7 @@ impl NetworkStack {
 
             // If the king crossed over the middle of the board, the board either becomes, or stops being
             // mirrored and will require a full refresh.
-            if entry.changes.moved_piece.kind == PieceKind::King {
+            if entry.changes.moved_piece.kind == King {
                 let from = entry.changes.mv.from();
                 let to = entry.changes.mv.to();
 

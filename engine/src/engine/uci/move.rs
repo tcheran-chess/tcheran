@@ -32,25 +32,25 @@ impl UciMove {
             // If the move is castling, it's represented internally as 'captures rook'
             // in standard chess, so account for that.
             if !is_frc && mv.is_castling() {
-                if self.to == squares::kingside_king_castle_end(Player::White)
+                if self.to == squares::kingside_king_castle_end(White)
                     && mv.to() == squares::WHITE_STANDARD_KINGSIDE_ROOK_START
                 {
                     return mv;
                 }
 
-                if self.to == squares::queenside_king_castle_end(Player::White)
+                if self.to == squares::queenside_king_castle_end(White)
                     && mv.to() == squares::WHITE_STANDARD_QUEENSIDE_ROOK_START
                 {
                     return mv;
                 }
 
-                if self.to == squares::kingside_king_castle_end(Player::Black)
+                if self.to == squares::kingside_king_castle_end(Black)
                     && mv.to() == squares::BLACK_STANDARD_KINGSIDE_ROOK_START
                 {
                     return mv;
                 }
 
-                if self.to == squares::queenside_king_castle_end(Player::Black)
+                if self.to == squares::queenside_king_castle_end(Black)
                     && mv.to() == squares::BLACK_STANDARD_QUEENSIDE_ROOK_START
                 {
                     return mv;
@@ -71,16 +71,16 @@ impl UciMove {
         if !is_frc && mv.is_castling() {
             to = match mv.to() {
                 squares::WHITE_STANDARD_KINGSIDE_ROOK_START => {
-                    squares::kingside_king_castle_end(Player::White)
+                    squares::kingside_king_castle_end(White)
                 }
                 squares::WHITE_STANDARD_QUEENSIDE_ROOK_START => {
-                    squares::queenside_king_castle_end(Player::White)
+                    squares::queenside_king_castle_end(White)
                 }
                 squares::BLACK_STANDARD_KINGSIDE_ROOK_START => {
-                    squares::kingside_king_castle_end(Player::Black)
+                    squares::kingside_king_castle_end(Black)
                 }
                 squares::BLACK_STANDARD_QUEENSIDE_ROOK_START => {
-                    squares::queenside_king_castle_end(Player::Black)
+                    squares::queenside_king_castle_end(Black)
                 }
                 _ => to,
             };

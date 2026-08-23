@@ -9,12 +9,12 @@ pub fn lookup_pawn_attacks(s: Square, player: Player) -> Bitboard {
 
 pub fn init() {
     for s in Bitboard::FULL {
-        let white_attacks = attacks::generate_pawn_attacks(s, Player::White);
-        let black_attacks = attacks::generate_pawn_attacks(s, Player::Black);
+        let white_attacks = attacks::generate_pawn_attacks(s, White);
+        let black_attacks = attacks::generate_pawn_attacks(s, Black);
 
         unsafe {
-            ATTACKS_TABLE[Player::White][s] = white_attacks;
-            ATTACKS_TABLE[Player::Black][s] = black_attacks;
+            ATTACKS_TABLE[White][s] = white_attacks;
+            ATTACKS_TABLE[Black][s] = black_attacks;
         }
     }
 }

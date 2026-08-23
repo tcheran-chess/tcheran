@@ -25,7 +25,6 @@ fn place_in_nth_available(
 
 fn idx_to_backrank(idx: usize) -> ([PieceKind; File::N], [File; 2]) {
     use File::*;
-    use PieceKind::*;
 
     let mut backrank = [None; File::N];
 
@@ -84,14 +83,14 @@ pub fn from_idxs(white_idx: usize, black_idx: usize) -> (Board, [CastleRights; P
 
     let mut board = Game::new().board;
 
-    let white_rank = back_rank(Player::White);
-    let black_rank = back_rank(Player::Black);
+    let white_rank = back_rank(White);
+    let black_rank = back_rank(Black);
 
     let (white_backrank, [white_queenside_rook, white_kingside_rook]) = idx_to_backrank(white_idx);
     let (black_backrank, [black_queenside_rook, black_kingside_rook]) = idx_to_backrank(black_idx);
 
-    let white_backrank = white_backrank.map(|p| Piece::new(Player::White, p));
-    let black_backrank = black_backrank.map(|p| Piece::new(Player::Black, p));
+    let white_backrank = white_backrank.map(|p| Piece::new(White, p));
+    let black_backrank = black_backrank.map(|p| Piece::new(Black, p));
 
     for file in File::ALL {
         let white_sq = Square::from_file_and_rank(file, white_rank);

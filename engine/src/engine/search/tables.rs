@@ -351,8 +351,8 @@ impl CorrectionHistories {
                 * major_correction_history_weight()
             + self.minor.get(game.player, game.minor_piece_hash)
                 * minor_correction_history_weight()
-            + (self.non_pawn[Player::White].get(game.player, game.non_pawn_hash[Player::White])
-                + self.non_pawn[Player::Black].get(game.player, game.non_pawn_hash[Player::Black]))
+            + (self.non_pawn[White].get(game.player, game.non_pawn_hash[White])
+                + self.non_pawn[Black].get(game.player, game.non_pawn_hash[Black]))
                 * non_pawn_correction_history_weight()
             + self
                 .threat
@@ -391,19 +391,9 @@ impl CorrectionHistories {
         self.minor
             .update(game.player, game.minor_piece_hash, depth, eval_diff);
 
-        self.non_pawn[Player::White].update(
-            game.player,
-            game.non_pawn_hash[Player::White],
-            depth,
-            eval_diff,
-        );
+        self.non_pawn[White].update(game.player, game.non_pawn_hash[White], depth, eval_diff);
 
-        self.non_pawn[Player::Black].update(
-            game.player,
-            game.non_pawn_hash[Player::Black],
-            depth,
-            eval_diff,
-        );
+        self.non_pawn[Black].update(game.player, game.non_pawn_hash[Black], depth, eval_diff);
 
         self.threat
             .update(game.player, ZobristHash(game.threats.as_u64()), depth, eval_diff);

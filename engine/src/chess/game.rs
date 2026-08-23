@@ -124,12 +124,12 @@ pub struct History {
 
 #[inline]
 fn is_major_piece(piece: Piece) -> bool {
-    [PieceKind::Rook, PieceKind::Queen, PieceKind::King].contains(&piece.kind)
+    [Rook, Queen, King].contains(&piece.kind)
 }
 
 #[inline]
 fn is_minor_piece(piece: Piece) -> bool {
-    [PieceKind::Knight, PieceKind::Bishop, PieceKind::King].contains(&piece.kind)
+    [Knight, Bishop, King].contains(&piece.kind)
 }
 
 #[derive(Debug, Clone)]
@@ -164,7 +164,7 @@ impl Game {
 
     pub fn new_dfrc(white_idx: usize, black_idx: usize) -> Self {
         let (board, castle_rights) = notations::scharnagl::from_idxs(white_idx, black_idx);
-        Self::from_state(board, Player::White, castle_rights, None, 0, 0, true)
+        Self::from_state(board, White, castle_rights, None, 0, 0, true)
     }
 
     pub fn from_state(
@@ -201,12 +201,12 @@ impl Game {
         };
 
         game.hash = zobrist::hash(&game);
-        game.pawn_hash = zobrist::hash_pieces(&game, |p| p.kind == PieceKind::Pawn);
+        game.pawn_hash = zobrist::hash_pieces(&game, |p| p.kind == Pawn);
         game.major_piece_hash = zobrist::hash_pieces(&game, is_major_piece);
         game.minor_piece_hash = zobrist::hash_pieces(&game, is_minor_piece);
         game.non_pawn_hash = [
-            zobrist::hash_pieces(&game, |p| p.player == Player::White),
-            zobrist::hash_pieces(&game, |p| p.player == Player::Black),
+            zobrist::hash_pieces(&game, |p| p.player == White),
+            zobrist::hash_pieces(&game, |p| p.player == Black),
         ];
 
         game.update_threats();
@@ -344,12 +344,12 @@ impl Game {
         );
 
         let zones = match moved_piece_kind {
-            PieceKind::Pawn => self.check_zones[0],
-            PieceKind::Knight => self.check_zones[1],
-            PieceKind::Bishop => self.check_zones[2],
-            PieceKind::Rook => self.check_zones[3],
-            PieceKind::Queen => self.check_zones[2] | self.check_zones[3],
-            PieceKind::King => return false,
+            Pawn => self.check_zones[0],
+            Knight => self.check_zones[1],
+            Bishop => self.check_zones[2],
+            Rook => self.check_zones[3],
+            Queen => self.check_zones[2] | self.check_zones[3],
+            King => return false,
         };
 
         zones.contains(mv.to())
@@ -373,7 +373,7 @@ impl Game {
     fn toggle_piece_in_hashes(&mut self, sq: Square, piece: Piece) {
         self.hash.toggle_piece_on_square(sq, piece);
 
-        if piece.kind == PieceKind::Pawn {
+        if piece.kind == Pawn {
             self.pawn_hash.toggle_piece_on_square(sq, piece);
         }
 
@@ -386,7 +386,7 @@ impl Game {
         }
 
         for player in Player::ALL {
-            if piece.player == player && piece.kind != PieceKind::Pawn {
+            if piece.player == player && piece.kind != Pawn {
                 self.non_pawn_hash[player].toggle_piece_on_square(sq, piece);
             }
         }
@@ -521,7 +521,7 @@ impl Game {
         }
 
         // If we're in check and moving anything except the king:
-        if self.in_check() && moved_piece.kind != PieceKind::King {
+        if self.in_check() && moved_piece.kind != King {
             // If multiple pieces are checking, we had to evade with the king
             if self.checkers.count() > 1 {
                 return false;
@@ -558,7 +558,7 @@ impl Game {
                 }
 
                 // When castling, we can only capture rooks
-                if captured_piece.kind != PieceKind::Rook {
+                if captured_piece.kind != Rook {
                     return false;
                 }
             } else if !mv.is_capture() {
@@ -566,7 +566,7 @@ impl Game {
             }
 
             // We can't capture kings
-            if captured_piece.kind == PieceKind::King {
+            if captured_piece.kind == King {
                 return false;
             }
         }
@@ -574,7 +574,7 @@ impl Game {
         // If we're castling:
         if mv.is_castling() {
             // We can only castle a king
-            if moved_piece.kind != PieceKind::King {
+            if moved_piece.kind != King {
                 return false;
             }
 
@@ -622,7 +622,7 @@ impl Game {
         }
 
         // Lots of special handling for pawn moves
-        if moved_piece.kind == PieceKind::Pawn {
+        if moved_piece.kind == Pawn {
             if mv.is_en_passant() {
                 // Can't do en-passant without an en-passant target
                 let Some(en_passant_target) = self.en_passant_target else {
@@ -694,14 +694,14 @@ impl Game {
             }
 
             let valid_destinations = match moved_piece.kind {
-                PieceKind::Knight => knight_attacks(from),
-                PieceKind::Bishop => bishop_attacks(from, occupancy),
-                PieceKind::Rook => rook_attacks(from, occupancy),
-                PieceKind::Queen => bishop_attacks(from, occupancy) | rook_attacks(from, occupancy),
-                PieceKind::King => king_attacks(from) & !self.threats,
+                Knight => knight_attacks(from),
+                Bishop => bishop_attacks(from, occupancy),
+                Rook => rook_attacks(from, occupancy),
+                Queen => bishop_attacks(from, occupancy) | rook_attacks(from, occupancy),
+                King => king_attacks(from) & !self.threats,
 
                 // Handled above
-                PieceKind::Pawn => unreachable!(),
+                Pawn => unreachable!(),
             };
 
             if !valid_destinations.contains(to) {
@@ -811,10 +811,10 @@ impl Game {
         }
 
         // If we moved the king, we lose castle rights
-        if moved_piece.kind == PieceKind::King {
+        if moved_piece.kind == King {
             self.try_remove_castle_rights(player, CastleRightsSide::Kingside);
             self.try_remove_castle_rights(player, CastleRightsSide::Queenside);
-        } else if moved_piece.kind == PieceKind::Rook {
+        } else if moved_piece.kind == Rook {
             // If we moved one of our rooks, we lose rights to castle on that side.
             if Some(from) == self.castle_rights[player].king_side {
                 self.try_remove_castle_rights(player, CastleRightsSide::Kingside);
@@ -825,7 +825,7 @@ impl Game {
 
         // Check if we removed our enemy's ability to castle, i.e. if we took one of their rooks
         if let Some(captured_piece) = maybe_captured_piece
-            && captured_piece.kind == PieceKind::Rook
+            && captured_piece.kind == Rook
         {
             if Some(to) == self.castle_rights[other_player].king_side {
                 self.try_remove_castle_rights(other_player, CastleRightsSide::Kingside);
@@ -834,7 +834,7 @@ impl Game {
             }
         }
 
-        let should_reset_halfmove_clock = mv.is_capture() || moved_piece.kind == PieceKind::Pawn;
+        let should_reset_halfmove_clock = mv.is_capture() || moved_piece.kind == Pawn;
 
         if should_reset_halfmove_clock {
             self.halfmove_clock = 0;
@@ -932,7 +932,7 @@ impl Game {
             let capture_square = to.backward(player);
 
             self.board
-                .set_at(capture_square, Piece::new(other_player, PieceKind::Pawn));
+                .set_at(capture_square, Piece::new(other_player, Pawn));
         }
 
         // If we castled, the piece we moved doesn't end up on the 'to' square.

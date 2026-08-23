@@ -105,16 +105,16 @@ impl Bitboard {
     #[inline(always)]
     pub fn forward(self, player: Player) -> Self {
         match player {
-            Player::White => self.north(),
-            Player::Black => self.south(),
+            White => self.north(),
+            Black => self.south(),
         }
     }
 
     #[inline(always)]
     pub fn backward(self, player: Player) -> Self {
         match player {
-            Player::White => self.south(),
-            Player::Black => self.north(),
+            White => self.south(),
+            Black => self.north(),
         }
     }
 

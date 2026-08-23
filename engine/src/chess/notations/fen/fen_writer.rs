@@ -68,8 +68,8 @@ fn format_board(board: &Board) -> String {
 
 fn format_current_player(game: &Game) -> String {
     match game.player {
-        crate::chess::player::Player::White => "w".to_string(),
-        crate::chess::player::Player::Black => "b".to_string(),
+        White => "w".to_string(),
+        Black => "b".to_string(),
     }
 }
 

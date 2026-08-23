@@ -105,12 +105,12 @@ fn parse_promotion_piece(piece: &str) -> Result<PromotionPieceKind, ParseError> 
 
 fn parse_piece(c: char) -> Option<PieceKind> {
     match c {
-        'K' => Some(PieceKind::King),
-        'Q' => Some(PieceKind::Queen),
-        'R' => Some(PieceKind::Rook),
-        'B' => Some(PieceKind::Bishop),
-        'N' => Some(PieceKind::Knight),
-        'P' => Some(PieceKind::Pawn),
+        'K' => Some(King),
+        'Q' => Some(Queen),
+        'R' => Some(Rook),
+        'B' => Some(Bishop),
+        'N' => Some(Knight),
+        'P' => Some(Pawn),
         _ => None,
     }
 }
@@ -126,7 +126,7 @@ fn parse_from_square(game: &Game, from: &str, to: Square) -> Result<Square, Pars
     if from.is_empty() {
         let matching_source_squares: HashSet<Square> = piece_moves
             .into_iter()
-            .filter(|&(piece, mv)| piece == PieceKind::Pawn && mv.to() == to)
+            .filter(|&(piece, mv)| piece == Pawn && mv.to() == to)
             .map(|(_, mv)| mv.from())
             .collect();
 
@@ -165,7 +165,7 @@ fn parse_from_square(game: &Game, from: &str, to: Square) -> Result<Square, Pars
     let matching_source_squares: Vec<Square> = piece_moves
         .into_iter()
         .filter(|&(piece, mv)| {
-            piece == PieceKind::Pawn && mv.to() == to && ambiguity_resolution.satisfied_by(mv)
+            piece == Pawn && mv.to() == to && ambiguity_resolution.satisfied_by(mv)
         })
         .map(|(_, mv)| mv.from())
         .collect::<HashSet<_>>()

@@ -28,11 +28,11 @@ pub fn init_see_values(
     queen_value: i32,
 ) {
     unsafe {
-        SEE_VALUES[PieceKind::Pawn] = pawn_value;
-        SEE_VALUES[PieceKind::Knight] = knight_value;
-        SEE_VALUES[PieceKind::Bishop] = bishop_value;
-        SEE_VALUES[PieceKind::Rook] = rook_value;
-        SEE_VALUES[PieceKind::Queen] = queen_value;
+        SEE_VALUES[Pawn] = pawn_value;
+        SEE_VALUES[Knight] = knight_value;
+        SEE_VALUES[Bishop] = bishop_value;
+        SEE_VALUES[Rook] = rook_value;
+        SEE_VALUES[Queen] = queen_value;
     }
 }
 
@@ -58,7 +58,7 @@ pub fn see(game: &Game, mv: Move, threshold: i32) -> bool {
 
     // If we promoted a pawn, we lose the pawn and gain the value of the piece we promoted to
     if let Some(promotion_piece) = mv.promotion() {
-        score -= see_value(PieceKind::Pawn);
+        score -= see_value(Pawn);
         score += see_value(promotion_piece.piece());
     }
 
@@ -76,11 +76,11 @@ pub fn see(game: &Game, mv: Move, threshold: i32) -> bool {
         occupied.unset(game.en_passant_target.unwrap());
     }
 
-    let white_pinned = game.pinned[Player::White];
-    let white_pin_ray = ray_skewering(board.king_square(Player::White), to);
+    let white_pinned = game.pinned[White];
+    let white_pin_ray = ray_skewering(board.king_square(White), to);
 
-    let black_pinned = game.pinned[Player::Black];
-    let black_pin_ray = ray_skewering(board.king_square(Player::Black), to);
+    let black_pinned = game.pinned[Black];
+    let black_pin_ray = ray_skewering(board.king_square(Black), to);
 
     let not_pinned = !(white_pinned | black_pinned)
         | (white_pinned & white_pin_ray)
@@ -124,7 +124,7 @@ pub fn see(game: &Game, mv: Move, threshold: i32) -> bool {
 
         // If we capture with a king and the opponent is attacking the square, we just captured into
         // check
-        if attacker == PieceKind::King && (attackers & board.occupancy_for(color.other())).any() {
+        if attacker == King && (attackers & board.occupancy_for(color.other())).any() {
             break;
         }
 
@@ -134,14 +134,11 @@ pub fn see(game: &Game, mv: Move, threshold: i32) -> bool {
         diagonal_sliders &= occupied;
         orthorgonal_sliders &= occupied;
 
-        if attacker == PieceKind::Pawn
-            || attacker == PieceKind::Bishop
-            || attacker == PieceKind::Queen
-        {
+        if attacker == Pawn || attacker == Bishop || attacker == Queen {
             attackers |= bishop_attacks(to, occupied) & diagonal_sliders;
         }
 
-        if attacker == PieceKind::Rook || attacker == PieceKind::Queen {
+        if attacker == Rook || attacker == Queen {
             attackers |= rook_attacks(to, occupied) & orthorgonal_sliders;
         }
 

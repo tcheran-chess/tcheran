@@ -193,16 +193,16 @@ impl Square {
     #[inline(always)]
     pub fn forward(self, player: Player) -> Self {
         match player {
-            Player::White => self.north(),
-            Player::Black => self.south(),
+            White => self.north(),
+            Black => self.south(),
         }
     }
 
     #[inline(always)]
     pub fn backward(self, player: Player) -> Self {
         match player {
-            Player::White => self.south(),
-            Player::Black => self.north(),
+            White => self.south(),
+            Black => self.north(),
         }
     }
 
@@ -234,8 +234,8 @@ impl Square {
     #[inline(always)]
     pub const fn relative_for(self, player: Player) -> Self {
         match player {
-            Player::White => self,
-            Player::Black => self.mirror_vertically(),
+            White => self,
+            Black => self.mirror_vertically(),
         }
     }
 

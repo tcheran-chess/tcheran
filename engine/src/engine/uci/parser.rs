@@ -212,13 +212,13 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
     while let Some(&arg) = args.next() {
         match arg {
             "infinite" => infinite = true,
-            "wtime" => clocks.clocks[Player::White] = Some(parse_duration(args.next().ok_or(())?)?),
-            "btime" => clocks.clocks[Player::Black] = Some(parse_duration(args.next().ok_or(())?)?),
+            "wtime" => clocks.clocks[White] = Some(parse_duration(args.next().ok_or(())?)?),
+            "btime" => clocks.clocks[Black] = Some(parse_duration(args.next().ok_or(())?)?),
             "winc" => {
-                clocks.increments[Player::White] = Some(parse_duration(args.next().ok_or(())?)?);
+                clocks.increments[White] = Some(parse_duration(args.next().ok_or(())?)?);
             }
             "binc" => {
-                clocks.increments[Player::Black] = Some(parse_duration(args.next().ok_or(())?)?);
+                clocks.increments[Black] = Some(parse_duration(args.next().ok_or(())?)?);
             }
             "movestogo" => {
                 clocks.moves_to_go = Some(args.next().ok_or(())?.parse().map_err(|_| ())?);

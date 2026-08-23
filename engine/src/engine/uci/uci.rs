@@ -417,13 +417,13 @@ impl Uci {
                     let Some(piece) = self.game.board.piece_at(sq) else {
                         continue;
                     };
-                    if piece.kind == PieceKind::King {
+                    if piece.kind == King {
                         continue;
                     }
 
                     piece_contributions[sq] = nnue
-                        .approx_contribution(&self.game.clone(), sq, Player::White)
-                        .to_white_eval(Player::White);
+                        .approx_contribution(&self.game.clone(), sq, White)
+                        .to_white_eval(White);
                 }
 
                 println!("┌───────┬───────┬───────┬───────┬───────┬───────┬───────┬───────┐");
@@ -452,12 +452,12 @@ impl Uci {
                         let piece = self.game.board.piece_at(sq);
 
                         match piece {
-                            Some(piece) if piece.kind != PieceKind::King => {
+                            Some(piece) if piece.kind != King => {
                                 let normalized_contribution = wdl::normalize(
-                                    piece_contributions[sq].for_player(Player::White),
+                                    piece_contributions[sq].for_player(White),
                                     &self.game.board,
                                 )
-                                .to_white_eval(Player::White);
+                                .to_white_eval(White);
 
                                 print!("{: ^7}", normalized_contribution.to_string());
                             }
@@ -480,12 +480,12 @@ impl Uci {
                     }
                 }
 
-                let raw_eval = nnue.evaluate(Player::White, &self.game);
+                let raw_eval = nnue.evaluate(White, &self.game);
                 let normalised_eval =
-                    wdl::normalize(raw_eval, &self.game.board).to_white_eval(Player::White);
+                    wdl::normalize(raw_eval, &self.game.board).to_white_eval(White);
 
                 println!();
-                println!("Raw evaluation: {}", raw_eval.to_white_eval(Player::White));
+                println!("Raw evaluation: {}", raw_eval.to_white_eval(White));
                 println!("Normalised evaluation: {normalised_eval}");
                 println!();
             }

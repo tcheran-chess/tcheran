@@ -32,18 +32,18 @@ pub fn format_move(game: &Game, mv: Move) -> String {
     let ambiguity_resolution_required = required_ambiguity_resolution(game, mv);
 
     let piece_identifier: &'static str = match piece.kind {
-        PieceKind::Pawn => {
+        Pawn => {
             if mv.is_capture() {
                 from.file().notation()
             } else {
                 ""
             }
         }
-        PieceKind::Knight => "N",
-        PieceKind::Bishop => "B",
-        PieceKind::Rook => "R",
-        PieceKind::Queen => "Q",
-        PieceKind::King => "K",
+        Knight => "N",
+        Bishop => "B",
+        Rook => "R",
+        Queen => "Q",
+        King => "K",
     };
 
     let ambiguity_resolution = match ambiguity_resolution_required {
@@ -96,7 +96,7 @@ fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
     let to = mv.to();
 
     let piece = game.board.piece_guaranteed_at(from);
-    if piece.kind == PieceKind::Pawn || piece.kind == PieceKind::King {
+    if piece.kind == Pawn || piece.kind == King {
         return AmbiguityResolution::None;
     }
 

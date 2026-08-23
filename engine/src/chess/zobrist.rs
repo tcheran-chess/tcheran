@@ -33,20 +33,20 @@ pub fn hash(game: &Game) -> ZobristHash {
 
     // White
     if white_castle_rights.king_side.is_some() {
-        hash.toggle_castle_rights(Player::White, CastleRightsSide::Kingside);
+        hash.toggle_castle_rights(White, CastleRightsSide::Kingside);
     }
 
     if white_castle_rights.queen_side.is_some() {
-        hash.toggle_castle_rights(Player::White, CastleRightsSide::Queenside);
+        hash.toggle_castle_rights(White, CastleRightsSide::Queenside);
     }
 
     // Black
     if black_castle_rights.king_side.is_some() {
-        hash.toggle_castle_rights(Player::Black, CastleRightsSide::Kingside);
+        hash.toggle_castle_rights(Black, CastleRightsSide::Kingside);
     }
 
     if black_castle_rights.queen_side.is_some() {
-        hash.toggle_castle_rights(Player::Black, CastleRightsSide::Queenside);
+        hash.toggle_castle_rights(Black, CastleRightsSide::Queenside);
     }
 
     // En passant
@@ -55,7 +55,7 @@ pub fn hash(game: &Game) -> ZobristHash {
     }
 
     // Side to play
-    if game.player == Player::Black {
+    if game.player == Black {
         hash.toggle_side_to_play();
     }
 

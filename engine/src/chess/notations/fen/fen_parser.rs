@@ -87,8 +87,8 @@ fn fen_position(input: &str) -> Result<Board, ()> {
 
 fn fen_color(input: &str) -> Result<Player, ()> {
     Ok(match input {
-        "w" => Player::White,
-        "b" => Player::Black,
+        "w" => White,
+        "b" => Black,
         _ => return Err(()),
     })
 }
@@ -135,7 +135,7 @@ fn frc_castle_right(input: char, board: &Board) -> Result<(FenCastleRight, Squar
 
     Ok(match input {
         'A'..='H' => {
-            let king_file = board.king_square(Player::White).file();
+            let king_file = board.king_square(White).file();
 
             let file = fen_file(input.to_ascii_lowercase())?;
             let square = Square::from_file_and_rank(file, Rank::R1);
@@ -149,7 +149,7 @@ fn frc_castle_right(input: char, board: &Board) -> Result<(FenCastleRight, Squar
             (right, square)
         }
         'a'..='h' => {
-            let king_file = board.king_square(Player::Black).file();
+            let king_file = board.king_square(Black).file();
 
             let file = fen_file(input.to_ascii_lowercase())?;
             let square = Square::from_file_and_rank(file, Rank::R8);
@@ -162,10 +162,10 @@ fn frc_castle_right(input: char, board: &Board) -> Result<(FenCastleRight, Squar
 
             (right, square)
         }
-        'K' => (WhiteKingside, rightmost_rook(Player::White)?),
-        'Q' => (WhiteQueenside, leftmost_rook(Player::White)?),
-        'k' => (BlackKingside, rightmost_rook(Player::Black)?),
-        'q' => (BlackQueenside, leftmost_rook(Player::Black)?),
+        'K' => (WhiteKingside, rightmost_rook(White)?),
+        'Q' => (WhiteQueenside, leftmost_rook(White)?),
+        'k' => (BlackKingside, rightmost_rook(Black)?),
+        'q' => (BlackQueenside, leftmost_rook(Black)?),
         _ => return Err(()),
     })
 }
@@ -255,7 +255,7 @@ fn fen_fullmove_number(input: &str) -> Result<u32, ()> {
 
 #[inline(always)]
 fn plies_from_fullmove_number(fullmove_number: u32, player: Player) -> u32 {
-    (fullmove_number - 1) * 2 + u32::from(player == Player::Black)
+    (fullmove_number - 1) * 2 + u32::from(player == Black)
 }
 
 #[rustfmt::skip]
@@ -370,9 +370,9 @@ mod tests {
 
     #[test]
     fn plies_from_fullmove_number() {
-        assert_eq!(super::plies_from_fullmove_number(1, Player::White), 0);
-        assert_eq!(super::plies_from_fullmove_number(1, Player::Black), 1);
-        assert_eq!(super::plies_from_fullmove_number(2, Player::White), 2);
-        assert_eq!(super::plies_from_fullmove_number(2, Player::Black), 3);
+        assert_eq!(super::plies_from_fullmove_number(1, White), 0);
+        assert_eq!(super::plies_from_fullmove_number(1, Black), 1);
+        assert_eq!(super::plies_from_fullmove_number(2, White), 2);
+        assert_eq!(super::plies_from_fullmove_number(2, Black), 3);
     }
 }

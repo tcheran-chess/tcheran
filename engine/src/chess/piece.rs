@@ -13,14 +13,7 @@ pub enum PieceKind {
 impl PieceKind {
     pub const N: usize = 6;
 
-    pub const ALL: [Self; Self::N] = [
-        Self::Pawn,
-        Self::Knight,
-        Self::Bishop,
-        Self::Rook,
-        Self::Queen,
-        Self::King,
-    ];
+    pub const ALL: [Self; Self::N] = [Pawn, Knight, Bishop, Rook, Queen, King];
 }
 
 impl<T> std::ops::Index<PieceKind> for [T; PieceKind::N] {
@@ -48,10 +41,10 @@ pub enum PromotionPieceKind {
 impl PromotionPieceKind {
     pub const fn piece(self) -> PieceKind {
         match self {
-            Self::Knight => PieceKind::Knight,
-            Self::Bishop => PieceKind::Bishop,
-            Self::Rook => PieceKind::Rook,
-            Self::Queen => PieceKind::Queen,
+            Self::Knight => Knight,
+            Self::Bishop => Bishop,
+            Self::Rook => Rook,
+            Self::Queen => Queen,
         }
     }
 }
@@ -65,30 +58,30 @@ pub struct Piece {
 impl Piece {
     pub const N: usize = 12;
 
-    pub const WHITE_PAWN: Self = Self::white(PieceKind::Pawn);
-    pub const WHITE_KNIGHT: Self = Self::white(PieceKind::Knight);
-    pub const WHITE_BISHOP: Self = Self::white(PieceKind::Bishop);
-    pub const WHITE_ROOK: Self = Self::white(PieceKind::Rook);
-    pub const WHITE_QUEEN: Self = Self::white(PieceKind::Queen);
-    pub const WHITE_KING: Self = Self::white(PieceKind::King);
+    pub const WHITE_PAWN: Self = Self::white(Pawn);
+    pub const WHITE_KNIGHT: Self = Self::white(Knight);
+    pub const WHITE_BISHOP: Self = Self::white(Bishop);
+    pub const WHITE_ROOK: Self = Self::white(Rook);
+    pub const WHITE_QUEEN: Self = Self::white(Queen);
+    pub const WHITE_KING: Self = Self::white(King);
 
-    pub const BLACK_PAWN: Self = Self::black(PieceKind::Pawn);
-    pub const BLACK_KNIGHT: Self = Self::black(PieceKind::Knight);
-    pub const BLACK_BISHOP: Self = Self::black(PieceKind::Bishop);
-    pub const BLACK_ROOK: Self = Self::black(PieceKind::Rook);
-    pub const BLACK_QUEEN: Self = Self::black(PieceKind::Queen);
-    pub const BLACK_KING: Self = Self::black(PieceKind::King);
+    pub const BLACK_PAWN: Self = Self::black(Pawn);
+    pub const BLACK_KNIGHT: Self = Self::black(Knight);
+    pub const BLACK_BISHOP: Self = Self::black(Bishop);
+    pub const BLACK_ROOK: Self = Self::black(Rook);
+    pub const BLACK_QUEEN: Self = Self::black(Queen);
+    pub const BLACK_KING: Self = Self::black(King);
 
     pub const fn new(player: Player, kind: PieceKind) -> Self {
         Self { kind, player }
     }
 
     const fn white(kind: PieceKind) -> Self {
-        Self::new(Player::White, kind)
+        Self::new(White, kind)
     }
 
     const fn black(kind: PieceKind) -> Self {
-        Self::new(Player::Black, kind)
+        Self::new(Black, kind)
     }
 
     const fn idx(self) -> usize {
@@ -97,29 +90,29 @@ impl Piece {
 
     pub fn char(&self) -> char {
         match self.kind {
-            PieceKind::Pawn => match self.player {
-                Player::White => '♟',
-                Player::Black => '♙',
+            Pawn => match self.player {
+                White => '♟',
+                Black => '♙',
             },
-            PieceKind::Knight => match self.player {
-                Player::White => '♞',
-                Player::Black => '♘',
+            Knight => match self.player {
+                White => '♞',
+                Black => '♘',
             },
-            PieceKind::Bishop => match self.player {
-                Player::White => '♝',
-                Player::Black => '♗',
+            Bishop => match self.player {
+                White => '♝',
+                Black => '♗',
             },
-            PieceKind::Rook => match self.player {
-                Player::White => '♜',
-                Player::Black => '♖',
+            Rook => match self.player {
+                White => '♜',
+                Black => '♖',
             },
-            PieceKind::Queen => match self.player {
-                Player::White => '♛',
-                Player::Black => '♕',
+            Queen => match self.player {
+                White => '♛',
+                Black => '♕',
             },
-            PieceKind::King => match self.player {
-                Player::White => '♚',
-                Player::Black => '♔',
+            King => match self.player {
+                White => '♚',
+                Black => '♔',
             },
         }
     }

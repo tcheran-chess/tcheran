@@ -38,15 +38,15 @@ pub fn ray_antidiagonal(square: Square) -> Bitboard {
 
 pub fn ray_relative_diagonal(square: Square, player: Player) -> Bitboard {
     match player {
-        Player::White => ray_diagonal(square),
-        Player::Black => ray_antidiagonal(square),
+        White => ray_diagonal(square),
+        Black => ray_antidiagonal(square),
     }
 }
 
 pub fn ray_relative_antidiagonal(square: Square, player: Player) -> Bitboard {
     match player {
-        Player::White => ray_antidiagonal(square),
-        Player::Black => ray_diagonal(square),
+        White => ray_antidiagonal(square),
+        Black => ray_diagonal(square),
     }
 }
 

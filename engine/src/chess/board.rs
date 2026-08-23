@@ -16,7 +16,7 @@ impl Board {
 
     #[inline(always)]
     pub fn occupancy(&self) -> Bitboard {
-        self.occupancy_for(Player::White) | self.occupancy_for(Player::Black)
+        self.occupancy_for(White) | self.occupancy_for(Black)
     }
 
     #[inline(always)]
@@ -39,7 +39,7 @@ impl Board {
     }
 
     pub fn all_pawns(&self) -> Bitboard {
-        self.pieces[PieceKind::Pawn]
+        self.pieces[Pawn]
     }
 
     pub fn knights(&self, player: Player) -> Bitboard {
@@ -47,7 +47,7 @@ impl Board {
     }
 
     pub fn all_knights(&self) -> Bitboard {
-        self.pieces[PieceKind::Knight]
+        self.pieces[Knight]
     }
 
     pub fn bishops(&self, player: Player) -> Bitboard {
@@ -55,7 +55,7 @@ impl Board {
     }
 
     pub fn all_bishops(&self) -> Bitboard {
-        self.pieces[PieceKind::Bishop]
+        self.pieces[Bishop]
     }
 
     pub fn rooks(&self, player: Player) -> Bitboard {
@@ -63,7 +63,7 @@ impl Board {
     }
 
     pub fn all_rooks(&self) -> Bitboard {
-        self.pieces[PieceKind::Rook]
+        self.pieces[Rook]
     }
 
     pub fn queens(&self, player: Player) -> Bitboard {
@@ -71,7 +71,7 @@ impl Board {
     }
 
     pub fn all_queens(&self) -> Bitboard {
-        self.pieces[PieceKind::Queen]
+        self.pieces[Queen]
     }
 
     pub fn king(&self, player: Player) -> Bitboard {
@@ -83,7 +83,7 @@ impl Board {
     }
 
     pub fn all_kings(&self) -> Bitboard {
-        self.pieces[PieceKind::King]
+        self.pieces[King]
     }
 
     pub fn diagonal_sliders(&self, player: Player) -> Bitboard {
@@ -118,7 +118,7 @@ impl Board {
         }
 
         if mv.is_en_passant() {
-            return Some(PieceKind::Pawn);
+            return Some(Pawn);
         }
 
         Some(self.piece_guaranteed_at(mv.to()).kind)

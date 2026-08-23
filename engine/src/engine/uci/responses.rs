@@ -309,8 +309,8 @@ impl UciReporter {
             print!(
                 " {}",
                 match game.player {
-                    Player::White => format!("{BRIGHT_WHITE}{san_mv}{RESET}"),
-                    Player::Black => format!("{BRIGHT_BLACK}{san_mv}{RESET}"),
+                    White => format!("{BRIGHT_WHITE}{san_mv}{RESET}"),
+                    Black => format!("{BRIGHT_BLACK}{san_mv}{RESET}"),
                 }
             );
 
@@ -330,8 +330,8 @@ impl UciReporter {
                     checkmate_move = Some(format!(
                         " {}",
                         match game.player {
-                            Player::White => format!("{BRIGHT_WHITE}{san_mv}{RESET}"),
-                            Player::Black => format!("{BRIGHT_BLACK}{san_mv}{RESET}"),
+                            White => format!("{BRIGHT_WHITE}{san_mv}{RESET}"),
+                            Black => format!("{BRIGHT_BLACK}{san_mv}{RESET}"),
                         }
                     ));
                 }

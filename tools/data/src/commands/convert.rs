@@ -146,7 +146,7 @@ impl Visitor for PgnToViri {
             (score.parse::<f64>().unwrap() * 100.0) as i16
         };
 
-        let score = if movetext.game.player == Player::White {
+        let score = if movetext.game.player == White {
             score
         } else {
             -score

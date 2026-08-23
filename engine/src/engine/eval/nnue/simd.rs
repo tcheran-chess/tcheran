@@ -312,6 +312,20 @@ pub unsafe fn reinterpret_u8s_as_i32s(n: U8s) -> I32s {
 }
 
 #[inline(always)]
+pub unsafe fn sum_i32s(n: I32s) -> i32 {
+    simd!(
+        avx2 {{
+            let sums = _mm_add_epi32(_mm256_castsi256_si128(n), _mm256_extracti128_si256(n, 1));
+            let sums = _mm_add_epi32(sums, _mm_shuffle_epi32(sums, 0xee));
+            let sums = _mm_add_epi32(sums, _mm_shuffle_epi32(sums, 0x55));
+            _mm_cvtsi128_si32(sums)
+        }}
+        avx512 { _mm512_reduce_add_epi32(n) }
+        neon { vaddvq_s32(n) }
+    )
+}
+
+#[inline(always)]
 #[allow(unused, reason = "Only used on some platforms")]
 pub unsafe fn dpbusd(acc: I32s, u8s: UI8s, i8s: UI8s) -> I32s {
     simd!(
@@ -381,20 +395,6 @@ pub unsafe fn dpbusdx2(acc: I32s, u8s1: UI8s, i8s1: UI8s, u8s2: UI8s, i8s2: UI8s
                 }
             }
         }}
-    )
-}
-
-#[inline(always)]
-pub unsafe fn reduce_sum(n: I32s) -> i32 {
-    simd!(
-        avx2 {{
-            let sums = _mm_add_epi32(_mm256_castsi256_si128(n), _mm256_extracti128_si256(n, 1));
-            let sums = _mm_add_epi32(sums, _mm_shuffle_epi32(sums, 0xee));
-            let sums = _mm_add_epi32(sums, _mm_shuffle_epi32(sums, 0x55));
-            _mm_cvtsi128_si32(sums)
-        }}
-        avx512 { _mm512_reduce_add_epi32(n) }
-        neon { vaddvq_s32(n) }
     )
 }
 

@@ -205,5 +205,5 @@ pub unsafe fn propagate_l3(input: &[i32; L3], output_bucket: usize) -> i32 {
         sum = add_i32s(sum, mul_i32s(inp, weight));
     }
 
-    reduce_sum(sum) + bias
+    sum_i32s(sum) + bias
 }

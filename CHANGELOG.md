@@ -19,6 +19,7 @@
 
 #### Non-regression
 
+* Network #25, trained with a term to improve sparsity (48.59% -> 32.39%) (0.79 +- 2.74)
 * Various SIMD readability improvements (4.71 +- 4.46)
 * Separate legal_moves and moves_tried counters in search (3.64 +- 4.07)
 * Saturating behaviour in LMR is no longer used (2.29 +- 3.43)

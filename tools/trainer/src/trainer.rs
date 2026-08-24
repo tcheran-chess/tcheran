@@ -108,8 +108,10 @@ pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount
             let output = l3.forward(h3).select(output_buckets);
 
             // loss
-            let main_loss = output.sigmoid().squared_error(target);
-            let loss = main_loss;
+            let loss = output.sigmoid().squared_error(target);
+
+            let sparsity_loss = h1.reduce_sum_rows() / (L1 as f32);
+            let loss = loss + 0.005 * sparsity_loss;
 
             (output, loss)
         });

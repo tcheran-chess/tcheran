@@ -19,7 +19,7 @@ pub const L0_SHIFT: u32 = 9;
 pub const L1_SHIFT: u32 = 8;
 
 // Eval scaling factor
-pub const SCALE: i32 = 321;
+pub const SCALE: i32 = 318;
 
 // Redefinitions of Square::N / File::N / Rank::N so this file can be
 // included directly in build.rs

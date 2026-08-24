@@ -11,7 +11,7 @@ mod preprocessing;
 // Make the network architecture definition available for preprocessing
 include!("src/engine/eval/nnue/network.rs");
 
-const NETWORK_FILE: &str = "v24-47dbf5d3.nnue";
+const NETWORK_FILE: &str = "add-sparsity-term-back.nnue";
 const DOWNLOAD_BASE_URL: &str =
     "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks";
 

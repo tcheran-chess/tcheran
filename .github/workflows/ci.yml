@@ -95,10 +95,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install nightly
-        run: |
-          rustup toolchain install nightly
-          rustup component add clippy --toolchain nightly
+      - name: Install clippy
+        run: rustup component add clippy
 
       - name: Build
         run: cargo build --release ${{ matrix.flags }}
@@ -133,7 +131,7 @@ jobs:
           CFLAGS: ${{ matrix.cflags }}
 
       - name: Lints
-        run: cargo +nightly clippy --keep-going --package engine ${{ matrix.flags }}
+        run: cargo clippy --keep-going --package engine ${{ matrix.flags }}
         env:
           RUSTFLAGS: ${{ matrix.rustflags }}
           CFLAGS: ${{ matrix.cflags }}
@@ -172,10 +170,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Install nightly
-        run: |
-          rustup toolchain install nightly
-          rustup component add clippy --toolchain nightly
+      - name: Install clippy
+        run: rustup component add clippy
 
       - name: Build
         run: cargo build --release --workspace --exclude engine --exclude trainer
@@ -184,6 +180,6 @@ jobs:
         run: cargo test --release --workspace --exclude engine --exclude trainer
 
       - name: Lints
-        run: cargo +nightly clippy --keep-going --workspace --exclude engine --exclude trainer
+        run: cargo clippy --keep-going --workspace --exclude engine --exclude trainer
         env:
           CARGO_BUILD_WARNINGS: deny 

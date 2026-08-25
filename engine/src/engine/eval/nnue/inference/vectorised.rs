@@ -1,8 +1,4 @@
 #![expect(unsafe_op_in_unsafe_fn, reason = "")]
-#![expect(
-    clippy::needless_range_loop,
-    reason = "Looping over layers rather than outputs for readability"
-)]
 
 use crate::engine::eval::nnue::{
     Accumulator, network,

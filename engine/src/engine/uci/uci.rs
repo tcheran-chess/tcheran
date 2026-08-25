@@ -559,12 +559,9 @@ impl Uci {
         };
 
         let execute_result = self.execute(c)?;
+        let should_continue = execute_result != ExecuteResult::Exit;
 
-        if execute_result == ExecuteResult::Exit {
-            return Ok(false);
-        }
-
-        Ok(true)
+        Ok(should_continue)
     }
 
     fn main_loop_stdin(&mut self) -> Result<(), String> {

@@ -380,7 +380,6 @@ impl NNUE {
         self.accumulators[pov] = cache_entry.value.clone();
     }
 
-    #[expect(clippy::needless_range_loop, reason = "Readability")]
     fn add1(acc: &mut Accumulator, bucket: usize, add1: usize) {
         let add1_features = &NETWORK.l0_weights[bucket][add1];
 
@@ -389,7 +388,6 @@ impl NNUE {
         }
     }
 
-    #[expect(clippy::needless_range_loop, reason = "Readability")]
     fn sub1(acc: &mut Accumulator, bucket: usize, sub1: usize) {
         let sub1_features = &NETWORK.l0_weights[bucket][sub1];
 

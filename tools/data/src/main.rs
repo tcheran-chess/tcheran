@@ -2,12 +2,21 @@ use std::process::ExitCode;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use oorandom::Rand64;
 
 mod commands;
-mod rand;
 mod viriformat_ext;
 
 use commands::*;
+
+fn seeded_rng() -> Rand64 {
+    let seed = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("valid")
+        .as_nanos();
+
+    Rand64::new(seed)
+}
 
 #[derive(Parser)]
 struct Cli {

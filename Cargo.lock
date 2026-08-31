@@ -264,6 +264,7 @@ dependencies = [
  "anyhow",
  "clap",
  "engine",
+ "oorandom",
  "pgn-reader",
  "rayon",
  "viriformat",

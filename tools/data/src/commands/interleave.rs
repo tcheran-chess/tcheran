@@ -8,7 +8,7 @@ use anyhow::Result;
 use clap::Args;
 use viriformat::dataformat::Game;
 
-use crate::rand::Rand;
+use crate::seeded_rng;
 
 #[derive(Debug, Args)]
 pub struct InterleaveOptions {
@@ -45,7 +45,7 @@ pub fn run(options: &InterleaveOptions) -> Result<()> {
     }
 
     let mut remaining = total;
-    let mut rng = Rand::default();
+    let mut rng = seeded_rng();
 
     let mut prev = remaining / INTERVAL;
 
@@ -53,7 +53,7 @@ pub fn run(options: &InterleaveOptions) -> Result<()> {
     let mut games = 0usize;
 
     while remaining > 0 {
-        let mut spot = rng.rand() % remaining;
+        let mut spot = rng.rand_range(0..remaining);
         let mut idx = 0;
         while streams[idx].0 < spot {
             spot -= streams[idx].0;

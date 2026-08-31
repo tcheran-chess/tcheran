@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{BufReader, BufWriter, Write},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use anyhow::Result;
@@ -16,8 +16,6 @@ pub struct InterleaveOptions {
     pub output: PathBuf,
 }
 
-const INTERVAL: u64 = 1024 * 1024 * 256;
-
 pub fn run(options: &InterleaveOptions) -> Result<()> {
     println!("Writing to {}", options.output.display());
     println!("Reading from:\n{:#?}", options.inputs);
@@ -31,9 +29,9 @@ pub fn run(options: &InterleaveOptions) -> Result<()> {
     for path in &options.inputs {
         let file = File::open(path)?;
 
-        let count = file.metadata()?.len();
+        total_input_file_size += file.metadata()?.len();
 
-        total_input_file_size += count;
+        let count = count_games(path)?;
 
         if count > 0 {
             let fname = path
@@ -47,15 +45,15 @@ pub fn run(options: &InterleaveOptions) -> Result<()> {
     let mut remaining = total;
     let mut rng = seeded_rng();
 
+    const INTERVAL: u64 = 1024 * 1024;
     let mut prev = remaining / INTERVAL;
 
     let mut buffer = Vec::new();
-    let mut games = 0usize;
 
     while remaining > 0 {
         let mut spot = rng.rand_range(0..remaining);
         let mut idx = 0;
-        while streams[idx].0 < spot {
+        while streams[idx].0 <= spot {
             spot -= streams[idx].0;
             idx += 1;
         }
@@ -65,12 +63,10 @@ pub fn run(options: &InterleaveOptions) -> Result<()> {
         buffer.clear();
         Game::deserialise_fast_into_buffer(reader, &mut buffer)?;
         writer.write_all(&buffer)?;
-        games += 1;
 
-        let size = buffer.len() as u64;
+        remaining -= 1;
+        *count -= 1;
 
-        remaining -= size;
-        *count -= size;
         if *count == 0 {
             println!("Finished reading {}", streams[idx].2);
             streams.swap_remove(idx);
@@ -80,7 +76,7 @@ pub fn run(options: &InterleaveOptions) -> Result<()> {
             prev = remaining / INTERVAL;
             let written = total - remaining;
             print!(
-                "Written {written}/{total} Bytes ({:.2}%)\r",
+                "Written {written}/{total} games ({:.2}%)\r",
                 written as f64 / total as f64 * 100.0
             );
             drop(std::io::stdout().flush());
@@ -90,7 +86,7 @@ pub fn run(options: &InterleaveOptions) -> Result<()> {
     writer.flush()?;
 
     println!();
-    println!("Written {games} games to {}", options.output.display());
+    println!("Written {total} games to {}", options.output.display());
 
     let output_file = File::open(&options.output)?;
     let output_file_size = output_file.metadata()?.len();
@@ -101,4 +97,19 @@ pub fn run(options: &InterleaveOptions) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn count_games(path: &Path) -> Result<u64> {
+    let mut reader = BufReader::new(File::open(path)?);
+    let mut buffer = Vec::new();
+    let mut games = 0;
+
+    while Game::deserialise_fast_into_buffer(&mut reader, &mut buffer).is_ok() {
+        buffer.clear();
+        games += 1;
+    }
+
+    println!("{path:#?} contains {games} games");
+
+    Ok(games)
 }

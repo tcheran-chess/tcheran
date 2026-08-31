@@ -1,10 +1,10 @@
 use bullet_lib::{
     game::{
-        inputs::{ChessBucketsMirrored, get_num_buckets},
+        inputs::{ChessBucketsMirrored, SparseInputType, get_num_buckets},
         outputs::MaterialCount,
     },
     nn::{
-        InitSettings, Shape,
+        InitSettings,
         optimiser::{Ranger, RangerOptimiser, RangerParams},
     },
     trainer::{
@@ -53,11 +53,14 @@ const I8_RANGE: f32 = i8::MAX as f32 / (Q1 as f32);
 const L1_RANGE: f32 = I8_RANGE * L1_SHIFT_SCALE * L1_SHIFT_SCALE;
 
 pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount<OUTPUT_BUCKETS>> {
+    let psqt_inputs = ChessBucketsMirrored::new(BUCKET_SCHEME);
+    let output_buckets = MaterialCount::<OUTPUT_BUCKETS>;
+
     let mut trainer = ValueTrainerBuilder::default()
         .dual_perspective()
         .optimiser(Optimiser::default())
-        .inputs(ChessBucketsMirrored::new(BUCKET_SCHEME))
-        .output_buckets(MaterialCount::<OUTPUT_BUCKETS>)
+        .inputs(psqt_inputs)
+        .output_buckets(output_buckets)
         .save_format(&[
             // Merge in the factoriser weights
             SavedFormat::id("l0w")
@@ -85,10 +88,16 @@ pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount
         ])
         .build_custom(|builder, (stm_inputs, ntm_inputs, output_buckets), target| {
             // features & factoriser
-            let l0f = builder.new_weights("l0f", Shape::new(L1, FEATURES), InitSettings::Zeroed);
-            let mut l0 = builder.new_affine("l0", FEATURES * INPUT_BUCKETS, L1);
-            l0.init_with_effective_input_size(20000);
-            l0.weights = l0.weights + l0f.repeat(INPUT_BUCKETS);
+            let l0f = builder.new_weights("l0f", (L1, FEATURES), InitSettings::Zeroed);
+            let mut l0 = builder.new_weights(
+                "l0",
+                (L1, psqt_inputs.num_inputs()),
+                InitSettings::Normal {
+                    mean: 0.0,
+                    stdev: (2f32 / 32.0).sqrt(),
+                },
+            );
+            l0 = l0 + l0f.repeat(INPUT_BUCKETS);
 
             // weights
             let l1 = builder.new_affine("l1", L1, OUTPUT_BUCKETS * L2);
@@ -96,7 +105,7 @@ pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount
             let l3 = builder.new_affine("l3", L3, OUTPUT_BUCKETS);
 
             // inference
-            let ft = |input, start, end| l0.slice(start, end).forward(input).crelu();
+            let ft = |input, start, end| l0.slice_rows(start, end).matmul(input).crelu();
             let stm_hidden = ft(stm_inputs, 0, L1 / 2) * ft(stm_inputs, L1 / 2, L1);
             let ntm_hidden = ft(ntm_inputs, 0, L1 / 2) * ft(ntm_inputs, L1 / 2, L1);
 

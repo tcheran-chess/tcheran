@@ -355,7 +355,7 @@ impl std::ops::Neg for ScoreWindow {
 
 impl From<Eval> for ScoreWindow {
     fn from(e: Eval) -> Self {
-        ScoreWindow::new(e, e)
+        Self::new(e, e)
     }
 }
 

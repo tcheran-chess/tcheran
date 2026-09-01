@@ -20,7 +20,7 @@ pub fn eval(nnue: &mut NetworkStack, game: &Game) -> Eval {
     #[cfg(not(feature = "datagen"))]
     let eval = scale_eval(eval, game);
 
-    eval.clamp_to_non_mate()
+    eval.clamp_to_eval()
 }
 
 /// An evaluation from the active player's perspective
@@ -101,7 +101,11 @@ impl Eval {
         }
     }
 
-    pub fn clamp_to_non_mate(self) -> Self {
+    pub fn clamp_to_valid(self) -> Self {
+        self.clamp(Self(Self::MIN.0), Self(Self::MAX.0))
+    }
+
+    pub fn clamp_to_eval(self) -> Self {
         self.clamp(Self(Self::MIN_EVAL), Self(Self::MAX_EVAL))
     }
 

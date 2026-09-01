@@ -280,8 +280,6 @@ pub fn aspiration_search(
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
-    const CLAMP_ALPHA: fn(Eval) -> Eval = |eval: Eval| -> Eval { std::cmp::max(Eval::MIN, eval) };
-    const CLAMP_BETA: fn(Eval) -> Eval = |eval: Eval| -> Eval { std::cmp::min(Eval::MAX, eval) };
     const INCREASE_WIDTH: fn(i32) -> i32 = |width: i32| -> i32 { width + width / 2 };
 
     let mut width = aspiration_window_size();
@@ -290,7 +288,7 @@ pub fn aspiration_search(
         ScoreWindow::new(Eval::MIN, Eval::MAX)
     } else {
         let score = eval.expect("Aspiration search should have a score after it reaches min depth");
-        ScoreWindow::new(CLAMP_ALPHA(score - width), CLAMP_BETA(score + width))
+        ScoreWindow::new((score - width).clamp_to_valid(), (score + width).clamp_to_valid())
     };
 
     let mut reduction = 0;
@@ -308,11 +306,11 @@ pub fn aspiration_search(
 
         if score <= window.alpha {
             window.beta = (window.alpha + window.beta) / 2;
-            window.alpha = CLAMP_ALPHA(score - width);
+            window.alpha = (score - width).clamp_to_valid();
             width = INCREASE_WIDTH(width);
             reduction = 0;
         } else if score >= window.beta {
-            window.beta = CLAMP_BETA(score + width);
+            window.beta = (score + width).clamp_to_valid();
             width = INCREASE_WIDTH(width);
             reduction = (reduction + 1).min(aspiration_max_reduction());
         } else {
@@ -655,7 +653,7 @@ pub fn negamax(
         && !e.score.is_decisive()
         && !s.beta.is_decisive()
         && (e.bound == NodeBound::Lower || e.bound == NodeBound::Exact)
-        && e.score >= (s.beta + probcut_margin()).clamp_to_non_mate()
+        && e.score >= (s.beta + probcut_margin()).clamp_to_eval()
         && e.depth >= depth - probcut_depth_diff()
     {
         return e.score;
@@ -1194,5 +1192,5 @@ fn score_is_usable(score: Eval, bound: NodeBound, s: impl Into<ScoreWindow>) -> 
 }
 
 fn correct_eval(game: &Game, raw_eval: Eval, ctx: &SearchContext<'_>, plies: u8) -> Eval {
-    (raw_eval + ctx.tables.corrhist.get(game, ctx, plies)).clamp_to_non_mate()
+    (raw_eval + ctx.tables.corrhist.get(game, ctx, plies)).clamp_to_eval()
 }

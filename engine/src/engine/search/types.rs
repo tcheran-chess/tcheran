@@ -353,6 +353,12 @@ impl std::ops::Neg for ScoreWindow {
     }
 }
 
+impl From<Eval> for ScoreWindow {
+    fn from(e: Eval) -> Self {
+        ScoreWindow::new(e, e)
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct Depth(u8);
 

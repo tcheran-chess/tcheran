@@ -495,7 +495,7 @@ pub fn negamax(
     if !in_check
         && !in_singular_search
         && let Some(ref tt_entry) = tt_entry
-        && score_is_usable(tt_entry.score, tt_entry.bound, ScoreWindow::new(eval, eval))
+        && score_is_usable(tt_entry.score, tt_entry.bound, eval)
     {
         score_estimate = tt_entry.score;
     }
@@ -967,7 +967,7 @@ pub fn negamax(
 
     if !in_check
         && !in_singular_search
-        && score_is_usable(best_score, tt_node_bound, ScoreWindow::new(eval, eval))
+        && score_is_usable(best_score, tt_node_bound, eval)
         && best_move.is_none_or(Move::is_quiet)
     {
         ctx.tables
@@ -1179,7 +1179,9 @@ pub fn quiescence(
     best_score
 }
 
-fn score_is_usable(score: Eval, bound: NodeBound, s: ScoreWindow) -> bool {
+fn score_is_usable(score: Eval, bound: NodeBound, s: impl Into<ScoreWindow>) -> bool {
+    let s = s.into();
+
     match bound {
         NodeBound::None => false,
         // We know the exact score, so no use searching further

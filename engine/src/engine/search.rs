@@ -240,7 +240,7 @@ pub fn iterative_deepening(
         let previous_eval = result.as_ref().map(|r| r.score);
 
         let mut pv = PrincipalVariation::new();
-        let eval = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
+        let score = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
 
         if ctx.stopped() {
             ctx.was_hard_stopped = true;
@@ -258,7 +258,7 @@ pub fn iterative_deepening(
             mv: new_best_move,
             depth: depth.as_u8(),
             seldepth: ctx.max_depth_reached,
-            score: eval,
+            score,
             pv: pv.clone(),
             stats: SearchStats::from_ctx(ctx),
         };
@@ -289,9 +289,8 @@ pub fn aspiration_search(
     let mut window = if depth < aspiration_min_depth() || eval.is_some_and(Eval::is_decisive) {
         ScoreWindow::new(Eval::MIN, Eval::MAX)
     } else {
-        let eval =
-            eval.expect("Aspiration search should have an evaluation after it reaches min depth");
-        ScoreWindow::new(CLAMP_ALPHA(eval - width), CLAMP_BETA(eval + width))
+        let score = eval.expect("Aspiration search should have a score after it reaches min depth");
+        ScoreWindow::new(CLAMP_ALPHA(score - width), CLAMP_BETA(score + width))
     };
 
     let mut reduction = 0;
@@ -301,23 +300,23 @@ pub fn aspiration_search(
         // but would allow dropping directly into quiescence which we don't want.
         let search_depth = (depth - reduction).max(Depth::new(1));
 
-        let eval = negamax(game, window, search_depth, 0, false, pv, ctx);
+        let score = negamax(game, window, search_depth, 0, false, pv, ctx);
 
         if ctx.stopped() {
             return Eval::MIN;
         }
 
-        if eval <= window.alpha {
+        if score <= window.alpha {
             window.beta = (window.alpha + window.beta) / 2;
-            window.alpha = CLAMP_ALPHA(eval - width);
+            window.alpha = CLAMP_ALPHA(score - width);
             width = INCREASE_WIDTH(width);
             reduction = 0;
-        } else if eval >= window.beta {
-            window.beta = CLAMP_BETA(eval + width);
+        } else if score >= window.beta {
+            window.beta = CLAMP_BETA(score + width);
             width = INCREASE_WIDTH(width);
             reduction = (reduction + 1).min(aspiration_max_reduction());
         } else {
-            return eval;
+            return score;
         }
     }
 }

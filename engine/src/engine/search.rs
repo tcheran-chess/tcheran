@@ -306,6 +306,14 @@ pub fn aspiration_search(
             return Eval::MIN;
         }
 
+        if score.is_decisive() {
+            if score == Eval::NONE {
+                panic!("ended aspiration with a NONE score");
+            }
+
+            return score;
+        }
+
         if score <= window.alpha {
             window.beta = (window.alpha + window.beta) / 2;
             window.alpha = CLAMP_ALPHA(score - width);

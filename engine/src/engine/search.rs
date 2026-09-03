@@ -305,6 +305,14 @@ pub fn aspiration_search(
             return Eval::MIN;
         }
 
+        if score.is_decisive() {
+            if score == Eval::NONE {
+                panic!("ended aspiration with a NONE score");
+            }
+
+            return score;
+        }
+
         if score <= window.alpha {
             window.beta = (window.alpha + window.beta) / 2;
             window.alpha = (score - width).clamp_to_valid();
@@ -891,6 +899,10 @@ pub fn negamax(
         if is_root {
             let nodes_for_this_move = ctx.nodes.get() - nodes_before;
             ctx.update_nodes_used(mv, nodes_for_this_move);
+
+            if moves_tried == 1 {
+                pv.push(mv, &node_pv);
+            }
         }
 
         if ctx.stopped() {

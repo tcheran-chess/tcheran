@@ -115,6 +115,7 @@ pub struct SearchContext<'s> {
     pub tbhits: BufferedAtomicU64<'s>,
 
     pub min_nmp_ply: u8,
+    pub debug: bool,
 }
 
 impl<'s> SearchContext<'s> {
@@ -150,6 +151,7 @@ impl<'s> SearchContext<'s> {
             tbhits: BufferedAtomicU64::new(tbhits_counter),
 
             min_nmp_ply: 0,
+            debug: false,
         }
     }
 }

@@ -146,8 +146,13 @@ fn build_fathom() {
 
     println!("cargo:rerun-if-changed={FATHOM_DIR}");
 
-    cc::Build::new()
-        .include(FATHOM_DIR)
-        .file(format!("{FATHOM_DIR}/tbprobe.c"))
-        .compile("fathom");
+    let mut cc = cc::Build::new();
+    cc.include(FATHOM_DIR);
+    cc.file(format!("{FATHOM_DIR}/tbprobe.c"));
+
+    if env::consts::OS != "windows" {
+        cc.flag("-Wno-unused-but-set-global");
+    }
+
+    cc.compile("fathom");
 }

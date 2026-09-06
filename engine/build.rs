@@ -142,10 +142,12 @@ pub fn preprocess_network(file: &PathBuf) -> PathBuf {
 
 #[cfg(feature = "syzygy")]
 fn build_fathom() {
-    println!("cargo:rerun-if-changed=src/engine/tablebases/fathom/src");
+    const FATHOM_DIR: &str = "src/engine/tablebases/fathom/src";
+
+    println!("cargo:rerun-if-changed={FATHOM_DIR}");
 
     cc::Build::new()
-        .include("src/engine/tablebases/fathom/src")
-        .file("src/engine/tablebases/fathom/src/tbprobe.c")
+        .include(FATHOM_DIR)
+        .file(format!("{FATHOM_DIR}/tbprobe.c"))
         .compile("fathom");
 }

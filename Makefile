@@ -2,7 +2,7 @@ export RUSTFLAGS := -Ctarget-cpu=native
 
 EXE = tcheran
 SPSA = false
-DATAGEN = false
+DATAGEN = true
 
 ifeq ($(OS),Windows_NT)
 	NAME := $(EXE).exe

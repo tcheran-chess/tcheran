@@ -70,7 +70,7 @@ pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount
             SavedFormat::id("l0b").round().quantise::<i16>(Q0),
             SavedFormat::id("l1w")
                 .transform(|_, mut weights| {
-                    for i in weights.iter_mut() {
+                    for i in &mut weights {
                         *i /= L1_SHIFT_SCALE * L1_SHIFT_SCALE;
                     }
                     weights

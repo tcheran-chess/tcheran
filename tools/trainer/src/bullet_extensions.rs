@@ -11,7 +11,7 @@ pub trait TrainingStepsImpl {
 
 impl TrainingStepsImpl for TrainingSteps {
     fn default(n_superbatches: usize) -> Self {
-        TrainingSteps {
+        Self {
             batch_size: 16_384,
             batches_per_superbatch: 6104,
             start_superbatch: 1,

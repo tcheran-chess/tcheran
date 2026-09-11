@@ -750,7 +750,7 @@ pub fn negamax(
             && lmr_depth <= futility_prune_depth()
             && eval + futility_prune_base_value() + lmr_depth * futility_prune_depth_multiplier()
                 <= s.alpha
-            && !best_score.is_loss()
+            && !best_score.is_decisive()
         {
             moves.skip_quiets();
             continue;
@@ -758,7 +758,7 @@ pub fn negamax(
 
         if !is_root
             && !is_pv
-            && !best_score.is_loss()
+            && !best_score.is_decisive()
             && mv.is_quiet()
             && lmr_depth <= history_prune_depth()
             && history < history_prune_offset() + lmr_depth * history_prune_margin()
@@ -771,7 +771,7 @@ pub fn negamax(
             && moves.stage > GenStage::GoodTacticals
             && !is_root
             && !is_pv
-            && !best_score.is_loss()
+            && !best_score.is_decisive()
         {
             let margin = if mv.is_quiet() {
                 lmr_depth * lmr_depth * see_quiet_margin()
@@ -794,7 +794,7 @@ pub fn negamax(
             && !game.is_direct_check(mv)
             && mv.is_quiet()
             && moves_tried >= lmp_moves
-            && !best_score.is_loss()
+            && !best_score.is_decisive()
         {
             moves.skip_quiets();
             continue;
@@ -1108,15 +1108,17 @@ pub fn quiescence(
         legal_moves += 1;
         node_pv.clear();
 
-        if !best_score.is_loss() && moves.stage >= GenStage::BadTacticals {
+        if !best_score.is_decisive() && moves.stage >= GenStage::BadTacticals {
             break;
         }
 
-        if !best_score.is_loss() && !in_check && moves_tried >= quiescence_lmp_move_threshold() {
+        if !best_score.is_decisive() && !in_check && moves_tried >= quiescence_lmp_move_threshold()
+        {
             break;
         }
 
-        if !best_score.is_loss() && !in_check && futility_score <= s.alpha && !see(game, mv, 1) {
+        if !best_score.is_decisive() && !in_check && futility_score <= s.alpha && !see(game, mv, 1)
+        {
             if best_score < futility_score {
                 best_score = futility_score;
             }

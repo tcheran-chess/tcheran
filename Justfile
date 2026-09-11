@@ -53,6 +53,9 @@ bench:
 train:
     cargo run --release --package trainer
 
+scaling FILE:
+    cargo run --release --package data -- scaling {{FILE}}
+
 
 ################################## Tests ######################################
 

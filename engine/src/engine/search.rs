@@ -357,7 +357,7 @@ pub fn negamax(
     }
 
     if depth == 0 {
-        return quiescence(game, s, plies, ctx);
+        return quiescence(game, s, plies, pv, ctx);
     }
 
     ctx.max_depth_reached = ctx.max_depth_reached.max(plies);
@@ -573,7 +573,7 @@ pub fn negamax(
         && s.alpha.0.abs() < 2000
         && eval + depth * razoring_margin() <= s.alpha
     {
-        let qsearch_score = quiescence(game, s.zero_window_around_alpha(), plies, ctx);
+        let qsearch_score = quiescence(game, s.zero_window_around_alpha(), plies, pv, ctx);
         if qsearch_score <= s.alpha {
             return qsearch_score;
         }
@@ -998,6 +998,7 @@ pub fn quiescence(
     game: &mut Game,
     mut s: ScoreWindow,
     plies: u8,
+    pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
     // Check periodically to see if we're out of time.
@@ -1100,6 +1101,8 @@ pub fn quiescence(
     let mut node_bound = NodeBound::Upper;
     let mut legal_moves = 0;
     let mut moves_tried = 0;
+    let mut node_pv = PrincipalVariation::new();
+
     let futility_score = eval + quiescence_futility_margin();
 
     let mut moves = MovePicker::new(previous_best_move);
@@ -1110,6 +1113,7 @@ pub fn quiescence(
 
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
         legal_moves += 1;
+        node_pv.clear();
 
         if !best_score.is_loss() && moves.stage >= GenStage::BadTacticals {
             break;
@@ -1134,7 +1138,7 @@ pub fn quiescence(
         game.make_move_observed(mv, ctx.nnue.next_changes());
         moves_tried += 1;
 
-        let move_score = -quiescence(game, -s, plies + 1, ctx);
+        let move_score = -quiescence(game, -s, plies + 1, &mut node_pv, ctx);
 
         game.undo_move();
         ctx.nnue.pop();
@@ -1154,6 +1158,7 @@ pub fn quiescence(
                 best_move = Some(mv);
                 node_bound = NodeBound::Exact;
                 s.alpha = move_score;
+                pv.push(mv, &node_pv);
             }
 
             // Cutoff: This move is so good that our opponent won't let it be played.

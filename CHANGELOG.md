@@ -27,6 +27,7 @@
 * Null move scores are now verified (0.48 +- 2.39)
 * Give castling moves SEE of 0 instead of always passing (0.02 +- 2.32)
 * Make l0 multi-dimensional (-0.11 +- 2.61)
+* The principal variation is now tracked in quiescence, resolving short mate PVs (-0.14 +- 4.60)
 * Don't apply tacthist bonus for quiet moves (-0.23 +- 2.25)
 * Post-LMR re-search no longer happens if we didn't actually reduce due to clamping (-0.36 +- 2.51)
 * Simplify killer moves (-0.81 +- 2.01)

@@ -1,7 +1,7 @@
 // Network parameters
 pub const FEATURES: usize = 768;
 
-pub const L1: usize = 1280;
+pub const L1: usize = 1536;
 pub const L2: usize = 16;
 pub const L3: usize = 32;
 
@@ -19,7 +19,7 @@ pub const L0_SHIFT: u32 = 9;
 pub const L1_SHIFT: u32 = 8;
 
 // Eval scaling factor
-pub const SCALE: i32 = 316;
+pub const SCALE: i32 = 314;
 
 // Redefinitions of Square::N / File::N / Rank::N so this file can be
 // included directly in build.rs

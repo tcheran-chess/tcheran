@@ -2,6 +2,7 @@ use std::{
     fs::File,
     io::{BufRead, BufReader},
     path::PathBuf,
+    sync::atomic::AtomicUsize,
 };
 
 use anyhow::Result;
@@ -26,6 +27,9 @@ struct Stats {
     max: i32,
 }
 
+static PROGRESS: AtomicUsize = AtomicUsize::new(0);
+static CHUNK_SIZE: usize = 100_000;
+
 pub fn run(options: &ScalingOptions) -> Result<()> {
     let file = File::open(&options.input)?;
 
@@ -34,13 +38,13 @@ pub fn run(options: &ScalingOptions) -> Result<()> {
         .collect::<Result<Vec<_>, _>>()?;
 
     let stats = fens
-        .par_chunks(100_000)
+        .par_chunks(CHUNK_SIZE)
         .map(chunk_stats)
         .collect::<Vec<_>>();
 
     let stats = aggregate_stats(&stats);
 
-    println!("Stats:");
+    println!("\rStats:");
     println!("FENs: {:>7}", stats.count);
 
     let mean = stats.total as f64 / stats.count as f64;
@@ -48,8 +52,8 @@ pub fn run(options: &ScalingOptions) -> Result<()> {
     let min = f64::from(stats.min);
     let max = f64::from(stats.max);
 
-    println!("Average: {mean}");
-    println!("Average (abs): {abs_mean}");
+    println!("Average: {mean:.2}");
+    println!("Average (abs): {abs_mean:.2}");
     println!("Min: {min}");
     println!("Max: {max}");
 
@@ -83,6 +87,9 @@ fn chunk_stats(fens: &[String]) -> Stats {
             stats.max = eval;
         }
     }
+
+    let old = PROGRESS.fetch_add(CHUNK_SIZE, std::sync::atomic::Ordering::Relaxed);
+    eprint!("{} done\r", old + CHUNK_SIZE);
 
     stats
 }

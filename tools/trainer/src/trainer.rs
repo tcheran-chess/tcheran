@@ -28,7 +28,7 @@ pub const Q1: i16 = 128;
 pub const Q: i32 = 64;
 
 pub const FEATURES: usize = 768;
-pub const L1: usize = 1024;
+pub const L1: usize = 1280;
 pub const L2: usize = 16;
 pub const L3: usize = 32;
 

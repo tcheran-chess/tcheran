@@ -46,6 +46,7 @@
 * Errors are now always written to stdout
 * Empty lines on stdin are now treated as no-ops
 * The UCI parser now generates much more specific error messages
+* The pretty SAN output now shows 1/2-1/2 if the PV ends in a drawn game
 
 ## [13.0]
 

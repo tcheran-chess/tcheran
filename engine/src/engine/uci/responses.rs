@@ -306,61 +306,55 @@ impl UciReporter {
             format!("{:.0}%", result.stats.hashfull as f64 / 10.0)
         );
 
-        let first_ten_moves: Vec<Move> = result.pv.iter().take(10).copied().collect();
-        let remaining_plies: Vec<Move> = result.pv.iter().skip(10).copied().collect();
+        let mut hidden_plies = 0;
+        let mut decisive_move = None;
 
-        print!("  ");
-        for mv in &first_ten_moves {
+        for (move_count, mv) in result.pv.iter().enumerate() {
+            let is_last_move = move_count as u8 == result.pv.len() - 1;
+
             let san_mv = san::format_move(&game, *mv);
 
             let san_mv = san_mv.replace('=', &format!("{GREEN}={RESET}"));
             let san_mv = san_mv.replace('+', &format!("{YELLOW}+{RESET}"));
             let san_mv = san_mv.replace('#', &format!("{BLUE}#{RESET}"));
 
-            print!(
-                " {}",
-                match game.player {
-                    White => format!("{BRIGHT_WHITE}{san_mv}{RESET}"),
-                    Black => format!("{BRIGHT_BLACK}{san_mv}{RESET}"),
-                }
-            );
+            let san_mv = match game.player {
+                White => format!("{BRIGHT_WHITE}{san_mv}{RESET}"),
+                Black => format!("{BRIGHT_BLACK}{san_mv}{RESET}"),
+            };
+
+            if move_count < 10 {
+                print!(" {san_mv}");
+            } else {
+                hidden_plies += 1;
+            }
 
             game.make_move(*mv);
-        }
 
-        if !remaining_plies.is_empty() {
-            let mut checkmate_move = None;
-
-            for mv in &remaining_plies {
-                let san_mv = san::format_move(&game, *mv);
-                if san_mv.contains('#') {
-                    let san_mv = san_mv.replace('=', &format!("{GREEN}={RESET}"));
-                    let san_mv = san_mv.replace('+', &format!("{YELLOW}+{RESET}"));
-                    let san_mv = san_mv.replace('#', &format!("{BLUE}#{RESET}"));
-
-                    checkmate_move = Some(format!(
-                        " {}",
-                        match game.player {
-                            White => format!("{BRIGHT_WHITE}{san_mv}{RESET}"),
-                            Black => format!("{BRIGHT_BLACK}{san_mv}{RESET}"),
-                        }
-                    ));
-                }
-
-                game.make_move(*mv);
-            }
-
-            let mut remaining_plies = remaining_plies.len();
-            if checkmate_move.is_some() {
-                remaining_plies -= 1;
-            }
-
-            print!(" {BRIGHT_BLACK}[{remaining_plies} plies]{RESET}");
-
-            if let Some(checkmate_move) = checkmate_move {
-                print!("{checkmate_move}");
+            // If the last move ends the game, we always show it
+            if is_last_move && ((game.in_check() && game.moves().is_empty()) || game.is_draw(0)) {
+                decisive_move = Some(san_mv);
+                hidden_plies -= 1;
             }
         }
+
+        if hidden_plies > 0 {
+            print!(" {BRIGHT_BLACK}[..{hidden_plies}]{RESET}");
+        }
+
+        if let Some(decisive_move) = decisive_move
+            && hidden_plies > 0
+        {
+            print!(" {decisive_move}");
+        }
+
+        let draw_result = if game.is_draw(0) {
+            format!(" {BRIGHT_BLACK}(1/2-1/2){RESET}")
+        } else {
+            String::new()
+        };
+
+        print!("{draw_result}");
 
         println!();
     }

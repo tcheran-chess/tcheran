@@ -229,7 +229,7 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
                     args.next()
                         .ok_or(())?
                         .parse::<u8>()
-                        .map(Depth::new)
+                        .map(Depth)
                         .map_err(|_| ())?,
                 );
             }

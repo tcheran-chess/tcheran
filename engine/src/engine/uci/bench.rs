@@ -106,7 +106,7 @@ const POSITIONS: [&str; 88] = [
     "5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28", // En passant discovered check
 ];
 
-const DEFAULT_DEPTH: Depth = Depth::new(12);
+const DEFAULT_DEPTH: Depth = Depth(12);
 
 pub struct BenchReporter {
     nodes: RefCell<Option<u64>>,

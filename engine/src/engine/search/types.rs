@@ -360,14 +360,10 @@ impl From<Eval> for ScoreWindow {
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub struct Depth(u8);
+pub struct Depth(pub u8);
 
 impl Depth {
     pub const ZERO: Self = Self(0);
-
-    pub const fn new(value: u8) -> Self {
-        Self(value)
-    }
 
     pub const fn as_u8(self) -> u8 {
         self.0

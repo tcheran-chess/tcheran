@@ -426,7 +426,7 @@ impl TranspositionTable {
                 return Some(TranspositionTableHit {
                     bound: entry.bound(),
                     score: Self::with_mate_distance_from_root(Eval(i32::from(entry.score)), plies),
-                    depth: Depth::new(entry.depth),
+                    depth: Depth(entry.depth),
                     eval: Eval(i32::from(entry.eval)),
                     best_move: entry.best_move,
                     was_pv: entry.was_pv(),

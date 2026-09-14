@@ -230,7 +230,7 @@ pub fn iterative_deepening(
     ctx.max_depth_reached = 0;
 
     for depth in 1..=MAX_SEARCH_DEPTH {
-        let depth = Depth::new(depth);
+        let depth = Depth(depth);
 
         if !ctx.should_start_new_search(depth) {
             break;
@@ -297,7 +297,7 @@ pub fn aspiration_search(
     loop {
         // This would only make a difference if aspiration_max_reduction > aspiration_min_depth
         // but would allow dropping directly into quiescence which we don't want.
-        let search_depth = (depth - reduction).max(Depth::new(1));
+        let search_depth = (depth - reduction).max(Depth(1));
 
         let score = negamax(game, window, search_depth, 0, false, pv, ctx);
 
@@ -587,7 +587,7 @@ pub fn negamax(
     {
         ctx.tt.prefetch(game.approx_zobrist_after_null_move());
 
-        let reduction = Depth::new(null_move_pruning_base_reduction())
+        let reduction = Depth(null_move_pruning_base_reduction())
             + depth / null_move_pruning_reduction_factor();
 
         ctx.stack.get(plies).mv = None;
@@ -837,9 +837,8 @@ pub fn negamax(
                 r / 1024
             };
 
-            let reduced_search_depth = Depth::new(
-                (search_depth.as_i32() - reduction).clamp(1, search_depth.as_i32()) as u8,
-            );
+            let reduced_search_depth =
+                Depth((search_depth.as_i32() - reduction).clamp(1, search_depth.as_i32()) as u8);
 
             // We already found a good move (i.e. we raised alpha).
             // Now, we just need to prove that the other moves are worse.
@@ -1029,7 +1028,7 @@ pub fn quiescence(
 
             ctx.tables
                 .corrhist
-                .update(game, ctx.stack, plies, Depth::new(1), eval, Eval::DRAW);
+                .update(game, ctx.stack, plies, Depth(1), eval, Eval::DRAW);
         }
 
         if s.alpha >= s.beta {
@@ -1169,16 +1168,8 @@ pub fn quiescence(
         return Eval::mated_in(plies);
     }
 
-    ctx.tt.insert(
-        game.hash,
-        node_bound,
-        best_move,
-        best_score,
-        raw_eval,
-        Depth::new(0),
-        plies,
-        tt_pv,
-    );
+    ctx.tt
+        .insert(game.hash, node_bound, best_move, best_score, raw_eval, Depth(0), plies, tt_pv);
 
     best_score
 }

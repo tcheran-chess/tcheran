@@ -70,7 +70,7 @@ pub struct OptionCallbackRefs<'uci> {
     pub state: &'uci mut PersistentState,
 
     pub options: &'uci mut EngineOptions,
-    pub reporter: &'uci mut UciReporter,
+    pub reporter: &'uci UciReporter,
 }
 
 impl UciOption {
@@ -119,12 +119,11 @@ impl UciOption {
         threads: &mut Threads,
         state: &mut Arc<PersistentState>,
         options: &mut EngineOptions,
-        reporter: &mut Arc<UciReporter>,
+        reporter: &UciReporter,
     ) -> Result<(), String> {
         let state = Arc::get_mut(state).unwrap_or_else(|| {
             panic!("Unable to get unique access to state while setting option {}", self.name)
         });
-        let reporter = Arc::get_mut(reporter).expect("Unable to get unique access to reporter");
 
         let mut refs = OptionCallbackRefs {
             game,

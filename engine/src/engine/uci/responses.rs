@@ -76,7 +76,7 @@ pub(super) enum UciResponse<'uci> {
 
 pub struct UciReporter {
     pub pretty_output: AtomicBool,
-    pub show_wdl: bool,
+    pub show_wdl: AtomicBool,
 }
 
 mod colors {
@@ -137,7 +137,7 @@ impl UciReporter {
                 }
 
                 if let Some(wdl) = wdl
-                    && self.show_wdl
+                    && self.show_wdl.load(Ordering::Relaxed)
                 {
                     let format_wdl = |n: f64| (1000.0 * n).round() as i32;
                     print!(

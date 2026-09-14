@@ -144,7 +144,7 @@ pub enum ThreadCommand {
         stop_control: StopControl,
         options: EngineOptions,
         persistent_state: Arc<PersistentState>,
-        reporter: Arc<dyn Reporter + Send + Sync>,
+        reporter: &'static (dyn Reporter + Send + Sync),
         results: Arc<SearchResults>,
     },
     Ping,
@@ -155,7 +155,8 @@ pub struct Uci {
     game: Game,
     threads: Threads,
     persistent_state: Arc<PersistentState>,
-    reporter: Arc<UciReporter>,
+
+    reporter: &'static UciReporter,
 
     uci_options: Vec<UciOption>,
     options: EngineOptions,
@@ -211,7 +212,7 @@ impl Uci {
                     &mut self.threads,
                     &mut self.persistent_state,
                     &mut self.options,
-                    &mut self.reporter,
+                    self.reporter,
                 )?;
             }
             UciCommand::UciNewGame => {
@@ -281,7 +282,6 @@ impl Uci {
                 let game = self.game.clone();
                 let persistent_state = self.persistent_state.clone();
                 let options = self.options.clone();
-                let reporter = self.reporter.clone();
                 let mut time_control = time_control.clone();
                 let stop_control = self.threads.thread_control.clone();
                 let results = Arc::new(SearchResults::new(self.options.threads));
@@ -304,7 +304,7 @@ impl Uci {
                     stop_control,
                     options,
                     persistent_state,
-                    reporter,
+                    reporter: self.reporter,
                     results,
                 });
 
@@ -644,7 +644,7 @@ pub fn uci_options() -> Vec<UciOption> {
         .build(),
         //
         UciOption::check("UCI_ShowWDL", |refs, value| {
-            refs.reporter.show_wdl = value;
+            refs.reporter.show_wdl.store(value, Ordering::Relaxed);
         })
         .default(crate::engine::options::defaults::SHOW_WDL)
         .build(),
@@ -706,10 +706,10 @@ fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
                 thread_data.new_search(&game);
 
                 // Only send messages from the main search thread
-                let reporter = if is_main_thread {
-                    reporter.clone()
+                let reporter: &(dyn Reporter + Send + Sync) = if is_main_thread {
+                    reporter
                 } else {
-                    Arc::new(NullReporter)
+                    &NullReporter
                 };
 
                 // Only do time control on the main thread
@@ -727,7 +727,7 @@ fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
                     time_control,
                     &stop_control,
                     &options,
-                    &*reporter,
+                    reporter,
                 );
             }
             ThreadCommand::Ping => { /* pong */ }
@@ -743,10 +743,10 @@ pub fn uci(uci_input_mode: UciInputMode) -> Result<(), String> {
         game: Game::new(),
         threads: Threads::new(),
         persistent_state: Arc::new(PersistentState::new(EngineOptions::DEFAULT.hash_size)),
-        reporter: Arc::new(UciReporter {
+        reporter: Box::leak(Box::new(UciReporter {
             pretty_output: AtomicBool::new(std::io::stdin().is_terminal()),
-            show_wdl: defaults::SHOW_WDL,
-        }),
+            show_wdl: AtomicBool::new(defaults::SHOW_WDL),
+        })),
 
         uci_options: uci_options(),
         options: EngineOptions::DEFAULT,

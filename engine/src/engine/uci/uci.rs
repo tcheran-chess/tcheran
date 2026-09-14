@@ -227,7 +227,7 @@ impl Uci {
                 self.threads.reset();
 
                 Arc::get_mut(&mut self.persistent_state)
-                    .expect("Unable to get unique access to state")
+                    .expect("Unable to get unique access to state during ucinewgame")
                     .reset(&self.options);
             }
             UciCommand::Position { position, moves } => {

@@ -121,7 +121,9 @@ impl UciOption {
         options: &mut EngineOptions,
         reporter: &mut Arc<UciReporter>,
     ) -> Result<(), String> {
-        let state = Arc::get_mut(state).expect("Unable to get unique access to state");
+        let state = Arc::get_mut(state).unwrap_or_else(|| {
+            panic!("Unable to get unique access to state while setting option {}", self.name)
+        });
         let reporter = Arc::get_mut(reporter).expect("Unable to get unique access to reporter");
 
         let mut refs = OptionCallbackRefs {

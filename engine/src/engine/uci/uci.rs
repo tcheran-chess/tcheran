@@ -719,7 +719,7 @@ fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
                     TimeControl::Infinite
                 };
 
-                search(
+                let result = search(
                     &game,
                     &persistent_state,
                     &mut thread_data,
@@ -729,6 +729,16 @@ fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
                     &options,
                     reporter,
                 );
+
+                // This must be dropped before we signal the thread is stopped or before bestmove
+                // is sent.
+                drop(persistent_state);
+
+                stop_control.stopped();
+
+                if is_main_thread {
+                    reporter.best_move(&game, result.mv);
+                }
             }
             ThreadCommand::Ping => { /* pong */ }
             ThreadCommand::Reset => {

@@ -96,8 +96,6 @@ pub fn search(
              // This will be the only info we send
              || ctx.options.minimal;
 
-        stop_control.stopped();
-
         if send_final_info {
             // Refresh stats from the search context as they may have changed from result.stats if we
             // hard-stopped.
@@ -105,12 +103,10 @@ pub fn search(
             reporter.report_search_progress(game, &result);
         }
 
-        reporter.best_move(game, result.mv);
+        result
     } else {
-        stop_control.stopped();
+        thread_result
     }
-
-    thread_result
 }
 
 fn best_result(results: &SearchResults) -> SearchResult {

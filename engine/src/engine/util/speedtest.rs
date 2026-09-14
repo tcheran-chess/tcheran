@@ -92,7 +92,7 @@ pub fn speedtest(threads: Option<u64>, hash: Option<u64>, duration: Option<u64>)
             stop_control: StopControl::new(nthreads as u32),
             options: EngineOptions::DEFAULT,
             persistent_state: state,
-            reporter: Arc::new(NullReporter),
+            reporter: &NullReporter,
             results: Arc::new(SearchResults::new(nthreads as usize)),
         }
     };

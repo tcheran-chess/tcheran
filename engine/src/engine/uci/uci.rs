@@ -1,10 +1,10 @@
 //! Implementation of the Universal Chess Interface (UCI) protocol
 
 use std::{
-    io::{BufRead, IsTerminal},
+    io::BufRead,
     sync::{
         Arc,
-        atomic::{AtomicBool, Ordering},
+        atomic::Ordering,
         mpsc::{Receiver, SyncSender, sync_channel},
     },
     thread,
@@ -753,10 +753,7 @@ pub fn uci(uci_input_mode: UciInputMode) -> Result<(), String> {
         game: Game::new(),
         threads: Threads::new(),
         persistent_state: Arc::new(PersistentState::new(EngineOptions::DEFAULT.hash_size)),
-        reporter: Box::leak(Box::new(UciReporter {
-            pretty_output: AtomicBool::new(std::io::stdin().is_terminal()),
-            show_wdl: AtomicBool::new(defaults::SHOW_WDL),
-        })),
+        reporter: Box::leak(Box::new(UciReporter::default())),
 
         uci_options: uci_options(),
         options: EngineOptions::DEFAULT,

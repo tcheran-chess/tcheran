@@ -1,4 +1,5 @@
 use std::{
+    io::IsTerminal,
     sync::atomic::{AtomicBool, Ordering},
     time::Duration,
 };
@@ -7,6 +8,7 @@ use crate::{
     chess::{notations::san, prelude::*},
     engine::{
         eval::{Eval, wdl, wdl::WdlProbabilities},
+        options::defaults,
         search,
         search::Reporter,
         uci::{
@@ -77,6 +79,15 @@ pub(super) enum UciResponse<'uci> {
 pub struct UciReporter {
     pub pretty_output: AtomicBool,
     pub show_wdl: AtomicBool,
+}
+
+impl Default for UciReporter {
+    fn default() -> Self {
+        Self {
+            pretty_output: AtomicBool::new(std::io::stdin().is_terminal()),
+            show_wdl: AtomicBool::new(defaults::SHOW_WDL),
+        }
+    }
 }
 
 mod colors {

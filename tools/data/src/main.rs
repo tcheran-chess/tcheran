@@ -27,7 +27,7 @@ pub fn main() -> Result<ExitCode> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Command::Count(opts) => count::run(opts)?,
+        Command::Count(opts) => count::run(opts),
         Command::Convert(opts) => convert::run(opts)?,
         Command::Scaling(opts) => scaling::run(opts)?,
     }

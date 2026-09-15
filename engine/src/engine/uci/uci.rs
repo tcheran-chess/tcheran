@@ -550,7 +550,7 @@ impl Uci {
         let command = parser::parse(line);
 
         let Ok(ref c) = command else {
-            log::crashlog(format!("Invalid command: {line}"), self.reporter);
+            log::crashlog(command.unwrap_err(), self.reporter);
             return Ok(true);
         };
 

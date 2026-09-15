@@ -45,6 +45,7 @@
 * Updated to Rust 1.98
 * Errors are now always written to stdout
 * Empty lines on stdin are now treated as no-ops
+* The UCI parser now generates much more specific error messages
 
 ## [13.0]
 

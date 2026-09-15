@@ -9,17 +9,17 @@ use crate::{
     },
 };
 
-fn boolean(input: &str) -> Result<bool, ()> {
+fn boolean(input: &str) -> Result<bool, String> {
     Ok(match input {
         "on" => true,
         "off" => false,
-        _ => return Err(()),
+        _ => return Err(format!("unknown boolean value: {input}")),
     })
 }
 
-fn uci_square(input: &str) -> Result<Square, ()> {
+fn uci_square(input: &str) -> Result<Square, String> {
     if input.len() != 2 {
-        return Err(());
+        return Err(format!("expected uci square, got {input}"));
     }
 
     let mut chars = input.chars();
@@ -35,7 +35,7 @@ fn uci_square(input: &str) -> Result<Square, ()> {
         'f' => File::F,
         'g' => File::G,
         'h' => File::H,
-        _ => return Err(()),
+        _ => return Err(format!("invalid file: {file}")),
     };
 
     let rank = match rank {
@@ -47,28 +47,31 @@ fn uci_square(input: &str) -> Result<Square, ()> {
         '6' => Rank::R6,
         '7' => Rank::R7,
         '8' => Rank::R8,
-        _ => return Err(()),
+        _ => return Err(format!("invalid rank: {rank}")),
     };
 
     Ok(Square::from_file_and_rank(file, rank))
 }
 
-fn uci_promotion(input: &str) -> Result<PromotionPieceKind, ()> {
+fn uci_promotion(input: &str) -> Result<PromotionPieceKind, String> {
     Ok(match input {
         "n" => PromotionPieceKind::Knight,
         "b" => PromotionPieceKind::Bishop,
         "r" => PromotionPieceKind::Rook,
         "q" => PromotionPieceKind::Queen,
-        _ => return Err(()),
+        _ => return Err(format!("invalid promotion piece: {input}")),
     })
 }
 
-#[expect(clippy::result_unit_err, reason = "No need for a better error message when this fails")]
-pub fn uci_move(input: &str) -> Result<UciMove, ()> {
+pub fn uci_move(input: &str) -> Result<UciMove, String> {
     Ok(match input.len() {
         len @ 4..=5 => {
-            let from = input.get(0..=1).map_or(Err(()), uci_square)?;
-            let to = input.get(2..=3).map_or(Err(()), uci_square)?;
+            let from = input
+                .get(0..=1)
+                .map_or_else(|| Err(format!("invalid uci move: {input}")), uci_square)?;
+            let to = input
+                .get(2..=3)
+                .map_or_else(|| Err(format!("invalid uci move: {input}")), uci_square)?;
 
             let promotion = if len == 5 {
                 let p = input.get(4..=4).unwrap();
@@ -83,21 +86,21 @@ pub fn uci_move(input: &str) -> Result<UciMove, ()> {
                 promotion,
             }
         }
-        _ => return Err(()),
+        _ => return Err(format!("expected uci move, got {input}")),
     })
 }
 
-fn no_args_command(command: UciCommand, args: &[&str]) -> Result<UciCommand, ()> {
+fn no_args_command(command: UciCommand, args: &[&str]) -> Result<UciCommand, String> {
     if !args.is_empty() {
-        return Err(());
+        return Err("no arguments expected".to_string());
     }
 
     Ok(command)
 }
 
-fn cmd_debug(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_debug(args: &[&str]) -> Result<UciCommand, String> {
     if args.len() != 1 {
-        return Err(());
+        return Err("invalid number of arguments".to_string());
     }
 
     let onoff = args[0];
@@ -106,9 +109,9 @@ fn cmd_debug(args: &[&str]) -> Result<UciCommand, ()> {
     Ok(UciCommand::Debug(onoff))
 }
 
-fn cmd_setoption(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_setoption(args: &[&str]) -> Result<UciCommand, String> {
     if args.len() != 4 {
-        return Err(());
+        return Err("invalid number of arguments".to_string());
     }
 
     let name_token = args[0];
@@ -117,11 +120,11 @@ fn cmd_setoption(args: &[&str]) -> Result<UciCommand, ()> {
     let value_arg = args[3];
 
     if name_token != "name" {
-        return Err(());
+        return Err(format!("expected 'name', got {name_token}"));
     }
 
     if value_token != "value" {
-        return Err(());
+        return Err(format!("expected 'value', got {value_token}"));
     }
 
     Ok(UciCommand::SetOption {
@@ -130,18 +133,18 @@ fn cmd_setoption(args: &[&str]) -> Result<UciCommand, ()> {
     })
 }
 
-fn parse_moves(moves: &[&str]) -> Result<Vec<UciMove>, ()> {
+fn parse_moves(moves: &[&str]) -> Result<Vec<UciMove>, String> {
     let moves = moves
         .iter()
         .map(|m| uci_move(m))
-        .collect::<Result<Vec<UciMove>, ()>>()?;
+        .collect::<Result<Vec<UciMove>, String>>()?;
 
     Ok(moves)
 }
 
-fn cmd_position(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_position(args: &[&str]) -> Result<UciCommand, String> {
     if args.is_empty() {
-        return Err(());
+        return Err("invalid number of arguments".to_string());
     }
 
     let mode = args[0];
@@ -177,21 +180,21 @@ fn cmd_position(args: &[&str]) -> Result<UciCommand, ()> {
                 moves,
             })
         }
-        _ => Err(()),
+        _ => Err(format!("expected 'startpos' or 'fen', got {mode}")),
     }
 }
 
-fn parse_duration(n: &str) -> Result<Duration, ()> {
+fn parse_duration(n: &str) -> Result<Duration, String> {
     let millis = n
         .parse::<i64>()
-        .map_err(|_| ())?
+        .map_err(|_| format!("expected duration, got {n}"))?
         .max(0)
         .try_into()
-        .map_err(|_| ())?;
+        .map_err(|_| format!("expected duration, got {n}"))?;
     Ok(Duration::from_millis(millis))
 }
 
-fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_go(args: &[&str]) -> Result<UciCommand, String> {
     let mut infinite = false;
 
     // Capture the start time as close as possible to when we parse the command to avoid excluding
@@ -212,29 +215,52 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
     while let Some(&arg) = args.next() {
         match arg {
             "infinite" => infinite = true,
-            "wtime" => clocks.clocks[White] = Some(parse_duration(args.next().ok_or(())?)?),
-            "btime" => clocks.clocks[Black] = Some(parse_duration(args.next().ok_or(())?)?),
+            "wtime" => {
+                clocks.clocks[White] =
+                    Some(parse_duration(args.next().ok_or("expected duration for wtime")?)?);
+            }
+            "btime" => {
+                clocks.clocks[Black] =
+                    Some(parse_duration(args.next().ok_or("expected duration for btime")?)?);
+            }
             "winc" => {
-                clocks.increments[White] = Some(parse_duration(args.next().ok_or(())?)?);
+                clocks.increments[White] =
+                    Some(parse_duration(args.next().ok_or("expected duration for winc")?)?);
             }
             "binc" => {
-                clocks.increments[Black] = Some(parse_duration(args.next().ok_or(())?)?);
+                clocks.increments[Black] =
+                    Some(parse_duration(args.next().ok_or("expected duration for binc")?)?);
             }
             "movestogo" => {
-                clocks.moves_to_go = Some(args.next().ok_or(())?.parse().map_err(|_| ())?);
+                clocks.moves_to_go = Some(
+                    args.next()
+                        .ok_or("expected movestogo")?
+                        .parse()
+                        .map_err(|_| "invalid movestogo".to_string())?,
+                );
             }
-            "movetime" => movetime = Some(parse_duration(args.next().ok_or(())?)?),
+            "movetime" => {
+                movetime =
+                    Some(parse_duration(args.next().ok_or("expected duration for movetime")?)?);
+            }
             "depth" => {
                 depth = Some(
                     args.next()
-                        .ok_or(())?
+                        .ok_or("expected depth")?
                         .parse::<u8>()
                         .map(Depth)
-                        .map_err(|_| ())?,
+                        .map_err(|_| "invalid depth".to_string())?,
                 );
             }
-            "nodes" => nodes = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
-            _ => return Err(()),
+            "nodes" => {
+                nodes = Some(
+                    args.next()
+                        .ok_or("expected nodes")?
+                        .parse::<u64>()
+                        .map_err(|_| "invalid nodes")?,
+                );
+            }
+            _ => return Err(format!("unknown 'go' argument: {arg}")),
         }
     }
 
@@ -276,15 +302,15 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, ()> {
                 unreachable!()
             }
         }
-        _ => return Err(()),
+        _ => return Err("conflicting time control types".to_string()),
     };
 
     Ok(UciCommand::Go { time_control })
 }
 
-fn cmd_move(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_move(args: &[&str]) -> Result<UciCommand, String> {
     if args.is_empty() {
-        return Err(());
+        return Err("invalid number of arguments".to_string());
     }
 
     Ok(UciCommand::Move {
@@ -292,28 +318,38 @@ fn cmd_move(args: &[&str]) -> Result<UciCommand, ()> {
     })
 }
 
-fn cmd_perft(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_perft(args: &[&str]) -> Result<UciCommand, String> {
     if args.len() != 1 {
-        return Err(());
+        return Err("invalid number of arguments".to_string());
     }
 
-    let depth = args[0].parse::<u8>().map_err(|_| ())?;
+    let depth = args[0]
+        .parse::<u8>()
+        .map_err(|_| "invalid depth".to_string())?;
+
     Ok(UciCommand::Perft { depth })
 }
 
-fn cmd_perft_div(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_perft_div(args: &[&str]) -> Result<UciCommand, String> {
     if args.len() != 1 {
-        return Err(());
+        return Err("invalid number of arguments".to_string());
     }
 
-    let depth = args[0].parse::<u8>().map_err(|_| ())?;
+    let depth = args[0]
+        .parse::<u8>()
+        .map_err(|_| "invalid depth".to_string())?;
+
     Ok(UciCommand::PerftDiv { depth })
 }
 
-fn cmd_genfens(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_genfens(args: &[&str]) -> Result<UciCommand, String> {
     let mut args = args.iter();
 
-    let n = args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?;
+    let n = args
+        .next()
+        .ok_or("expected number of FENs")?
+        .parse::<u64>()
+        .map_err(|_| "invalid number of FENs")?;
 
     let mut seed: Option<u64> = None;
     let mut book: Option<String> = None;
@@ -321,22 +357,35 @@ fn cmd_genfens(args: &[&str]) -> Result<UciCommand, ()> {
 
     while let Some(&arg) = args.next() {
         match arg {
-            "seed" => seed = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
-            "book" => book = Some(args.next().ok_or(())?.to_string()),
-            "dfrc" => dfrc = args.next().ok_or(())?.parse::<bool>().map_err(|_| ())?,
-            _ => return Err(()),
+            "seed" => {
+                seed = Some(
+                    args.next()
+                        .ok_or("expected seed value")?
+                        .parse::<u64>()
+                        .map_err(|_| "invalid seed value")?,
+                );
+            }
+            "book" => book = Some(args.next().ok_or("expected book")?.to_string()),
+            "dfrc" => {
+                dfrc = args
+                    .next()
+                    .ok_or("expected dfrc value")?
+                    .parse::<bool>()
+                    .map_err(|_| "invalid dfrc value")?;
+            }
+            _ => return Err(format!("unknown 'genfens' argument: {arg}")),
         }
     }
 
     Ok(UciCommand::GenFens {
         n,
-        seed: seed.ok_or(())?,
-        book: book.ok_or(())?,
+        seed: seed.ok_or("expected 'seed'")?,
+        book: book.ok_or("expected 'book'")?,
         dfrc,
     })
 }
 
-fn cmd_speedtest(args: &[&str]) -> Result<UciCommand, ()> {
+fn cmd_speedtest(args: &[&str]) -> Result<UciCommand, String> {
     let mut args = args.iter();
 
     let mut threads = None;
@@ -345,10 +394,31 @@ fn cmd_speedtest(args: &[&str]) -> Result<UciCommand, ()> {
 
     while let Some(&arg) = args.next() {
         match arg {
-            "threads" => threads = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
-            "hash" => hash = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
-            "duration" => duration = Some(args.next().ok_or(())?.parse::<u64>().map_err(|_| ())?),
-            _ => return Err(()),
+            "threads" => {
+                threads = Some(
+                    args.next()
+                        .ok_or("expected threads value")?
+                        .parse::<u64>()
+                        .map_err(|_| "invalid threads value")?,
+                );
+            }
+            "hash" => {
+                hash = Some(
+                    args.next()
+                        .ok_or("expected hash value")?
+                        .parse::<u64>()
+                        .map_err(|_| "invalid hash value")?,
+                );
+            }
+            "duration" => {
+                duration = Some(
+                    args.next()
+                        .ok_or("expected duration value")?
+                        .parse::<u64>()
+                        .map_err(|_| "invalid duration value")?,
+                );
+            }
+            _ => return Err(format!("unknown 'speedtest' argument: {arg}")),
         }
     }
 
@@ -359,8 +429,7 @@ fn cmd_speedtest(args: &[&str]) -> Result<UciCommand, ()> {
     })
 }
 
-#[expect(clippy::result_unit_err, reason = "Improved error reporting is planned")]
-pub fn parse(input: &str) -> Result<UciCommand, ()> {
+pub fn parse(input: &str) -> Result<UciCommand, String> {
     let tokens = input.split_whitespace().collect::<Vec<&str>>();
     if tokens.is_empty() {
         return Ok(UciCommand::Noop);
@@ -393,7 +462,7 @@ pub fn parse(input: &str) -> Result<UciCommand, ()> {
         "spsa" => no_args_command(UciCommand::Spsa, args),
 
         "quit" => no_args_command(UciCommand::Quit, args),
-        _ => Err(()),
+        _ => Err(format!("unknown command: {command}")),
     }
 }
 

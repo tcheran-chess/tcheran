@@ -5,6 +5,7 @@ use crate::{
     engine::{
         eval::wdl,
         search::{NullReporter, PersistentState, ThreadData, TimeControl, st_search},
+        uci::responses::UciReporter,
         util::log,
     },
 };
@@ -39,10 +40,10 @@ fn random_starting_position(rand: &mut impl Rng, dfrc: bool) -> Result<Game, ()>
         game.make_move(*random_move);
 
         if game.is_draw(0) {
-            log::crashlog(format!(
-                "Datagen generated a drawn starting position: {}",
-                game.to_fen()
-            ));
+            log::crashlog(
+                format!("Datagen generated a drawn starting position: {}", game.to_fen()),
+                &UciReporter::default(),
+            );
 
             return Err(());
         }

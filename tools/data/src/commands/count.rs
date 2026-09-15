@@ -8,6 +8,7 @@ use viriformat::dataformat::Game;
 #[derive(Debug, Args)]
 pub struct CountOptions {
     pub dir: PathBuf,
+    pub filter: bool,
 }
 
 #[derive(Default)]
@@ -43,7 +44,7 @@ impl AddAssign for FileStats {
     }
 }
 
-fn file_stats(file: &PathBuf) -> Result<FileStats> {
+fn file_stats(file: &PathBuf, should_filter: bool) -> Result<FileStats> {
     let file = File::open(file)?;
     let mut reader = BufReader::new(file);
     let mut buffer = Vec::new();
@@ -57,10 +58,15 @@ fn file_stats(file: &PathBuf) -> Result<FileStats> {
         let all_positions = game.len();
         stats.positions += all_positions as u64;
 
-        let actual_positions_after_filtering = usize::try_from(game.filter_pass_count(&filter))?;
-        let filtered_in_this_game = game.moves.len() - actual_positions_after_filtering;
-        stats.kept_positions += actual_positions_after_filtering as u64;
-        stats.filtered_positions += filtered_in_this_game as u64;
+        if should_filter {
+            let actual_positions_after_filtering =
+                usize::try_from(game.filter_pass_count(&filter))?;
+            let filtered_in_this_game = game.moves.len() - actual_positions_after_filtering;
+            stats.kept_positions += actual_positions_after_filtering as u64;
+            stats.filtered_positions += filtered_in_this_game as u64;
+        } else {
+            stats.kept_positions += all_positions as u64;
+        }
 
         if game.moves.is_empty() {
             buffer = game.moves;
@@ -104,7 +110,7 @@ pub fn run(options: &CountOptions) {
     let stats = data_paths
         .par_iter()
         .map(|file| {
-            let stats = file_stats(file).unwrap();
+            let stats = file_stats(file, options.filter).unwrap();
 
             println!(
                 "- {} positions: {}, kept {} ({:.2}%)",

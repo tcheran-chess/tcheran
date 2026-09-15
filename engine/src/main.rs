@@ -5,15 +5,13 @@ use std::{
     process::ExitCode,
 };
 
-use engine::engine::util::log;
+use engine::engine::{uci::responses::UciReporter, util::log};
 
 fn main() -> ExitCode {
     std::panic::set_hook(Box::new(|info| {
         let backtrace = Backtrace::force_capture();
         let panic_message = get_panic_message(info, &backtrace);
-
-        println!("{panic_message}");
-        log::crashlog(panic_message);
+        log::crashlog(panic_message, &UciReporter::default());
     }));
 
     engine::init();
@@ -40,8 +38,7 @@ fn run() -> ExitCode {
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
-            log::crashlog(e.clone());
-            eprintln!("{e}");
+            log::crashlog(&e, &UciReporter::default());
             ExitCode::FAILURE
         }
     }

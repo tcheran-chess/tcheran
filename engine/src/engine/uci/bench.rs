@@ -126,6 +126,7 @@ impl BenchReporter {
 
 impl Reporter for BenchReporter {
     fn generic_report(&self, _: &str) {}
+    fn error(&self, _: &str) {}
 
     fn report_search_progress(&self, _: &Game, result: &SearchResult) {
         *self.nodes.borrow_mut() = Some(result.stats.nodes);

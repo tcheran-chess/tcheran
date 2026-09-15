@@ -381,6 +381,10 @@ impl Reporter for UciReporter {
         println!("info string {s}");
     }
 
+    fn error(&self, s: &str) {
+        println!("{s}");
+    }
+
     fn report_search_progress(&self, game: &Game, result: &search::SearchResult) {
         if self.pretty_output.load(Ordering::Relaxed) {
             Self::pretty_report_search_progress(game, result);

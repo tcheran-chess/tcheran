@@ -1,6 +1,8 @@
 use std::{fs, io::Write};
 
-pub fn crashlog<S: AsRef<str>>(s: S) {
+use crate::engine::search::Reporter;
+
+pub fn crashlog<S: AsRef<str>>(s: S, reporter: &impl Reporter) {
     let extension = "err.log";
 
     let current_exe =
@@ -16,6 +18,8 @@ pub fn crashlog<S: AsRef<str>>(s: S) {
 
     writeln!(f, "[{}] {}", std::process::id(), s.as_ref()).unwrap();
     f.flush().unwrap();
+
+    reporter.error(s.as_ref());
 }
 
 #[allow(unused, reason = "Used for debugging")]

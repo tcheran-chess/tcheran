@@ -288,6 +288,7 @@ impl SearchStats {
 
 pub trait Reporter {
     fn generic_report(&self, s: &str);
+    fn error(&self, s: &str);
 
     fn report_search_progress(&self, game: &Game, result: &SearchResult);
 
@@ -298,6 +299,7 @@ pub struct NullReporter;
 
 impl Reporter for NullReporter {
     fn generic_report(&self, _: &str) {}
+    fn error(&self, _: &str) {}
 
     fn report_search_progress(&self, _: &Game, _: &SearchResult) {}
 

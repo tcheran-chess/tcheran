@@ -533,6 +533,7 @@ impl Uci {
             }
             #[cfg(feature = "spsa")]
             UciCommand::Spsa => crate::engine::uci::spsa::print_spsa_input(),
+            UciCommand::Noop => {}
             UciCommand::Quit => {
                 if self.threads.busy() {
                     self.threads.stop_and_wait();

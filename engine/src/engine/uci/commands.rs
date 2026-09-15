@@ -56,5 +56,6 @@ pub enum UciCommand {
 
     Spsa,
 
+    Noop,
     Quit,
 }

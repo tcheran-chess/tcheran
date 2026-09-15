@@ -44,6 +44,7 @@
 * Exact nodes/time reporting behaviour for hard-stopped searches which was broken accidentally has been restored 
 * Updated to Rust 1.98
 * Errors are now always written to stdout
+* Empty lines on stdin are now treated as no-ops
 
 ## [13.0]
 

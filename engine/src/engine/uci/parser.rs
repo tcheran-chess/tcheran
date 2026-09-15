@@ -363,7 +363,7 @@ fn cmd_speedtest(args: &[&str]) -> Result<UciCommand, ()> {
 pub fn parse(input: &str) -> Result<UciCommand, ()> {
     let tokens = input.split_whitespace().collect::<Vec<&str>>();
     if tokens.is_empty() {
-        return Err(());
+        return Ok(UciCommand::Noop);
     }
 
     let command = tokens[0];

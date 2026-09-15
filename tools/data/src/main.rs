@@ -17,8 +17,6 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Command {
     Count(count::CountOptions),
-    Head(head::HeadOptions),
-    Relabel(relabel::RelabelOptions),
     Convert(convert::ConvertOptions),
     Scaling(scaling::ScalingOptions),
 }
@@ -29,9 +27,7 @@ pub fn main() -> Result<ExitCode> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Command::Head(opts) => head::run(opts)?,
         Command::Count(opts) => count::run(opts)?,
-        Command::Relabel(opts) => relabel::run(opts)?,
         Command::Convert(opts) => convert::run(opts)?,
         Command::Scaling(opts) => scaling::run(opts)?,
     }

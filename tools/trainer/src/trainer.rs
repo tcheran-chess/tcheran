@@ -183,7 +183,27 @@ pub fn run(net_name: &str) {
         wdl_heuristic_scale: 1.5,
     };
 
-    let data = ViriBinpackLoader::new("etc/data/data.viri", 1024 * 8, 4, filter);
+    let mut data_paths = std::fs::read_dir("./etc/data")
+        .expect("Unable to find data dir")
+        .map(|path| path.unwrap().path())
+        .filter(|path| path.is_file())
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>();
+
+    data_paths.sort();
+    assert!(!data_paths.is_empty(), "No data files found");
+
+    println!("Using data:");
+    for path in &data_paths {
+        println!("  - {path}");
+    }
+
+    let data = ViriBinpackLoader::new_interleave_multiple(
+        &data_paths.iter().map(String::as_str).collect::<Vec<_>>(),
+        1024 * 8,
+        8,
+        filter,
+    );
 
     let settings = LocalSettings {
         threads: 8,

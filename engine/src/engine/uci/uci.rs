@@ -200,8 +200,7 @@ impl Uci {
 
                 let Some(option) = self.uci_options.iter().find(|o| o.name == name) else {
                     let unknown_option = format!("unknown option: {name}");
-                    log::crashlog(&unknown_option);
-                    self.reporter.generic_report(&unknown_option);
+                    log::crashlog(&unknown_option, self.reporter);
 
                     return Ok(ExecuteResult::KeepGoing);
                 };
@@ -550,8 +549,7 @@ impl Uci {
         let command = parser::parse(line);
 
         let Ok(ref c) = command else {
-            log::crashlog(format!("Invalid command: {line}"));
-            eprintln!("Invalid command");
+            log::crashlog(format!("Invalid command: {line}"), self.reporter);
             return Ok(true);
         };
 

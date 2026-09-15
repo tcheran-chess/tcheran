@@ -43,6 +43,7 @@
 * Pretty info PVs are now truncated for readability, and checks, promotions and checkmates are colored
 * Exact nodes/time reporting behaviour for hard-stopped searches which was broken accidentally has been restored 
 * Updated to Rust 1.98
+* Errors are now always written to stdout
 
 ## [13.0]
 

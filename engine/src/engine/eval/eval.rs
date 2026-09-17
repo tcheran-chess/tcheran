@@ -9,9 +9,14 @@ fn scale_eval(eval: Eval, game: &Game) -> Eval {
         + i32::from(game.board.all_rooks().count()) * see_rook_value()
         + i32::from(game.board.all_queens().count()) * see_queen_value();
 
-    let scale = material_scale_base() + material / material_scale_divisor();
+    let material_scale = material_scale_base() + material / material_scale_divisor();
 
-    Eval((eval.0 * scale) / 1024)
+    let scaled = eval.0;
+
+    let scaled = (scaled * material_scale) / 1024;
+    let scaled = scaled * (200 - game.halfmove_clock as i32) / 200;
+
+    Eval(scaled)
 }
 
 pub fn eval(nnue: &mut NetworkStack, game: &Game) -> Eval {

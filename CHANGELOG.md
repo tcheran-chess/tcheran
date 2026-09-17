@@ -19,6 +19,7 @@
 
 #### Non-regression
 
+* 50-move-rule scaling (9.60 +- 4.48 on fortresses_torch.epd)
 * Various SIMD readability improvements (4.71 +- 4.46)
 * Separate legal_moves and moves_tried counters in search (3.64 +- 4.07)
 * Saturating behaviour in LMR is no longer used (2.29 +- 3.43)

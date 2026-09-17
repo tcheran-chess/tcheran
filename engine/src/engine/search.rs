@@ -329,7 +329,6 @@ pub fn negamax(
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
-    // Check periodically to see if we're out of time.
     if ctx.stopped() {
         return Eval::MIN;
     }
@@ -345,8 +344,7 @@ pub fn negamax(
         ctx.stack.last(plies).unwrap().double_extensions
     };
 
-    // Check extension: If we're about to finish searching, but we are in check, we
-    // should keep going.
+    // Check extension
     let in_check = game.in_check();
     if in_check {
         depth += 1;
@@ -907,7 +905,6 @@ pub fn negamax(
                 pv.push(mv, &node_pv);
             }
 
-            // Cutoff: This move is so good that our opponent won't let it be played.
             if score >= s.beta {
                 tt_node_bound = NodeBound::Lower;
                 ctx.stack.get(plies).fail_highs += 1;
@@ -915,7 +912,6 @@ pub fn negamax(
             }
         }
 
-        // Only add to the tried lists if the move didn't cause a cutoff
         if !mv.is_quiet() {
             tacticals_tried.push(mv);
         }
@@ -996,7 +992,6 @@ pub fn quiescence(
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
-    // Check periodically to see if we're out of time.
     if ctx.stopped() {
         return Eval::MIN;
     }
@@ -1156,7 +1151,6 @@ pub fn quiescence(
                 pv.push(mv, &node_pv);
             }
 
-            // Cutoff: This move is so good that our opponent won't let it be played.
             if move_score >= s.beta {
                 node_bound = NodeBound::Lower;
                 break;

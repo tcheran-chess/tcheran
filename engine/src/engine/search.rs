@@ -902,7 +902,10 @@ pub fn negamax(
                 s.alpha = score;
                 best_move = Some(mv);
                 tt_node_bound = NodeBound::Exact;
-                pv.push(mv, &node_pv);
+
+                if is_pv {
+                    pv.push(mv, &node_pv);
+                }
             }
 
             if score >= s.beta {
@@ -1148,7 +1151,10 @@ pub fn quiescence(
                 best_move = Some(mv);
                 node_bound = NodeBound::Exact;
                 s.alpha = move_score;
-                pv.push(mv, &node_pv);
+
+                if is_pv {
+                    pv.push(mv, &node_pv);
+                }
             }
 
             if move_score >= s.beta {

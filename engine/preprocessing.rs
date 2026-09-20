@@ -12,6 +12,9 @@ pub struct RawNetwork {
     pub l3_biases: [i32; OUTPUT_BUCKETS],
 }
 
+// Set this to true for generating permutations for new nets
+const DISABLE_SPARSITY_PERMUTATION: bool = false;
+
 const L0_ACTIVATIONS: [usize; L1 / 2] = [
     1117310, 1999421, 3420100, 1314952, 4037802, 1345828, 3388972, 10062011, 435926, 640834,
     848713, 2874319, 2361550, 49930, 187027, 1026759, 4377178, 2863637, 2654140, 1254035, 653536,
@@ -66,7 +69,11 @@ const L0_ACTIVATIONS: [usize; L1 / 2] = [
 pub fn preprocess(src: &RawNetwork, dst: &mut Network) {
     let sparsity_permutation_indices = {
         let mut indices: [usize; L1 / 2] = std::array::from_fn(|i| i);
-        indices.sort_by(|&a, &b| L0_ACTIVATIONS[b].cmp(&L0_ACTIVATIONS[a]));
+
+        if !DISABLE_SPARSITY_PERMUTATION {
+            indices.sort_by(|&a, &b| L0_ACTIVATIONS[b].cmp(&L0_ACTIVATIONS[a]));
+        }
+
         indices
     };
 

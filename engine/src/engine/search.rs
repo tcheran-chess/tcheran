@@ -723,11 +723,11 @@ pub fn negamax(
     let mut quiets_tried = MoveList::new();
 
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
-        legal_moves += 1;
-
         if Some(mv) == excluded_mv {
             continue;
         }
+
+        legal_moves += 1;
 
         ctx.tt.prefetch(game.approx_zobrist_after(mv));
 

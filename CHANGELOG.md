@@ -24,6 +24,7 @@
 * Various SIMD readability improvements (4.71 +- 4.46)
 * Separate legal_moves and moves_tried counters in search (3.64 +- 4.07)
 * Saturating behaviour in LMR is no longer used (2.29 +- 3.43)
+* Don't include the excluded move in legal_moves count (1.47 +- 3.01)
 * Replace repeated bounds logic with score_is_usable fn (1.23 +- 2.46)
 * Only update PV in PV nodes (0.94 +- 2.69)
 * Histories are now updated in singular search (0.88 +- 2.70)

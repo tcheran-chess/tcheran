@@ -1,4 +1,7 @@
-use crate::chess::{CastleRights, prelude::*, ranks::back_rank, squares};
+use crate::{
+    chess::{CastleRights, prelude::*, ranks::back_rank, squares},
+    engine::util::chars::StrParsingExtensions,
+};
 
 #[derive(Debug)]
 pub struct FenRank([Option<Piece>; File::N]);
@@ -212,13 +215,9 @@ fn fen_file(input: char) -> Result<File, ()> {
 }
 
 fn fen_square(input: &str) -> Result<Square, ()> {
-    if input.len() != 2 {
+    let Some([file, rank]) = input.as_char_array() else {
         return Err(());
-    }
-
-    let mut chars = input.chars();
-    let file = chars.next().unwrap();
-    let rank = chars.next().unwrap();
+    };
 
     let file = fen_file(file)?;
 

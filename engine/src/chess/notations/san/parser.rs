@@ -1,7 +1,10 @@
 use std::collections::HashSet;
 
 use super::constants;
-use crate::chess::{moves::MoveListExt, prelude::*};
+use crate::{
+    chess::{moves::MoveListExt, prelude::*},
+    engine::util::chars::StrParsingExtensions,
+};
 
 enum AmbiguityResolution {
     None,
@@ -23,6 +26,7 @@ impl AmbiguityResolution {
 
 #[derive(Debug)]
 pub enum ParseError {
+    InvalidSquare,
     InvalidFile,
     InvalidRank,
     InvalidPromotionPiece,
@@ -88,13 +92,8 @@ fn parse_rank(c: char) -> Result<Rank, ParseError> {
     })
 }
 
-fn parse_promotion_piece(piece: &str) -> Result<PromotionPieceKind, ParseError> {
-    if piece.len() != 1 {
-        return Err(ParseError::InvalidPromotionPiece);
-    }
-
-    let char = piece.chars().next().unwrap();
-    Ok(match char {
+fn parse_promotion_piece(piece: char) -> Result<PromotionPieceKind, ParseError> {
+    Ok(match piece {
         'Q' => PromotionPieceKind::Queen,
         'R' => PromotionPieceKind::Rook,
         'N' => PromotionPieceKind::Knight,
@@ -124,21 +123,25 @@ fn parse_from_square(game: &Game, from: &str, to: Square) -> Result<Square, Pars
 
     // Pawn move
     if from.is_empty() {
-        let matching_source_squares: HashSet<Square> = piece_moves
+        let matching_source_squares: Vec<Square> = piece_moves
             .into_iter()
             .filter(|&(piece, mv)| piece == Pawn && mv.to() == to)
             .map(|(_, mv)| mv.from())
+            .collect::<HashSet<_>>()
+            .into_iter()
             .collect();
 
-        if matching_source_squares.len() != 1 {
+        let &[matching_source_square] = matching_source_squares.as_slice() else {
             return Err(ParseError::InvalidMove);
-        }
+        };
 
-        return Ok(*matching_source_squares.iter().next().unwrap());
+        return Ok(matching_source_square);
     }
 
     let from_chars: Vec<char> = from.chars().collect();
-    let (first_char, rest) = from_chars.split_first().unwrap();
+    let Some((first_char, rest)) = from_chars.split_first() else {
+        return Err(ParseError::InvalidMove);
+    };
 
     if let Some(moved_piece) = parse_piece(*first_char) {
         let ambiguity_resolution = parse_ambiguity_resolution(rest)?;
@@ -151,11 +154,11 @@ fn parse_from_square(game: &Game, from: &str, to: Square) -> Result<Square, Pars
             .map(|(_, mv)| mv.from())
             .collect();
 
-        if matching_source_squares.len() != 1 {
+        let &[matching_source_square] = matching_source_squares.as_slice() else {
             return Err(ParseError::InvalidMove);
-        }
+        };
 
-        return Ok(*matching_source_squares.first().unwrap());
+        return Ok(matching_source_square);
     }
 
     let ambiguity_resolution = parse_ambiguity_resolution(&from_chars)?;
@@ -172,19 +175,20 @@ fn parse_from_square(game: &Game, from: &str, to: Square) -> Result<Square, Pars
         .into_iter()
         .collect();
 
-    if matching_source_squares.len() != 1 {
+    let &[matching_source_square] = matching_source_squares.as_slice() else {
         return Err(ParseError::InvalidMove);
-    }
+    };
 
-    Ok(*matching_source_squares.first().unwrap())
+    Ok(matching_source_square)
 }
 
 fn parse_to_square(sq: &str) -> Result<Square, ParseError> {
-    assert_eq!(sq.len(), 2);
+    let Some([file, rank]) = sq.as_char_array() else {
+        return Err(ParseError::InvalidSquare);
+    };
 
-    let mut chars = sq.chars();
-    let file = parse_file(chars.next().unwrap())?;
-    let rank = parse_rank(chars.next().unwrap())?;
+    let file = parse_file(file)?;
+    let rank = parse_rank(rank)?;
 
     Ok(Square::from_file_and_rank(file, rank))
 }
@@ -251,6 +255,11 @@ pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
         let (rest, promotion_piece) = mv
             .split_once(constants::PROMOTION)
             .ok_or(ParseError::InvalidPromotionPiece)?;
+
+        let Some([promotion_piece]) = promotion_piece.as_char_array() else {
+            return Err(ParseError::InvalidPromotionPiece);
+        };
+
         let promoted_to = parse_promotion_piece(promotion_piece)?;
         (rest, Some(promoted_to))
     } else {

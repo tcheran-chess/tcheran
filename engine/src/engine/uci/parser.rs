@@ -6,6 +6,7 @@ use crate::{
     engine::{
         search::{Clocks, TimeControl, types::Depth},
         uci::{UciMove, commands::Position},
+        util::chars::StrParsingExtensions,
     },
 };
 
@@ -18,13 +19,9 @@ fn boolean(input: &str) -> Result<bool, String> {
 }
 
 fn uci_square(input: &str) -> Result<Square, String> {
-    if input.len() != 2 {
+    let Some([file, rank]) = input.as_char_array() else {
         return Err(format!("expected uci square, got {input}"));
-    }
-
-    let mut chars = input.chars();
-    let file = chars.next().unwrap();
-    let rank = chars.next().unwrap();
+    };
 
     let file = match file {
         'a' => File::A,
@@ -99,25 +96,19 @@ fn no_args_command(command: UciCommand, args: &[&str]) -> Result<UciCommand, Str
 }
 
 fn cmd_debug(args: &[&str]) -> Result<UciCommand, String> {
-    if args.len() != 1 {
+    let &[onoff] = args else {
         return Err("invalid number of arguments".to_string());
-    }
+    };
 
-    let onoff = args[0];
     let onoff = boolean(onoff)?;
 
     Ok(UciCommand::Debug(onoff))
 }
 
 fn cmd_setoption(args: &[&str]) -> Result<UciCommand, String> {
-    if args.len() != 4 {
+    let &[name_token, name_arg, value_token, value_arg] = args else {
         return Err("invalid number of arguments".to_string());
-    }
-
-    let name_token = args[0];
-    let name_arg = args[1];
-    let value_token = args[2];
-    let value_arg = args[3];
+    };
 
     if name_token != "name" {
         return Err(format!("expected 'name', got {name_token}"));
@@ -319,11 +310,11 @@ fn cmd_move(args: &[&str]) -> Result<UciCommand, String> {
 }
 
 fn cmd_perft(args: &[&str]) -> Result<UciCommand, String> {
-    if args.len() != 1 {
+    let &[depth] = args else {
         return Err("invalid number of arguments".to_string());
-    }
+    };
 
-    let depth = args[0]
+    let depth = depth
         .parse::<u8>()
         .map_err(|_| "invalid depth".to_string())?;
 
@@ -331,11 +322,11 @@ fn cmd_perft(args: &[&str]) -> Result<UciCommand, String> {
 }
 
 fn cmd_perft_div(args: &[&str]) -> Result<UciCommand, String> {
-    if args.len() != 1 {
+    let &[depth] = args else {
         return Err("invalid number of arguments".to_string());
-    }
+    };
 
-    let depth = args[0]
+    let depth = depth
         .parse::<u8>()
         .map_err(|_| "invalid depth".to_string())?;
 

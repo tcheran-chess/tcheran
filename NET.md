@@ -40,3 +40,4 @@ Network training schedules can be found in the project's history in [tools/train
 | 22 | `(768x8hm->1024)x2->(16->32->1)x8` | `4.47 +- 3.26`      | Switch back to training the multi-layer net with Ranger |
 | 23 | `(768x8hm->1024)x2->(16->32->1)x8` | `7.21 +- 4.45`      | Use dual activation for L2 |
 | 24 | `(768x8hm->1024)x2->(16->32->1)x8` | `2.60 +- 3.73` (nonreg)      | Trained using viriformat filtering with Tcheran's actual max eval (30000), tested non-reg |
+| 25 | `(768x8hm->1024)x2->(16->32->1)x8` | `15.97 +- 7.05`     | Trained using ~1bn additional 5ksn positions and a sparsity loss term |

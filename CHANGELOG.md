@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+* Network #25, trained with ~1bn additional 5ksn positions and a sparsity loss term (15.97 +- 7.05)
 * Implement NNZ inference and permute the network for sparsity (12.06 +- 5.91 STC)
 * Use the sum of all conthist scores as the base for updates (9.09 +- 5.17)
 * Added 1-ply continuation correction history (8.23 +- 5.04)

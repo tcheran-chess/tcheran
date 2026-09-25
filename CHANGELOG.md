@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 * Add ply-4 in continuation correction history (6.61 +- 4.24)
+* Add score stability time management (3.98 +- 2.95)
 
 #### Non-regression
 

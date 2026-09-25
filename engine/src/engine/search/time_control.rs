@@ -35,7 +35,6 @@ pub struct TimeStrategy {
 }
 
 struct Params {
-    max_time_per_move: f32,
     increment_to_use: f32,
     soft_time_multiplier: f32,
     hard_time_multiplier: f32,
@@ -48,7 +47,6 @@ struct Params {
 impl Params {
     fn new() -> Self {
         Self {
-            max_time_per_move: max_time_per_move() as f32 / 1000.0,
             increment_to_use: increment_to_use() as f32 / 1000.0,
             soft_time_multiplier: soft_time_multiplier() as f32 / 1000.0,
             hard_time_multiplier: hard_time_multiplier() as f32 / 1000.0,
@@ -139,20 +137,19 @@ impl TimeStrategy {
             } => {
                 started_at = Some(start_time);
                 let (mut time_remaining, increment) = clocks.for_player(game.player);
+                let moves_to_go = clocks.moves_to_go.unwrap_or(default_moves_to_go());
 
                 time_remaining = time_remaining
                     .saturating_sub(options.move_overhead)
                     .max(options.move_overhead);
 
-                let absolute_max = time_remaining.mul_f32(params.max_time_per_move);
-                let moves_to_go = clocks.moves_to_go.unwrap_or(default_moves_to_go());
-
                 let base_time =
-                    absolute_max / moves_to_go + increment.mul_f32(params.increment_to_use);
+                    time_remaining / moves_to_go + increment.mul_f32(params.increment_to_use);
 
-                hard_stop = absolute_max.mul_f32(params.hard_time_multiplier);
-                soft_stop =
-                    std::cmp::min(base_time.mul_f32(params.soft_time_multiplier), hard_stop);
+                hard_stop = time_remaining.mul_f32(params.hard_time_multiplier);
+                soft_stop = base_time
+                    .mul_f32(params.soft_time_multiplier)
+                    .min(hard_stop);
             }
             TimeControl::Nodes { hard, .. } => {
                 if let Some(hard_limit) = hard {

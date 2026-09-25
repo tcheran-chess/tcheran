@@ -114,6 +114,10 @@ impl Eval {
         self.clamp(Self(Self::MIN_EVAL), Self(Self::MAX_EVAL))
     }
 
+    pub fn abs(self) -> Self {
+        Self(self.0.abs())
+    }
+
     pub fn to_white_eval(self, player: Player) -> WhiteEval {
         match player {
             White => WhiteEval(self.0),

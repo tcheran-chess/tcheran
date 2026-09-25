@@ -86,7 +86,7 @@ fn acceptable_starting_position(
 
         let normalised_eval = wdl::normalize(result.score, &game.board);
 
-        if normalised_eval.0.abs() >= UNBALANCED_STARTING_EVAL {
+        if normalised_eval.abs() >= UNBALANCED_STARTING_EVAL {
             continue;
         }
 

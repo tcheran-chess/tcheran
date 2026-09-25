@@ -118,7 +118,9 @@ parameters!(
     soft_time_multiplier: u32 = 700 [10..1000];
     hard_time_multiplier: u32 = 500 [10..1000];
 
-    best_move_stability_initial_depth: u8 = 5 [4..8];
+    best_move_tm_base: u32 = 2630 [10..5120];
+    best_move_tm_multiplier: u32 = 1700 [10..5120];
+    best_move_tm_min: u32 = 200 [10..1000];
 
     node_tm_base: u32 = 2630 [10..5120];
     node_tm_multiplier: u32 = 1700 [10..5120];

@@ -39,6 +39,10 @@ struct Params {
     soft_time_multiplier: f32,
     hard_time_multiplier: f32,
 
+    best_move_tm_base: f32,
+    best_move_tm_multiplier: f32,
+    best_move_tm_min: f32,
+
     node_tm_base: f32,
     node_tm_multiplier: f32,
     node_tm_min: f32,
@@ -50,6 +54,10 @@ impl Params {
             increment_to_use: increment_to_use() as f32 / 1000.0,
             soft_time_multiplier: soft_time_multiplier() as f32 / 1000.0,
             hard_time_multiplier: hard_time_multiplier() as f32 / 1000.0,
+
+            best_move_tm_base: best_move_tm_base() as f32 / 1000.0,
+            best_move_tm_multiplier: best_move_tm_multiplier() as f32 / 1000.0,
+            best_move_tm_min: best_move_tm_min() as f32 / 1000.0,
 
             node_tm_base: node_tm_base() as f32 / 1000.0,
             node_tm_multiplier: node_tm_multiplier() as f32 / 1000.0,
@@ -107,7 +115,6 @@ impl StopControl {
 }
 
 const CHECK_TERMINATION_NODE_FREQUENCY: u64 = 2048;
-const BEST_MOVE_STABILITY_TIME_MULTIPLIERS: [f32; 5] = [2.50, 1.20, 1.00, 0.80, 0.75];
 
 impl TimeStrategy {
     pub fn new(
@@ -257,11 +264,9 @@ impl TimeStrategy {
         let mut scale = 1.0;
 
         let best_move_scale_adjustment = {
-            if depth >= best_move_stability_initial_depth() {
-                BEST_MOVE_STABILITY_TIME_MULTIPLIERS[self.best_move_stability.min(4)]
-            } else {
-                1.0
-            }
+            (self.params.best_move_tm_base
+                - self.best_move_stability as f32 * self.params.best_move_tm_multiplier)
+                .max(self.params.best_move_tm_min)
         };
 
         let node_scale_adjustment = {

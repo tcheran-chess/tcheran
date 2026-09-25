@@ -122,7 +122,7 @@ parameters!(
 
     node_tm_base: u32 = 2630 [10..5120];
     node_tm_multiplier: u32 = 1700 [10..5120];
-    node_tm_min: u32 = 900 [10..1000];
+    node_tm_min: u32 = 200 [10..1000];
 );
 
 #[cfg(test)]

@@ -256,19 +256,24 @@ impl TimeStrategy {
         // Compute new scale
         let mut scale = 1.0;
 
-        if depth >= best_move_stability_initial_depth() {
-            scale *= BEST_MOVE_STABILITY_TIME_MULTIPLIERS[self.best_move_stability.min(4)];
-        }
+        let best_move_scale_adjustment = {
+            if depth >= best_move_stability_initial_depth() {
+                BEST_MOVE_STABILITY_TIME_MULTIPLIERS[self.best_move_stability.min(4)]
+            } else {
+                1.0
+            }
+        };
 
         let node_scale_adjustment = {
             let nodes_for_best_move = self.nodes_used[best_move.from()][best_move.to()];
             let fraction_used_for_best_move = nodes_for_best_move as f32 / nodes_visited as f32;
 
-            fraction_used_for_best_move
-                .mul_add(-self.params.node_tm_multiplier, self.params.node_tm_base)
+            (self.params.node_tm_base
+                - (fraction_used_for_best_move * self.params.node_tm_multiplier))
                 .max(self.params.node_tm_min)
         };
 
+        scale *= best_move_scale_adjustment;
         scale *= node_scale_adjustment;
 
         self.scale = scale;

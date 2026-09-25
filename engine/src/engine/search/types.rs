@@ -253,9 +253,9 @@ impl SearchContext<'_> {
         self.time_control.update_nodes_used(mv, nodes);
     }
 
-    pub fn update_after_search(&mut self, best_move: Move) {
+    pub fn update_after_search(&mut self, best_move: Move, score: Eval) {
         self.time_control
-            .update_after_search(best_move, self.nodes.get());
+            .update_after_search(best_move, score, self.nodes.get());
     }
 }
 

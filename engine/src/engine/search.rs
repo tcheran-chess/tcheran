@@ -176,7 +176,7 @@ pub fn iterative_deepening(
             panic!("No PV move at depth {} for position {}", depth, game.to_fen())
         });
 
-        ctx.update_after_search(new_best_move);
+        ctx.update_after_search(new_best_move, score);
 
         let mut this_result = SearchResult {
             id: ctx.id,

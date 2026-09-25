@@ -48,14 +48,14 @@ struct Params {
 impl Params {
     fn new() -> Self {
         Self {
-            max_time_per_move: max_time_per_move() as f32 / 100.0,
-            increment_to_use: increment_to_use() as f32 / 100.0,
-            soft_time_multiplier: soft_time_multiplier() as f32 / 100.0,
-            hard_time_multiplier: hard_time_multiplier() as f32 / 100.0,
+            max_time_per_move: max_time_per_move() as f32 / 1000.0,
+            increment_to_use: increment_to_use() as f32 / 1000.0,
+            soft_time_multiplier: soft_time_multiplier() as f32 / 1000.0,
+            hard_time_multiplier: hard_time_multiplier() as f32 / 1000.0,
 
-            node_tm_base: node_tm_base() as f32 / 100.0,
-            node_tm_multiplier: node_tm_multiplier() as f32 / 100.0,
-            node_tm_min: node_tm_min() as f32 / 100.0,
+            node_tm_base: node_tm_base() as f32 / 1000.0,
+            node_tm_multiplier: node_tm_multiplier() as f32 / 1000.0,
+            node_tm_min: node_tm_min() as f32 / 1000.0,
         }
     }
 }

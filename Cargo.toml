@@ -48,6 +48,7 @@ upper_case_acronyms = "allow"
 if_not_else = "allow"
 needless_range_loop = "allow"
 unreadable_literal = "allow"
+suboptimal_flops = "allow"
 
 # Generally useful, but quite noisy as these need to be switched off regularly.
 # Potentially good to re-enable every once in a while.

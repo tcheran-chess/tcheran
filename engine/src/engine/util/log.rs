@@ -2,7 +2,7 @@ use std::{fs, io::Write};
 
 use crate::engine::search::Reporter;
 
-pub fn crashlog<S: AsRef<str>>(s: S, reporter: &impl Reporter) {
+pub fn crashlog(s: impl AsRef<str>, reporter: &impl Reporter) {
     let extension = "err.log";
 
     let current_exe =
@@ -23,7 +23,7 @@ pub fn crashlog<S: AsRef<str>>(s: S, reporter: &impl Reporter) {
 }
 
 #[allow(unused, reason = "Used for debugging")]
-pub fn trace<S: AsRef<str>>(s: S) {
+pub fn trace(s: impl AsRef<str>) {
     let extension = format!("trace.{}.log", std::process::id());
 
     let current_exe = std::env::current_exe().expect("Unable to determine current executable");

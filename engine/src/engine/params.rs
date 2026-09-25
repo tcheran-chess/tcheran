@@ -120,6 +120,10 @@ parameters!(
 
     best_move_stability_initial_depth: u8 = 5 [4..8];
 
+    score_stability_tm_base: u32 = 1146 [10..5120];
+    score_stability_tm_multiplier: u32 = 45 [10..5120];
+    score_stability_tm_min: u32 = 850 [10..1000];
+
     node_tm_base: u32 = 2630 [10..5120];
     node_tm_multiplier: u32 = 1700 [10..5120];
     node_tm_min: u32 = 900 [10..1000];

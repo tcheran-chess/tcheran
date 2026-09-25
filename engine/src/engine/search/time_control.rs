@@ -9,6 +9,7 @@ use std::{
 use crate::{
     chess::prelude::*,
     engine::{
+        eval::Eval,
         options::EngineOptions,
         params::*,
         search::{TimeControl, types::Depth},
@@ -25,7 +26,9 @@ pub struct TimeStrategy {
     hard_stop: Duration,
 
     last_best_move: Option<Move>,
+    last_score: Option<Eval>,
     best_move_stability: usize,
+    score_stability: usize,
     nodes_used: [[u64; Square::N]; Square::N],
     scale: f32,
 
@@ -38,6 +41,10 @@ struct Params {
     increment_to_use: f32,
     soft_time_multiplier: f32,
     hard_time_multiplier: f32,
+
+    score_stability_tm_base: f32,
+    score_stability_tm_multiplier: f32,
+    score_stability_tm_min: f32,
 
     node_tm_base: f32,
     node_tm_multiplier: f32,
@@ -54,6 +61,10 @@ impl Params {
             increment_to_use: scale_param(increment_to_use()),
             soft_time_multiplier: scale_param(soft_time_multiplier()),
             hard_time_multiplier: scale_param(hard_time_multiplier()),
+
+            score_stability_tm_base: scale_param(score_stability_tm_base()),
+            score_stability_tm_multiplier: scale_param(score_stability_tm_multiplier()),
+            score_stability_tm_min: scale_param(score_stability_tm_min()),
 
             node_tm_base: scale_param(node_tm_base()),
             node_tm_multiplier: scale_param(node_tm_multiplier()),
@@ -172,7 +183,9 @@ impl TimeStrategy {
             hard_stop,
 
             last_best_move: None,
+            last_score: None,
             best_move_stability: 0,
+            score_stability: 0,
             nodes_used: [[0; Square::N]; Square::N],
             scale: 1.0,
 
@@ -247,7 +260,13 @@ impl TimeStrategy {
         self.nodes_used[mv.from()][mv.to()] += nodes_used;
     }
 
-    pub fn update_after_search(&mut self, best_move: Move, depth: Depth, nodes_visited: u64) {
+    pub fn update_after_search(
+        &mut self,
+        best_move: Move,
+        score: Eval,
+        depth: Depth,
+        nodes_visited: u64,
+    ) {
         // Update best move stability
         if Some(best_move) == self.last_best_move {
             self.best_move_stability += 1;
@@ -255,7 +274,16 @@ impl TimeStrategy {
             self.best_move_stability = 0;
         }
 
+        if let Some(last_score) = self.last_score
+            && score - last_score.abs() < 20
+        {
+            self.score_stability += 1;
+        } else {
+            self.score_stability = 0;
+        }
+
         self.last_best_move = Some(best_move);
+        self.last_score = Some(score);
 
         // Compute new scale
         let mut scale = 1.0;
@@ -268,6 +296,12 @@ impl TimeStrategy {
             }
         };
 
+        let score_stability_adjustment = {
+            (self.params.score_stability_tm_base
+                - self.score_stability as f32 * self.params.score_stability_tm_multiplier)
+                .max(self.params.score_stability_tm_min)
+        };
+
         let node_scale_adjustment = {
             let nodes_for_best_move = self.nodes_used[best_move.from()][best_move.to()];
             let fraction_used_for_best_move = nodes_for_best_move as f32 / nodes_visited as f32;
@@ -278,6 +312,7 @@ impl TimeStrategy {
         };
 
         scale *= best_move_scale_adjustment;
+        scale *= score_stability_adjustment;
         scale *= node_scale_adjustment;
 
         self.scale = scale;

@@ -112,8 +112,8 @@ parameters!(
     one_ply_contcorrhist_weight: i32 = 150 [48..256];
 
     // Time Management
-    max_time_per_move: u32 = 900 [500..1000];
-    default_moves_to_go: u32 = 200 [80..320];
+    default_moves_to_go: u32 = 20 [8..32];
+
     increment_to_use: u32 = 800 [10..1000];
     soft_time_multiplier: u32 = 700 [10..1000];
     hard_time_multiplier: u32 = 500 [10..1000];

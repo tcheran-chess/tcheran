@@ -46,7 +46,7 @@ struct Params {
 }
 
 fn scale_param(p: u32) -> f32 {
-    p as f32 / 100.0
+    p as f32 / 1000.0
 }
 
 impl Params {

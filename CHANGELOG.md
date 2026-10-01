@@ -47,7 +47,7 @@
 * SAN checkmate moves are now correctly suffixed with #
 * Pretty info PVs are now truncated for readability, and checks, promotions and checkmates are colored
 * Exact nodes/time reporting behaviour for hard-stopped searches which was broken accidentally has been restored 
-* Updated to Rust 1.98
+* Updated to Rust 1.99
 * Errors are now always written to stdout
 * Empty lines on stdin are now treated as no-ops
 * The UCI parser now generates much more specific error messages

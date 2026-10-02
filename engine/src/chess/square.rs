@@ -430,6 +430,6 @@ mod tests {
 
     #[test]
     fn square_size() {
-        assert_eq!(std::mem::size_of::<Square>(), std::mem::size_of::<u8>());
+        assert_eq!(size_of::<Square>(), size_of::<u8>());
     }
 }

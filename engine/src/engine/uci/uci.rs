@@ -614,7 +614,7 @@ pub fn uci_options() -> Vec<UciOption> {
                 .tt
                 .resize(refs.options.hash_size, refs.options.threads);
         })
-        .default(crate::engine::options::defaults::HASH_SIZE as i32)
+        .default(defaults::HASH_SIZE as i32)
         .with_bounds(0, 1024 * 1024)
         .build(),
         //
@@ -622,7 +622,7 @@ pub fn uci_options() -> Vec<UciOption> {
             refs.options.threads = value.as_usize();
             refs.threads.scale(refs.options.threads);
         })
-        .default(crate::engine::options::defaults::THREADS as i32)
+        .default(defaults::THREADS as i32)
         .with_bounds(1, 1024)
         .build(),
         //
@@ -642,13 +642,13 @@ pub fn uci_options() -> Vec<UciOption> {
         UciOption::check("UCI_ShowWDL", |refs, value| {
             refs.reporter.show_wdl.store(value, Ordering::Relaxed);
         })
-        .default(crate::engine::options::defaults::SHOW_WDL)
+        .default(defaults::SHOW_WDL)
         .build(),
         //
         UciOption::spin("MoveOverhead", |refs, value| {
             refs.options.move_overhead = Duration::from_millis(value.as_u64());
         })
-        .default(crate::engine::options::defaults::MOVE_OVERHEAD.as_millis() as i32)
+        .default(defaults::MOVE_OVERHEAD.as_millis() as i32)
         .with_bounds(0, 1000)
         .build(),
         //
@@ -659,7 +659,7 @@ pub fn uci_options() -> Vec<UciOption> {
         .build(),
         //
         UciOption::check("SoftNodes", |refs, value| refs.options.soft_nodes = value)
-            .default(crate::engine::options::defaults::SOFT_NODES)
+            .default(defaults::SOFT_NODES)
             .build(),
         //
         UciOption::spin("SoftNodesHardFactor", |refs, value| {

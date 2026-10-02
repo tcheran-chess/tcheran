@@ -161,7 +161,7 @@ mod tests {
     use crate::chess::moves::MoveListExt;
 
     fn use_basic_see_values() {
-        super::init_see_values(100, 300, 300, 500, 900);
+        init_see_values(100, 300, 300, 500, 900);
     }
 
     fn should_be_good_capture(fen: &str, mv: (Square, Square)) {

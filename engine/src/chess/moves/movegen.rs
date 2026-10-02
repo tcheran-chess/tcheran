@@ -1,5 +1,5 @@
 use crate::chess::{
-    bitboards::{self, back_rank, double_push_rank, pawn_back_rank},
+    bitboards::{back_rank, double_push_rank, pawn_back_rank},
     moves::{bishop_attacks, king_attacks, knight_attacks, rook_attacks},
     prelude::*,
     rays::{ray_between, ray_relative_antidiagonal, ray_relative_diagonal, ray_skewering},
@@ -180,7 +180,7 @@ fn generate_pawn_tacticals(
         f(Move::capture_promotion(src, dst, PromotionPieceKind::Bishop));
     }
 
-    let will_promote_rank = bitboards::pawn_back_rank(them);
+    let will_promote_rank = pawn_back_rank(them);
     let promotion_destinations =
         (unpinned_pawns & will_promote_rank).forward(us) & dst_mask & !their_pieces;
 

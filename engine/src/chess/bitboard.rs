@@ -484,6 +484,6 @@ mod tests {
 
     #[test]
     fn bitboard_size() {
-        assert_eq!(std::mem::size_of::<Bitboard>(), std::mem::size_of::<u64>());
+        assert_eq!(size_of::<Bitboard>(), size_of::<u64>());
     }
 }

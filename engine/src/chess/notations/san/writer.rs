@@ -1,5 +1,5 @@
 use super::constants;
-use crate::chess::prelude::*;
+use crate::chess::{CastleRightsSide, prelude::*};
 
 #[derive(Debug, Eq, PartialEq)]
 enum AmbiguityResolution {
@@ -15,14 +15,14 @@ pub fn format_move(game: &Game, mv: Move) -> String {
 
     let piece = game.board.piece_guaranteed_at(from);
 
-    if mv.is_castling() {
-        if Some(to) == game.castle_rights[game.player].king_side {
-            return constants::KINGSIDE_CASTLE.to_string();
+    if mv.is_castling()
+        && let Some(side) = game.castle_rights[game.player].side_for_rook_sq(to)
+    {
+        return match side {
+            CastleRightsSide::Kingside => constants::KINGSIDE_CASTLE,
+            CastleRightsSide::Queenside => constants::QUEENSIDE_CASTLE,
         }
-
-        if Some(to) == game.castle_rights[game.player].queen_side {
-            return constants::QUEENSIDE_CASTLE.to_string();
-        }
+        .to_string();
     }
 
     let mut game_after_move = game.clone();

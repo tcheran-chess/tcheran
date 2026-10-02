@@ -57,6 +57,18 @@ impl CastleRights {
         }
     }
 
+    pub fn side_for_rook_sq(self, sq: Square) -> Option<CastleRightsSide> {
+        if Some(sq) == self.king_side {
+            return Some(CastleRightsSide::Kingside);
+        }
+
+        if Some(sq) == self.queen_side {
+            return Some(CastleRightsSide::Queenside);
+        }
+
+        None
+    }
+
     pub fn castle_dst_squares(self, player: Player, to: Square) -> Option<(Square, Square)> {
         if let Some(king_side) = self.king_side
             && to == king_side
@@ -814,24 +826,18 @@ impl Game {
         if moved_piece.kind == King {
             self.try_remove_castle_rights(player, CastleRightsSide::Kingside);
             self.try_remove_castle_rights(player, CastleRightsSide::Queenside);
-        } else if moved_piece.kind == Rook {
-            // If we moved one of our rooks, we lose rights to castle on that side.
-            if Some(from) == self.castle_rights[player].king_side {
-                self.try_remove_castle_rights(player, CastleRightsSide::Kingside);
-            } else if Some(from) == self.castle_rights[player].queen_side {
-                self.try_remove_castle_rights(player, CastleRightsSide::Queenside);
-            }
+        } else if moved_piece.kind == Rook
+            && let Some(side) = self.castle_rights[player].side_for_rook_sq(from)
+        {
+            self.try_remove_castle_rights(player, side);
         }
 
         // Check if we removed our enemy's ability to castle, i.e. if we took one of their rooks
         if let Some(captured_piece) = maybe_captured_piece
             && captured_piece.kind == Rook
+            && let Some(side) = self.castle_rights[other_player].side_for_rook_sq(to)
         {
-            if Some(to) == self.castle_rights[other_player].king_side {
-                self.try_remove_castle_rights(other_player, CastleRightsSide::Kingside);
-            } else if Some(to) == self.castle_rights[other_player].queen_side {
-                self.try_remove_castle_rights(other_player, CastleRightsSide::Queenside);
-            }
+            self.try_remove_castle_rights(other_player, side);
         }
 
         let should_reset_halfmove_clock = mv.is_capture() || moved_piece.kind == Pawn;

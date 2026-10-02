@@ -57,9 +57,7 @@ impl Tablebase {
     pub fn wdl(&self, game: &Game) -> Option<Wdl> {
         use crate::chess::prelude::*;
 
-        if !self.is_enabled {
-            return None;
-        }
+        debug_assert!(self.is_enabled);
 
         unsafe {
             let wdl = bindings::tb_probe_wdl(
@@ -86,9 +84,7 @@ impl Tablebase {
         use crate::chess::prelude::*;
         use crate::chess::moves::MoveListExt;
 
-        if !self.is_enabled {
-            return None;
-        }
+        debug_assert!(self.is_enabled);
 
         unsafe {
             let result = bindings::tb_probe_root(

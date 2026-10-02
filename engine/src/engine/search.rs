@@ -167,7 +167,7 @@ pub fn probe_tb_at_root(
 
     let mut eval = None;
 
-    for _ in 0..MAX_SEARCH_DEPTH {
+    for _ in 0..10 {
         let tablebase_move = tb
             .best_move(&game)
             .expect("In tablebase position, but unable to get tablebase move");

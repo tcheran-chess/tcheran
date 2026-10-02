@@ -41,6 +41,7 @@
 
 #### Misc
 
+* To avoid time losses at TCEC (until a better fix can be made) PV extension in TB root positions is limited to 10 plies
 * We now prefetch transposition table entries on aarch64 (13.79 +- 6.45 VSTC)
 * hugepages are now used for the transposition table on Linux
 * All of the individual search files under search/ are merged into a search.rs

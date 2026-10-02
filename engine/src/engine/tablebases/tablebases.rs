@@ -11,12 +11,16 @@ pub enum Wdl {
 #[derive(Clone)]
 pub struct Tablebase {
     pub is_enabled: bool,
+    pub n_men: u8,
 }
 
 #[cfg(feature = "syzygy")]
 impl Tablebase {
     pub fn new() -> Self {
-        Self { is_enabled: false }
+        Self {
+            is_enabled: false,
+            n_men: 0,
+        }
     }
 
     pub fn can_probe(&self, game: &Game) -> bool {
@@ -24,7 +28,7 @@ impl Tablebase {
             return false;
         }
 
-        if game.board.occupancy().count() > self.n_men() {
+        if game.board.occupancy().count() > self.n_men {
             return false;
         }
 
@@ -32,11 +36,7 @@ impl Tablebase {
     }
 
     pub fn n_men(&self) -> u8 {
-        if !self.is_enabled {
-            return 0;
-        }
-
-        unsafe { bindings::TB_LARGEST as u8 }
+        self.n_men
     }
 
     pub fn set_paths(&mut self, path: &str) {
@@ -51,6 +51,7 @@ impl Tablebase {
         );
 
         self.is_enabled = true;
+        self.n_men = n_men as u8;
     }
 
     pub fn wdl(&self, game: &Game) -> Option<Wdl> {
@@ -153,7 +154,10 @@ impl Tablebase {
 #[cfg(not(feature = "syzygy"))]
 impl Tablebase {
     pub fn new() -> Self {
-        Self { is_enabled: false }
+        Self {
+            is_enabled: false,
+            n_men: 0,
+        }
     }
 
     pub fn can_probe(&self, _game: &Game) -> bool {
@@ -161,7 +165,7 @@ impl Tablebase {
     }
 
     pub fn n_men(&self) -> u8 {
-        0
+        self.n_men
     }
 
     pub fn set_paths(&mut self, _path: &str) {}

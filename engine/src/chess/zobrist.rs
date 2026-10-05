@@ -1,6 +1,6 @@
 use crate::chess::{CastleRightsSide, prelude::*, zobrist::components::ZobristComponent};
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct ZobristHash(pub u64);
 
 impl ZobristHash {

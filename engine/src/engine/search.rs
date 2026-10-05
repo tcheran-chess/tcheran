@@ -8,8 +8,6 @@ pub fn init() {
     tables::init();
 }
 
-use std::time::Instant;
-
 pub use types::*;
 
 use crate::{
@@ -26,7 +24,6 @@ use crate::{
             time_control::StopControl,
         },
         see::see,
-        tablebases::Tablebase,
         transposition_table::NodeBound,
     },
 };
@@ -41,6 +38,7 @@ pub fn search(
     game: &Game,
     persistent_state: &PersistentState,
     thread_data: &mut ThreadData,
+    root_tb_info: Option<RootTbInfo>,
     results: &SearchResults,
     time_control: TimeControl,
     stop_control: &StopControl,
@@ -61,6 +59,7 @@ pub fn search(
         tables,
         stack,
         nnue,
+        root_tb_info,
         time_control,
         stop_control.clone(),
         options,
@@ -134,6 +133,7 @@ pub fn st_search(
         game,
         persistent_state,
         thread_data,
+        None,
         &SearchResults::new(1),
         time_control,
         &StopControl::new(1),
@@ -142,90 +142,13 @@ pub fn st_search(
     )
 }
 
-pub fn probe_tb_at_root(
-    game: &Game,
-    tb: &Tablebase,
-    time_control: &TimeControl,
-) -> Option<SearchResult> {
-    let mut game = game.clone();
-    let best_move = tb.best_move(&game)?;
-
-    let start_time = match time_control {
-        TimeControl::Clocks { start_time, .. } | TimeControl::ExactTime { start_time, .. } => {
-            *start_time
-        }
-        _ => Instant::now(),
-    };
-
-    let player = game.player;
-
-    let mut pv = PrincipalVariation::new();
-
-    let tb_score = tb
-        .wdl(&game)
-        .expect("In tablebase position, but unable to get tablebase score");
-
-    let mut eval = None;
-
-    for _ in 0..10 {
-        let tablebase_move = tb
-            .best_move(&game)
-            .expect("In tablebase position, but unable to get tablebase move");
-
-        pv.append(tablebase_move);
-        game.make_move(tablebase_move);
-
-        // Check if this move terminated the game, and return an appropriate score
-        let legal_moves = game.moves();
-        let king_in_check = game.in_check();
-
-        if legal_moves.is_empty() {
-            eval = Some(if king_in_check {
-                let plies = pv.len();
-
-                if game.player == player {
-                    Eval::mated_in(plies)
-                } else {
-                    Eval::mate_in(plies)
-                }
-            } else {
-                Eval::DRAW
-            });
-
-            break;
-        }
-    }
-
-    let elapsed = start_time.elapsed();
-    let depth = pv.len();
-    let score = eval.unwrap_or_else(|| match tb_score {
-        Outcome::Win => Eval::tb_mate_in(MAX_SEARCH_DEPTH),
-        Outcome::Draw => Eval::DRAW,
-        Outcome::Loss => Eval::tb_mated_in(MAX_SEARCH_DEPTH),
-    });
-
-    Some(SearchResult {
-        id: 0,
-        mv: best_move,
-        pv,
-        depth,
-        seldepth: depth,
-        score,
-        stats: SearchStats {
-            time: elapsed,
-            nodes: u64::from(depth),
-            tbhits: u64::from(depth),
-            hashfull: 0,
-        },
-    })
-}
-
 pub fn iterative_deepening(
     game: &mut Game,
     ctx: &mut SearchContext<'_>,
     reporter: &dyn Reporter,
 ) -> SearchResult {
     let mut result: Option<SearchResult> = None;
+    let mut score = Eval::MIN;
 
     ctx.max_depth_reached = 0;
 
@@ -238,10 +161,8 @@ pub fn iterative_deepening(
 
         ctx.root_depth = depth;
 
-        let previous_eval = result.as_ref().map(|r| r.score);
-
         let mut pv = PrincipalVariation::new();
-        let score = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
+        score = aspiration_search(game, depth, score, &mut pv, ctx);
 
         if ctx.stopped() {
             ctx.was_hard_stopped = true;
@@ -254,7 +175,7 @@ pub fn iterative_deepening(
 
         ctx.update_after_search(new_best_move, depth);
 
-        let this_result = SearchResult {
+        let mut this_result = SearchResult {
             id: ctx.id,
             mv: new_best_move,
             depth: depth.as_u8(),
@@ -263,6 +184,13 @@ pub fn iterative_deepening(
             pv: pv.clone(),
             stats: SearchStats::from_ctx(ctx),
         };
+
+        // If we're in a tablebase position and search returned a score that doesn't match
+        // the tablebase score (e.g. search returns a non-win score, but we know it's a win from the
+        // tablebase) then we display the tablebase score instead.
+        if let Some(ref root_tb_info) = ctx.root_tb_info {
+            root_tb_info.correct_score(&mut this_result);
+        }
 
         if !ctx.options.minimal {
             reporter.report_search_progress(game, &this_result);
@@ -277,7 +205,7 @@ pub fn iterative_deepening(
 pub fn aspiration_search(
     game: &mut Game,
     depth: Depth,
-    eval: Option<Eval>,
+    score: Eval,
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
@@ -285,10 +213,9 @@ pub fn aspiration_search(
 
     let mut width = aspiration_window_size();
 
-    let mut window = if depth < aspiration_min_depth() || eval.is_some_and(Eval::is_decisive) {
+    let mut window = if depth < aspiration_min_depth() || score.is_decisive() {
         ScoreWindow::new(Eval::MIN, Eval::MAX)
     } else {
-        let score = eval.expect("Aspiration search should have a score after it reaches min depth");
         ScoreWindow::new((score - width).clamp_to_valid(), (score + width).clamp_to_valid())
     };
 
@@ -425,6 +352,7 @@ pub fn negamax(
     if !is_root
         && !in_singular_search
         && ctx.tablebase.can_probe(game)
+        && ctx.root_tb_info.as_ref().is_none_or(|r| r.probe_wdl)
         && let Some(outcome) = ctx.tablebase.wdl(game)
     {
         ctx.tbhits.incr();
@@ -722,6 +650,13 @@ pub fn negamax(
 
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
         if Some(mv) == excluded_mv {
+            continue;
+        }
+
+        if is_root
+            && let Some(ref root_tb_info) = ctx.root_tb_info
+            && !root_tb_info.has_move(mv)
+        {
             continue;
         }
 

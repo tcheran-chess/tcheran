@@ -15,7 +15,7 @@ pub mod prelude {
     pub use super::{
         bitboard::Bitboard,
         board::Board,
-        game::Game,
+        game::{Game, Outcome},
         moves::Move,
         piece::{Piece, PieceKind, PieceKind::*, PromotionPieceKind},
         player::{Player, Player::*},

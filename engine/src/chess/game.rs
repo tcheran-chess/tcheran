@@ -27,6 +27,13 @@ impl MoveObserver for NullObserver {
 }
 
 #[derive(Debug, Copy, Clone)]
+pub enum Outcome {
+    Win,
+    Draw,
+    Loss,
+}
+
+#[derive(Debug, Copy, Clone)]
 pub enum CastleRightsSide {
     Kingside,
     Queenside,

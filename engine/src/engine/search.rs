@@ -26,7 +26,7 @@ use crate::{
             time_control::StopControl,
         },
         see::see,
-        tablebases::{Tablebase, Wdl},
+        tablebases::Tablebase,
         transposition_table::NodeBound,
     },
 };
@@ -199,9 +199,9 @@ pub fn probe_tb_at_root(
     let elapsed = start_time.elapsed();
     let depth = pv.len();
     let score = eval.unwrap_or_else(|| match tb_score {
-        Wdl::Win => Eval::tb_mate_in(MAX_SEARCH_DEPTH),
-        Wdl::Draw => Eval::DRAW,
-        Wdl::Loss => Eval::tb_mated_in(MAX_SEARCH_DEPTH),
+        Outcome::Win => Eval::tb_mate_in(MAX_SEARCH_DEPTH),
+        Outcome::Draw => Eval::DRAW,
+        Outcome::Loss => Eval::tb_mated_in(MAX_SEARCH_DEPTH),
     });
 
     Some(SearchResult {
@@ -425,16 +425,14 @@ pub fn negamax(
     if !is_root
         && !in_singular_search
         && ctx.tablebase.can_probe(game)
-        && let Some(wdl) = ctx.tablebase.wdl(game)
+        && let Some(outcome) = ctx.tablebase.wdl(game)
     {
-        use crate::engine::tablebases::Wdl;
-
         ctx.tbhits.incr();
 
-        let (score, bound) = match wdl {
-            Wdl::Win => (Eval::tb_mate_in(plies), NodeBound::Lower),
-            Wdl::Draw => (Eval::DRAW, NodeBound::Exact),
-            Wdl::Loss => (Eval::tb_mated_in(plies), NodeBound::Upper),
+        let (score, bound) = match outcome {
+            Outcome::Win => (Eval::tb_mate_in(plies), NodeBound::Lower),
+            Outcome::Draw => (Eval::DRAW, NodeBound::Exact),
+            Outcome::Loss => (Eval::tb_mated_in(plies), NodeBound::Upper),
         };
 
         if score_is_usable(score, bound, s) {

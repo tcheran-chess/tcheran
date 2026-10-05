@@ -2,12 +2,6 @@ use crate::chess::prelude::*;
 #[cfg(feature = "syzygy")]
 use crate::engine::tablebases::bindings;
 
-pub enum Wdl {
-    Win,
-    Draw,
-    Loss,
-}
-
 #[derive(Clone)]
 pub struct Tablebase {
     pub is_enabled: bool,
@@ -54,7 +48,7 @@ impl Tablebase {
         self.n_men
     }
 
-    pub fn wdl(&self, game: &Game) -> Option<Wdl> {
+    pub fn wdl(&self, game: &Game) -> Option<Outcome> {
         use crate::chess::prelude::*;
 
         debug_assert!(self.is_enabled);
@@ -75,7 +69,7 @@ impl Tablebase {
                 game.player == White,
             );
 
-            Self::to_wdl(wdl)
+            Self::to_outcome(wdl)
         }
     }
 
@@ -134,8 +128,8 @@ impl Tablebase {
         }
     }
 
-    fn to_wdl(outcome: std::ffi::c_uint) -> Option<Wdl> {
-        use Wdl::*;
+    fn to_outcome(outcome: std::ffi::c_uint) -> Option<Outcome> {
+        use Outcome::*;
 
         match outcome {
             bindings::TB_WIN => Some(Win),
@@ -166,7 +160,7 @@ impl Tablebase {
         self.n_men
     }
 
-    pub fn wdl(&self, _game: &Game) -> Option<Wdl> {
+    pub fn wdl(&self, _game: &Game) -> Option<Outcome> {
         None
     }
 

@@ -23,8 +23,8 @@ use crate::{
         },
         options::{EngineOptions, defaults},
         search::{
-            NullReporter, PersistentState, Reporter, ThreadData, TimeControl, probe_tb_at_root,
-            search, time_control::StopControl, types::SearchResults,
+            NullReporter, PersistentState, Reporter, RootTbInfo, ThreadData, TimeControl, search,
+            time_control::StopControl, types::SearchResults,
         },
         uci::{
             bench::bench,
@@ -144,6 +144,7 @@ pub enum ThreadCommand {
         stop_control: StopControl,
         options: EngineOptions,
         persistent_state: Arc<PersistentState>,
+        root_tb_info: Option<RootTbInfo>,
         reporter: &'static (dyn Reporter + Send + Sync),
         results: Arc<SearchResults>,
     },
@@ -263,14 +264,11 @@ impl Uci {
                     return Ok(ExecuteResult::KeepGoing);
                 }
 
-                if self.persistent_state.tablebase.can_probe(&self.game)
-                    && let Some(tb_result) =
-                        probe_tb_at_root(&self.game, &self.persistent_state.tablebase, time_control)
-                {
-                    self.reporter.report_search_progress(&self.game, &tb_result);
-                    self.reporter.best_move(&self.game, tb_result.mv);
-                    return Ok(ExecuteResult::KeepGoing);
-                }
+                let root_tb_info = if self.persistent_state.tablebase.can_probe(&self.game) {
+                    self.persistent_state.tablebase.root_wdl_dtz(&self.game)
+                } else {
+                    None
+                };
 
                 self.threads
                     .thread_control
@@ -303,6 +301,7 @@ impl Uci {
                     stop_control,
                     options,
                     persistent_state,
+                    root_tb_info,
                     reporter: self.reporter,
                     results,
                 });
@@ -696,6 +695,7 @@ fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
                 stop_control,
                 options,
                 persistent_state,
+                root_tb_info,
                 reporter,
                 results,
             } => {
@@ -719,6 +719,7 @@ fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
                     &game,
                     &persistent_state,
                     &mut thread_data,
+                    root_tb_info,
                     &results,
                     time_control,
                     &stop_control,

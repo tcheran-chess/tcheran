@@ -8,8 +8,6 @@ pub fn init() {
     tables::init();
 }
 
-use std::time::Instant;
-
 pub use types::*;
 
 use crate::{
@@ -26,7 +24,6 @@ use crate::{
             time_control::StopControl,
         },
         see::see,
-        tablebases::Tablebase,
         transposition_table::NodeBound,
     },
 };
@@ -41,6 +38,7 @@ pub fn search(
     game: &Game,
     persistent_state: &PersistentState,
     thread_data: &mut ThreadData,
+    root_tb_info: Option<RootTbInfo>,
     results: &SearchResults,
     time_control: TimeControl,
     stop_control: &StopControl,
@@ -61,6 +59,7 @@ pub fn search(
         tables,
         stack,
         nnue,
+        root_tb_info,
         time_control,
         stop_control.clone(),
         options,
@@ -134,90 +133,13 @@ pub fn st_search(
         game,
         persistent_state,
         thread_data,
+        None,
         &SearchResults::new(1),
         time_control,
         &StopControl::new(1),
         options,
         reporter,
     )
-}
-
-pub fn probe_tb_at_root(
-    game: &Game,
-    tb: &Tablebase,
-    time_control: &TimeControl,
-) -> Option<SearchResult> {
-    let mut game = game.clone();
-    let best_move = tb.best_move(&game)?;
-
-    let start_time = match time_control {
-        TimeControl::Clocks { start_time, .. } | TimeControl::ExactTime { start_time, .. } => {
-            *start_time
-        }
-        _ => Instant::now(),
-    };
-
-    let player = game.player;
-
-    let mut pv = PrincipalVariation::new();
-
-    let tb_score = tb
-        .wdl(&game)
-        .expect("In tablebase position, but unable to get tablebase score");
-
-    let mut eval = None;
-
-    for _ in 0..10 {
-        let tablebase_move = tb
-            .best_move(&game)
-            .expect("In tablebase position, but unable to get tablebase move");
-
-        pv.append(tablebase_move);
-        game.make_move(tablebase_move);
-
-        // Check if this move terminated the game, and return an appropriate score
-        let legal_moves = game.moves();
-        let king_in_check = game.in_check();
-
-        if legal_moves.is_empty() {
-            eval = Some(if king_in_check {
-                let plies = pv.len();
-
-                if game.player == player {
-                    Eval::mated_in(plies)
-                } else {
-                    Eval::mate_in(plies)
-                }
-            } else {
-                Eval::DRAW
-            });
-
-            break;
-        }
-    }
-
-    let elapsed = start_time.elapsed();
-    let depth = pv.len();
-    let score = eval.unwrap_or_else(|| match tb_score {
-        Outcome::Win => Eval::tb_mate_in(MAX_SEARCH_DEPTH),
-        Outcome::Draw => Eval::DRAW,
-        Outcome::Loss => Eval::tb_mated_in(MAX_SEARCH_DEPTH),
-    });
-
-    Some(SearchResult {
-        id: 0,
-        mv: best_move,
-        pv,
-        depth,
-        seldepth: depth,
-        score,
-        stats: SearchStats {
-            time: elapsed,
-            nodes: u64::from(depth),
-            tbhits: u64::from(depth),
-            hashfull: 0,
-        },
-    })
 }
 
 pub fn iterative_deepening(
@@ -241,7 +163,7 @@ pub fn iterative_deepening(
         let previous_eval = result.as_ref().map(|r| r.score);
 
         let mut pv = PrincipalVariation::new();
-        let score = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
+        let mut score = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
 
         if ctx.stopped() {
             ctx.was_hard_stopped = true;
@@ -253,6 +175,13 @@ pub fn iterative_deepening(
         });
 
         ctx.update_after_search(new_best_move, depth);
+
+        // If we're in a tablebase position and search returned a position that doesn't match
+        // the tablebase score (e.g. search returns a non-win score but we know it's a win from the
+        // tablebase) then we correct it.
+        if let Some(ref root_tb_info) = ctx.root_tb_info {
+            score = root_tb_info.correct_score(score, new_best_move);
+        }
 
         let this_result = SearchResult {
             id: ctx.id,
@@ -425,6 +354,7 @@ pub fn negamax(
     if !is_root
         && !in_singular_search
         && ctx.tablebase.can_probe(game)
+        && ctx.root_tb_info.as_ref().is_none_or(|r| r.probe_wdl)
         && let Some(outcome) = ctx.tablebase.wdl(game)
     {
         ctx.tbhits.incr();
@@ -722,6 +652,13 @@ pub fn negamax(
 
     while let Some(mv) = moves.next(game, ctx.tables, ctx.stack, plies) {
         if Some(mv) == excluded_mv {
+            continue;
+        }
+
+        if is_root
+            && let Some(ref root_tb_info) = ctx.root_tb_info
+            && !root_tb_info.has_move(mv)
+        {
             continue;
         }
 

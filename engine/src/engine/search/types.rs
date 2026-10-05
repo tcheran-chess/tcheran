@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    chess::prelude::*,
+    chess::{MAX_LEGAL_MOVES, prelude::*},
     engine::{
         eval::{Eval, nnue::NetworkStack},
         options::EngineOptions,
@@ -19,6 +19,7 @@ use crate::{
         transposition_table::TranspositionTable,
         util::buffered_atomic_counter::BufferedAtomicU64,
     },
+    util::arrayvec::ArrayVec,
 };
 
 pub struct PersistentState {
@@ -95,6 +96,47 @@ impl ThreadData {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct RootMove {
+    pub mv: Move,
+
+    pub tb_score: Eval,
+    pub tb_rank: i32,
+}
+
+#[derive(Debug, Clone)]
+pub struct RootTbInfo {
+    pub root_moves: ArrayVec<RootMove, MAX_LEGAL_MOVES>,
+
+    pub probe_wdl: bool,
+}
+
+impl RootTbInfo {
+    fn find_mv(&self, mv: Move) -> Option<&RootMove> {
+        self.root_moves.into_iter().find(|m| m.mv == mv)
+    }
+
+    pub fn has_move(&self, mv: Move) -> bool {
+        self.find_mv(mv).is_some()
+    }
+
+    pub fn correct_score(&self, search_score: Eval, mv: Move) -> Eval {
+        let root_mv = self.find_mv(mv).unwrap_or_else(|| {
+            panic!("move {mv:?} returned from search did not have an equivalent root move")
+        });
+
+        if !search_score.is_win() && root_mv.tb_score.is_win() {
+            return Eval::tb_mate_in(0);
+        }
+
+        if !search_score.is_loss() && root_mv.tb_score.is_loss() {
+            return Eval::tb_mated_in(0);
+        }
+
+        search_score
+    }
+}
+
 #[repr(align(64))]
 pub struct SearchContext<'s> {
     pub tt: &'s TranspositionTable,
@@ -104,6 +146,8 @@ pub struct SearchContext<'s> {
     pub tables: &'s mut Tables,
     pub nnue: &'s mut NetworkStack,
     pub stack: &'s mut SearchStack,
+
+    pub root_tb_info: Option<RootTbInfo>,
 
     time_control: TimeStrategy,
 
@@ -128,6 +172,7 @@ impl<'s> SearchContext<'s> {
         tables: &'s mut Tables,
         search_stack: &'s mut SearchStack,
         nnue: &'s mut NetworkStack,
+        root_tb_info: Option<RootTbInfo>,
         time_control: TimeControl,
         stop_control: StopControl,
         options: &'s EngineOptions,
@@ -141,6 +186,8 @@ impl<'s> SearchContext<'s> {
             stack: search_stack,
             nnue,
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
+
+            root_tb_info,
 
             id,
             max_depth_reached: 0,

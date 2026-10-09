@@ -148,6 +148,7 @@ pub fn iterative_deepening(
     reporter: &dyn Reporter,
 ) -> SearchResult {
     let mut result: Option<SearchResult> = None;
+    let mut score = Eval::MIN;
 
     ctx.max_depth_reached = 0;
 
@@ -160,10 +161,8 @@ pub fn iterative_deepening(
 
         ctx.root_depth = depth;
 
-        let previous_eval = result.as_ref().map(|r| r.score);
-
         let mut pv = PrincipalVariation::new();
-        let mut score = aspiration_search(game, depth, previous_eval, &mut pv, ctx);
+        score = aspiration_search(game, depth, score, &mut pv, ctx);
 
         if ctx.stopped() {
             ctx.was_hard_stopped = true;
@@ -176,14 +175,7 @@ pub fn iterative_deepening(
 
         ctx.update_after_search(new_best_move, depth);
 
-        // If we're in a tablebase position and search returned a position that doesn't match
-        // the tablebase score (e.g. search returns a non-win score but we know it's a win from the
-        // tablebase) then we correct it.
-        if let Some(ref root_tb_info) = ctx.root_tb_info {
-            score = root_tb_info.correct_score(score, new_best_move);
-        }
-
-        let this_result = SearchResult {
+        let mut this_result = SearchResult {
             id: ctx.id,
             mv: new_best_move,
             depth: depth.as_u8(),
@@ -192,6 +184,13 @@ pub fn iterative_deepening(
             pv: pv.clone(),
             stats: SearchStats::from_ctx(ctx),
         };
+
+        // If we're in a tablebase position and search returned a score that doesn't match
+        // the tablebase score (e.g. search returns a non-win score, but we know it's a win from the
+        // tablebase) then we display the tablebase score instead.
+        if let Some(ref root_tb_info) = ctx.root_tb_info {
+            root_tb_info.correct_score(&mut this_result);
+        }
 
         if !ctx.options.minimal {
             reporter.report_search_progress(game, &this_result);
@@ -206,7 +205,7 @@ pub fn iterative_deepening(
 pub fn aspiration_search(
     game: &mut Game,
     depth: Depth,
-    eval: Option<Eval>,
+    score: Eval,
     pv: &mut PrincipalVariation,
     ctx: &mut SearchContext<'_>,
 ) -> Eval {
@@ -214,10 +213,9 @@ pub fn aspiration_search(
 
     let mut width = aspiration_window_size();
 
-    let mut window = if depth < aspiration_min_depth() || eval.is_some_and(Eval::is_decisive) {
+    let mut window = if depth < aspiration_min_depth() || score.is_decisive() {
         ScoreWindow::new(Eval::MIN, Eval::MAX)
     } else {
-        let score = eval.expect("Aspiration search should have a score after it reaches min depth");
         ScoreWindow::new((score - width).clamp_to_valid(), (score + width).clamp_to_valid())
     };
 

@@ -120,20 +120,18 @@ impl RootTbInfo {
         self.find_mv(mv).is_some()
     }
 
-    pub fn correct_score(&self, search_score: Eval, mv: Move) -> Eval {
-        let root_mv = self.find_mv(mv).unwrap_or_else(|| {
-            panic!("move {mv:?} returned from search did not have an equivalent root move")
+    pub fn correct_score(&self, result: &mut SearchResult) {
+        let root_mv = self.find_mv(result.mv).unwrap_or_else(|| {
+            panic!("move {:?} returned from search did not have an equivalent root move", result.mv)
         });
 
-        if !search_score.is_win() && root_mv.tb_score.is_win() {
-            return Eval::tb_mate_in(0);
+        if !result.score.is_win() && root_mv.tb_score.is_win() {
+            result.score = Eval::tb_mate_in(0);
         }
 
-        if !search_score.is_loss() && root_mv.tb_score.is_loss() {
-            return Eval::tb_mated_in(0);
+        if !result.score.is_loss() && root_mv.tb_score.is_loss() {
+            result.score = Eval::tb_mated_in(0);
         }
-
-        search_score
     }
 }
 

@@ -23,6 +23,21 @@ impl Tablebase {
         }
     }
 
+    pub fn set_paths(&mut self, path: &str) {
+        let path = std::ffi::CString::new(path).unwrap();
+        let was_set = unsafe { bindings::tb_init(path.as_ptr()) };
+        let n_men = unsafe { bindings::TB_LARGEST as usize };
+
+        assert!(
+            was_set && n_men != 0,
+            "Invalid tablebase path: {}",
+            path.to_str().unwrap_or_default()
+        );
+
+        self.is_enabled = true;
+        self.n_men = n_men as u8;
+    }
+
     pub fn can_probe(&self, game: &Game) -> bool {
         if !self.is_enabled {
             return false;
@@ -37,21 +52,6 @@ impl Tablebase {
 
     pub fn n_men(&self) -> u8 {
         self.n_men
-    }
-
-    pub fn set_paths(&mut self, path: &str) {
-        let path = std::ffi::CString::new(path).unwrap();
-        let was_set = unsafe { bindings::tb_init(path.as_ptr()) };
-        let n_men = unsafe { bindings::TB_LARGEST as usize };
-
-        assert!(
-            was_set && n_men != 0,
-            "Invalid tablebase path: {}",
-            path.to_str().unwrap_or_default()
-        );
-
-        self.is_enabled = true;
-        self.n_men = n_men as u8;
     }
 
     pub fn wdl(&self, game: &Game) -> Option<Wdl> {
@@ -160,6 +160,8 @@ impl Tablebase {
         }
     }
 
+    pub fn set_paths(&mut self, _path: &str) {}
+
     pub fn can_probe(&self, _game: &Game) -> bool {
         false
     }
@@ -167,8 +169,6 @@ impl Tablebase {
     pub fn n_men(&self) -> u8 {
         self.n_men
     }
-
-    pub fn set_paths(&mut self, _path: &str) {}
 
     pub fn wdl(&self, _game: &Game) -> Option<Wdl> {
         None

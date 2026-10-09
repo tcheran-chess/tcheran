@@ -1,6 +1,11 @@
+use std::sync::Arc;
+
 use bullet_lib::{
     game::{
-        formats::bulletformat::ChessBoard,
+        formats::{
+            bulletformat::ChessBoard,
+            montyformat::chess::{Attacks, Piece, Side},
+        },
         inputs::{ChessBucketsMirrored, SparseInputType},
         outputs::OutputBuckets,
     },
@@ -10,33 +15,290 @@ use bullet_trainer::model::{DenseInput, ModelInputs, ModelInputsMapper, SparseIn
 
 use crate::trainer::SCALE;
 
-pub type InputTy = (((SparseInput, SparseInput), SparseInput), DenseInput<f32>);
+pub type InputTy = (((((SparseInput, SparseInput), SparseInput), SparseInput), SparseInput), DenseInput<f32>);
 
 pub fn make_inputs_mapper(
-    params: (&ModelInputs<InputTy>, &ChessBucketsMirrored, impl OutputBuckets<ChessBoard>),
+    params: (&ModelInputs<InputTy>, &ThreatInputs, &ChessBucketsMirrored, impl OutputBuckets<ChessBoard>),
     wdl: impl WdlScheduler,
 ) -> ModelInputsMapper<ChessBoard> {
-    let (inputs, psqt, output_buckets) = params;
+    let (inputs, threats, psqt, output_buckets) = params;
     let psqt = *psqt;
+    let threats = threats.clone();
 
-    ModelInputsMapper::build(inputs, move |pos, step, (((stm_psqt, ntm_psqt), bucket), target)| {
-        let mut psqt_count = 0;
-        psqt.map_features(pos, |stm, ntm| {
-            stm_psqt[psqt_count] = stm.try_into().unwrap();
-            ntm_psqt[psqt_count] = ntm.try_into().unwrap();
-            psqt_count += 1;
+    ModelInputsMapper::build(
+        inputs,
+        move |pos, step, (((((stm_threats, ntm_threats), stm_psqt), ntm_psqt), bucket), target)| {
+            let mut psqt_count = 0;
+            psqt.map_features(pos, |stm, ntm| {
+                stm_psqt[psqt_count] = stm.try_into().unwrap();
+                ntm_psqt[psqt_count] = ntm.try_into().unwrap();
+                psqt_count += 1;
+            });
+            if psqt_count < psqt.max_active() {
+                stm_psqt[psqt_count] = -1;
+                ntm_psqt[psqt_count] = -1;
+            }
+
+            let mut stm_count = 0;
+            let mut ntm_count = 0;
+            threats.map_features(
+                pos,
+                |feature| {
+                    stm_threats[stm_count] = feature.try_into().unwrap();
+                    stm_count += 1;
+                },
+                |feature| {
+                    ntm_threats[ntm_count] = feature.try_into().unwrap();
+                    ntm_count += 1;
+                },
+            );
+
+            assert_eq!(stm_count, ntm_count);
+
+            if stm_count < threats.max_active() {
+                stm_threats[stm_count] = -1;
+            }
+            if ntm_count < threats.max_active() {
+                ntm_threats[ntm_count] = -1;
+            }
+
+            bucket[0] = i32::from(output_buckets.bucket(pos));
+
+            let result = f32::from(pos.result) / 2.0;
+            let score = 1.0 / (1.0 + (f32::from(-pos.score) / SCALE).exp());
+            let lambda = wdl.blend(step.batch(), step.superbatch(), step.final_superbatch());
+            assert!((0.0..=1.0).contains(&lambda), "WDL lambda must be in [0, 1]");
+            target[0] = lambda * result + (1. - lambda) * score;
+        },
+    )
+}
+
+#[derive(Clone)]
+pub struct ThreatInputs(Arc<Threats>);
+
+impl ThreatInputs {
+    pub fn new() -> Self {
+        Self(Arc::new(Threats::new()))
+    }
+
+    pub fn num_inputs(&self) -> usize {
+        self.0.num_inputs()
+    }
+
+    pub fn max_active(&self) -> usize {
+        self.0.max_active()
+    }
+
+    pub fn map_features(&self, pos: &ChessBoard, on_stm: impl FnMut(usize), on_ntm: impl FnMut(usize)) {
+        self.0.map(build_bbs(pos), on_stm, on_ntm);
+    }
+}
+
+fn map_bb(mut bb: u64, mut f: impl FnMut(usize)) {
+    while bb > 0 {
+        let sq = bb.trailing_zeros() as usize;
+        f(sq);
+        bb &= bb - 1;
+    }
+}
+
+fn build_bbs(pos: &ChessBoard) -> [u64; 8] {
+    let mut bbs = [0u64; 8];
+    for (pc, sq) in pos.into_iter() {
+        let bit = 1 << sq;
+        bbs[usize::from(pc & 8 > 0)] |= bit;
+        bbs[2 + usize::from(pc & 7)] |= bit;
+    }
+    bbs
+}
+
+fn make_targets<const N: usize>(valid: [usize; N]) -> [usize; 12] {
+    let mut targets = [usize::MAX; 12];
+    for (index, piece) in valid.into_iter().enumerate() {
+        targets[piece - 2] = index;
+        targets[piece + 4] = index + N;
+    }
+    targets
+}
+
+pub struct Threats {
+    pawn_map: [usize; 12],
+    non_pk_data: [PieceThreatsData; 4],
+    offsets: [usize; 5],
+}
+
+impl Threats {
+    pub fn new() -> Self {
+        const DIAGS: [u64; 15] = [
+            0x0100_0000_0000_0000,
+            0x0201_0000_0000_0000,
+            0x0402_0100_0000_0000,
+            0x0804_0201_0000_0000,
+            0x1008_0402_0100_0000,
+            0x2010_0804_0201_0000,
+            0x4020_1008_0402_0100,
+            0x8040_2010_0804_0201,
+            0x0080_4020_1008_0402,
+            0x0000_8040_2010_0804,
+            0x0000_0080_4020_1008,
+            0x0000_0000_8040_2010,
+            0x0000_0000_0080_4020,
+            0x0000_0000_0000_8040,
+            0x0000_0000_0000_0080,
+        ];
+
+        let knight = PieceThreatsData::new(
+            Piece::KNIGHT,
+            [Piece::PAWN, Piece::KNIGHT, Piece::BISHOP, Piece::ROOK, Piece::QUEEN],
+            |sq| {
+                let n = 1 << sq;
+                let h1 = ((n >> 1) & 0x7f7f_7f7f_7f7f_7f7f) | ((n << 1) & 0xfefe_fefe_fefe_fefe);
+                let h2 = ((n >> 2) & 0x3f3f_3f3f_3f3f_3f3f) | ((n << 2) & 0xfcfc_fcfc_fcfc_fcfc);
+                (h1 << 16) | (h1 >> 16) | (h2 << 8) | (h2 >> 8)
+            },
+        );
+
+        let bishop =
+            PieceThreatsData::new(Piece::BISHOP, [Piece::PAWN, Piece::KNIGHT, Piece::BISHOP, Piece::ROOK], |sq| {
+                let rank = sq / 8;
+                let file = sq % 8;
+                DIAGS[file + rank].swap_bytes() ^ DIAGS[7 + file - rank]
+            });
+
+        let rook = PieceThreatsData::new(Piece::ROOK, [Piece::PAWN, Piece::KNIGHT, Piece::BISHOP, Piece::ROOK], |sq| {
+            let rank = sq / 8;
+            let file = sq % 8;
+            (0xFF << (rank * 8)) ^ (0x0101_0101_0101_0101 << file)
         });
-        if psqt_count < psqt.max_active() {
-            stm_psqt[psqt_count] = -1;
-            ntm_psqt[psqt_count] = -1;
+
+        let queen = PieceThreatsData::new(
+            Piece::QUEEN,
+            [Piece::PAWN, Piece::KNIGHT, Piece::BISHOP, Piece::ROOK, Piece::QUEEN],
+            |sq| bishop.attacks[sq] | rook.attacks[sq],
+        );
+
+        let mut offsets = [6 * 84; 5];
+        for (i, &cnt) in [10 * knight.count, 8 * bishop.count, 8 * rook.count, 10 * queen.count]
+            .iter()
+            .enumerate()
+        {
+            offsets[i + 1] = offsets[i] + cnt;
         }
 
-        bucket[0] = i32::from(output_buckets.bucket(pos));
+        Self {
+            pawn_map: make_targets([Piece::PAWN, Piece::KNIGHT, Piece::ROOK]),
+            non_pk_data: [knight, bishop, rook, queen],
+            offsets,
+        }
+    }
 
-        let result = f32::from(pos.result) / 2.0;
-        let score = 1.0 / (1.0 + (f32::from(-pos.score) / SCALE).exp());
-        let lambda = wdl.blend(step.batch(), step.superbatch(), step.final_superbatch());
-        assert!((0.0..=1.0).contains(&lambda), "WDL lambda must be in [0, 1]");
-        target[0] = lambda * result + (1. - lambda) * score;
-    })
+    pub fn max_active(&self) -> usize {
+        128
+    }
+
+    pub fn num_inputs(&self) -> usize {
+        2 * self.offsets[4]
+    }
+
+    pub fn map(&self, bbs: [u64; 8], mut on_stm: impl FnMut(usize), mut on_ntm: impl FnMut(usize)) {
+        let stm_king = (bbs[Side::WHITE] & bbs[Piece::KING]).trailing_zeros() as usize;
+        let ntm_king = (bbs[Side::BLACK] & bbs[Piece::KING]).trailing_zeros() as usize;
+        let stm_mask = if stm_king % 8 > 3 { 7 } else { 0 };
+        let ntm_mask = 56 ^ if ntm_king % 8 > 3 { 7 } else { 0 };
+
+        let mut pieces = [13; 64];
+        for side in [Side::WHITE, Side::BLACK] {
+            for piece in Piece::PAWN..=Piece::KING {
+                let pc = 6 * side + piece - 2;
+                map_bb(bbs[side] & bbs[piece], |sq| pieces[sq] = pc);
+            }
+        }
+
+        let occ = bbs[0] | bbs[1];
+
+        for side in [Side::WHITE, Side::BLACK] {
+            let stm_offset = self.offsets[4] * side;
+            let ntm_offset = self.offsets[4] * (side ^ 1);
+
+            for piece in Piece::PAWN..Piece::KING {
+                map_bb(bbs[side] & bbs[piece], |sq| {
+                    let threats = match piece {
+                        Piece::PAWN => Attacks::pawn(sq, side),
+                        Piece::KNIGHT => Attacks::knight(sq),
+                        Piece::BISHOP => Attacks::bishop(sq, occ),
+                        Piece::ROOK => Attacks::rook(sq, occ),
+                        Piece::QUEEN => Attacks::queen(sq, occ),
+                        _ => unreachable!(),
+                    } & occ;
+
+                    map_bb(threats, |dest| {
+                        let target = pieces[dest];
+                        if let Some(idx) = self.map_single(piece, sq ^ stm_mask, dest ^ stm_mask, target) {
+                            on_stm(stm_offset + idx);
+                        }
+
+                        let ntm_target = (target + 6) % 12;
+                        if let Some(idx) = self.map_single(piece, sq ^ ntm_mask, dest ^ ntm_mask, ntm_target) {
+                            on_ntm(ntm_offset + idx);
+                        }
+                    });
+                });
+            }
+        }
+    }
+
+    fn map_single(&self, piece: usize, src: usize, dest: usize, target: usize) -> Option<usize> {
+        if piece == Piece::PAWN {
+            if self.pawn_map[target] == usize::MAX {
+                return None;
+            }
+            let id = if dest.abs_diff(src) == [9, 7][(dest > src) as usize] {
+                0
+            } else {
+                1
+            };
+            let attack = 2 * (src % 8) + id - 1;
+            Some(self.pawn_map[target] * 84 + (src / 8 - 1) * 14 + attack)
+        } else {
+            self.non_pk_data[piece - 3].map(src, dest, target, self.offsets[piece - 3])
+        }
+    }
+}
+
+pub struct PieceThreatsData {
+    piece: usize,
+    attacks: [u64; 64],
+    indices: [usize; 64],
+    targets: [usize; 12],
+    count: usize,
+}
+
+impl PieceThreatsData {
+    pub fn new<const N: usize>(piece: usize, valid: [usize; N], f: impl Fn(usize) -> u64) -> Self {
+        let mut attacks = [0; 64];
+        let mut indices = [0; 64];
+        let mut count = 0;
+
+        for sq in 0..64 {
+            attacks[sq] = f(sq);
+            indices[sq] = count;
+            count += attacks[sq].count_ones() as usize;
+        }
+
+        Self {
+            piece,
+            attacks,
+            indices,
+            targets: make_targets(valid),
+            count,
+        }
+    }
+
+    pub fn map(&self, src: usize, dest: usize, target: usize, offset: usize) -> Option<usize> {
+        if self.targets[target] == usize::MAX || (dest > src && target % 6 == self.piece - 2) {
+            return None;
+        }
+        let idx = self.indices[src] + (self.attacks[src] & ((1 << dest) - 1)).count_ones() as usize;
+        Some(offset + self.targets[target] * self.count + idx)
+    }
 }

@@ -21,7 +21,11 @@ use bullet_trainer::{
     run::{DefaultDevice, HostPool, Step, TrainingSchedule, TrainingSteps, train},
 };
 
-use crate::{bullet_extensions::*, data::data, inputs};
+use crate::{
+    bullet_extensions::*,
+    data::data,
+    inputs::{self, ThreatInputs},
+};
 
 type OptimiserState<G> = Ranger<G>;
 type OptimiserParams = RangerParams;
@@ -32,8 +36,9 @@ pub const Q0: i16 = 255;
 pub const Q1: i16 = 128;
 pub const Q: i32 = 64;
 
-pub const FEATURES: usize = 768;
-pub const L1: usize = 1024;
+pub const PSQT_FEATURES: usize = 768;
+
+pub const L1: usize = 512;
 pub const L2: usize = 16;
 pub const L3: usize = 32;
 
@@ -56,26 +61,36 @@ const L1_SHIFT: usize = 8;
 const L1_SHIFT_SCALE: f32 = Q0 as f32 / ((1 << L1_SHIFT) as f32);
 const I8_RANGE: f32 = i8::MAX as f32 / (Q1 as f32);
 const L1_RANGE: f32 = I8_RANGE * L1_SHIFT_SCALE * L1_SHIFT_SCALE;
+const THREAT_RANGE: f32 = i8::MAX as f32 / (Q0 as f32);
 
 const CHECKPOINT_RATE: usize = 10;
 
 pub fn run(dir: &Path, net_name: &str) {
+    let threats = ThreatInputs::new();
     let psqt = ChessBucketsMirrored::new(BUCKET_SCHEME);
     let output_buckets = MaterialCount::<OUTPUT_BUCKETS>;
 
     let inputs = ModelInputs::default()
+        .add_sparse("stm/threats", (threats.num_inputs(), 1), threats.max_active())
+        .add_sparse("ntm/threats", (threats.num_inputs(), 1), threats.max_active())
         .add_sparse("stm/psqt", (psqt.num_inputs(), 1), psqt.max_active())
         .add_sparse("ntm/psqt", (psqt.num_inputs(), 1), psqt.max_active())
         .add_sparse("buckets", (OUTPUT_BUCKETS, 1), 1)
         .add_dense("targets", (1, 1));
 
-    let definition =
-        ModelDefinition::build(&inputs, |builder, (((stm_inputs, ntm_inputs), output_buckets), target)| {
+    let definition = ModelDefinition::build(
+        &inputs,
+        |builder, (((((stm_threats, ntm_threats), stm_psqt), ntm_psqt), output_buckets), target)| {
             // features & factoriser
-            let l0f = builder.new_weights("l0/fac", (L1, FEATURES), InitSettings::Zeroed);
-            let mut l0 = builder.new_affine("l0/", FEATURES * INPUT_BUCKETS, L1);
-            l0.init_with_effective_input_size(20000);
-            l0.weights = l0.weights + l0f.repeat(INPUT_BUCKETS);
+            let l0_threats = builder.new_affine("l0/threats/", threats.num_inputs(), L1);
+
+            let l0f = builder.new_weights("l0/fac", (L1, PSQT_FEATURES), InitSettings::Zeroed);
+            let psqt_init = InitSettings::Normal {
+                mean: 0.0,
+                stdev: (2.0f32 / 32.0).sqrt(),
+            };
+            let mut l0_psqt = builder.new_weights("l0/psqt", (L1, psqt.num_inputs()), psqt_init);
+            l0_psqt = l0_psqt + l0f.repeat(INPUT_BUCKETS);
 
             // weights
             let l1 = builder.new_affine("l1/", L1, OUTPUT_BUCKETS * L2);
@@ -83,9 +98,11 @@ pub fn run(dir: &Path, net_name: &str) {
             let l3 = builder.new_affine("l3/", L3, OUTPUT_BUCKETS);
 
             // inference
-            let ft = |input, start, end| l0.slice(start, end).forward(input).crelu();
-            let stm_hidden = ft(stm_inputs, 0, L1 / 2) * ft(stm_inputs, L1 / 2, L1);
-            let ntm_hidden = ft(ntm_inputs, 0, L1 / 2) * ft(ntm_inputs, L1 / 2, L1);
+            let ft = |threats, psqt, start, end| {
+                (l0_threats.slice(start, end).forward(threats) + l0_psqt.slice_rows(start, end).matmul(psqt)).crelu()
+            };
+            let stm_hidden = ft(stm_threats, stm_psqt, 0, L1 / 2) * ft(stm_threats, stm_psqt, L1 / 2, L1);
+            let ntm_hidden = ft(ntm_threats, ntm_psqt, 0, L1 / 2) * ft(ntm_threats, ntm_psqt, L1 / 2, L1);
             let l0_out = stm_hidden.concat(ntm_hidden);
 
             let l1_out = l1.forward(l0_out).select(output_buckets);
@@ -102,7 +119,8 @@ pub fn run(dir: &Path, net_name: &str) {
             let loss = loss + 0.005 * sparsity_loss;
 
             (Some(loss.reduce_sum_batch()), vec![("output".to_string(), output)])
-        });
+        },
+    );
 
     let weights = ModelWeights::new(&definition, 12_412_421);
     let device = DefaultDevice::new(0).unwrap();
@@ -114,13 +132,16 @@ pub fn run(dir: &Path, net_name: &str) {
     // Accounting for factoriser weight magnitudes (as per Bullet example)
     let l0_clipping = OptimiserParams::clipped(-0.99..0.99);
     optimiser.set_params_for_weight("l0/fac", l0_clipping);
-    optimiser.set_params_for_weight("l0/w", l0_clipping);
+    optimiser.set_params_for_weight("l0/psqt", l0_clipping);
+
+    let threat_clipping = OptimiserParams::clipped(-THREAT_RANGE..THREAT_RANGE);
+    optimiser.set_params_for_weight("l0/threats/w", threat_clipping);
 
     let l1_clipping = OptimiserParams::clipped(-L1_RANGE..L1_RANGE);
     optimiser.set_params_for_weight("l1/w", l1_clipping);
 
     let saved_format = vec![
-        SavedFormat::id("l0/w")
+        SavedFormat::id("l0/psqt")
             .transform(move |weights, values| {
                 let factoriser = weights.get("l0/fac").values.f32().repeat(INPUT_BUCKETS);
                 assert_eq!(values.len(), factoriser.len());
@@ -132,7 +153,8 @@ pub fn run(dir: &Path, net_name: &str) {
             })
             .round()
             .quantise::<i16>(Q0),
-        SavedFormat::id("l0/b").round().quantise::<i16>(Q0),
+        SavedFormat::id("l0/threats/w").round().quantise::<i8>(Q0),
+        SavedFormat::id("l0/threats/b").round().quantise::<i16>(Q0),
         SavedFormat::id("l1/w")
             .transform(|_, mut weights| {
                 for i in &mut weights {
@@ -149,7 +171,7 @@ pub fn run(dir: &Path, net_name: &str) {
         SavedFormat::id("l3/b").round().quantise::<i32>(Q.pow(4)),
     ];
 
-    let params = (&inputs, &psqt, output_buckets);
+    let params = (&inputs, &threats, &psqt, output_buckets);
     let data = data(&dir.join("data"));
 
     let mut run = |stage, end_superbatch, lr_schedule, mapper| {

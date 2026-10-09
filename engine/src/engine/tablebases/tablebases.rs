@@ -59,9 +59,17 @@ impl Tablebase {
     }
 
     pub fn wdl(&self, game: &Game) -> Option<Outcome> {
-        use crate::chess::prelude::*;
-
         debug_assert!(self.is_enabled);
+
+        if game.castle_rights[White].any() || game.castle_rights[Black].any() {
+            return None;
+        }
+
+        if game.halfmove_clock != 0 {
+            return None;
+        }
+
+        let ep_square = game.en_passant_target.map_or(0, |ep| u32::from(ep.idx()));
 
         unsafe {
             let wdl = bindings::tb_probe_wdl(
@@ -75,7 +83,7 @@ impl Tablebase {
                 game.board.all_pawns().as_u64(),
                 0,
                 0,
-                0,
+                ep_square,
                 game.player == White,
             );
 

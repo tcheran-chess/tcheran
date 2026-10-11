@@ -156,6 +156,18 @@ impl Tablebase {
             .map(|m| Self::to_root_move(game, &m))
             .collect();
 
+        // If moves immediately draw, set their rank to 0.
+        let mut g = game.clone();
+        for m in &mut root_moves_vec {
+            g.make_move(m.mv);
+
+            if g.is_repeated_position(0) {
+                m.tb_rank = 0;
+            }
+
+            g.undo_move();
+        }
+
         root_moves_vec.sort_by_key(|m| Reverse(m.tb_rank));
 
         let best_rank = root_moves_vec[0].tb_rank;

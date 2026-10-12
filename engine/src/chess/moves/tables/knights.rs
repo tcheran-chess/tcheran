@@ -1,17 +1,15 @@
 use crate::chess::{moves::attacks, prelude::*};
 
-static mut ATTACKS_TABLE: [Bitboard; Square::N] = [Bitboard::EMPTY; Square::N];
+const ATTACKS_TABLE: [Bitboard; Square::N] = const {
+    let mut attacks = [Bitboard::EMPTY; Square::N];
+
+    for s in Bitboard::FULL {
+        attacks[s] = attacks::generate_knight_attacks(s);
+    }
+
+    attacks
+};
 
 pub fn lookup_knight_attacks(s: Square) -> Bitboard {
-    unsafe { ATTACKS_TABLE[s] }
-}
-
-pub fn init() {
-    for s in Bitboard::FULL {
-        let attacks = attacks::generate_knight_attacks(s);
-
-        unsafe {
-            ATTACKS_TABLE[s] = attacks;
-        }
-    }
+    ATTACKS_TABLE[s]
 }

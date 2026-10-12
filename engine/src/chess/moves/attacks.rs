@@ -25,7 +25,7 @@ pub fn king_attacks(s: Square) -> Bitboard {
     tables::lookup_king_attacks(s)
 }
 
-pub fn generate_pawn_attacks(square: Square, player: Player) -> Bitboard {
+pub const fn generate_pawn_attacks(square: Square, player: Player) -> Bitboard {
     let mut attacks = Bitboard::EMPTY;
     let sq = square.bb();
 
@@ -35,7 +35,7 @@ pub fn generate_pawn_attacks(square: Square, player: Player) -> Bitboard {
     attacks
 }
 
-pub fn generate_knight_attacks(square: Square) -> Bitboard {
+pub const fn generate_knight_attacks(square: Square) -> Bitboard {
     let mut attacks = Bitboard::EMPTY;
     let sq = square.bb();
 

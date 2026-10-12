@@ -7,12 +7,9 @@ cfg_select! {
             clippy::use_self,
             reason = "Generated code"
         )]
-        #[cfg(feature = "syzygy")]
         mod bindings;
-        #[cfg(feature = "syzygy")]
-        mod tablebases;
 
-        #[cfg(feature = "syzygy")]
+        mod tablebases;
         pub use tablebases::*;
     }
     _ => {

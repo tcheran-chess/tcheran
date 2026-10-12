@@ -52,7 +52,7 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    pub fn pop_lsb_inplace(&mut self) -> Self {
+    pub const fn pop_lsb_inplace(&mut self) -> Self {
         let lsb = self.lsb();
         self.0 &= self.0 - 1;
         lsb
@@ -89,7 +89,7 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    pub fn in_direction(self, direction: Direction) -> Self {
+    pub const fn in_direction(self, direction: Direction) -> Self {
         match direction {
             Direction::North => self.north(),
             Direction::NorthEast => self.north_east(),
@@ -103,7 +103,7 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    pub fn forward(self, player: Player) -> Self {
+    pub const fn forward(self, player: Player) -> Self {
         match player {
             White => self.north(),
             Black => self.south(),
@@ -129,39 +129,39 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    pub fn east(self) -> Self {
+    pub const fn east(self) -> Self {
         // If we go east and land on A, we wrapped around.
-        Self(self.0 << 1) & Self::NOT_A_FILE
+        Self((self.0 << 1) & Self::NOT_A_FILE.0)
     }
 
     #[inline(always)]
-    pub fn north_east(self) -> Self {
+    pub const fn north_east(self) -> Self {
         // If we go east and land on A, we wrapped around.
-        Self(self.0 << 9) & Self::NOT_A_FILE
+        Self((self.0 << 9) & Self::NOT_A_FILE.0)
     }
 
     #[inline(always)]
-    pub fn south_east(self) -> Self {
+    pub const fn south_east(self) -> Self {
         // If we go east and land on A, we wrapped around.
-        Self(self.0 >> 7) & Self::NOT_A_FILE
+        Self((self.0 >> 7) & Self::NOT_A_FILE.0)
     }
 
     #[inline(always)]
-    pub fn west(self) -> Self {
+    pub const fn west(self) -> Self {
         // If we go west and land on H, we wrapped around.
-        Self(self.0 >> 1) & Self::NOT_H_FILE
+        Self((self.0 >> 1) & Self::NOT_H_FILE.0)
     }
 
     #[inline(always)]
-    pub fn south_west(self) -> Self {
+    pub const fn south_west(self) -> Self {
         // If we go west and land on H, we wrapped around.
-        Self(self.0 >> 9) & Self::NOT_H_FILE
+        Self((self.0 >> 9) & Self::NOT_H_FILE.0)
     }
 
     #[inline(always)]
-    pub fn north_west(self) -> Self {
+    pub const fn north_west(self) -> Self {
         // If we go west and land on H, we wrapped around.
-        Self(self.0 << 7) & Self::NOT_H_FILE
+        Self((self.0 << 7) & Self::NOT_H_FILE.0)
     }
 }
 

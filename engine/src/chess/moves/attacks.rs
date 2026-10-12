@@ -25,31 +25,31 @@ pub fn king_attacks(s: Square) -> Bitboard {
     tables::lookup_king_attacks(s)
 }
 
-pub fn generate_pawn_attacks(square: Square, player: Player) -> Bitboard {
-    let mut attacks = Bitboard::EMPTY;
+pub const fn generate_pawn_attacks(square: Square, player: Player) -> Bitboard {
+    let mut attacks = Bitboard::EMPTY.as_u64();
     let sq = square.bb();
 
-    attacks |= sq.forward(player).west();
-    attacks |= sq.forward(player).east();
+    attacks |= sq.forward(player).west().as_u64();
+    attacks |= sq.forward(player).east().as_u64();
 
-    attacks
+    Bitboard::new(attacks)
 }
 
-pub fn generate_knight_attacks(square: Square) -> Bitboard {
-    let mut attacks = Bitboard::EMPTY;
+pub const fn generate_knight_attacks(square: Square) -> Bitboard {
+    let mut attacks = Bitboard::EMPTY.as_u64();
     let sq = square.bb();
 
     // Going clockwise, starting at 12
-    attacks |= sq.north().north_east();
-    attacks |= sq.east().north_east();
-    attacks |= sq.east().south_east();
-    attacks |= sq.south().south_east();
-    attacks |= sq.south().south_west();
-    attacks |= sq.west().south_west();
-    attacks |= sq.west().north_west();
-    attacks |= sq.north().north_west();
+    attacks |= sq.north().north_east().as_u64();
+    attacks |= sq.east().north_east().as_u64();
+    attacks |= sq.east().south_east().as_u64();
+    attacks |= sq.south().south_east().as_u64();
+    attacks |= sq.south().south_west().as_u64();
+    attacks |= sq.west().south_west().as_u64();
+    attacks |= sq.west().north_west().as_u64();
+    attacks |= sq.north().north_west().as_u64();
 
-    attacks
+    Bitboard::new(attacks)
 }
 
 pub fn generate_bishop_attacks(square: Square, pieces: Bitboard) -> Bitboard {
@@ -80,15 +80,18 @@ fn generate_sliding_attacks(
     attacks
 }
 
-pub fn generate_king_attacks(square: Square) -> Bitboard {
-    let mut attacks = Bitboard::EMPTY;
+pub const fn generate_king_attacks(square: Square) -> Bitboard {
+    let mut attacks = Bitboard::EMPTY.as_u64();
     let sq = square.bb();
 
-    for direction in Direction::ALL {
-        attacks |= sq.in_direction(*direction);
+    let mut i = 0;
+    while i < Direction::ALL.len() {
+        let dir = Direction::ALL[i];
+        attacks |= sq.in_direction(dir).as_u64();
+        i += 1;
     }
 
-    attacks
+    Bitboard::new(attacks)
 }
 
 pub fn all_attackers_of(board: &Board, square: Square, occupied: Bitboard) -> Bitboard {

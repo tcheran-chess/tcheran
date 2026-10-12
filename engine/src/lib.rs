@@ -1,3 +1,5 @@
+#![feature(const_trait_impl, const_ops, const_iter, const_index, portable_simd)]
+
 pub mod chess;
 pub mod engine;
 pub mod util;

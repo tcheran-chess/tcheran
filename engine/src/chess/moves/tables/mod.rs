@@ -10,8 +10,4 @@ pub use pawns::lookup_pawn_attacks;
 
 pub fn init() {
     magics::init();
-
-    knights::init();
-    king::init();
-    pawns::init();
 }

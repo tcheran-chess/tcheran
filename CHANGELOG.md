@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [14.0]
+
 * Network #25, trained with ~1bn additional 5ksn positions and a sparsity loss term (15.97 +- 7.05)
 * Implement NNZ inference and permute the network for sparsity (12.06 +- 5.91 STC)
 * Use the sum of all conthist scores as the base for updates (9.09 +- 5.17)
@@ -530,7 +532,8 @@ Initial release with the following major features:
     * Tapered midgame vs. endgame evaluation
     * Incremental updates
 
-[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v13.0...HEAD
+[unreleased]: https://github.com/jgilchrist/chess-engine/compare/v14.0...HEAD
+[14.0]: https://github.com/jgilchrist/chess-engine/compare/v13.0..v14.0
 [13.0]: https://github.com/jgilchrist/chess-engine/compare/v12.0..v13.0
 [12.0]: https://github.com/jgilchrist/chess-engine/compare/v11.0..v12.0
 [11.0]: https://github.com/jgilchrist/chess-engine/compare/v10.0..v11.0

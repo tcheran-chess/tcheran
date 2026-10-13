@@ -17,7 +17,7 @@ static mut CUCKOO_KEYS: [ZobristHash; SIZE] = [ZobristHash(0u64); SIZE];
 static mut CUCKOO_MOVES: [Option<Move>; SIZE] = [None; SIZE];
 
 pub fn has_upcoming_repetition(game: &Game, ply: u8) -> bool {
-    let end = (game.halfmove_clock as usize).min(game.history.len().saturating_sub(1));
+    let end = (game.halfmove_clock as usize).min(game.history.len());
 
     if end < 3 {
         return false;
@@ -56,19 +56,15 @@ pub fn has_upcoming_repetition(game: &Game, ply: u8) -> bool {
             continue;
         }
 
-        if ply as usize > i {
+        // In-tree twofold
+        if ply as usize >= i {
             return true;
         }
 
-        let from = mv.from();
-        let to = mv.to();
-
-        let mut target_sq = from;
-        if game.board.piece_at(from).is_none() {
-            target_sq = to;
+        // Threefold
+        if (i + 2..=end).step_by(2).any(|j| prev_key(j) == prev_key(i)) {
+            return true;
         }
-
-        return game.board.occupancy_for(game.player).contains(target_sq);
     }
 
     false
@@ -148,5 +144,54 @@ fn init_table() {
 pub fn init() {
     unsafe {
         INIT.get_or_init(init_table);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::chess::moves::MoveListExt;
+
+    #[test]
+    // Ported verbatim from Viridithas
+    fn upcoming_repetition_simple() {
+        crate::init();
+
+        let mut game = Game::from_valid_fen("4k3/8/8/8/8/8/8/R3K3 w - - 0 1");
+
+        for (from, to) in [(A1, A3), (E8, D8), (A3, A2), (D8, E7), (A2, A1)] {
+            game.make_move(game.moves().expect_matching(from, to));
+        }
+
+        // rook is back on a1 and we could repeat with e7e8
+        assert!(has_upcoming_repetition(&game, 5));
+        assert!(!has_upcoming_repetition(&game, 4));
+    }
+
+    #[test]
+    // Ported verbatim from Viridithas
+    fn upcoming_repetition_threefold() {
+        // 1. Nf3 Nc6 2. Ng1: black can play Nb8.
+        let mut game = Game::new();
+        for (from, to) in [(G1, F3), (B8, C6), (F3, G1)] {
+            game.make_move(game.moves().expect_matching(from, to));
+        }
+
+        // If we include the root in the tree window,
+        // Nb8 gets us a valid twofold.
+        assert!(has_upcoming_repetition(&game, 3));
+
+        // If we don’t, then it’s not valid, as out-of-tree
+        // repetitions must be threefolds.
+        assert!(!has_upcoming_repetition(&game, 2));
+
+        // Shuffle some more, s.t. the move *would* be
+        // a threefold:
+        for (from, to) in [(C6, B8), (G1, F3), (B8, C6), (F3, G1)] {
+            game.make_move(game.moves().expect_matching(from, to));
+        }
+
+        // yay
+        assert!(has_upcoming_repetition(&game, 2));
     }
 }

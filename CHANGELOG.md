@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+#### Non-regression
+
+* Fix some issues with upcoming repetition detection (4.56 +- 4.34)
+
 #### Misc
 
 * Add 'set x y' as a shorthand for 'setoption name x value y'

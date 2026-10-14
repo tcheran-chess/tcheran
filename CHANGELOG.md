@@ -40,7 +40,6 @@
 * Don't apply tacthist bonus for quiet moves (-0.23 +- 2.25)
 * Post-LMR re-search no longer happens if we didn't actually reduce due to clamping (-0.36 +- 2.51)
 * Simplify killer moves (-0.81 +- 2.01)
-
 * Fixed Arc::get_mut crashes triggered by new behaviour in fastchess 1.8.2 (26.22 +- 10.02 against crashing version)
 
 #### Misc

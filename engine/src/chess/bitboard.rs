@@ -226,7 +226,7 @@ impl std::ops::BitAndAssign<Square> for Bitboard {
     }
 }
 
-impl std::ops::BitOr for Bitboard {
+const impl std::ops::BitOr for Bitboard {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
@@ -234,8 +234,7 @@ impl std::ops::BitOr for Bitboard {
     }
 }
 
-#[cfg(test)]
-impl std::ops::BitOr<Square> for Bitboard {
+const impl std::ops::BitOr<Square> for Bitboard {
     type Output = Self;
 
     fn bitor(self, rhs: Square) -> Self::Output {
@@ -249,7 +248,6 @@ impl std::ops::BitOrAssign for Bitboard {
     }
 }
 
-#[cfg(test)]
 impl std::ops::BitOrAssign<Square> for Bitboard {
     fn bitor_assign(&mut self, rhs: Square) {
         self.0 = self.0 | rhs.bb().0;
@@ -342,118 +340,48 @@ pub mod bitboards {
         DOUBLE_PUSH_RANKS[player.idx()]
     }
 
-    const A1_BB: Bitboard = A1.bb();
-    const A2_BB: Bitboard = A2.bb();
-    const A3_BB: Bitboard = A3.bb();
-    const A4_BB: Bitboard = A4.bb();
-    const A5_BB: Bitboard = A5.bb();
-    const A6_BB: Bitboard = A6.bb();
-    const A7_BB: Bitboard = A7.bb();
-    const A8_BB: Bitboard = A8.bb();
+    pub const A_FILE: Bitboard = A1 | A2 | A3 | A4 | A5 | A6 | A7 | A8;
+    pub const B_FILE: Bitboard = B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8;
+    pub const C_FILE: Bitboard = C1 | C2 | C3 | C4 | C5 | C6 | C7 | C8;
+    pub const D_FILE: Bitboard = D1 | D2 | D3 | D4 | D5 | D6 | D7 | D8;
+    pub const E_FILE: Bitboard = E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8;
+    pub const F_FILE: Bitboard = F1 | F2 | F3 | F4 | F5 | F6 | F7 | F8;
+    pub const G_FILE: Bitboard = G1 | G2 | G3 | G4 | G5 | G6 | G7 | G8;
+    pub const H_FILE: Bitboard = H1 | H2 | H3 | H4 | H5 | H6 | H7 | H8;
 
-    const B1_BB: Bitboard = B1.bb();
-    const B2_BB: Bitboard = B2.bb();
-    const B3_BB: Bitboard = B3.bb();
-    const B4_BB: Bitboard = B4.bb();
-    const B5_BB: Bitboard = B5.bb();
-    const B6_BB: Bitboard = B6.bb();
-    const B7_BB: Bitboard = B7.bb();
-    const B8_BB: Bitboard = B8.bb();
+    pub const R1: Bitboard = A1 | B1 | C1;
 
-    const C1_BB: Bitboard = C1.bb();
-    const C2_BB: Bitboard = C2.bb();
-    const C3_BB: Bitboard = C3.bb();
-    const C4_BB: Bitboard = C4.bb();
-    const C5_BB: Bitboard = C5.bb();
-    const C6_BB: Bitboard = C6.bb();
-    const C7_BB: Bitboard = C7.bb();
-    const C8_BB: Bitboard = C8.bb();
+    pub const RANK_1: Bitboard = A1 | B1 | C1 | D1 | E1 | F1 | G1 | H1;
+    pub const RANK_2: Bitboard = A2 | B2 | C2 | D2 | E2 | F2 | G2 | H2;
+    pub const RANK_3: Bitboard = A3 | B3 | C3 | D3 | E3 | F3 | G3 | H3;
+    pub const RANK_4: Bitboard = A4 | B4 | C4 | D4 | E4 | F4 | G4 | H4;
+    pub const RANK_5: Bitboard = A5 | B5 | C5 | D5 | E5 | F5 | G5 | H5;
+    pub const RANK_6: Bitboard = A6 | B6 | C6 | D6 | E6 | F6 | G6 | H6;
+    pub const RANK_7: Bitboard = A7 | B7 | C7 | D7 | E7 | F7 | G7 | H7;
+    pub const RANK_8: Bitboard = A8 | B8 | C8 | D8 | E8 | F8 | G8 | H8;
 
-    const D1_BB: Bitboard = D1.bb();
-    const D2_BB: Bitboard = D2.bb();
-    const D3_BB: Bitboard = D3.bb();
-    const D4_BB: Bitboard = D4.bb();
-    const D5_BB: Bitboard = D5.bb();
-    const D6_BB: Bitboard = D6.bb();
-    const D7_BB: Bitboard = D7.bb();
-    const D8_BB: Bitboard = D8.bb();
+    pub const CORNERS: Bitboard = A1 | A8 | H1 | H8;
+    pub const EDGES: Bitboard = RANK_1 | RANK_8 | A_FILE | H_FILE;
 
-    const E1_BB: Bitboard = E1.bb();
-    const E2_BB: Bitboard = E2.bb();
-    const E3_BB: Bitboard = E3.bb();
-    const E4_BB: Bitboard = E4.bb();
-    const E5_BB: Bitboard = E5.bb();
-    const E6_BB: Bitboard = E6.bb();
-    const E7_BB: Bitboard = E7.bb();
-    const E8_BB: Bitboard = E8.bb();
+    pub const LIGHT_SQUARES: Bitboard =
+        A8 | C8 | E8 | G8 |
+        B7 | D7 | F7 | H7 |
+        A6 | C6 | E6 | G6 |
+        B5 | D5 | F5 | H5 |
+        A4 | C4 | E4 | G4 |
+        B3 | D3 | F3 | H3 |
+        A2 | C2 | E2 | G2 |
+        B1 | D1 | F1 | H1;
 
-    const F1_BB: Bitboard = F1.bb();
-    const F2_BB: Bitboard = F2.bb();
-    const F3_BB: Bitboard = F3.bb();
-    const F4_BB: Bitboard = F4.bb();
-    const F5_BB: Bitboard = F5.bb();
-    const F6_BB: Bitboard = F6.bb();
-    const F7_BB: Bitboard = F7.bb();
-    const F8_BB: Bitboard = F8.bb();
-
-    const G1_BB: Bitboard = G1.bb();
-    const G2_BB: Bitboard = G2.bb();
-    const G3_BB: Bitboard = G3.bb();
-    const G4_BB: Bitboard = G4.bb();
-    const G5_BB: Bitboard = G5.bb();
-    const G6_BB: Bitboard = G6.bb();
-    const G7_BB: Bitboard = G7.bb();
-    const G8_BB: Bitboard = G8.bb();
-
-    const H1_BB: Bitboard = H1.bb();
-    const H2_BB: Bitboard = H2.bb();
-    const H3_BB: Bitboard = H3.bb();
-    const H4_BB: Bitboard = H4.bb();
-    const H5_BB: Bitboard = H5.bb();
-    const H6_BB: Bitboard = H6.bb();
-    const H7_BB: Bitboard = H7.bb();
-    const H8_BB: Bitboard = H8.bb();
-
-    pub const A_FILE: Bitboard = Bitboard::new(A1_BB.0 | A2_BB.0 | A3_BB.0 | A4_BB.0 | A5_BB.0 | A6_BB.0 | A7_BB.0 | A8_BB.0);
-    pub const B_FILE: Bitboard = Bitboard::new(B1_BB.0 | B2_BB.0 | B3_BB.0 | B4_BB.0 | B5_BB.0 | B6_BB.0 | B7_BB.0 | B8_BB.0);
-    pub const C_FILE: Bitboard = Bitboard::new(C1_BB.0 | C2_BB.0 | C3_BB.0 | C4_BB.0 | C5_BB.0 | C6_BB.0 | C7_BB.0 | C8_BB.0);
-    pub const D_FILE: Bitboard = Bitboard::new(D1_BB.0 | D2_BB.0 | D3_BB.0 | D4_BB.0 | D5_BB.0 | D6_BB.0 | D7_BB.0 | D8_BB.0);
-    pub const E_FILE: Bitboard = Bitboard::new(E1_BB.0 | E2_BB.0 | E3_BB.0 | E4_BB.0 | E5_BB.0 | E6_BB.0 | E7_BB.0 | E8_BB.0);
-    pub const F_FILE: Bitboard = Bitboard::new(F1_BB.0 | F2_BB.0 | F3_BB.0 | F4_BB.0 | F5_BB.0 | F6_BB.0 | F7_BB.0 | F8_BB.0);
-    pub const G_FILE: Bitboard = Bitboard::new(G1_BB.0 | G2_BB.0 | G3_BB.0 | G4_BB.0 | G5_BB.0 | G6_BB.0 | G7_BB.0 | G8_BB.0);
-    pub const H_FILE: Bitboard = Bitboard::new(H1_BB.0 | H2_BB.0 | H3_BB.0 | H4_BB.0 | H5_BB.0 | H6_BB.0 | H7_BB.0 | H8_BB.0);
-
-    pub const RANK_1: Bitboard = Bitboard::new(A1_BB.0 | B1_BB.0 | C1_BB.0 | D1_BB.0 | E1_BB.0 | F1_BB.0 | G1_BB.0 | H1_BB.0);
-    pub const RANK_2: Bitboard = Bitboard::new(A2_BB.0 | B2_BB.0 | C2_BB.0 | D2_BB.0 | E2_BB.0 | F2_BB.0 | G2_BB.0 | H2_BB.0);
-    pub const RANK_3: Bitboard = Bitboard::new(A3_BB.0 | B3_BB.0 | C3_BB.0 | D3_BB.0 | E3_BB.0 | F3_BB.0 | G3_BB.0 | H3_BB.0);
-    pub const RANK_4: Bitboard = Bitboard::new(A4_BB.0 | B4_BB.0 | C4_BB.0 | D4_BB.0 | E4_BB.0 | F4_BB.0 | G4_BB.0 | H4_BB.0);
-    pub const RANK_5: Bitboard = Bitboard::new(A5_BB.0 | B5_BB.0 | C5_BB.0 | D5_BB.0 | E5_BB.0 | F5_BB.0 | G5_BB.0 | H5_BB.0);
-    pub const RANK_6: Bitboard = Bitboard::new(A6_BB.0 | B6_BB.0 | C6_BB.0 | D6_BB.0 | E6_BB.0 | F6_BB.0 | G6_BB.0 | H6_BB.0);
-    pub const RANK_7: Bitboard = Bitboard::new(A7_BB.0 | B7_BB.0 | C7_BB.0 | D7_BB.0 | E7_BB.0 | F7_BB.0 | G7_BB.0 | H7_BB.0);
-    pub const RANK_8: Bitboard = Bitboard::new(A8_BB.0 | B8_BB.0 | C8_BB.0 | D8_BB.0 | E8_BB.0 | F8_BB.0 | G8_BB.0 | H8_BB.0);
-
-    pub const CORNERS: Bitboard = Bitboard::new(A1_BB.0 | A8_BB.0 | H1_BB.0 | H8_BB.0);
-    pub const EDGES: Bitboard = Bitboard::new(RANK_1.0 | RANK_8.0 | A_FILE.0 | H_FILE.0);
-
-    pub const LIGHT_SQUARES: Bitboard = Bitboard::new(
-        A8_BB.0 | C8_BB.0 | E8_BB.0 | G8_BB.0 |
-        B7_BB.0 | D7_BB.0 | F7_BB.0 | H7_BB.0 |
-        A6_BB.0 | C6_BB.0 | E6_BB.0 | G6_BB.0 |
-        B5_BB.0 | D5_BB.0 | F5_BB.0 | H5_BB.0 |
-        A4_BB.0 | C4_BB.0 | E4_BB.0 | G4_BB.0 |
-        B3_BB.0 | D3_BB.0 | F3_BB.0 | H3_BB.0 |
-        A2_BB.0 | C2_BB.0 | E2_BB.0 | G2_BB.0 |
-        B1_BB.0 | D1_BB.0 | F1_BB.0 | H1_BB.0 );
-
-    pub const DARK_SQUARES: Bitboard = Bitboard::new(
-        B8_BB.0 | D8_BB.0 | F8_BB.0 | H8_BB.0 |
-        A7_BB.0 | C7_BB.0 | E7_BB.0 | G7_BB.0 |
-        B6_BB.0 | D6_BB.0 | F6_BB.0 | H6_BB.0 |
-        A5_BB.0 | C5_BB.0 | E5_BB.0 | G5_BB.0 |
-        B4_BB.0 | D4_BB.0 | F4_BB.0 | H4_BB.0 |
-        A3_BB.0 | C3_BB.0 | E3_BB.0 | G3_BB.0 |
-        B2_BB.0 | D2_BB.0 | F2_BB.0 | H2_BB.0 |
-        A1_BB.0 | C1_BB.0 | E1_BB.0 | G1_BB.0 );
+    pub const DARK_SQUARES: Bitboard =
+        B8 | D8 | F8 | H8 |
+        A7 | C7 | E7 | G7 |
+        B6 | D6 | F6 | H6 |
+        A5 | C5 | E5 | G5 |
+        B4 | D4 | F4 | H4 |
+        A3 | C3 | E3 | G3 |
+        B2 | D2 | F2 | H2 |
+        A1 | C1 | E1 | G1;
 }
 
 #[cfg(test)]

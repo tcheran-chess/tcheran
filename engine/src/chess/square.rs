@@ -271,8 +271,7 @@ impl<T> std::ops::IndexMut<Square> for [T; Square::N] {
     }
 }
 
-#[cfg(test)]
-impl std::ops::BitOr for Square {
+const impl std::ops::BitOr for Square {
     type Output = Bitboard;
 
     fn bitor(self, rhs: Self) -> Self::Output {

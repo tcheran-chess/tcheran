@@ -1,5 +1,7 @@
 #![expect(unsafe_op_in_unsafe_fn, reason = "")]
 
+use std::simd::{cmp::SimdOrd, num::SimdInt};
+
 use crate::engine::eval::nnue::{
     Accumulator, network,
     network::{L1, L2, L3, Q, Q0},
@@ -16,33 +18,33 @@ const L1_SHIFT: ShiftType = network::L1_SHIFT as ShiftType;
 pub unsafe fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> [u8; L1] {
     let mut output: [u8; L1] = [0; L1];
 
-    let zero = zero_i16s();
-    let q0 = splat_i16(Q0 as i16);
+    let zero = I16s::splat(0);
+    let q0 = I16s::splat(Q0 as i16);
 
     let us = us.0.as_ptr();
     let them = them.0.as_ptr();
     let output_ptr = output.as_mut_ptr();
 
     for l1 in (0..L1 / 2).step_by(2 * I16_LANES) {
-        let us0 = load_i16s(us.add(l1));
-        let us1 = load_i16s(us.add(l1 + L1 / 2));
-        let us2 = load_i16s(us.add(l1 + I16_LANES));
-        let us3 = load_i16s(us.add(l1 + L1 / 2 + I16_LANES));
+        let us0 = load(us.add(l1));
+        let us1 = load(us.add(l1 + L1 / 2));
+        let us2 = load(us.add(l1 + I16_LANES));
+        let us3 = load(us.add(l1 + L1 / 2 + I16_LANES));
 
-        let us_clamped0 = clamp_i16s(us0, zero, q0);
-        let us_clamped1 = clamp_i16s(us1, zero, q0);
-        let us_clamped2 = clamp_i16s(us2, zero, q0);
-        let us_clamped3 = clamp_i16s(us3, zero, q0);
+        let us_clamped0 = us0.simd_clamp(zero, q0);
+        let us_clamped1 = us1.simd_clamp(zero, q0);
+        let us_clamped2 = us2.simd_clamp(zero, q0);
+        let us_clamped3 = us3.simd_clamp(zero, q0);
 
-        let them0 = load_i16s(them.add(l1));
-        let them1 = load_i16s(them.add(l1 + L1 / 2));
-        let them2 = load_i16s(them.add(l1 + I16_LANES));
-        let them3 = load_i16s(them.add(l1 + L1 / 2 + I16_LANES));
+        let them0 = load(them.add(l1));
+        let them1 = load(them.add(l1 + L1 / 2));
+        let them2 = load(them.add(l1 + I16_LANES));
+        let them3 = load(them.add(l1 + L1 / 2 + I16_LANES));
 
-        let them_clamped0 = clamp_i16s(them0, zero, q0);
-        let them_clamped1 = clamp_i16s(them1, zero, q0);
-        let them_clamped2 = clamp_i16s(them2, zero, q0);
-        let them_clamped3 = clamp_i16s(them3, zero, q0);
+        let them_clamped0 = them0.simd_clamp(zero, q0);
+        let them_clamped1 = them1.simd_clamp(zero, q0);
+        let them_clamped2 = them2.simd_clamp(zero, q0);
+        let them_clamped3 = them3.simd_clamp(zero, q0);
 
         let us_pair1 = shift_left_mul_high_i16s(us_clamped0, us_clamped1);
         let us_pair2 = shift_left_mul_high_i16s(us_clamped2, us_clamped3);
@@ -53,15 +55,15 @@ pub unsafe fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: u
         let us_packed = packus(us_pair1, us_pair2);
         let them_packed = packus(them_pair1, them_pair2);
 
-        store_u8s(output_ptr.add(l1), us_packed);
-        store_u8s(output_ptr.add(l1 + L1 / 2), them_packed);
+        store(output_ptr.add(l1), us_packed);
+        store(output_ptr.add(l1 + L1 / 2), them_packed);
     }
 
     output
 }
 
 pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 * 2] {
-    let zero = zeroed_i32s();
+    let zero = I32s::splat(0);
 
     let input = input.as_ptr();
     let weights = &NETWORK.l1_weights[output_bucket];
@@ -71,16 +73,16 @@ pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 *
     let mut nnz_count = 0;
 
     unsafe {
-        let mut base = zero_i16s();
+        let mut base = I16s::splat(0);
 
         for i in (0..L1).step_by(I8_LANES) {
-            let chunk = reinterpret_u8s_as_i32s(load_u8s(input.add(i)));
+            let chunk = reinterpret_u8s_as_i32s(load(input.add(i)));
             let (idxs, count) = nnz_indices(chunk);
 
-            store_i16s(nnz_idxs.as_mut_ptr().add(nnz_count), add_i16s(base, idxs));
+            store(nnz_idxs.as_mut_ptr().add(nnz_count), base + idxs);
             nnz_count += count as usize;
 
-            base = add_i16s(base, splat_i16(I32_LANES as i16));
+            base += I16s::splat(I32_LANES as i16);
         }
     }
 
@@ -111,8 +113,8 @@ pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 *
         let w2 = weights[idx2].as_ptr();
 
         for l2 in (0..L2).step_by(I32_LANES) {
-            let w1 = load_i8s(w1.add(l2 * 4));
-            let w2 = load_i8s(w2.add(l2 * 4));
+            let w1 = load(w1.add(l2 * 4));
+            let w2 = load(w2.add(l2 * 4));
 
             let sum = &mut sums[l2 / I32_LANES];
             *sum = dpbusdx2(*sum, ft1, w1, ft2, w2);
@@ -125,29 +127,29 @@ pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 *
         let w1 = weights[idx].as_ptr();
 
         for l2 in (0..L2).step_by(I32_LANES) {
-            let w1 = load_i8s(w1.add(l2 * 4));
+            let w1 = load(w1.add(l2 * 4));
 
             let sum = &mut sums[l2 / I32_LANES];
             *sum = dpbusd(*sum, ft1, w1);
         }
     }
 
-    let q = splat_i32(Q);
-    let q2 = splat_i32(Q * Q);
+    let q = I32s::splat(Q);
+    let q2 = I32s::splat(Q * Q);
 
     let mut output = [0; L2 * 2];
     let output_ptr = output.as_mut_ptr();
 
     for i in (0..L2).step_by(I32_LANES) {
-        let bias = load_i32s(biases.add(i));
-        let sum = add_i32s(sums[i / I32_LANES], bias);
-        let shifted = rshift_i32s::<L1_SHIFT>(sum);
+        let bias = load(biases.add(i));
+        let sum = sums[i / I32_LANES] + bias;
+        let shifted = sum >> L1_SHIFT;
 
-        let act1 = lshift_i32s::<Q_BITS>(clamp_i32s(shifted, zero, q));
-        let act2 = clamp_i32s(mul_i32s(shifted, shifted), zero, q2);
+        let act1 = shifted.simd_clamp(zero, q) << Q_BITS;
+        let act2 = (shifted * shifted).simd_clamp(zero, q2);
 
-        store_i32s(output_ptr.add(i), act1);
-        store_i32s(output_ptr.add(i + L2), act2);
+        store(output_ptr.add(i), act1);
+        store(output_ptr.add(i + L2), act2);
     }
 
     output
@@ -156,33 +158,33 @@ pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 *
 pub unsafe fn propagate_l2(input: &[i32; L2 * 2], output_bucket: usize) -> [i32; L3] {
     let biases = &NETWORK.l2_biases[output_bucket].as_ptr();
 
-    let mut sums: [I32s; L3 / I32_LANES] = [zeroed_i32s(); L3 / I32_LANES];
+    let mut sums: [I32s; L3 / I32_LANES] = [I32s::splat(0); L3 / I32_LANES];
 
     for l3 in (0..L3).step_by(I32_LANES) {
         let sum = &mut sums[l3 / I32_LANES];
-        *sum = load_i32s(biases.add(l3));
+        *sum = load(biases.add(l3));
     }
 
     for l2 in 0..L2 * 2 {
-        let i = splat_i32(input[l2]);
+        let i = I32s::splat(input[l2]);
         let weights = &NETWORK.l2_weights[output_bucket][l2].as_ptr();
 
         for l3 in (0..L3).step_by(I32_LANES) {
             let sum = &mut sums[l3 / I32_LANES];
-            *sum = add_i32s(*sum, mul_i32s(i, load_i32s(weights.add(l3))));
+            *sum += i * load(weights.add(l3));
         }
     }
 
-    let zero = zeroed_i32s();
-    let q3 = splat_i32(Q * Q * Q);
+    let zero = I32s::splat(0);
+    let q3 = I32s::splat(Q * Q * Q);
 
     let mut output = [0; L3];
     let output_ptr = output.as_mut_ptr();
 
     for l3 in (0..L3).step_by(I32_LANES) {
         let sum = &sums[l3 / I32_LANES];
-        let clamped = clamp_i32s(*sum, zero, q3);
-        store_i32s(output_ptr.add(l3), clamped);
+        let clamped = sum.simd_clamp(zero, q3);
+        store(output_ptr.add(l3), clamped);
     }
 
     output
@@ -193,13 +195,13 @@ pub unsafe fn propagate_l3(input: &[i32; L3], output_bucket: usize) -> i32 {
     let weights = NETWORK.l3_weights[output_bucket].as_ptr();
     let bias = NETWORK.l3_biases[output_bucket];
 
-    let mut sum = zeroed_i32s();
+    let mut sum = I32s::splat(0);
 
     for l3 in (0..L3).step_by(I32_LANES) {
-        let inp = load_i32s(input.add(l3));
-        let weight = load_i32s(weights.add(l3));
-        sum = add_i32s(sum, mul_i32s(inp, weight));
+        let inp = load(input.add(l3));
+        let weight = load(weights.add(l3));
+        sum += inp * weight;
     }
 
-    sum_i32s(sum) + bias
+    sum.reduce_sum() + bias
 }

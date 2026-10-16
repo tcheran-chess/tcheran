@@ -7,7 +7,9 @@ pub const MAX_LEGAL_MOVES: usize = 218;
 pub type MoveList = ArrayVec<Move, MAX_LEGAL_MOVES>;
 
 pub trait MoveListExt {
-    fn expect_matching(
+    fn expect_matching(&self, from: Square, to: Square) -> Move;
+
+    fn expect_matching_with_promotion(
         &self,
         from: Square,
         to: Square,
@@ -16,7 +18,11 @@ pub trait MoveListExt {
 }
 
 impl MoveListExt for ArrayVec<Move, MAX_LEGAL_MOVES> {
-    fn expect_matching(
+    fn expect_matching(&self, from: Square, to: Square) -> Move {
+        self.expect_matching_with_promotion(from, to, None)
+    }
+
+    fn expect_matching_with_promotion(
         &self,
         from: Square,
         to: Square,

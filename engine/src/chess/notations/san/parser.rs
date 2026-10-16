@@ -228,11 +228,9 @@ pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
             .king_side
             .expect("Castle move, but no castle rights");
 
-        return Ok(game.moves().expect_matching(
-            game.board.king_square(game.player),
-            kingside_castle_king_dst,
-            None,
-        ));
+        return Ok(game
+            .moves()
+            .expect_matching(game.board.king_square(game.player), kingside_castle_king_dst));
     }
 
     if mv == constants::QUEENSIDE_CASTLE {
@@ -240,11 +238,9 @@ pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
             .queen_side
             .expect("Castle move, but no castle rights");
 
-        return Ok(game.moves().expect_matching(
-            game.board.king_square(game.player),
-            queenside_castle_king_dst,
-            None,
-        ));
+        return Ok(game
+            .moves()
+            .expect_matching(game.board.king_square(game.player), queenside_castle_king_dst));
     }
 
     let mv = mv
@@ -268,7 +264,9 @@ pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
 
     let (from, to) = parse_squares(game, mv)?;
 
-    Ok(game.moves().expect_matching(from, to, promotion))
+    Ok(game
+        .moves()
+        .expect_matching_with_promotion(from, to, promotion))
 }
 
 #[cfg(test)]
@@ -282,9 +280,7 @@ mod tests {
         let game = Game::from_valid_fen(fen);
         let mv = parse_move(&game, san).unwrap();
 
-        let expected_mv = game
-            .moves()
-            .expect_matching(expected_mv.0, expected_mv.1, None);
+        let expected_mv = game.moves().expect_matching(expected_mv.0, expected_mv.1);
 
         assert_eq!(mv, expected_mv);
     }
@@ -299,9 +295,11 @@ mod tests {
         let game = Game::from_valid_fen(fen);
         let mv = parse_move(&game, san).unwrap();
 
-        let expected_mv =
-            game.moves()
-                .expect_matching(expected_mv.0, expected_mv.1, Some(expected_mv.2));
+        let expected_mv = game.moves().expect_matching_with_promotion(
+            expected_mv.0,
+            expected_mv.1,
+            Some(expected_mv.2),
+        );
 
         assert_eq!(mv, expected_mv);
     }

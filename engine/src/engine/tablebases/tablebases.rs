@@ -209,7 +209,9 @@ impl Tablebase {
         };
 
         RootMove {
-            mv: game.moves().expect_matching(from, to, promotion),
+            mv: game
+                .moves()
+                .expect_matching_with_promotion(from, to, promotion),
 
             tb_score: Self::to_eval(tb.tbScore),
             tb_rank: tb.tbRank,

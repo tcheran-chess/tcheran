@@ -514,7 +514,7 @@ mod tests {
         crate::init();
 
         let mut game = Game::from_valid_fen("8/8/8/8/k3p2Q/8/3P4/3K4 w - - 0 1");
-        game.make_move(game.moves().expect_matching(D2, D4, None));
+        game.make_move(game.moves().expect_matching(D2, D4));
 
         assert!(game.moves().iter().all(|m| (m.from(), m.to()) != (E4, D3)));
     }
@@ -555,7 +555,7 @@ mod tests {
 
         let mut game =
             Game::from_valid_fen("q7/2p3k1/3b2p1/pp1Pnp1p/3Q3P/P1P3P1/1P3PK1/2NB4 b - - 1 33");
-        game.make_move(game.moves().expect_matching(C7, C5, None));
+        game.make_move(game.moves().expect_matching(C7, C5));
 
         assert!(game.moves().iter().any(|m| (m.from(), m.to()) == (D5, C6)));
     }

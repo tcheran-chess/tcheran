@@ -1097,7 +1097,7 @@ mod tests {
         crate::init();
 
         let mut game = Game::from_valid_fen("k7/3p4/8/K3P2r/8/8/8/8 b - - 0 1");
-        game.make_move(game.moves().expect_matching(D7, D5, None));
+        game.make_move(game.moves().expect_matching(D7, D5));
 
         assert_eq!(game.en_passant_target, None);
 
@@ -1105,20 +1105,20 @@ mod tests {
         let mut game = Game::from_valid_fen(
             "r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 b kq - 0 1",
         );
-        game.make_move(game.moves().expect_matching(D7, D5, None));
+        game.make_move(game.moves().expect_matching(D7, D5));
 
         assert_eq!(game.en_passant_target, None);
 
         let mut game =
             Game::from_valid_fen("r7/r7/bp1k3p/2p1p1pP/Pp1pP1P1/1P3P2/2P3K1/1R1RN3 w - - 9 40");
-        game.make_move(game.moves().expect_matching(C2, C4, None));
+        game.make_move(game.moves().expect_matching(C2, C4));
 
         assert_eq!(game.en_passant_target, Some(C3));
 
         let mut game = Game::from_valid_fen(
             "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
         );
-        game.make_move(game.moves().expect_matching(A2, A4, None));
+        game.make_move(game.moves().expect_matching(A2, A4));
 
         assert_eq!(game.en_passant_target, Some(A3));
     }

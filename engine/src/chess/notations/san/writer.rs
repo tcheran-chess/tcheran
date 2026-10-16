@@ -147,7 +147,7 @@ mod tests {
 
         let game = Game::from_valid_fen(fen);
         let (from, to) = mv;
-        let mv = game.moves().expect_matching(from, to, None);
+        let mv = game.moves().expect_matching(from, to);
         let san = format_move(&game, mv);
 
         assert_eq!(&san, expected_san);
@@ -162,7 +162,9 @@ mod tests {
 
         let game = Game::from_valid_fen(fen);
         let (from, to, promotion) = mv;
-        let mv = game.moves().expect_matching(from, to, Some(promotion));
+        let mv = game
+            .moves()
+            .expect_matching_with_promotion(from, to, Some(promotion));
         let san = format_move(&game, mv);
 
         assert_eq!(&san, expected_san);
@@ -218,7 +220,7 @@ mod tests {
             required_ambiguity_resolution(
                 &game,
                 game.moves()
-                    .expect_matching(ambiguous_move.0, ambiguous_move.1, None)
+                    .expect_matching(ambiguous_move.0, ambiguous_move.1)
             ),
             AmbiguityResolution::File
         );
@@ -238,7 +240,7 @@ mod tests {
             required_ambiguity_resolution(
                 &game,
                 game.moves()
-                    .expect_matching(ambiguous_move.0, ambiguous_move.1, None)
+                    .expect_matching(ambiguous_move.0, ambiguous_move.1)
             ),
             AmbiguityResolution::Rank
         );
@@ -258,7 +260,7 @@ mod tests {
             required_ambiguity_resolution(
                 &game,
                 game.moves()
-                    .expect_matching(ambiguous_move.0, ambiguous_move.1, None)
+                    .expect_matching(ambiguous_move.0, ambiguous_move.1)
             ),
             AmbiguityResolution::Exact
         );

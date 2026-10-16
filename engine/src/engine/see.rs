@@ -169,7 +169,7 @@ mod tests {
         use_basic_see_values();
 
         let game = Game::from_valid_fen(fen);
-        let mv = game.moves().expect_matching(mv.0, mv.1, None);
+        let mv = game.moves().expect_matching(mv.0, mv.1);
 
         assert!(see(&game, mv, 0));
     }
@@ -179,7 +179,7 @@ mod tests {
         use_basic_see_values();
 
         let game = Game::from_valid_fen(fen);
-        let mv = game.moves().expect_matching(mv.0, mv.1, None);
+        let mv = game.moves().expect_matching(mv.0, mv.1);
 
         assert!(!see(&game, mv, 0));
     }

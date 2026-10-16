@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+#### Misc
+
+* Fix SAN ambiguity case when pieces do not share the same file or rank
+
 ## [14.0]
 
 * Network #25, trained with ~1bn additional 5ksn positions and a sparsity loss term (15.97 +- 7.05)

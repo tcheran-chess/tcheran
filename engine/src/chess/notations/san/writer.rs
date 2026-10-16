@@ -118,6 +118,10 @@ fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
         .copied()
         .collect();
 
+    if potentially_ambiguous_moves.is_empty() {
+        return AmbiguityResolution::None;
+    }
+
     let ambiguity_by_file = potentially_ambiguous_moves
         .iter()
         .any(|m| m.from().file() == mv.from().file());
@@ -127,9 +131,8 @@ fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
         .any(|m| m.from().rank() == mv.from().rank());
 
     match (ambiguity_by_file, ambiguity_by_rank) {
-        (false, false) => AmbiguityResolution::None,
+        (false, _) => AmbiguityResolution::File,
         (true, false) => AmbiguityResolution::Rank,
-        (false, true) => AmbiguityResolution::File,
         (true, true) => AmbiguityResolution::Exact,
     }
 }
@@ -277,6 +280,15 @@ mod tests {
             "k7/6P1/8/8/8/8/8/K7 w - - 0 1",
             (G7, G8, PromotionPieceKind::Queen),
             "g8=Q+",
+        );
+    }
+
+    #[test]
+    fn san_ambiguity_20261016() {
+        test_san_string(
+            "2r2r1k/4ppnp/2bp2pN/p4PP1/1p2P2P/1Pq5/P1PQ1N2/1K1RR3 w - - 1 34",
+            (F2, G4),
+            "Nfg4",
         );
     }
 }

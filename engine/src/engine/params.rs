@@ -6,29 +6,29 @@ use crate::engine::tuning::parameters;
 parameters!(
     // Search
     aspiration_window_size: i32 = 16 [10..30];
-    aspiration_min_depth: u8 = 5 [3..10];
+    aspiration_min_depth: Depth = 5 [3..10];
     aspiration_max_reduction: u8 = 3 [2..10];
 
     // Whole node techniques
-    hindsight_extension_depth: u8 = 2 [1..8];
+    hindsight_extension_depth: Depth = 2 [1..8];
     hindsight_extension_margin: i32 = 80 [32..256];
 
     reverse_futility_prune_depth_margin: i32 = 111 [16..256];
     reverse_futility_prune_improving_margin: i32 = 95 [16..256];
-    reverse_futility_prune_depth: u8 = 5 [2..10];
+    reverse_futility_prune_depth: Depth = 5 [2..10];
 
     razoring_margin: i32 = 443 [8..512];
-    razoring_depth: u8 = 5 [2..10];
+    razoring_depth: Depth = 5 [2..10];
 
     null_move_pruning_base_reduction: u8 = 5 [2..10];
     null_move_pruning_reduction_factor: u8 = 5 [2..10];
 
-    iir_depth: u8 = 3 [2..10];
+    iir_depth: Depth = 3 [2..10];
 
     probcut_depth_diff: u8 = 2 [1..8];
     probcut_margin: i32 = 375 [128..1024];
 
-    singular_extension_depth: u8 = 5 [2..10];
+    singular_extension_depth: Depth = 5 [2..10];
     singular_extension_entry_depth_delta: u8 = 3 [2..10];
     singular_extension_margin: i32 = 2 [2..10];
     double_extension_margin: i32 = 18 [2..32];
@@ -37,25 +37,25 @@ parameters!(
     // Move loop techniques
     futility_prune_base_value: i32 = 496 [128..1024];
     futility_prune_depth_multiplier: i32 = 148 [8..256];
-    futility_prune_depth: u8 = 8 [4..12];
+    futility_prune_depth: Depth = 8 [4..12];
 
-    history_prune_depth: u8 = 4 [2..16];
+    history_prune_depth: Depth = 4 [2..16];
     history_prune_offset: i32 = 86 [-8192..512];
     history_prune_margin: i32 = -2787 [-8192..-1024];
 
     see_quiet_margin: i32 = -55 [-256..-8];
     see_capture_margin: i32 = -240 [-256..-8];
     see_prune_history_divisor: i32 = 12 [8..128];
-    see_prune_depth: u8 = 10 [2..16];
+    see_prune_depth: Depth = 10 [2..16];
 
-    lmp_depth: u8 = 6 [1..10];
+    lmp_depth: Depth = 6 [1..10];
     lmp_move_threshold: u8 = 5 [2..16];
 
     tactical_lmr_base: i32 = 20 [16..256];
     tactical_lmr_factor: i32 = 245 [64..1028];
     quiet_lmr_base: i32 = 28 [16..256];
     quiet_lmr_factor: i32 = 205 [64..1028];
-    lmr_start_depth: u8 = 2 [1..8];
+    lmr_start_depth: Depth = 2 [1..8];
     lmr_move_threshold: u8 = 2 [2..16];
 
     lmr_cut_node_factor: i32 = 400 [128..2048];

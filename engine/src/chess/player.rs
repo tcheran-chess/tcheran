@@ -28,7 +28,7 @@ impl std::ops::Not for Player {
     }
 }
 
-impl<T> std::ops::Index<Player> for [T; Player::N] {
+const impl<T> std::ops::Index<Player> for [T; Player::N] {
     type Output = T;
 
     fn index(&self, player: Player) -> &Self::Output {
@@ -36,7 +36,7 @@ impl<T> std::ops::Index<Player> for [T; Player::N] {
     }
 }
 
-impl<T> std::ops::IndexMut<Player> for [T; Player::N] {
+const impl<T> std::ops::IndexMut<Player> for [T; Player::N] {
     fn index_mut(&mut self, player: Player) -> &mut Self::Output {
         unsafe { self.get_unchecked_mut(player.idx()) }
     }

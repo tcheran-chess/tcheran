@@ -4,11 +4,17 @@ macro_rules! parameters {
             $name:ident: $ty:ty = $default:literal [$min:literal..$max:literal];
         )*
     ) => {
+
         #[cfg(not(feature = "spsa"))]
         mod default_params {
+            use crate::engine::search::Depth;
+
             $(
                 pub const fn $name() -> $ty {
-                    $default
+                    match $default.try_into() {
+                        Ok(x) => x,
+                        Err(_) => panic!(stringify!($name)),
+                    }
                 }
             )*
 
@@ -31,14 +37,20 @@ macro_rules! parameters {
 
         #[cfg(feature = "spsa")]
         mod spsa_params {
+            use crate::engine::search::Depth;
+
             #[expect(non_upper_case_globals, reason = "Only exposed internally")]
             mod values {
+            use crate::engine::search::Depth;
+
             $(
                 pub static mut $name: $ty = $default;
             )*
             }
 
             pub mod getters {
+            use crate::engine::search::Depth;
+
             $(
                 pub const fn $name() -> $ty {
                     unsafe { super::values::$name }

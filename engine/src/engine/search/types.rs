@@ -1,5 +1,4 @@
 use std::{
-    cmp::Ordering,
     sync::{OnceLock, atomic::AtomicU64},
     time::{Duration, Instant},
 };
@@ -471,12 +470,6 @@ impl PartialEq<u8> for Depth {
     }
 }
 
-impl PartialOrd<u8> for Depth {
-    fn partial_cmp(&self, other: &u8) -> Option<Ordering> {
-        self.0.partial_cmp(other)
-    }
-}
-
 impl std::ops::Add<Self> for Depth {
     type Output = Self;
 
@@ -564,6 +557,12 @@ impl std::ops::Div<i32> for Depth {
 impl std::fmt::Display for Depth {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.0)
+    }
+}
+
+const impl From<u8> for Depth {
+    fn from(value: u8) -> Self {
+        Depth(value)
     }
 }
 

@@ -168,7 +168,7 @@ impl Bitboard {
 
 pub struct SquareIterator(Bitboard);
 
-impl Iterator for SquareIterator {
+const impl Iterator for SquareIterator {
     type Item = Square;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -180,7 +180,7 @@ impl Iterator for SquareIterator {
     }
 }
 
-impl IntoIterator for Bitboard {
+const impl IntoIterator for Bitboard {
     type Item = Square;
     type IntoIter = SquareIterator;
 
@@ -197,7 +197,7 @@ impl std::ops::Sub for Bitboard {
     }
 }
 
-impl std::ops::BitAnd for Bitboard {
+const impl std::ops::BitAnd for Bitboard {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
@@ -243,7 +243,7 @@ const impl std::ops::BitOr<Square> for Bitboard {
     }
 }
 
-impl std::ops::BitOrAssign for Bitboard {
+const impl std::ops::BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
         self.0 = self.0 | rhs.0;
     }

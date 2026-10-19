@@ -63,7 +63,7 @@ impl std::fmt::Display for File {
     }
 }
 
-impl<T> std::ops::Index<File> for [T; File::N] {
+const impl<T> std::ops::Index<File> for [T; File::N] {
     type Output = T;
 
     fn index(&self, index: File) -> &Self::Output {
@@ -71,7 +71,7 @@ impl<T> std::ops::Index<File> for [T; File::N] {
     }
 }
 
-impl<T> std::ops::IndexMut<File> for [T; File::N] {
+const impl<T> std::ops::IndexMut<File> for [T; File::N] {
     fn index_mut(&mut self, index: File) -> &mut Self::Output {
         unsafe { self.get_unchecked_mut(index as usize) }
     }
@@ -257,7 +257,7 @@ impl std::fmt::Display for Square {
     }
 }
 
-impl<T> std::ops::Index<Square> for [T; Square::N] {
+const impl<T> std::ops::Index<Square> for [T; Square::N] {
     type Output = T;
 
     fn index(&self, index: Square) -> &Self::Output {
@@ -265,7 +265,7 @@ impl<T> std::ops::Index<Square> for [T; Square::N] {
     }
 }
 
-impl<T> std::ops::IndexMut<Square> for [T; Square::N] {
+const impl<T> std::ops::IndexMut<Square> for [T; Square::N] {
     fn index_mut(&mut self, index: Square) -> &mut Self::Output {
         unsafe { self.get_unchecked_mut(index.0 as usize) }
     }

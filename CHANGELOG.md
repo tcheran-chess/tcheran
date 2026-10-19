@@ -4,6 +4,7 @@
 
 #### Misc
 
+* Add 'set x y' as a shorthand for 'setoption name x value y'
 * Fix SAN ambiguity case when pieces do not share the same file or rank
 
 ## [14.0]

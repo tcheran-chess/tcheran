@@ -124,6 +124,17 @@ fn cmd_setoption(args: &[&str]) -> Result<UciCommand, String> {
     })
 }
 
+fn cmd_set(args: &[&str]) -> Result<UciCommand, String> {
+    let &[name_arg, value_arg] = args else {
+        return Err("invalid number of arguments".to_string());
+    };
+
+    Ok(UciCommand::SetOption {
+        name: name_arg.to_string(),
+        value: value_arg.to_string(),
+    })
+}
+
 fn parse_moves(moves: &[&str]) -> Result<Vec<UciMove>, String> {
     let moves = moves
         .iter()
@@ -434,6 +445,7 @@ pub fn parse(input: &str) -> Result<UciCommand, String> {
         "debug" => cmd_debug(args),
         "isready" => no_args_command(UciCommand::IsReady, args),
         "setoption" => cmd_setoption(args),
+        "set" => cmd_set(args),
         "ucinewgame" => no_args_command(UciCommand::UciNewGame, args),
         "position" => cmd_position(args),
         "go" => cmd_go(args),

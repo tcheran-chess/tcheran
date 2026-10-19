@@ -286,7 +286,9 @@ impl UciReporter {
 
         print!(" {BRIGHT_BLACK}{formatted_wdl:<10}{RESET}");
 
-        let time = if result.stats.time >= Duration::from_secs(1) {
+        let time = if result.stats.time >= Duration::from_secs(60) {
+            format!("{}m{}s", result.stats.time.as_secs() / 60, result.stats.time.as_secs() % 60)
+        } else if result.stats.time >= Duration::from_secs(1) {
             format!("{:.2}s", result.stats.time.as_secs_f32())
         } else {
             format!("{}ms", result.stats.time.as_millis())

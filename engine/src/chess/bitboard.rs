@@ -31,7 +31,7 @@ impl Bitboard {
     }
 
     #[inline(always)]
-    pub fn contains(self, square: Square) -> bool {
+    pub const fn contains(self, square: Square) -> bool {
         (self & square.bb()).any()
     }
 
@@ -270,7 +270,7 @@ impl std::ops::BitXorAssign for Bitboard {
     }
 }
 
-impl std::ops::Not for Bitboard {
+const impl std::ops::Not for Bitboard {
     type Output = Self;
 
     fn not(self) -> Self::Output {

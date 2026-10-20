@@ -1,8 +1,27 @@
 use crate::chess::{bitboards, direction::Direction, moves::attacks, prelude::*};
 
-static mut BISHOP_NOT_MASKS: [Bitboard; Square::N] = [Bitboard::EMPTY; Square::N];
+const BISHOP_NOT_MASKS: [Bitboard; Square::N] = const {
+    let mut masks = [Bitboard::EMPTY; Square::N];
+
+    for s in Bitboard::FULL {
+        masks[s] = generate_bishop_occupancies(s).invert();
+    }
+
+    masks
+};
+
 const BISHOP_SHIFT: usize = 9;
-static mut ROOK_NOT_MASKS: [Bitboard; Square::N] = [Bitboard::EMPTY; Square::N];
+
+const ROOK_NOT_MASKS: [Bitboard; Square::N] = const {
+    let mut masks = [Bitboard::EMPTY; Square::N];
+
+    for s in Bitboard::FULL {
+        masks[s] = generate_rook_occupancies(s).invert();
+    }
+
+    masks
+};
+
 const ROOK_SHIFT: usize = 12;
 
 type AttacksTable = [Bitboard; 87988];
@@ -97,15 +116,15 @@ impl Iterator for SubsetsOf {
     }
 }
 
-fn generate_bishop_occupancies(square: Square) -> Bitboard {
+const fn generate_bishop_occupancies(square: Square) -> Bitboard {
     generate_sliding_occupancies(square, Direction::DIAGONAL)
 }
 
-fn generate_rook_occupancies(square: Square) -> Bitboard {
+const fn generate_rook_occupancies(square: Square) -> Bitboard {
     generate_sliding_occupancies(square, Direction::CARDINAL)
 }
 
-fn generate_sliding_occupancies(square: Square, directions: &[Direction]) -> Bitboard {
+const fn generate_sliding_occupancies(square: Square, directions: &[Direction]) -> Bitboard {
     let mut squares = Bitboard::EMPTY;
 
     let mut end_mask = Bitboard::EMPTY;
@@ -122,11 +141,12 @@ fn generate_sliding_occupancies(square: Square, directions: &[Direction]) -> Bit
         end_mask |= bitboards::RANK_8;
     }
 
-    for direction in directions {
+    for i in 0..directions.len() {
+        let direction = directions[i];
         let mut sq = square.bb();
 
         while sq.any() {
-            sq = sq.in_direction(*direction) & !end_mask;
+            sq = sq.in_direction(direction) & !end_mask;
             squares |= sq;
         }
     }
@@ -135,9 +155,6 @@ fn generate_sliding_occupancies(square: Square, directions: &[Direction]) -> Bit
 }
 
 pub fn init() {
-    initialise_bishop_not_masks();
-    initialise_rook_not_masks();
-
     initialise_rook_attacks();
     initialise_bishop_attacks();
 }
@@ -168,18 +185,9 @@ fn initialise_bishop_attacks() {
     }
 }
 
-fn initialise_bishop_not_masks() {
-    for s in Bitboard::FULL {
-        let occupancies = generate_bishop_occupancies(s);
-        unsafe {
-            BISHOP_NOT_MASKS[s] = occupancies.invert();
-        }
-    }
-}
-
 fn table_index_bishop(s: Square, blockers: Bitboard) -> usize {
     let (magic, index) = DEFAULT_BISHOP_MAGICS[s];
-    let not_mask = unsafe { BISHOP_NOT_MASKS[s] };
+    let not_mask = BISHOP_NOT_MASKS[s];
 
     let relevant_occupancies = blockers | not_mask;
     let mut occupancies_index_offset: u64 = relevant_occupancies.as_u64().wrapping_mul(magic);
@@ -204,18 +212,9 @@ fn initialise_rook_attacks() {
     }
 }
 
-fn initialise_rook_not_masks() {
-    for s in Bitboard::FULL {
-        let occupancies = generate_rook_occupancies(s);
-        unsafe {
-            ROOK_NOT_MASKS[s] = occupancies.invert();
-        }
-    }
-}
-
 fn table_index_rook(s: Square, blockers: Bitboard) -> usize {
     let (magic, index) = DEFAULT_ROOK_MAGICS[s];
-    let not_mask = unsafe { ROOK_NOT_MASKS[s] };
+    let not_mask = ROOK_NOT_MASKS[s];
 
     let relevant_occupancies = blockers | not_mask;
     let mut occupancies_index_offset: u64 = relevant_occupancies.as_u64().wrapping_mul(magic);

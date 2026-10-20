@@ -212,6 +212,7 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, String> {
     let mut movetime = None;
     let mut depth = None;
     let mut nodes = None;
+    let mut searchmoves = None;
 
     let mut args = args.iter();
     while let Some(&arg) = args.next() {
@@ -262,6 +263,19 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, String> {
                         .map_err(|_| "invalid nodes")?,
                 );
             }
+            "searchmoves" => {
+                let mut m = Vec::new();
+                for mv in args.by_ref() {
+                    m.push(*mv);
+                }
+
+                if m.is_empty() {
+                    return Err("no searchmoves".to_string());
+                }
+
+                let moves = parse_moves(&m)?;
+                searchmoves = Some(moves);
+            }
             _ => return Err(format!("unknown 'go' argument: {arg}")),
         }
     }
@@ -307,7 +321,10 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, String> {
         _ => return Err("conflicting time control types".to_string()),
     };
 
-    Ok(UciCommand::Go { time_control })
+    Ok(UciCommand::Go {
+        time_control,
+        searchmoves,
+    })
 }
 
 fn cmd_move(args: &[&str]) -> Result<UciCommand, String> {

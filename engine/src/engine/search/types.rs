@@ -145,6 +145,10 @@ impl RootMoves {
     pub fn has_move(&self, mv: Move) -> bool {
         self.find_mv(mv).is_some()
     }
+
+    pub fn retain(&mut self, f: impl FnMut(&RootMove) -> bool) {
+        self.0.retain(f);
+    }
 }
 
 #[derive(Debug, Clone)]

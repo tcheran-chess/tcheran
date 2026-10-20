@@ -23,6 +23,7 @@ pub enum UciCommand {
     },
     Go {
         time_control: TimeControl,
+        searchmoves: Option<Vec<UciMove>>,
     },
     Stop,
 

@@ -72,6 +72,20 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr().cast(), self.len) }
             .iter_mut()
     }
+
+    pub fn retain(&mut self, mut f: impl FnMut(&T) -> bool) {
+        let mut kept = 0;
+
+        for index in 0..self.len {
+            let value = unsafe { self.data.get_unchecked(index).assume_init() };
+            if f(&value) {
+                self.data[kept].write(value);
+                kept += 1;
+            }
+        }
+
+        self.len = kept;
+    }
 }
 
 impl<'a, T: Copy, const N: usize> IntoIterator for &'a ArrayVec<T, N> {

@@ -14,7 +14,12 @@ use std::{
 
 use crate::{
     ENGINE_NAME, ENGINE_VERSION,
-    chess::{notations::san, perft, prelude::*},
+    chess::{
+        moves::{MoveList, MoveListExt},
+        notations::san,
+        perft,
+        prelude::*,
+    },
     engine::{
         eval::{
             WhiteEval,
@@ -259,7 +264,10 @@ impl Uci {
                 self.game = game;
                 self.game.is_frc = self.options.frc;
             }
-            UciCommand::Go { time_control } => {
+            UciCommand::Go {
+                time_control,
+                searchmoves,
+            } => {
                 if self.threads.busy() {
                     self.reporter.generic_report("already searching");
                     return Ok(ExecuteResult::KeepGoing);
@@ -267,6 +275,24 @@ impl Uci {
 
                 let mut root_moves = RootMoves::default_for(&self.game);
                 let mut root_tb_info = None;
+
+                if let Some(searchmoves) = searchmoves {
+                    let legal_moves = self.game.moves();
+                    let mut moves = MoveList::new();
+
+                    // Check all of the moves are legal first
+                    for ucimove in searchmoves {
+                        let Some(matching_move) =
+                            legal_moves.find_matching(ucimove.from, ucimove.to, ucimove.promotion)
+                        else {
+                            return Err("Illegal move".to_string());
+                        };
+
+                        moves.push(matching_move);
+                    }
+
+                    root_moves.retain(|rm| moves.contains(rm.mv));
+                }
 
                 if self.persistent_state.tablebase.can_probe(&self.game)
                     && let Some((tb_root_moves, tb_info)) = self

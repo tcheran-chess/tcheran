@@ -7,6 +7,15 @@ pub const MAX_LEGAL_MOVES: usize = 218;
 pub type MoveList = ArrayVec<Move, MAX_LEGAL_MOVES>;
 
 pub trait MoveListExt {
+    fn find_matching(
+        &self,
+        from: Square,
+        to: Square,
+        promotion: Option<PromotionPieceKind>,
+    ) -> Option<Move>;
+
+    fn contains(&self, mv: Move) -> bool;
+
     fn expect_matching(&self, from: Square, to: Square) -> Move;
 
     fn expect_matching_with_promotion(
@@ -18,8 +27,30 @@ pub trait MoveListExt {
 }
 
 impl MoveListExt for ArrayVec<Move, MAX_LEGAL_MOVES> {
+    fn find_matching(
+        &self,
+        from: Square,
+        to: Square,
+        promotion: Option<PromotionPieceKind>,
+    ) -> Option<Move> {
+        for i in 0..self.len() {
+            let mv = *self.get(i);
+
+            if mv.from() == from && mv.to() == to && mv.promotion() == promotion {
+                return Some(mv);
+            }
+        }
+
+        None
+    }
+
+    fn contains(&self, mv: Move) -> bool {
+        self.find_matching(mv.from(), mv.to(), mv.promotion())
+            .is_some()
+    }
+
     fn expect_matching(&self, from: Square, to: Square) -> Move {
-        self.expect_matching_with_promotion(from, to, None)
+        self.find_matching(from, to, None).expect("Illegal move")
     }
 
     fn expect_matching_with_promotion(
@@ -28,15 +59,8 @@ impl MoveListExt for ArrayVec<Move, MAX_LEGAL_MOVES> {
         to: Square,
         promotion: Option<PromotionPieceKind>,
     ) -> Move {
-        for i in 0..self.len() {
-            let mv = *self.get(i);
-
-            if mv.from() == from && mv.to() == to && mv.promotion() == promotion {
-                return mv;
-            }
-        }
-
-        panic!("Illegal move")
+        self.find_matching(from, to, promotion)
+            .expect("Illegal move")
     }
 }
 

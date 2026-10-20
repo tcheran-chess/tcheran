@@ -4,7 +4,7 @@ use crate::{
     chess::{MAX_LEGAL_MOVES, moves::MoveListExt, prelude::*},
     engine::{
         eval::Eval,
-        search::{RootMove, RootTbInfo},
+        search::{RootMove, RootMoves, RootTbInfo},
         tablebases::bindings::{self, TbRootMove, TbRootMoves},
     },
     util::arrayvec::ArrayVec,
@@ -88,7 +88,11 @@ impl Tablebase {
         }
     }
 
-    pub fn root_wdl_dtz(&self, game: &Game) -> Option<RootTbInfo> {
+    pub fn root_wdl_dtz(
+        &self,
+        game: &Game,
+        allowed_moves: &RootMoves,
+    ) -> Option<(RootMoves, RootTbInfo)> {
         debug_assert!(self.is_enabled);
 
         if game.castle_rights[White].any() || game.castle_rights[Black].any() {
@@ -154,6 +158,7 @@ impl Tablebase {
         let mut root_moves_vec: Vec<_> = (0..tb_moves.size as usize)
             .map(|i| tb_moves.moves[i])
             .map(|m| Self::to_root_move(game, &m))
+            .filter(|m| allowed_moves.has_move(m.mv))
             .collect();
 
         // If moves immediately draw, set their rank to 0.
@@ -184,10 +189,7 @@ impl Tablebase {
 
         let probe_wdl = !dtz_found && root_moves.get(0).tb_score.is_win();
 
-        Some(RootTbInfo {
-            root_moves,
-            probe_wdl,
-        })
+        Some((RootMoves::new(root_moves), RootTbInfo { probe_wdl }))
     }
 
     fn to_root_move(game: &Game, tb: &TbRootMove) -> RootMove {

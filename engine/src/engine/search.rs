@@ -38,6 +38,7 @@ pub fn search(
     game: &Game,
     persistent_state: &PersistentState,
     thread_data: &mut ThreadData,
+    root_moves: &RootMoves,
     root_tb_info: Option<RootTbInfo>,
     results: &SearchResults,
     time_control: TimeControl,
@@ -59,6 +60,7 @@ pub fn search(
         tables,
         stack,
         nnue,
+        root_moves,
         root_tb_info,
         time_control,
         stop_control.clone(),
@@ -133,6 +135,7 @@ pub fn st_search(
         game,
         persistent_state,
         thread_data,
+        &RootMoves::default_for(game),
         None,
         &SearchResults::new(1),
         time_control,
@@ -189,7 +192,7 @@ pub fn iterative_deepening(
         // the tablebase score (e.g. search returns a non-win score, but we know it's a win from the
         // tablebase) then we display the tablebase score instead.
         if let Some(ref root_tb_info) = ctx.root_tb_info {
-            root_tb_info.correct_score(&mut this_result);
+            root_tb_info.correct_score(ctx, &mut this_result);
         }
 
         if !ctx.options.minimal {
@@ -653,10 +656,7 @@ pub fn negamax(
             continue;
         }
 
-        if is_root
-            && let Some(ref root_tb_info) = ctx.root_tb_info
-            && !root_tb_info.has_move(mv)
-        {
+        if is_root && !ctx.root_moves.has_move(mv) {
             continue;
         }
 

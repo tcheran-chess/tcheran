@@ -104,24 +104,57 @@ pub struct RootMove {
     pub tb_rank: i32,
 }
 
-#[derive(Debug, Clone)]
-pub struct RootTbInfo {
-    pub root_moves: ArrayVec<RootMove, MAX_LEGAL_MOVES>,
+impl RootMove {
+    pub fn for_move(mv: Move) -> Self {
+        Self {
+            mv,
 
-    pub probe_wdl: bool,
+            tb_score: Eval::NONE,
+            tb_rank: 0,
+        }
+    }
 }
 
-impl RootTbInfo {
+#[derive(Debug, Clone)]
+pub struct RootMoves(ArrayVec<RootMove, MAX_LEGAL_MOVES>);
+
+impl RootMoves {
+    pub fn new(moves: ArrayVec<RootMove, MAX_LEGAL_MOVES>) -> Self {
+        Self(moves)
+    }
+
+    pub fn default_for(game: &Game) -> Self {
+        let moves: Vec<_> = game
+            .moves()
+            .into_iter()
+            .map(|mv| RootMove::for_move(*mv))
+            .collect();
+
+        let mut movelist = ArrayVec::<RootMove, MAX_LEGAL_MOVES>::new();
+        for m in moves {
+            movelist.push(m);
+        }
+
+        Self::new(movelist)
+    }
+
     fn find_mv(&self, mv: Move) -> Option<&RootMove> {
-        self.root_moves.into_iter().find(|m| m.mv == mv)
+        self.0.into_iter().find(|m| m.mv == mv)
     }
 
     pub fn has_move(&self, mv: Move) -> bool {
         self.find_mv(mv).is_some()
     }
+}
 
-    pub fn correct_score(&self, result: &mut SearchResult) {
-        let root_mv = self.find_mv(result.mv).unwrap_or_else(|| {
+#[derive(Debug, Clone)]
+pub struct RootTbInfo {
+    pub probe_wdl: bool,
+}
+
+impl RootTbInfo {
+    pub fn correct_score(&self, ctx: &SearchContext<'_>, result: &mut SearchResult) {
+        let root_mv = ctx.root_moves.find_mv(result.mv).unwrap_or_else(|| {
             panic!("move {:?} returned from search did not have an equivalent root move", result.mv)
         });
 
@@ -145,6 +178,7 @@ pub struct SearchContext<'s> {
     pub nnue: &'s mut NetworkStack,
     pub stack: &'s mut SearchStack,
 
+    pub root_moves: &'s RootMoves,
     pub root_tb_info: Option<RootTbInfo>,
 
     time_control: TimeStrategy,
@@ -170,6 +204,7 @@ impl<'s> SearchContext<'s> {
         tables: &'s mut Tables,
         search_stack: &'s mut SearchStack,
         nnue: &'s mut NetworkStack,
+        root_moves: &'s RootMoves,
         root_tb_info: Option<RootTbInfo>,
         time_control: TimeControl,
         stop_control: StopControl,
@@ -185,6 +220,7 @@ impl<'s> SearchContext<'s> {
             nnue,
             time_control: TimeStrategy::new(game, time_control, stop_control, options),
 
+            root_moves,
             root_tb_info,
 
             id,

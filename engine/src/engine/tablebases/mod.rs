@@ -13,7 +13,10 @@ cfg_select! {
         pub use tablebases::*;
     }
     _ => {
-        use crate::{chess::prelude::*, engine::search::RootTbInfo};
+        use crate::{
+            chess::prelude::*,
+            engine::search::{RootMoves, RootTbInfo},
+        };
 
         #[derive(Clone)]
         pub struct Tablebase;
@@ -37,7 +40,11 @@ cfg_select! {
                 None
             }
 
-            pub fn root_wdl_dtz(&self, _game: &Game) -> Option<RootTbInfo> {
+            pub fn root_wdl_dtz(
+                &self,
+                _game: &Game,
+                _allowed_moves: &RootMoves,
+            ) -> Option<(RootMoves, RootTbInfo)> {
                 None
             }
         }

@@ -8,7 +8,7 @@ use crate::{
     engine::{
         options::{EngineOptions, defaults},
         search::{
-            NullReporter, PersistentState, TimeControl, time_control::StopControl,
+            NullReporter, PersistentState, RootMoves, TimeControl, time_control::StopControl,
             types::SearchResults,
         },
         uci::{ThreadCommand, Threads},
@@ -83,6 +83,8 @@ pub fn speedtest(threads: Option<u64>, hash: Option<u64>, duration: Option<u64>)
 
     let opts = |game: Game| {
         let state = state.clone();
+        let root_moves = RootMoves::default_for(&game);
+
         ThreadCommand::Search {
             game,
             time_control: TimeControl::ExactTime {
@@ -92,6 +94,7 @@ pub fn speedtest(threads: Option<u64>, hash: Option<u64>, duration: Option<u64>)
             stop_control: StopControl::new(nthreads as u32),
             options: EngineOptions::DEFAULT,
             persistent_state: state,
+            root_moves,
             root_tb_info: None,
             reporter: &NullReporter,
             results: Arc::new(SearchResults::new(nthreads as usize)),

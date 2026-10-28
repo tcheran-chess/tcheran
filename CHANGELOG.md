@@ -13,6 +13,7 @@
 * Implement 'go searchmoves'
 * Add 'set x y' as a shorthand for 'setoption name x value y'
 * Fix SAN ambiguity case when pieces do not share the same file or rank
+* Only little-endian systems are supported
 
 ## [14.0]
 

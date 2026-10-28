@@ -1,4 +1,9 @@
-use crate::{FEATURES, INPUT_BUCKETS, L1, L2, L3, Network, OUTPUT_BUCKETS};
+use std::{fs, path::PathBuf};
+
+use crate::{
+    ATTACKS_TABLE_SIZE, BISHOP_MAGICS, BISHOP_SHIFT, FEATURES, INPUT_BUCKETS, L1, L2, L3, Network,
+    OUTPUT_BUCKETS, ROOK_MAGICS, ROOK_SHIFT,
+};
 
 #[repr(C, align(64))]
 pub struct RawNetwork {
@@ -128,4 +133,120 @@ pub fn preprocess(src: &RawNetwork, dst: &mut Network) {
 
         std::ptr::copy_nonoverlapping(&raw const src.l3_biases, &raw mut dst.l3_biases, 1);
     }
+}
+
+pub fn init_magics() {
+    let rook_offsets = &[(1, 0), (0, 1), (-1, 0), (0, -1)];
+    let bishop_offsets = &[(1, 1), (-1, 1), (-1, -1), (1, -1)];
+
+    let rook_not_masks = generate_not_masks(rook_offsets);
+    let bishop_not_masks = generate_not_masks(bishop_offsets);
+
+    let mut table = vec![0_u64; ATTACKS_TABLE_SIZE];
+    fill_attacks(&mut table, &ROOK_MAGICS, &rook_not_masks, rook_offsets, ROOK_SHIFT);
+    fill_attacks(&mut table, &BISHOP_MAGICS, &bishop_not_masks, bishop_offsets, BISHOP_SHIFT);
+
+    let out_dir = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
+    fs::write(out_dir.join("magics.bin"), to_raw_bytes(&table)).unwrap();
+    fs::write(out_dir.join("rook_not_masks.bin"), to_raw_bytes(&rook_not_masks)).unwrap();
+    fs::write(out_dir.join("bishop_not_masks.bin"), to_raw_bytes(&bishop_not_masks)).unwrap();
+    println!("cargo:rerun-if-changed=src/chess/moves/tables/magic_consts.rs");
+}
+
+fn generate_not_masks(directions: &[(i8, i8)]) -> [u64; 64] {
+    std::array::from_fn(|square| {
+        let rank = (square / 8) as i8;
+        let file = (square % 8) as i8;
+
+        let mut end_mask = 0_u64;
+
+        if file != 0 {
+            end_mask |= file_mask(0);
+        }
+        if file != 7 {
+            end_mask |= file_mask(7);
+        }
+        if rank != 0 {
+            end_mask |= rank_mask(0);
+        }
+        if rank != 7 {
+            end_mask |= rank_mask(7);
+        }
+
+        !(sliding_attacks(square, 0, directions) & !end_mask)
+    })
+}
+
+fn fill_attacks(
+    table: &mut [u64],
+    magics: &[(u64, usize)],
+    not_masks: &[u64; 64],
+    directions: &[(i8, i8)],
+    shift: usize,
+) {
+    for (square, &(magic, base_index)) in magics.iter().enumerate() {
+        let not_mask = not_masks[square];
+        let occupancy_mask = !not_mask;
+        let mut blockers = 0_u64;
+
+        loop {
+            blockers = blockers.wrapping_sub(occupancy_mask) & occupancy_mask;
+            let subset_index = (blockers | not_mask).wrapping_mul(magic) >> (64 - shift);
+            let table_index = base_index + subset_index as usize;
+            table[table_index] = sliding_attacks(square, blockers, directions);
+
+            if blockers == 0 {
+                break;
+            }
+        }
+    }
+}
+
+fn sliding_attacks(square: usize, blockers: u64, directions: &[(i8, i8)]) -> u64 {
+    let rank = (square / 8) as i8;
+    let file = (square % 8) as i8;
+    let mut attacks = 0_u64;
+
+    for &(rank_step, file_step) in directions {
+        let (mut next_rank, mut next_file) = (rank, file);
+        loop {
+            next_rank += rank_step;
+            next_file += file_step;
+            if !inside_board(next_rank, next_file) {
+                break;
+            }
+
+            let next_square = square_bb(next_rank, next_file);
+            attacks |= next_square;
+            if blockers & next_square != 0 {
+                break;
+            }
+        }
+    }
+
+    attacks
+}
+
+const fn inside_board(rank: i8, file: i8) -> bool {
+    rank >= 0 && rank < 8 && file >= 0 && file < 8
+}
+
+const fn square_bb(rank: i8, file: i8) -> u64 {
+    1_u64 << (rank as usize * 8 + file as usize)
+}
+
+const fn file_mask(file: usize) -> u64 {
+    0x0101_0101_0101_0101_u64 << file
+}
+
+const fn rank_mask(rank: usize) -> u64 {
+    0xFF_u64 << (rank * 8)
+}
+
+fn to_raw_bytes(values: &[u64]) -> Vec<u8> {
+    let mut bytes = Vec::with_capacity(size_of_val(values));
+    for value in values {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+    bytes
 }

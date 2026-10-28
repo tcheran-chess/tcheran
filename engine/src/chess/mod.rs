@@ -30,6 +30,5 @@ pub use moves::MAX_LEGAL_MOVES;
 pub use square::{ranks, squares};
 
 pub fn init() {
-    moves::init();
     rays::init();
 }

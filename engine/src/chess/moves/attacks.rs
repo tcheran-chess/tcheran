@@ -52,14 +52,17 @@ pub const fn generate_knight_attacks(square: Square) -> Bitboard {
     Bitboard::new(attacks)
 }
 
+#[allow(unused, reason = "Here for completeness")]
 pub fn generate_bishop_attacks(square: Square, pieces: Bitboard) -> Bitboard {
     generate_sliding_attacks(square, Direction::DIAGONAL, pieces)
 }
 
+#[allow(unused, reason = "Here for completeness")]
 pub fn generate_rook_attacks(square: Square, pieces: Bitboard) -> Bitboard {
     generate_sliding_attacks(square, Direction::CARDINAL, pieces)
 }
 
+#[allow(unused, reason = "Here for completeness")]
 fn generate_sliding_attacks(
     square: Square,
     directions: &[Direction],

@@ -1,5 +1,6 @@
 use crate::chess::{direction::Direction, prelude::*};
 
+#[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub struct Bitboard(u64);
 

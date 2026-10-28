@@ -4,19 +4,27 @@ use std::{
     process::Command,
 };
 
-use crate::preprocessing::RawNetwork;
+use crate::preprocessing::{RawNetwork, init_magics};
 
 mod preprocessing;
 
 // Make the network architecture definition available for preprocessing
 include!("src/engine/eval/nnue/network.rs");
 
+// Make magic number consts available for preprocessing
+include!("src/chess/moves/tables/magic_consts.rs");
+
 const NETWORK_FILE: &str = "v25-fbb7eab6.nnue";
 const DOWNLOAD_BASE_URL: &str =
     "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks";
 
 fn main() {
+    let target_endianness =
+        env::var("CARGO_CFG_TARGET_ENDIAN").expect("Unable to determine target endianness");
+    assert_eq!(target_endianness, "little", "Only little endian targets are supported");
+
     generate_engine_version();
+    init_magics();
 
     let network_file = setup_network();
     let network_file = preprocess_network(&network_file);

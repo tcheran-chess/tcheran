@@ -29,6 +29,4 @@ pub use game::{CastleRights, CastleRightsSide, MoveObserver};
 pub use moves::MAX_LEGAL_MOVES;
 pub use square::{ranks, squares};
 
-pub fn init() {
-    rays::init();
-}
+pub fn init() {}

@@ -177,6 +177,11 @@ impl Square {
     }
 
     #[inline(always)]
+    pub const fn array_idx(self) -> usize {
+        self.0 as usize
+    }
+
+    #[inline(always)]
     pub fn rank(self) -> Rank {
         Rank::from_idx(self.idx() / 8)
     }

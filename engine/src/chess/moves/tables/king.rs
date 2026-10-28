@@ -12,6 +12,6 @@ static ATTACKS_TABLE: [Bitboard; Square::N] = const {
     attacks
 };
 
-pub fn lookup_king_attacks(s: Square) -> Bitboard {
-    ATTACKS_TABLE[s]
+pub const fn lookup_king_attacks(s: Square) -> Bitboard {
+    ATTACKS_TABLE[s.array_idx()]
 }

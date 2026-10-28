@@ -24,26 +24,26 @@ static ATTACKS_TABLE: [Bitboard; ATTACKS_TABLE_SIZE] = unsafe {
     >(*include_bytes!(concat!(env!("OUT_DIR"), "/magics.bin")))
 };
 
-pub fn lookup_rook_attacks(s: Square, blockers: Bitboard) -> Bitboard {
+pub const fn lookup_rook_attacks(s: Square, blockers: Bitboard) -> Bitboard {
     let index = table_index(s, blockers, &ROOK_MAGICS, &ROOK_NOT_MASKS, ROOK_SHIFT);
     ATTACKS_TABLE[index]
 }
 
-pub fn lookup_bishop_attacks(s: Square, blockers: Bitboard) -> Bitboard {
+pub const fn lookup_bishop_attacks(s: Square, blockers: Bitboard) -> Bitboard {
     let index = table_index(s, blockers, &BISHOP_MAGICS, &BISHOP_NOT_MASKS, BISHOP_SHIFT);
     ATTACKS_TABLE[index]
 }
 
-fn table_index(
+const fn table_index(
     square: Square,
     blockers: Bitboard,
     magics: &[(u64, usize); Square::N],
     not_masks: &[Bitboard; Square::N],
     shift: usize,
 ) -> usize {
-    let (magic, index) = magics[square];
-    let relevant_occupancies = blockers | not_masks[square];
-    let mut offset = relevant_occupancies.as_u64().wrapping_mul(magic);
+    let (magic, index) = magics[square.array_idx()];
+    let relevant_occupancies = blockers.as_u64() | not_masks[square.array_idx()].as_u64();
+    let mut offset = relevant_occupancies.wrapping_mul(magic);
     offset >>= Square::N - shift;
     index + offset as usize
 }

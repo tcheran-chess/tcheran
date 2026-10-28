@@ -11,17 +11,17 @@ pub fn knight_attacks(s: Square) -> Bitboard {
 }
 
 #[inline]
-pub fn bishop_attacks(s: Square, pieces: Bitboard) -> Bitboard {
+pub const fn bishop_attacks(s: Square, pieces: Bitboard) -> Bitboard {
     tables::lookup_bishop_attacks(s, pieces)
 }
 
 #[inline]
-pub fn rook_attacks(s: Square, pieces: Bitboard) -> Bitboard {
+pub const fn rook_attacks(s: Square, pieces: Bitboard) -> Bitboard {
     tables::lookup_rook_attacks(s, pieces)
 }
 
 #[inline]
-pub fn king_attacks(s: Square) -> Bitboard {
+pub const fn king_attacks(s: Square) -> Bitboard {
     tables::lookup_king_attacks(s)
 }
 

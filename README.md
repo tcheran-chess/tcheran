@@ -26,6 +26,7 @@ details, including a detailed network history are available in
 
 | Version | [COPE Rapid][cope-rapid] | [COPE Bullet][cope-bullet] | [COPE FRC][cope-frc] | [IPMan R9][ipman-r9] | [CCRL 40/15][ccrl-ltc] | [CCRL Blitz][ccrl-blitz] | [CCRL FRC][ccrl-frc] |
 | ------- | ------------------------ | -------------------------- | -------------------- | -------------------- | ---------------------- | ------------------------ | -------------------- |
+| v14.0   | 3660 (#17)               | 3663 (#18)                 |                      | 3494 (#30)           |                        | 3695 (#30)               | 3970 (#23)           |
 | v13.0   | 3626                     | 3621                       | 3647                 |                      | 3563                   | 3684                     | 3945                 |
 | v12.0   |                          |                            |                      |                      | 3534                   | 3651                     | 3806                 |
 | v11.0   |                          |                            |                      |                      | 3514                   | 3635                     |                      |

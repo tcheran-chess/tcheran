@@ -1071,7 +1071,7 @@ mod tests {
 
     #[test]
     fn test_draw_by_insufficient_material() {
-        crate::init();
+        crate::chess::init();
 
         // Knight vs Bishop mate
         assert!(
@@ -1094,7 +1094,7 @@ mod tests {
 
     #[test]
     fn test_en_passant_target_not_set_if_not_legal() {
-        crate::init();
+        crate::chess::init();
 
         let mut game = Game::from_valid_fen("k7/3p4/8/K3P2r/8/8/8/8 b - - 0 1");
         game.make_move(game.moves().expect_matching(D7, D5));
@@ -1125,7 +1125,7 @@ mod tests {
 
     #[test]
     fn test_islegal_castling_in_kiwipete() {
-        crate::init();
+        crate::chess::init();
 
         let game = Game::from_valid_fen(
             "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
@@ -1135,7 +1135,7 @@ mod tests {
 
     #[test]
     fn test_islegal_en_passant_in_bench_position() {
-        crate::init();
+        crate::chess::init();
 
         let game =
             Game::from_valid_fen("5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28");

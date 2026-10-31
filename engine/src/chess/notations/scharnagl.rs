@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn test_dfrc_from_idx() {
-        crate::init();
+        crate::chess::init();
 
         check_dfrc_idx_matches_fen(0, "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1");
         check_dfrc_idx_matches_fen(

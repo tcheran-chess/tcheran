@@ -458,7 +458,7 @@ mod tests {
 
     #[inline(always)]
     fn should_allow_move(fen: &str, mv: (Square, Square)) {
-        crate::init();
+        crate::chess::init();
         let game = Game::from_valid_fen(fen);
         let mut movelist = MoveList::new();
         generate_legal_moves(&game, |m| movelist.push(m));
@@ -468,7 +468,7 @@ mod tests {
 
     #[inline(always)]
     fn should_not_allow_move(fen: &str, mv: (Square, Square)) {
-        crate::init();
+        crate::chess::init();
         let game = Game::from_valid_fen(fen);
         let mut movelist = MoveList::new();
         generate_legal_moves(&game, |m| movelist.push(m));
@@ -511,7 +511,7 @@ mod tests {
 
     #[test]
     fn test_forbid_en_passant_revealed_check() {
-        crate::init();
+        crate::chess::init();
 
         let mut game = Game::from_valid_fen("8/8/8/8/k3p2Q/8/3P4/3K4 w - - 0 1");
         game.make_move(game.moves().expect_matching(D2, D4));
@@ -551,7 +551,7 @@ mod tests {
 
     #[test]
     fn test_en_passant_diagonal_pin_20260413() {
-        crate::init();
+        crate::chess::init();
 
         let mut game =
             Game::from_valid_fen("q7/2p3k1/3b2p1/pp1Pnp1p/3Q3P/P1P3P1/1P3PK1/2NB4 b - - 1 33");

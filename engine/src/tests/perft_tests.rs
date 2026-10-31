@@ -14,7 +14,7 @@ const ENABLE_MOVEPICKER_PERFT: bool = false;
 const ENABLE_ISLEGAL_PERFT: bool = false;
 
 fn test_perft(fen: &str, depth: u8, expected_positions: usize) {
-    crate::init();
+    crate::chess::init();
 
     let mut game = Game::from_valid_fen(fen);
 

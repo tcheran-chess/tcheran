@@ -162,37 +162,37 @@ mod tests {
 
     #[test]
     fn test_between_on_rank() {
-        crate::init();
+        crate::chess::init();
         assert_eq!(ray_between(B4, G4), C4 | D4 | E4 | F4);
     }
 
     #[test]
     fn test_between_on_rank_for_full_rank() {
-        crate::init();
+        crate::chess::init();
         assert_eq!(ray_between(A1, H1), B1 | C1 | D1 | E1 | F1 | G1);
     }
 
     #[test]
     fn test_between_on_file() {
-        crate::init();
+        crate::chess::init();
         assert_eq!(ray_between(C2, C7), C3 | C4 | C5 | C6);
     }
 
     #[test]
     fn test_between_on_file_for_full_file() {
-        crate::init();
+        crate::chess::init();
         assert_eq!(ray_between(H1, H8), H2 | H3 | H4 | H5 | H6 | H7);
     }
 
     #[test]
     fn test_between_on_diagonal() {
-        crate::init();
+        crate::chess::init();
         assert_eq!(ray_between(A1, H8), B2 | C3 | D4 | E5 | F6 | G7);
     }
 
     #[test]
     fn test_between_on_diagonal_descending() {
-        crate::init();
+        crate::chess::init();
         assert_eq!(ray_between(A8, H1), B7 | C6 | D5 | E4 | F3 | G2);
     }
 }

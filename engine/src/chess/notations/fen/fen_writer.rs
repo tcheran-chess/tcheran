@@ -141,7 +141,7 @@ mod tests {
 
     #[test]
     fn format_startpos() {
-        crate::init();
+        crate::chess::init();
 
         assert_eq!(
             Game::new().to_fen(),

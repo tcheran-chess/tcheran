@@ -22,7 +22,8 @@ enum Command {
 }
 
 pub fn main() -> Result<ExitCode> {
-    engine::init();
+    engine::chess::init();
+    engine::engine::init();
 
     let cli = Cli::parse();
 

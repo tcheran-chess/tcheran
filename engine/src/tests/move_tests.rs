@@ -10,7 +10,7 @@ use crate::{
 };
 
 fn test_expected_move(fen: &str, depth: Depth, mv: (Square, Square)) -> SearchResult {
-    crate::init();
+    crate::chess::init();
     let game = Game::from_valid_fen(fen);
 
     let mut state = PersistentState::new(16);

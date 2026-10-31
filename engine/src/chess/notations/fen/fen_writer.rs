@@ -141,8 +141,6 @@ mod tests {
 
     #[test]
     fn format_startpos() {
-        crate::chess::init();
-
         assert_eq!(
             Game::new().to_fen(),
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"

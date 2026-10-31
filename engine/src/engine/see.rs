@@ -165,7 +165,6 @@ mod tests {
     }
 
     fn should_be_good_capture(fen: &str, mv: (Square, Square)) {
-        crate::chess::init();
         use_basic_see_values();
 
         let game = Game::from_valid_fen(fen);
@@ -175,7 +174,6 @@ mod tests {
     }
 
     fn should_be_bad_capture(fen: &str, mv: (Square, Square)) {
-        crate::chess::init();
         use_basic_see_values();
 
         let game = Game::from_valid_fen(fen);
@@ -218,7 +216,6 @@ mod tests {
             // ("5rk1/1pp2q1p/p1pb4/8/3P1NP1/2P5/1P1BQ1P1/5RK1 b - - 0 1", "d6f4", -100, true),
         ];
 
-        crate::chess::init();
         use_basic_see_values();
 
         for (fen, ucimv, threshold, result) in SEE_SUITE {
@@ -235,7 +232,6 @@ mod tests {
     // Test suite stolen from Starzix
     #[test]
     fn test_see_starzix() {
-        crate::chess::init();
         use_basic_see_values();
 
         #[rustfmt::skip]

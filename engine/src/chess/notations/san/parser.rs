@@ -275,8 +275,6 @@ mod tests {
     use crate::chess::notations::fen;
 
     fn test_parse_san(fen: &'static str, expected_mv: (Square, Square), san: &'static str) {
-        crate::chess::init();
-
         let game = Game::from_valid_fen(fen);
         let mv = parse_move(&game, san).unwrap();
 
@@ -290,8 +288,6 @@ mod tests {
         expected_mv: (Square, Square, PromotionPieceKind),
         san: &'static str,
     ) {
-        crate::chess::init();
-
         let game = Game::from_valid_fen(fen);
         let mv = parse_move(&game, san).unwrap();
 

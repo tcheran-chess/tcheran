@@ -155,7 +155,6 @@ mod tests {
     #[test]
     // Ported verbatim from Viridithas
     fn upcoming_repetition_simple() {
-        crate::chess::init();
         init();
 
         let mut game = Game::from_valid_fen("4k3/8/8/8/8/8/8/R3K3 w - - 0 1");
@@ -172,7 +171,6 @@ mod tests {
     #[test]
     // Ported verbatim from Viridithas
     fn upcoming_repetition_threefold() {
-        crate::chess::init();
         init();
 
         // 1. Nf3 Nc6 2. Ng1: black can play Nb8.

@@ -14,8 +14,7 @@ fn main() -> ExitCode {
         log::crashlog(panic_message, &UciReporter::default());
     }));
 
-    engine::chess::init();
-    engine::engine::init();
+    engine::init();
     run()
 }
 

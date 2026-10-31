@@ -143,8 +143,6 @@ mod tests {
     use crate::chess::{moves::MoveListExt, notations::fen};
 
     fn test_san_string(fen: &'static str, mv: (Square, Square), expected_san: &'static str) {
-        crate::chess::init();
-
         let game = Game::from_valid_fen(fen);
         let (from, to) = mv;
         let mv = game.moves().expect_matching(from, to);
@@ -158,8 +156,6 @@ mod tests {
         mv: (Square, Square, PromotionPieceKind),
         expected_san: &'static str,
     ) {
-        crate::chess::init();
-
         let game = Game::from_valid_fen(fen);
         let (from, to, promotion) = mv;
         let mv = game
@@ -210,8 +206,6 @@ mod tests {
 
     #[test]
     fn san_file_ambiguity() {
-        crate::chess::init();
-
         let fen = "R6R/8/8/8/8/8/8/1k4K1 w - - 0 1";
         let game = Game::from_valid_fen(fen);
         let ambiguous_move = (A8, B8);
@@ -230,8 +224,6 @@ mod tests {
 
     #[test]
     fn san_rank_ambiguity() {
-        crate::chess::init();
-
         let fen = "R7/8/8/8/8/1k4K1/8/R7 w - - 0 1";
         let game = Game::from_valid_fen(fen);
         let ambiguous_move = (A1, A3);
@@ -250,8 +242,6 @@ mod tests {
 
     #[test]
     fn san_exact_ambiguity() {
-        crate::chess::init();
-
         let fen = "1k1K4/8/8/8/4Q2Q/8/8/7Q w - - 0 1";
         let game = Game::from_valid_fen(fen);
         let ambiguous_move = (H4, E1);

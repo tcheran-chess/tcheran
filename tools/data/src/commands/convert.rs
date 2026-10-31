@@ -212,8 +212,6 @@ mod tests {
 
     #[test]
     fn test_pgn_parsing_doesnt_panic() {
-        engine::chess::init();
-
         let sample_pgn = r#"
 [Event "Fastchess Tournament"]
 [Site "?"]

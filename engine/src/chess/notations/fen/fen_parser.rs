@@ -312,8 +312,6 @@ mod tests {
 
     #[test]
     fn parse_startpos() {
-        crate::chess::init();
-
         let game_result = parse("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", false);
         assert!(game_result.is_ok());
 
@@ -339,8 +337,6 @@ mod tests {
 
     #[test]
     fn parse_kiwipete() {
-        crate::chess::init();
-
         assert!(
             parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", false)
                 .is_ok()
@@ -349,8 +345,6 @@ mod tests {
 
     #[test]
     fn parse_kiwipete_without_halfmove_and_fullmove() {
-        crate::chess::init();
-
         assert!(
             parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ", false)
                 .is_ok()
@@ -359,8 +353,6 @@ mod tests {
 
     #[test]
     fn parse_simple_frc() {
-        crate::chess::init();
-
         assert!(
             parse("rnbq1rk1/pp2bppp/2pppn2/8/8/1PN1P1Q1/P1PPBPPP/R1B1K1NR b HA - 0 7", true)
                 .is_ok()

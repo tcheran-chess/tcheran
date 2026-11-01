@@ -34,12 +34,12 @@ pub enum Outcome {
 }
 
 #[derive(Debug, Copy, Clone)]
-pub enum CastleRightsSide {
+pub enum CastleSide {
     Kingside,
     Queenside,
 }
 
-impl CastleRightsSide {
+impl CastleSide {
     pub const N: usize = 2;
 }
 
@@ -61,20 +61,20 @@ impl CastleRights {
         self.king_side.is_some() || self.queen_side.is_some()
     }
 
-    pub fn can_castle_to_side(self, side: CastleRightsSide) -> bool {
+    pub fn can_castle_to_side(self, side: CastleSide) -> bool {
         match side {
-            CastleRightsSide::Kingside => self.king_side.is_some(),
-            CastleRightsSide::Queenside => self.queen_side.is_some(),
+            CastleSide::Kingside => self.king_side.is_some(),
+            CastleSide::Queenside => self.queen_side.is_some(),
         }
     }
 
-    pub fn side_for_rook_sq(self, sq: Square) -> Option<CastleRightsSide> {
+    pub fn side_for_rook_sq(self, sq: Square) -> Option<CastleSide> {
         if Some(sq) == self.king_side {
-            return Some(CastleRightsSide::Kingside);
+            return Some(CastleSide::Kingside);
         }
 
         if Some(sq) == self.queen_side {
-            return Some(CastleRightsSide::Queenside);
+            return Some(CastleSide::Queenside);
         }
 
         None
@@ -102,24 +102,24 @@ impl CastleRights {
         None
     }
 
-    pub fn remove_rights(&mut self, side: CastleRightsSide) {
+    pub fn remove_rights(&mut self, side: CastleSide) {
         match side {
-            CastleRightsSide::Kingside => self.king_side = None,
-            CastleRightsSide::Queenside => self.queen_side = None,
+            CastleSide::Kingside => self.king_side = None,
+            CastleSide::Queenside => self.queen_side = None,
         }
     }
 }
 
-impl<T> std::ops::Index<CastleRightsSide> for [T; CastleRightsSide::N] {
+impl<T> std::ops::Index<CastleSide> for [T; CastleSide::N] {
     type Output = T;
 
-    fn index(&self, index: CastleRightsSide) -> &Self::Output {
+    fn index(&self, index: CastleSide) -> &Self::Output {
         unsafe { self.get_unchecked(index as usize) }
     }
 }
 
-impl<T> std::ops::IndexMut<CastleRightsSide> for [T; CastleRightsSide::N] {
-    fn index_mut(&mut self, index: CastleRightsSide) -> &mut Self::Output {
+impl<T> std::ops::IndexMut<CastleSide> for [T; CastleSide::N] {
+    fn index_mut(&mut self, index: CastleSide) -> &mut Self::Output {
         unsafe { self.get_unchecked_mut(index as usize) }
     }
 }
@@ -415,7 +415,7 @@ impl Game {
         }
     }
 
-    fn try_remove_castle_rights(&mut self, player: Player, castle_rights_side: CastleRightsSide) {
+    fn try_remove_castle_rights(&mut self, player: Player, castle_rights_side: CastleSide) {
         let castle_rights = &mut self.castle_rights[player];
 
         // We don't want to modify anything if the castle rights on this side were already lost
@@ -835,8 +835,8 @@ impl Game {
 
         // If we moved the king, we lose castle rights
         if moved_piece.kind == King {
-            self.try_remove_castle_rights(player, CastleRightsSide::Kingside);
-            self.try_remove_castle_rights(player, CastleRightsSide::Queenside);
+            self.try_remove_castle_rights(player, CastleSide::Kingside);
+            self.try_remove_castle_rights(player, CastleSide::Queenside);
         } else if moved_piece.kind == Rook
             && let Some(side) = self.castle_rights[player].side_for_rook_sq(from)
         {

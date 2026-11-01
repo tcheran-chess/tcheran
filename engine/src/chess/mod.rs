@@ -25,6 +25,6 @@ pub mod prelude {
 }
 
 pub use bitboard::bitboards;
-pub use game::{CastleRights, CastleRightsSide, MoveObserver};
+pub use game::{CastleRights, CastleSide, MoveObserver};
 pub use moves::MAX_LEGAL_MOVES;
 pub use square::{ranks, squares};

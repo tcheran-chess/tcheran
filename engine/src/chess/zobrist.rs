@@ -1,4 +1,4 @@
-use crate::chess::{CastleRightsSide, prelude::*, zobrist::components::ZobristComponent};
+use crate::chess::{CastleSide, prelude::*, zobrist::components::ZobristComponent};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct ZobristHash(pub u64);
@@ -12,7 +12,7 @@ impl ZobristHash {
         self.0 ^= piece_on_square(piece.player, piece.kind, square);
     }
 
-    pub fn toggle_castle_rights(&mut self, player: Player, side: CastleRightsSide) {
+    pub fn toggle_castle_rights(&mut self, player: Player, side: CastleSide) {
         self.0 ^= castle_rights(player, side);
     }
 
@@ -55,20 +55,20 @@ pub fn hash(game: &Game) -> ZobristHash {
 
     // White
     if white_castle_rights.king_side.is_some() {
-        hash.toggle_castle_rights(White, CastleRightsSide::Kingside);
+        hash.toggle_castle_rights(White, CastleSide::Kingside);
     }
 
     if white_castle_rights.queen_side.is_some() {
-        hash.toggle_castle_rights(White, CastleRightsSide::Queenside);
+        hash.toggle_castle_rights(White, CastleSide::Queenside);
     }
 
     // Black
     if black_castle_rights.king_side.is_some() {
-        hash.toggle_castle_rights(Black, CastleRightsSide::Kingside);
+        hash.toggle_castle_rights(Black, CastleSide::Kingside);
     }
 
     if black_castle_rights.queen_side.is_some() {
-        hash.toggle_castle_rights(Black, CastleRightsSide::Queenside);
+        hash.toggle_castle_rights(Black, CastleSide::Queenside);
     }
 
     // En passant
@@ -102,7 +102,7 @@ pub fn piece_on_square(player: Player, piece: PieceKind, square: Square) -> Zobr
     components::PIECE_SQUARE[player][square][piece]
 }
 
-fn castle_rights(player: Player, side: CastleRightsSide) -> ZobristComponent {
+fn castle_rights(player: Player, side: CastleSide) -> ZobristComponent {
     components::CASTLING[player][side]
 }
 
@@ -255,7 +255,7 @@ mod components {
         ],
     ];
 
-    pub const CASTLING: [[ZobristComponent; CastleRightsSide::N]; Player::N] = [
+    pub const CASTLING: [[ZobristComponent; CastleSide::N]; Player::N] = [
         [0x44a6fec3f9626972, 0x5ad7af770c130017],
         [0xb8b25d2d838d7f57, 0x6f048935cc2a947a],
     ];

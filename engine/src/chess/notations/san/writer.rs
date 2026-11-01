@@ -1,15 +1,9 @@
-use super::constants;
-use crate::chess::{CastleSide, prelude::*};
+use crate::chess::{
+    notations::san::sanmove::{SanAmbiguityResolution, SanFrom, SanMove, SanStatus},
+    prelude::*,
+};
 
-#[derive(Debug, Eq, PartialEq)]
-enum AmbiguityResolution {
-    None,
-    File,  // Two pieces can move to the same square - specify the file
-    Rank,  // Two pieces on the same file can move to the same square - specify the rank
-    Exact, // Two pieces on the same file or rank can move to the same square - specify the exact source square
-}
-
-pub fn format_move(game: &Game, mv: Move) -> String {
+pub fn to_san_move(game: &Game, mv: Move) -> SanMove {
     let from = mv.from();
     let to = mv.to();
 
@@ -18,86 +12,51 @@ pub fn format_move(game: &Game, mv: Move) -> String {
     if mv.is_castling()
         && let Some(side) = game.castle_rights[game.player].side_for_rook_sq(to)
     {
-        return match side {
-            CastleSide::Kingside => constants::KINGSIDE_CASTLE,
-            CastleSide::Queenside => constants::QUEENSIDE_CASTLE,
-        }
-        .to_string();
+        return SanMove::Castle(side);
     }
 
     let mut game_after_move = game.clone();
     game_after_move.make_move(mv);
     let places_opponent_in_check = game_after_move.in_check();
 
-    let ambiguity_resolution_required = required_ambiguity_resolution(game, mv);
+    let ambiguity_resolution = ambiguity_resolution(game, mv);
 
-    let piece_identifier: &'static str = match piece.kind {
-        Pawn => {
-            if mv.is_capture() {
-                from.file().notation()
-            } else {
-                ""
-            }
-        }
-        Knight => "N",
-        Bishop => "B",
-        Rook => "R",
-        Queen => "Q",
-        King => "K",
+    let from = match piece.kind {
+        Pawn => SanFrom::Pawn(from.file()),
+        kind => SanFrom::NonPawn(kind),
     };
 
-    let ambiguity_resolution = match ambiguity_resolution_required {
-        AmbiguityResolution::None => String::new(),
-        AmbiguityResolution::File => from.file().notation().to_string(),
-        AmbiguityResolution::Rank => from.rank().notation().to_string(),
-        AmbiguityResolution::Exact => from.notation(),
-    };
+    let is_capture = mv.is_capture();
 
-    let capture_x = if mv.is_capture() {
-        constants::CAPTURE.to_string()
-    } else {
-        String::new()
-    };
+    let promotion = mv.promotion();
 
-    let destination_notation = to.notation();
-
-    let promotion_specifier = match mv.promotion() {
-        None => "",
-        Some(p) => &format!(
-            "{}{}",
-            constants::PROMOTION,
-            match p {
-                PromotionPieceKind::Knight => "N",
-                PromotionPieceKind::Bishop => "B",
-                PromotionPieceKind::Rook => "R",
-                PromotionPieceKind::Queen => "Q",
-            }
-        ),
-    };
-
-    let opponent_in_check_specifier = if places_opponent_in_check {
-        if game_after_move.moves().is_empty() {
-            constants::CHECKMATE
+    let status = if places_opponent_in_check {
+        Some(if game_after_move.moves().is_empty() {
+            SanStatus::Checkmate
         } else {
-            constants::CHECK
-        }
-        .to_string()
+            SanStatus::Check
+        })
     } else {
-        String::new()
+        None
     };
 
-    format!(
-        "{piece_identifier}{ambiguity_resolution}{capture_x}{destination_notation}{promotion_specifier}{opponent_in_check_specifier}"
-    )
+    SanMove::Move {
+        from,
+        ambiguity_resolution,
+        to,
+        promotion,
+        is_capture,
+        status,
+    }
 }
 
-fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
+fn ambiguity_resolution(game: &Game, mv: Move) -> Option<SanAmbiguityResolution> {
     let from = mv.from();
     let to = mv.to();
 
     let piece = game.board.piece_guaranteed_at(from);
     if piece.kind == Pawn || piece.kind == King {
-        return AmbiguityResolution::None;
+        return None;
     }
 
     let potentially_ambiguous_moves: Vec<Move> = game
@@ -119,7 +78,7 @@ fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
         .collect();
 
     if potentially_ambiguous_moves.is_empty() {
-        return AmbiguityResolution::None;
+        return None;
     }
 
     let ambiguity_by_file = potentially_ambiguous_moves
@@ -130,15 +89,17 @@ fn required_ambiguity_resolution(game: &Game, mv: Move) -> AmbiguityResolution {
         .iter()
         .any(|m| m.from().rank() == mv.from().rank());
 
-    match (ambiguity_by_file, ambiguity_by_rank) {
-        (false, _) => AmbiguityResolution::File,
-        (true, false) => AmbiguityResolution::Rank,
-        (true, true) => AmbiguityResolution::Exact,
-    }
+    Some(match (ambiguity_by_file, ambiguity_by_rank) {
+        (false, _) => SanAmbiguityResolution::File(from.file()),
+        (true, false) => SanAmbiguityResolution::Rank(from.rank()),
+        (true, true) => SanAmbiguityResolution::Square(from),
+    })
 }
 
 #[cfg(test)]
 mod tests {
+    use std::assert_matches;
+
     use super::*;
     use crate::chess::{moves::MoveListExt, notations::fen};
 
@@ -146,9 +107,9 @@ mod tests {
         let game = Game::from_valid_fen(fen);
         let (from, to) = mv;
         let mv = game.moves().expect_matching(from, to);
-        let san = format_move(&game, mv);
+        let san_mv = to_san_move(&game, mv);
 
-        assert_eq!(&san, expected_san);
+        assert_eq!(san_mv.to_string(), expected_san);
     }
 
     fn test_san_string_with_promotion(
@@ -161,9 +122,9 @@ mod tests {
         let mv = game
             .moves()
             .expect_matching_with_promotion(from, to, Some(promotion));
-        let san = format_move(&game, mv);
+        let san_mv = to_san_move(&game, mv);
 
-        assert_eq!(&san, expected_san);
+        assert_eq!(san_mv.to_string(), expected_san);
     }
 
     #[test]
@@ -210,13 +171,13 @@ mod tests {
         let game = Game::from_valid_fen(fen);
         let ambiguous_move = (A8, B8);
 
-        assert_eq!(
-            required_ambiguity_resolution(
+        assert_matches!(
+            ambiguity_resolution(
                 &game,
                 game.moves()
                     .expect_matching(ambiguous_move.0, ambiguous_move.1)
             ),
-            AmbiguityResolution::File
+            Some(SanAmbiguityResolution::File(_))
         );
 
         test_san_string(fen, ambiguous_move, "Rab8+");
@@ -228,13 +189,13 @@ mod tests {
         let game = Game::from_valid_fen(fen);
         let ambiguous_move = (A1, A3);
 
-        assert_eq!(
-            required_ambiguity_resolution(
+        assert_matches!(
+            ambiguity_resolution(
                 &game,
                 game.moves()
                     .expect_matching(ambiguous_move.0, ambiguous_move.1)
             ),
-            AmbiguityResolution::Rank
+            Some(SanAmbiguityResolution::Rank(_))
         );
 
         test_san_string(fen, ambiguous_move, "R1a3+");
@@ -246,13 +207,13 @@ mod tests {
         let game = Game::from_valid_fen(fen);
         let ambiguous_move = (H4, E1);
 
-        assert_eq!(
-            required_ambiguity_resolution(
+        assert_matches!(
+            ambiguity_resolution(
                 &game,
                 game.moves()
                     .expect_matching(ambiguous_move.0, ambiguous_move.1)
             ),
-            AmbiguityResolution::Exact
+            Some(SanAmbiguityResolution::Square(_))
         );
 
         test_san_string(fen, ambiguous_move, "Qh4e1");

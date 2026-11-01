@@ -314,7 +314,7 @@ impl UciReporter {
         for (move_count, mv) in result.pv.iter().enumerate() {
             let is_last_move = move_count as u8 == result.pv.len() - 1;
 
-            let san_mv = san::format_move(&game, *mv);
+            let san_mv = san::to_san_move(&game, *mv).to_string();
 
             let san_mv = san_mv.replace('=', &format!("{GREEN}={RESET}"));
             let san_mv = san_mv.replace('+', &format!("{YELLOW}+{RESET}"));
@@ -368,7 +368,7 @@ impl UciReporter {
     }
 
     fn pretty_best_move(game: &Game, mv: Move) {
-        println!("bestmove {}", san::format_move(game, mv));
+        println!("bestmove {}", san::to_san_move(game, mv));
     }
 }
 

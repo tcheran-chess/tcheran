@@ -538,7 +538,7 @@ pub fn negamax(
         }
 
         if null_score >= s.beta {
-            if depth <= 14 || ctx.min_nmp_ply > 0 {
+            if depth <= Depth(14) || ctx.min_nmp_ply > 0 {
                 return if null_score.is_decisive() {
                     s.beta
                 } else {

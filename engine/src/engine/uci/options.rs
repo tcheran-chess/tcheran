@@ -4,7 +4,7 @@ use crate::{
     chess::prelude::*,
     engine::{
         options::EngineOptions,
-        search::PersistentState,
+        search::{Depth, PersistentState},
         uci::{Threads, responses::UciReporter},
     },
 };
@@ -41,26 +41,6 @@ pub struct SpinValue(i32);
 impl SpinValue {
     pub fn new(value: i32) -> Self {
         Self(value)
-    }
-
-    pub fn as_i32(&self) -> i32 {
-        self.0
-    }
-
-    pub fn as_u32(&self) -> u32 {
-        u32::try_from(self.0).expect("Could not convert value to u32")
-    }
-
-    pub fn as_u64(&self) -> u64 {
-        u64::try_from(self.0).expect("Could not convert value to u64")
-    }
-
-    pub fn as_usize(&self) -> usize {
-        usize::try_from(self.0).expect("Could not convert value to usize")
-    }
-
-    pub fn as_depth(&self) -> u8 {
-        u8::try_from(self.0).expect("Could not convert value to depth")
     }
 }
 
@@ -225,21 +205,27 @@ impl From<SpinValue> for u32 {
     }
 }
 
+impl From<SpinValue> for u64 {
+    fn from(value: SpinValue) -> Self {
+        Self::try_from(value.0).expect("Could not convert value to u64")
+    }
+}
+
+impl From<SpinValue> for usize {
+    fn from(value: SpinValue) -> Self {
+        Self::try_from(value.0).expect("Could not convert value to usize")
+    }
+}
+
+impl From<SpinValue> for Depth {
+    fn from(value: SpinValue) -> Self {
+        Self(u8::try_from(value.0).expect("Could not convert value to Depth"))
+    }
+}
+
 impl From<usize> for SpinValue {
     fn from(value: usize) -> Self {
         Self(i32::try_from(value).expect("Value should fit in an i32"))
-    }
-}
-
-impl From<u8> for SpinValue {
-    fn from(value: u8) -> Self {
-        Self(i32::from(value))
-    }
-}
-
-impl From<i32> for SpinValue {
-    fn from(value: i32) -> Self {
-        Self(value)
     }
 }
 

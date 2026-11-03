@@ -637,7 +637,7 @@ pub enum UciInputMode {
 pub fn uci_options() -> Vec<UciOption> {
     let options = vec![
         UciOption::spin("Hash", |refs, value| {
-            refs.options.hash_size = value.as_usize();
+            refs.options.hash_size = value.into();
             refs.state
                 .tt
                 .resize(refs.options.hash_size, refs.options.threads);
@@ -647,7 +647,7 @@ pub fn uci_options() -> Vec<UciOption> {
         .build(),
         //
         UciOption::spin("Threads", |refs, value| {
-            refs.options.threads = value.as_usize();
+            refs.options.threads = value.into();
             refs.threads.scale(refs.options.threads);
         })
         .default(defaults::THREADS as i32)
@@ -674,7 +674,7 @@ pub fn uci_options() -> Vec<UciOption> {
         .build(),
         //
         UciOption::spin("MoveOverhead", |refs, value| {
-            refs.options.move_overhead = Duration::from_millis(value.as_u64());
+            refs.options.move_overhead = Duration::from_millis(value.into());
         })
         .default(defaults::MOVE_OVERHEAD.as_millis() as i32)
         .with_bounds(0, 1000)
@@ -691,7 +691,7 @@ pub fn uci_options() -> Vec<UciOption> {
             .build(),
         //
         UciOption::spin("SoftNodesHardFactor", |refs, value| {
-            let inner_value = value.as_usize();
+            let inner_value = value.into();
 
             let mut value = Some(inner_value);
             if inner_value == 0 {

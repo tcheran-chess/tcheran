@@ -215,7 +215,7 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, String> {
     let mut searchmoves = None;
     let mut excludemoves = None;
 
-    let mut args = args.iter();
+    let mut args = args.iter().peekable();
     while let Some(&arg) = args.next() {
         match arg {
             "infinite" => infinite = true,
@@ -265,29 +265,37 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, String> {
                 );
             }
             "searchmoves" => {
-                let mut m = Vec::new();
-                for mv in args.by_ref() {
-                    m.push(*mv);
+                let mut moves = Vec::new();
+                while let Some(&mv) = args.peek() {
+                    let Ok(mv) = uci_move(mv) else {
+                        break;
+                    };
+
+                    moves.push(mv);
+                    args.next();
                 }
 
-                if m.is_empty() {
+                if moves.is_empty() {
                     return Err("no searchmoves".to_string());
                 }
 
-                let moves = parse_moves(&m)?;
                 searchmoves = Some(moves);
             }
             "excludemoves" => {
-                let mut m = Vec::new();
-                for mv in args.by_ref() {
-                    m.push(*mv);
+                let mut moves = Vec::new();
+                while let Some(&mv) = args.peek() {
+                    let Ok(mv) = uci_move(mv) else {
+                        break;
+                    };
+
+                    moves.push(mv);
+                    args.next();
                 }
 
-                if m.is_empty() {
+                if moves.is_empty() {
                     return Err("no excluded moves".to_string());
                 }
 
-                let moves = parse_moves(&m)?;
                 excludemoves = Some(moves);
             }
             _ => return Err(format!("unknown 'go' argument: {arg}")),

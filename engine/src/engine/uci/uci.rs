@@ -34,7 +34,7 @@ use crate::{
         uci::{
             bench::bench,
             commands,
-            commands::UciCommand,
+            commands::{GoMoveRestrictionType, UciCommand},
             options::UciOption,
             parser,
             responses::{IdParam, UciReporter, UciResponse},
@@ -266,7 +266,7 @@ impl Uci {
             }
             UciCommand::Go {
                 time_control,
-                searchmoves,
+                move_restriction,
             } => {
                 if self.threads.busy() {
                     self.reporter.generic_report("already searching");
@@ -276,11 +276,11 @@ impl Uci {
                 let mut root_moves = RootMoves::default_for(&self.game);
                 let mut root_tb_info = None;
 
-                if let Some(searchmoves) = searchmoves {
+                if let Some(move_restriction) = move_restriction {
                     let mut moves = MoveList::new();
 
                     // Check all of the moves are legal first
-                    for ucimove in searchmoves {
+                    for ucimove in &move_restriction.moves {
                         let Some(matching_move) = ucimove.find_in_game(&self.game) else {
                             return Err("Illegal move".to_string());
                         };
@@ -288,7 +288,14 @@ impl Uci {
                         moves.push(matching_move);
                     }
 
-                    root_moves.retain(|rm| moves.contains(rm.mv));
+                    match move_restriction.restriction {
+                        GoMoveRestrictionType::Search => {
+                            root_moves.retain(|rm| moves.contains(rm.mv));
+                        }
+                        GoMoveRestrictionType::Exclude => {
+                            root_moves.retain(|rm| !moves.contains(rm.mv));
+                        }
+                    }
                 }
 
                 if self.persistent_state.tablebase.can_probe(&self.game)

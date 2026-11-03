@@ -7,6 +7,18 @@ pub enum Position {
 }
 
 #[derive(Debug, Clone)]
+pub enum GoMoveRestrictionType {
+    Search,
+    Exclude,
+}
+
+#[derive(Debug, Clone)]
+pub struct GoMoveRestriction {
+    pub moves: Vec<UciMove>,
+    pub restriction: GoMoveRestrictionType,
+}
+
+#[derive(Debug, Clone)]
 pub enum UciCommand {
     // Canon UCI commands
     Uci,
@@ -23,7 +35,7 @@ pub enum UciCommand {
     },
     Go {
         time_control: TimeControl,
-        searchmoves: Option<Vec<UciMove>>,
+        move_restriction: Option<GoMoveRestriction>,
     },
     Stop,
 

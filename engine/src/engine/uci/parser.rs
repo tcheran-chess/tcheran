@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use super::commands::UciCommand;
+use super::commands::{GoMoveRestriction, GoMoveRestrictionType, UciCommand};
 use crate::{
     chess::prelude::*,
     engine::{
@@ -213,6 +213,7 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, String> {
     let mut depth = None;
     let mut nodes = None;
     let mut searchmoves = None;
+    let mut excludemoves = None;
 
     let mut args = args.iter();
     while let Some(&arg) = args.next() {
@@ -276,6 +277,19 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, String> {
                 let moves = parse_moves(&m)?;
                 searchmoves = Some(moves);
             }
+            "excludemoves" => {
+                let mut m = Vec::new();
+                for mv in args.by_ref() {
+                    m.push(*mv);
+                }
+
+                if m.is_empty() {
+                    return Err("no excluded moves".to_string());
+                }
+
+                let moves = parse_moves(&m)?;
+                excludemoves = Some(moves);
+            }
             _ => return Err(format!("unknown 'go' argument: {arg}")),
         }
     }
@@ -321,9 +335,24 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, String> {
         _ => return Err("conflicting time control types".to_string()),
     };
 
+    let move_restriction = match (searchmoves, excludemoves) {
+        (None, None) => None,
+        (Some(moves), None) => Some(GoMoveRestriction {
+            moves,
+            restriction: GoMoveRestrictionType::Search,
+        }),
+        (None, Some(moves)) => Some(GoMoveRestriction {
+            moves,
+            restriction: GoMoveRestrictionType::Exclude,
+        }),
+        (Some(_), Some(_)) => {
+            return Err("searchmoves and excludemoves are mutually exclusive".to_string());
+        }
+    };
+
     Ok(UciCommand::Go {
         time_control,
-        searchmoves,
+        move_restriction,
     })
 }
 

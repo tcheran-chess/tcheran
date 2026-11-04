@@ -32,6 +32,7 @@ use crate::{
             TimeControl, search, time_control::StopControl, types::SearchResults,
         },
         uci::{
+            UciMove,
             bench::bench,
             commands,
             commands::UciCommand,
@@ -282,8 +283,10 @@ impl Uci {
 
                     // Check all of the moves are legal first
                     for ucimove in searchmoves {
-                        let Some(matching_move) =
-                            legal_moves.find_matching(ucimove.from, ucimove.to, ucimove.promotion)
+                        let Some(matching_move) = legal_moves
+                            .iter()
+                            .copied()
+                            .find(|&mv| UciMove::from_move(mv, self.game.is_frc) == *ucimove)
                         else {
                             return Err("Illegal move".to_string());
                         };

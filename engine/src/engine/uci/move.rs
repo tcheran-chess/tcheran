@@ -25,50 +25,19 @@ impl UciMove {
         )
     }
 
-    pub fn find_in_game(&self, game: &Game) -> Move {
-        let is_frc = game.is_frc;
-
-        for &mv in &game.moves() {
-            // If the move is castling, it's represented internally as 'captures rook'
-            // in standard chess, so account for that.
-            if !is_frc && mv.is_castling() {
-                if self.to == squares::kingside_king_castle_end(White)
-                    && mv.to() == squares::WHITE_STANDARD_KINGSIDE_ROOK_START
-                {
-                    return mv;
-                }
-
-                if self.to == squares::queenside_king_castle_end(White)
-                    && mv.to() == squares::WHITE_STANDARD_QUEENSIDE_ROOK_START
-                {
-                    return mv;
-                }
-
-                if self.to == squares::kingside_king_castle_end(Black)
-                    && mv.to() == squares::BLACK_STANDARD_KINGSIDE_ROOK_START
-                {
-                    return mv;
-                }
-
-                if self.to == squares::queenside_king_castle_end(Black)
-                    && mv.to() == squares::BLACK_STANDARD_QUEENSIDE_ROOK_START
-                {
-                    return mv;
-                }
-            }
-
-            if mv.from() == self.from && mv.to() == self.to && mv.promotion() == self.promotion {
-                return mv;
-            }
-        }
-
-        panic!("Illegal move")
+    pub fn find_in_game(&self, game: &Game) -> Option<Move> {
+        game.moves()
+            .into_iter()
+            .find(|&&mv| *self == Self::from_move(mv, game.is_frc))
+            .copied()
     }
 
     pub fn from_move(mv: Move, is_frc: bool) -> Self {
         let mut to = mv.to();
 
         if !is_frc && mv.is_castling() {
+            // If the move is castling, it's represented internally as 'captures rook'
+            // in standard chess, so account for that.
             to = match mv.to() {
                 squares::WHITE_STANDARD_KINGSIDE_ROOK_START => {
                     squares::kingside_king_castle_end(White)

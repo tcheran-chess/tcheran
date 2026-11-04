@@ -32,7 +32,6 @@ use crate::{
             TimeControl, search, time_control::StopControl, types::SearchResults,
         },
         uci::{
-            UciMove,
             bench::bench,
             commands,
             commands::UciCommand,
@@ -258,7 +257,7 @@ impl Uci {
                 };
 
                 for uci_mv in moves {
-                    let mv = uci_mv.find_in_game(&game);
+                    let mv = uci_mv.find_in_game(&game).expect("Illegal move");
                     game.make_move(mv);
                 }
 
@@ -278,16 +277,11 @@ impl Uci {
                 let mut root_tb_info = None;
 
                 if let Some(searchmoves) = searchmoves {
-                    let legal_moves = self.game.moves();
                     let mut moves = MoveList::new();
 
                     // Check all of the moves are legal first
                     for ucimove in searchmoves {
-                        let Some(matching_move) = legal_moves
-                            .iter()
-                            .copied()
-                            .find(|&mv| UciMove::from_move(mv, self.game.is_frc) == *ucimove)
-                        else {
+                        let Some(matching_move) = ucimove.find_in_game(&self.game) else {
                             return Err("Illegal move".to_string());
                         };
 
@@ -381,17 +375,7 @@ impl Uci {
                         }
 
                         if let Ok(uci_move) = parser::uci_move(mv) {
-                            let uci_move = game
-                                .moves()
-                                .into_iter()
-                                .find(|m| {
-                                    m.from() == uci_move.from
-                                        && m.to() == uci_move.to
-                                        && m.promotion() == uci_move.promotion
-                                })
-                                .copied();
-
-                            parsed_move = uci_move;
+                            parsed_move = uci_move.find_in_game(&game);
                         }
 
                         let Some(parsed_move) = parsed_move else {

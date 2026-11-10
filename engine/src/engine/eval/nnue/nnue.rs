@@ -16,8 +16,10 @@ use crate::{
 pub static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
 
 fn input_bucket(king: Square, pov: Player) -> usize {
-    let king_flip = 7 * u8::from(king.file().idx() >= 4);
-    BUCKET_LAYOUT[(king.relative_for(pov).idx() ^ king_flip) as usize]
+    BUCKET_LAYOUT[king
+        .relative_for(pov)
+        .mirrored_horizontally_if(should_mirror(king))
+        .array_idx()]
 }
 
 #[inline]

@@ -356,7 +356,7 @@ impl CorrectionHistories {
                 * non_pawn_correction_history_weight()
             + self
                 .threat
-                .get(game.player, ZobristHash(game.threats.as_u64()))
+                .get(game.player, ZobristHash(game.threats.raw()))
                 * threat_correction_history_weight();
 
         if let Some(their_last_ply) = ctx.stack.get_prev(plies, 1)
@@ -399,7 +399,7 @@ impl CorrectionHistories {
         self.non_pawn[Black].update(game.player, game.non_pawn_hash[Black], depth, eval_diff);
 
         self.threat
-            .update(game.player, ZobristHash(game.threats.as_u64()), depth, eval_diff);
+            .update(game.player, ZobristHash(game.threats.raw()), depth, eval_diff);
 
         if let Some(their_last_ply) = stack.get_prev(plies, 1)
             && let Some(our_last_ply) = stack.get_prev(plies, 2)

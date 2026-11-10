@@ -158,8 +158,8 @@ impl Move {
         // we'd need both the source and destination squares to be A1 (0).
         Self(unsafe {
             NonZeroU16::new_unchecked(
-                (from.idx() as u16)
-                    | (to.idx() as u16) << TO_SHIFT
+                (from.raw() as u16)
+                    | (to.raw() as u16) << TO_SHIFT
                     | ((flags as u16) << FLAGS_SHIFT),
             )
         })
@@ -236,12 +236,12 @@ impl Move {
 
     #[inline]
     pub fn from(self) -> Square {
-        Square::from_index((self.data() & FROM_MASK) as u8)
+        Square::from_raw((self.data() & FROM_MASK) as u8)
     }
 
     #[inline]
     pub fn to(self) -> Square {
-        Square::from_index(((self.data() & TO_MASK) >> TO_SHIFT) as u8)
+        Square::from_raw(((self.data() & TO_MASK) >> TO_SHIFT) as u8)
     }
 
     #[inline]

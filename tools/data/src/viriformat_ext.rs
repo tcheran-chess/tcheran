@@ -34,7 +34,7 @@ impl ToViriExt for Square {
     type Output = ViriSquare;
 
     fn to_viri(self) -> Self::Output {
-        ViriSquare::new(self.idx()).expect("Should be a valid square")
+        ViriSquare::new(self.raw()).expect("Should be a valid square")
     }
 }
 

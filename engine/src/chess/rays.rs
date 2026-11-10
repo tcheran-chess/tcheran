@@ -11,8 +11,7 @@ static BETWEEN_RAYS: [[Bitboard; Square::N]; Square::N] = const {
     while i < Square::N {
         let mut j = 0;
         while j < Square::N {
-            rays[i][j] =
-                generate_ray_between(Square::from_index(i as u8), Square::from_index(j as u8));
+            rays[i][j] = generate_ray_between(Square::from_index(i), Square::from_index(j));
             j += 1;
         }
         i += 1;
@@ -28,8 +27,7 @@ static INTERSECTING_RAYS: [[Bitboard; Square::N]; Square::N] = const {
     while i < Square::N {
         let mut j = 0;
         while j < Square::N {
-            rays[i][j] =
-                generate_ray_intersecting(Square::from_index(i as u8), Square::from_index(j as u8));
+            rays[i][j] = generate_ray_intersecting(Square::from_index(i), Square::from_index(j));
             j += 1;
         }
         i += 1;
@@ -45,8 +43,7 @@ static SKEWERING_RAYS: [[Bitboard; Square::N]; Square::N] = const {
     while i < Square::N {
         let mut j = 0;
         while j < Square::N {
-            rays[i][j] =
-                generate_ray_skewering(Square::from_index(i as u8), Square::from_index(j as u8));
+            rays[i][j] = generate_ray_skewering(Square::from_index(i), Square::from_index(j));
             j += 1;
         }
         i += 1;
@@ -60,7 +57,7 @@ static DIAGONAL_RAYS: [Bitboard; Square::N] = const {
 
     let mut square = 0;
     while square < Square::N {
-        rays[square] = generate_diagonal_ray(Square::from_index(square as u8));
+        rays[square] = generate_diagonal_ray(Square::from_index(square));
         square += 1;
     }
 
@@ -72,7 +69,7 @@ static ANTIDIAGONAL_RAYS: [Bitboard; Square::N] = const {
 
     let mut square = 0;
     while square < Square::N {
-        rays[square] = generate_antidiagonal_ray(Square::from_index(square as u8));
+        rays[square] = generate_antidiagonal_ray(Square::from_index(square));
         square += 1;
     }
 
@@ -121,15 +118,11 @@ const fn generate_ray_between(from: Square, to: Square) -> Bitboard {
     let all_bishop_attacks = bishop_attacks(from, Bitboard::EMPTY);
 
     if all_rook_attacks.contains(to) {
-        return Bitboard::new(
-            rook_attacks(from, to_mask).as_u64() & rook_attacks(to, from_mask).as_u64(),
-        );
+        return rook_attacks(from, to_mask).and(rook_attacks(to, from_mask));
     }
 
     if all_bishop_attacks.contains(to) {
-        return Bitboard::new(
-            bishop_attacks(from, to_mask).as_u64() & bishop_attacks(to, from_mask).as_u64(),
-        );
+        return bishop_attacks(from, to_mask).and(bishop_attacks(to, from_mask));
     }
 
     Bitboard::EMPTY
@@ -143,17 +136,15 @@ const fn generate_ray_intersecting(from: Square, to: Square) -> Bitboard {
     let all_bishop_attacks = bishop_attacks(from, Bitboard::EMPTY);
 
     if all_rook_attacks.contains(to) {
-        return Bitboard::new(
-            (from_mask.as_u64() | rook_attacks(from, Bitboard::EMPTY).as_u64())
-                & (to_mask.as_u64() | rook_attacks(to, Bitboard::EMPTY).as_u64()),
-        );
+        let from = from_mask.or(rook_attacks(from, Bitboard::EMPTY));
+        let to = to_mask.or(rook_attacks(to, Bitboard::EMPTY));
+        return from.and(to);
     }
 
     if all_bishop_attacks.contains(to) {
-        return Bitboard::new(
-            (from_mask.as_u64() | bishop_attacks(from, Bitboard::EMPTY).as_u64())
-                & (to_mask.as_u64() | bishop_attacks(to, Bitboard::EMPTY).as_u64()),
-        );
+        let from = from_mask.or(bishop_attacks(from, Bitboard::EMPTY));
+        let to = to_mask.or(bishop_attacks(to, Bitboard::EMPTY));
+        return from.and(to);
     }
 
     Bitboard::EMPTY
@@ -167,16 +158,11 @@ const fn generate_ray_skewering(from: Square, to: Square) -> Bitboard {
     let all_bishop_attacks = bishop_attacks(from, Bitboard::EMPTY);
 
     if all_rook_attacks.contains(to) {
-        return Bitboard::new(
-            all_rook_attacks.as_u64() & (to_mask.as_u64() | rook_attacks(to, from_mask).as_u64()),
-        );
+        return all_rook_attacks.and(to_mask.or(rook_attacks(to, from_mask)));
     }
 
     if all_bishop_attacks.contains(to) {
-        return Bitboard::new(
-            all_bishop_attacks.as_u64()
-                & (to_mask.as_u64() | bishop_attacks(to, from_mask).as_u64()),
-        );
+        return all_bishop_attacks.and(to_mask.or(bishop_attacks(to, from_mask)));
     }
 
     Bitboard::EMPTY
@@ -210,9 +196,10 @@ const fn find_diagonal(square: Square, go_left: Direction, go_right: Direction) 
         right_bound = new_right_bound;
     }
 
-    let left = left_bound.single().idx() as usize;
-    let right = right_bound.single().idx() as usize;
-    Bitboard::new(BETWEEN_RAYS[left][right].as_u64() | left_bound.as_u64() | right_bound.as_u64())
+    let left = left_bound.single().idx();
+    let right = right_bound.single().idx();
+
+    BETWEEN_RAYS[left][right].or(left_bound).or(right_bound)
 }
 
 #[cfg(test)]

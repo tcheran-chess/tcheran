@@ -5,10 +5,8 @@ static ATTACKS_TABLE: [[Bitboard; Square::N]; Player::N] = const {
 
     let mut s = 0;
     while s < Square::N {
-        attacks[White.idx()][s] =
-            attacks::generate_pawn_attacks(Square::from_index(s as u8), White);
-        attacks[Black.idx()][s] =
-            attacks::generate_pawn_attacks(Square::from_index(s as u8), Black);
+        attacks[White.idx()][s] = attacks::generate_pawn_attacks(Square::from_index(s), White);
+        attacks[Black.idx()][s] = attacks::generate_pawn_attacks(Square::from_index(s), Black);
         s += 1;
     }
 

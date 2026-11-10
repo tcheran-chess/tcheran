@@ -177,8 +177,7 @@ impl TryFrom<[Option<Piece>; Square::N]> for Board {
                 continue;
             };
 
-            let square = Square::from_index(i.try_into().unwrap());
-            board.set_at(square, piece);
+            board.set_at(Square::from_index(i), piece);
         }
 
         Ok(board)

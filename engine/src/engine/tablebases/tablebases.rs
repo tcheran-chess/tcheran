@@ -66,18 +66,18 @@ impl Tablebase {
             return None;
         }
 
-        let ep_square = game.en_passant_target.map_or(0, |ep| u32::from(ep.idx()));
+        let ep_square = game.en_passant_target.map_or(0, |ep| u32::from(ep.raw()));
 
         unsafe {
             let wdl = bindings::tb_probe_wdl(
-                game.board.occupancy_for(White).as_u64(),
-                game.board.occupancy_for(Black).as_u64(),
-                game.board.all_kings().as_u64(),
-                game.board.all_queens().as_u64(),
-                game.board.all_rooks().as_u64(),
-                game.board.all_bishops().as_u64(),
-                game.board.all_knights().as_u64(),
-                game.board.all_pawns().as_u64(),
+                game.board.occupancy_for(White).raw(),
+                game.board.occupancy_for(Black).raw(),
+                game.board.all_kings().raw(),
+                game.board.all_queens().raw(),
+                game.board.all_rooks().raw(),
+                game.board.all_bishops().raw(),
+                game.board.all_knights().raw(),
+                game.board.all_pawns().raw(),
                 0,
                 0,
                 ep_square,
@@ -101,19 +101,19 @@ impl Tablebase {
 
         let mut c_moves: MaybeUninit<TbRootMoves> = MaybeUninit::uninit();
 
-        let ep_square = game.en_passant_target.map_or(0, |ep| u32::from(ep.idx()));
+        let ep_square = game.en_passant_target.map_or(0, |ep| u32::from(ep.raw()));
         let has_repeated_position = Self::has_repeated_position(game);
 
         let dtz_found = unsafe {
             bindings::tb_probe_root_dtz(
-                game.board.occupancy_for(White).as_u64(),
-                game.board.occupancy_for(Black).as_u64(),
-                game.board.all_kings().as_u64(),
-                game.board.all_queens().as_u64(),
-                game.board.all_rooks().as_u64(),
-                game.board.all_bishops().as_u64(),
-                game.board.all_knights().as_u64(),
-                game.board.all_pawns().as_u64(),
+                game.board.occupancy_for(White).raw(),
+                game.board.occupancy_for(Black).raw(),
+                game.board.all_kings().raw(),
+                game.board.all_queens().raw(),
+                game.board.all_rooks().raw(),
+                game.board.all_bishops().raw(),
+                game.board.all_knights().raw(),
+                game.board.all_pawns().raw(),
                 game.halfmove_clock,
                 0,
                 ep_square,
@@ -127,14 +127,14 @@ impl Tablebase {
         let wdl_found = if !dtz_found {
             unsafe {
                 bindings::tb_probe_root_wdl(
-                    game.board.occupancy_for(White).as_u64(),
-                    game.board.occupancy_for(Black).as_u64(),
-                    game.board.all_kings().as_u64(),
-                    game.board.all_queens().as_u64(),
-                    game.board.all_rooks().as_u64(),
-                    game.board.all_bishops().as_u64(),
-                    game.board.all_knights().as_u64(),
-                    game.board.all_pawns().as_u64(),
+                    game.board.occupancy_for(White).raw(),
+                    game.board.occupancy_for(Black).raw(),
+                    game.board.all_kings().raw(),
+                    game.board.all_queens().raw(),
+                    game.board.all_rooks().raw(),
+                    game.board.all_bishops().raw(),
+                    game.board.all_knights().raw(),
+                    game.board.all_pawns().raw(),
                     game.halfmove_clock,
                     0,
                     ep_square,
@@ -199,8 +199,8 @@ impl Tablebase {
         let from_bits = (tb_mv >> 6) & 0x3f;
         let promotion_bits = (tb_mv >> 12) & 0x7;
 
-        let from = Square::from_index(from_bits as u8);
-        let to = Square::from_index(to_bits as u8);
+        let from = Square::from_raw(from_bits as u8);
+        let to = Square::from_raw(to_bits as u8);
 
         let promotion = match promotion_bits {
             bindings::TB_PROMOTES_QUEEN => Some(PromotionPieceKind::Queen),

@@ -41,9 +41,9 @@ const fn table_index(
     not_masks: &[Bitboard; Square::N],
     shift: usize,
 ) -> usize {
-    let (magic, index) = magics[square.array_idx()];
-    let relevant_occupancies = blockers.as_u64() | not_masks[square.array_idx()].as_u64();
-    let mut offset = relevant_occupancies.wrapping_mul(magic);
+    let (magic, index) = magics[square.idx()];
+    let relevant_occupancies = blockers.or(not_masks[square.idx()]);
+    let mut offset = relevant_occupancies.raw().wrapping_mul(magic);
     offset >>= Square::N - shift;
     index + offset as usize
 }

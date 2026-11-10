@@ -26,30 +26,26 @@ pub const fn king_attacks(s: Square) -> Bitboard {
 }
 
 pub const fn generate_pawn_attacks(square: Square, player: Player) -> Bitboard {
-    let mut attacks = Bitboard::EMPTY.as_u64();
     let sq = square.bb();
 
-    attacks |= sq.forward(player).west().as_u64();
-    attacks |= sq.forward(player).east().as_u64();
-
-    Bitboard::new(attacks)
+    Bitboard::EMPTY
+        .or(sq.forward(player).west())
+        .or(sq.forward(player).east())
 }
 
 pub const fn generate_knight_attacks(square: Square) -> Bitboard {
-    let mut attacks = Bitboard::EMPTY.as_u64();
     let sq = square.bb();
 
     // Going clockwise, starting at 12
-    attacks |= sq.north().north_east().as_u64();
-    attacks |= sq.east().north_east().as_u64();
-    attacks |= sq.east().south_east().as_u64();
-    attacks |= sq.south().south_east().as_u64();
-    attacks |= sq.south().south_west().as_u64();
-    attacks |= sq.west().south_west().as_u64();
-    attacks |= sq.west().north_west().as_u64();
-    attacks |= sq.north().north_west().as_u64();
-
-    Bitboard::new(attacks)
+    Bitboard::EMPTY
+        .or(sq.north().north_east())
+        .or(sq.east().north_east())
+        .or(sq.east().south_east())
+        .or(sq.south().south_east())
+        .or(sq.south().south_west())
+        .or(sq.west().south_west())
+        .or(sq.west().north_west())
+        .or(sq.north().north_west())
 }
 
 #[allow(unused, reason = "Here for completeness")]
@@ -84,22 +80,20 @@ fn generate_sliding_attacks(
 }
 
 pub const fn generate_king_attacks(square: Square) -> Bitboard {
-    let mut attacks = Bitboard::EMPTY.as_u64();
+    let mut attacks = Bitboard::EMPTY;
     let sq = square.bb();
 
     let mut i = 0;
     while i < Direction::ALL.len() {
         let dir = Direction::ALL[i];
-        attacks |= sq.in_direction(dir).as_u64();
+        attacks.or_assign(sq.in_direction(dir));
         i += 1;
     }
 
-    Bitboard::new(attacks)
+    attacks
 }
 
 pub fn all_attackers_of(board: &Board, square: Square, occupied: Bitboard) -> Bitboard {
-    use Player::*;
-
     let mut attackers = Bitboard::EMPTY;
 
     attackers |= pawn_attacks(square, White) & board.pawns(Black);

@@ -19,7 +19,7 @@ fn input_bucket(king: Square, pov: Player) -> usize {
     BUCKET_LAYOUT[king
         .relative_for(pov)
         .mirrored_horizontally_if(should_mirror(king))
-        .array_idx()]
+        .idx()]
 }
 
 #[inline]
@@ -501,5 +501,5 @@ fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
         .mirrored_horizontally_if(should_mirror(king))
         .idx();
 
-    c * COLOR_STRIDE + p * PIECE_STRIDE + square_idx as usize
+    c * COLOR_STRIDE + p * PIECE_STRIDE + square_idx
 }

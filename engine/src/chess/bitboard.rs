@@ -5,19 +5,19 @@ use crate::chess::{direction::Direction, prelude::*};
 pub struct Bitboard(u64);
 
 impl Bitboard {
-    const NOT_A_FILE: Self = bitboards::A_FILE.invert();
-    const NOT_H_FILE: Self = bitboards::H_FILE.invert();
+    const NOT_A_FILE: Self = bitboards::A_FILE.not();
+    const NOT_H_FILE: Self = bitboards::H_FILE.not();
 
     pub const EMPTY: Self = Self(0);
     pub const FULL: Self = Self(u64::MAX);
 
     #[inline(always)]
-    pub const fn new(bits: u64) -> Self {
+    pub const fn from_raw(bits: u64) -> Self {
         Self(bits)
     }
 
     #[inline(always)]
-    pub const fn as_u64(self) -> u64 {
+    pub const fn raw(self) -> u64 {
         self.0
     }
 
@@ -39,12 +39,7 @@ impl Bitboard {
     #[inline(always)]
     pub const fn single(self) -> Square {
         debug_assert!(self.count() == 1);
-        Square::from_array_index(self.trailing_zeros())
-    }
-
-    #[inline(always)]
-    pub const fn invert(self) -> Self {
-        Self(!self.0)
+        Square::from_index(self.trailing_zeros())
     }
 
     #[inline(always)]
@@ -61,22 +56,22 @@ impl Bitboard {
 
     #[inline(always)]
     pub fn set(&mut self, square: Square) {
-        self.0 |= square.bb().0;
+        self.or_assign(square.bb());
     }
 
     #[inline(always)]
     pub fn with(&mut self, square: Square) -> Self {
-        Self(self.0 | square.bb().0)
+        self.or(square.bb())
     }
 
     #[inline(always)]
     pub fn unset(&mut self, square: Square) {
-        self.0 &= square.bb().invert().0;
+        self.and_assign(square.bb().not());
     }
 
     #[inline(always)]
     pub fn without(&self, square: Square) -> Self {
-        Self(self.0 & square.bb().invert().0)
+        self.and(square.bb().not())
     }
 
     #[inline(always)]
@@ -87,6 +82,41 @@ impl Bitboard {
     #[inline(always)]
     pub const fn trailing_zeros(self) -> usize {
         self.0.trailing_zeros() as usize
+    }
+
+    #[inline(always)]
+    pub const fn and(self, rhs: Self) -> Self {
+        Self(self.0 & rhs.0)
+    }
+
+    #[inline(always)]
+    pub const fn and_assign(&mut self, rhs: Self) {
+        self.0 &= rhs.0;
+    }
+
+    #[inline(always)]
+    pub const fn or(self, rhs: Self) -> Self {
+        Self(self.0 | rhs.0)
+    }
+
+    #[inline(always)]
+    pub const fn or_assign(&mut self, rhs: Self) {
+        self.0 |= rhs.0;
+    }
+
+    #[inline(always)]
+    pub const fn xor(self, rhs: Self) -> Self {
+        Self(self.0 ^ rhs.0)
+    }
+
+    #[inline(always)]
+    pub const fn xor_assign(&mut self, rhs: Self) {
+        self.0 ^= rhs.0;
+    }
+
+    #[inline(always)]
+    pub const fn not(self) -> Self {
+        Self(!self.0)
     }
 
     #[inline(always)]
@@ -175,7 +205,7 @@ impl Iterator for SquareIterator {
         if self.0.is_empty() {
             None
         } else {
-            Some(Square::from_array_index(self.0.pop_lsb_inplace().trailing_zeros()))
+            Some(Square::from_index(self.0.pop_lsb_inplace().trailing_zeros()))
         }
     }
 }
@@ -189,19 +219,11 @@ impl IntoIterator for Bitboard {
     }
 }
 
-impl std::ops::Sub for Bitboard {
-    type Output = Self;
-
-    fn sub(self, rhs: Self) -> Self::Output {
-        Self(self.0.wrapping_sub(rhs.0))
-    }
-}
-
 impl std::ops::BitAnd for Bitboard {
     type Output = Self;
 
     fn bitand(self, rhs: Self) -> Self::Output {
-        Self(self.0 & rhs.0)
+        self.and(rhs)
     }
 }
 
@@ -210,20 +232,20 @@ impl std::ops::BitAnd<Square> for Bitboard {
     type Output = Self;
 
     fn bitand(self, rhs: Square) -> Self::Output {
-        self & rhs.bb()
+        self.and(rhs.bb())
     }
 }
 
 impl std::ops::BitAndAssign for Bitboard {
     fn bitand_assign(&mut self, rhs: Self) {
-        self.0 = self.0 & rhs.0;
+        self.and_assign(rhs);
     }
 }
 
 #[cfg(test)]
 impl std::ops::BitAndAssign<Square> for Bitboard {
     fn bitand_assign(&mut self, rhs: Square) {
-        self.0 = self.0 & (rhs.bb().0);
+        self.and_assign(rhs.bb());
     }
 }
 
@@ -231,7 +253,7 @@ impl std::ops::BitOr for Bitboard {
     type Output = Self;
 
     fn bitor(self, rhs: Self) -> Self::Output {
-        Self(self.0 | rhs.0)
+        self.or(rhs)
     }
 }
 
@@ -240,20 +262,20 @@ impl std::ops::BitOr<Square> for Bitboard {
     type Output = Self;
 
     fn bitor(self, rhs: Square) -> Self::Output {
-        self | rhs.bb()
+        self.or(rhs.bb())
     }
 }
 
 impl std::ops::BitOrAssign for Bitboard {
     fn bitor_assign(&mut self, rhs: Self) {
-        self.0 = self.0 | rhs.0;
+        self.or_assign(rhs);
     }
 }
 
 #[cfg(test)]
 impl std::ops::BitOrAssign<Square> for Bitboard {
     fn bitor_assign(&mut self, rhs: Square) {
-        self.0 = self.0 | rhs.bb().0;
+        self.or_assign(rhs.bb());
     }
 }
 
@@ -261,13 +283,13 @@ impl std::ops::BitXor for Bitboard {
     type Output = Self;
 
     fn bitxor(self, rhs: Self) -> Self::Output {
-        Self(self.0 ^ rhs.0)
+        self.xor(rhs)
     }
 }
 
 impl std::ops::BitXorAssign for Bitboard {
     fn bitxor_assign(&mut self, rhs: Self) {
-        self.0 = self.0 ^ rhs.0;
+        self.xor_assign(rhs);
     }
 }
 
@@ -275,7 +297,7 @@ impl std::ops::Not for Bitboard {
     type Output = Self;
 
     fn not(self) -> Self::Output {
-        self.invert()
+        Self::not(self)
     }
 }
 
@@ -415,28 +437,28 @@ pub mod bitboards {
     const H7_BB: Bitboard = H7.bb();
     const H8_BB: Bitboard = H8.bb();
 
-    pub const A_FILE: Bitboard = Bitboard::new(A1_BB.0 | A2_BB.0 | A3_BB.0 | A4_BB.0 | A5_BB.0 | A6_BB.0 | A7_BB.0 | A8_BB.0);
-    pub const B_FILE: Bitboard = Bitboard::new(B1_BB.0 | B2_BB.0 | B3_BB.0 | B4_BB.0 | B5_BB.0 | B6_BB.0 | B7_BB.0 | B8_BB.0);
-    pub const C_FILE: Bitboard = Bitboard::new(C1_BB.0 | C2_BB.0 | C3_BB.0 | C4_BB.0 | C5_BB.0 | C6_BB.0 | C7_BB.0 | C8_BB.0);
-    pub const D_FILE: Bitboard = Bitboard::new(D1_BB.0 | D2_BB.0 | D3_BB.0 | D4_BB.0 | D5_BB.0 | D6_BB.0 | D7_BB.0 | D8_BB.0);
-    pub const E_FILE: Bitboard = Bitboard::new(E1_BB.0 | E2_BB.0 | E3_BB.0 | E4_BB.0 | E5_BB.0 | E6_BB.0 | E7_BB.0 | E8_BB.0);
-    pub const F_FILE: Bitboard = Bitboard::new(F1_BB.0 | F2_BB.0 | F3_BB.0 | F4_BB.0 | F5_BB.0 | F6_BB.0 | F7_BB.0 | F8_BB.0);
-    pub const G_FILE: Bitboard = Bitboard::new(G1_BB.0 | G2_BB.0 | G3_BB.0 | G4_BB.0 | G5_BB.0 | G6_BB.0 | G7_BB.0 | G8_BB.0);
-    pub const H_FILE: Bitboard = Bitboard::new(H1_BB.0 | H2_BB.0 | H3_BB.0 | H4_BB.0 | H5_BB.0 | H6_BB.0 | H7_BB.0 | H8_BB.0);
+    pub const A_FILE: Bitboard = Bitboard::from_raw(A1_BB.0 | A2_BB.0 | A3_BB.0 | A4_BB.0 | A5_BB.0 | A6_BB.0 | A7_BB.0 | A8_BB.0);
+    pub const B_FILE: Bitboard = Bitboard::from_raw(B1_BB.0 | B2_BB.0 | B3_BB.0 | B4_BB.0 | B5_BB.0 | B6_BB.0 | B7_BB.0 | B8_BB.0);
+    pub const C_FILE: Bitboard = Bitboard::from_raw(C1_BB.0 | C2_BB.0 | C3_BB.0 | C4_BB.0 | C5_BB.0 | C6_BB.0 | C7_BB.0 | C8_BB.0);
+    pub const D_FILE: Bitboard = Bitboard::from_raw(D1_BB.0 | D2_BB.0 | D3_BB.0 | D4_BB.0 | D5_BB.0 | D6_BB.0 | D7_BB.0 | D8_BB.0);
+    pub const E_FILE: Bitboard = Bitboard::from_raw(E1_BB.0 | E2_BB.0 | E3_BB.0 | E4_BB.0 | E5_BB.0 | E6_BB.0 | E7_BB.0 | E8_BB.0);
+    pub const F_FILE: Bitboard = Bitboard::from_raw(F1_BB.0 | F2_BB.0 | F3_BB.0 | F4_BB.0 | F5_BB.0 | F6_BB.0 | F7_BB.0 | F8_BB.0);
+    pub const G_FILE: Bitboard = Bitboard::from_raw(G1_BB.0 | G2_BB.0 | G3_BB.0 | G4_BB.0 | G5_BB.0 | G6_BB.0 | G7_BB.0 | G8_BB.0);
+    pub const H_FILE: Bitboard = Bitboard::from_raw(H1_BB.0 | H2_BB.0 | H3_BB.0 | H4_BB.0 | H5_BB.0 | H6_BB.0 | H7_BB.0 | H8_BB.0);
 
-    pub const RANK_1: Bitboard = Bitboard::new(A1_BB.0 | B1_BB.0 | C1_BB.0 | D1_BB.0 | E1_BB.0 | F1_BB.0 | G1_BB.0 | H1_BB.0);
-    pub const RANK_2: Bitboard = Bitboard::new(A2_BB.0 | B2_BB.0 | C2_BB.0 | D2_BB.0 | E2_BB.0 | F2_BB.0 | G2_BB.0 | H2_BB.0);
-    pub const RANK_3: Bitboard = Bitboard::new(A3_BB.0 | B3_BB.0 | C3_BB.0 | D3_BB.0 | E3_BB.0 | F3_BB.0 | G3_BB.0 | H3_BB.0);
-    pub const RANK_4: Bitboard = Bitboard::new(A4_BB.0 | B4_BB.0 | C4_BB.0 | D4_BB.0 | E4_BB.0 | F4_BB.0 | G4_BB.0 | H4_BB.0);
-    pub const RANK_5: Bitboard = Bitboard::new(A5_BB.0 | B5_BB.0 | C5_BB.0 | D5_BB.0 | E5_BB.0 | F5_BB.0 | G5_BB.0 | H5_BB.0);
-    pub const RANK_6: Bitboard = Bitboard::new(A6_BB.0 | B6_BB.0 | C6_BB.0 | D6_BB.0 | E6_BB.0 | F6_BB.0 | G6_BB.0 | H6_BB.0);
-    pub const RANK_7: Bitboard = Bitboard::new(A7_BB.0 | B7_BB.0 | C7_BB.0 | D7_BB.0 | E7_BB.0 | F7_BB.0 | G7_BB.0 | H7_BB.0);
-    pub const RANK_8: Bitboard = Bitboard::new(A8_BB.0 | B8_BB.0 | C8_BB.0 | D8_BB.0 | E8_BB.0 | F8_BB.0 | G8_BB.0 | H8_BB.0);
+    pub const RANK_1: Bitboard = Bitboard::from_raw(A1_BB.0 | B1_BB.0 | C1_BB.0 | D1_BB.0 | E1_BB.0 | F1_BB.0 | G1_BB.0 | H1_BB.0);
+    pub const RANK_2: Bitboard = Bitboard::from_raw(A2_BB.0 | B2_BB.0 | C2_BB.0 | D2_BB.0 | E2_BB.0 | F2_BB.0 | G2_BB.0 | H2_BB.0);
+    pub const RANK_3: Bitboard = Bitboard::from_raw(A3_BB.0 | B3_BB.0 | C3_BB.0 | D3_BB.0 | E3_BB.0 | F3_BB.0 | G3_BB.0 | H3_BB.0);
+    pub const RANK_4: Bitboard = Bitboard::from_raw(A4_BB.0 | B4_BB.0 | C4_BB.0 | D4_BB.0 | E4_BB.0 | F4_BB.0 | G4_BB.0 | H4_BB.0);
+    pub const RANK_5: Bitboard = Bitboard::from_raw(A5_BB.0 | B5_BB.0 | C5_BB.0 | D5_BB.0 | E5_BB.0 | F5_BB.0 | G5_BB.0 | H5_BB.0);
+    pub const RANK_6: Bitboard = Bitboard::from_raw(A6_BB.0 | B6_BB.0 | C6_BB.0 | D6_BB.0 | E6_BB.0 | F6_BB.0 | G6_BB.0 | H6_BB.0);
+    pub const RANK_7: Bitboard = Bitboard::from_raw(A7_BB.0 | B7_BB.0 | C7_BB.0 | D7_BB.0 | E7_BB.0 | F7_BB.0 | G7_BB.0 | H7_BB.0);
+    pub const RANK_8: Bitboard = Bitboard::from_raw(A8_BB.0 | B8_BB.0 | C8_BB.0 | D8_BB.0 | E8_BB.0 | F8_BB.0 | G8_BB.0 | H8_BB.0);
 
-    pub const CORNERS: Bitboard = Bitboard::new(A1_BB.0 | A8_BB.0 | H1_BB.0 | H8_BB.0);
-    pub const EDGES: Bitboard = Bitboard::new(RANK_1.0 | RANK_8.0 | A_FILE.0 | H_FILE.0);
+    pub const CORNERS: Bitboard = Bitboard::from_raw(A1_BB.0 | A8_BB.0 | H1_BB.0 | H8_BB.0);
+    pub const EDGES: Bitboard = Bitboard::from_raw(RANK_1.0 | RANK_8.0 | A_FILE.0 | H_FILE.0);
 
-    pub const LIGHT_SQUARES: Bitboard = Bitboard::new(
+    pub const LIGHT_SQUARES: Bitboard = Bitboard::from_raw(
         A8_BB.0 | C8_BB.0 | E8_BB.0 | G8_BB.0 |
         B7_BB.0 | D7_BB.0 | F7_BB.0 | H7_BB.0 |
         A6_BB.0 | C6_BB.0 | E6_BB.0 | G6_BB.0 |
@@ -446,7 +468,7 @@ pub mod bitboards {
         A2_BB.0 | C2_BB.0 | E2_BB.0 | G2_BB.0 |
         B1_BB.0 | D1_BB.0 | F1_BB.0 | H1_BB.0 );
 
-    pub const DARK_SQUARES: Bitboard = Bitboard::new(
+    pub const DARK_SQUARES: Bitboard = Bitboard::from_raw(
         B8_BB.0 | D8_BB.0 | F8_BB.0 | H8_BB.0 |
         A7_BB.0 | C7_BB.0 | E7_BB.0 | G7_BB.0 |
         B6_BB.0 | D6_BB.0 | F6_BB.0 | H6_BB.0 |

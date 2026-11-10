@@ -5,7 +5,7 @@ static ATTACKS_TABLE: [Bitboard; Square::N] = const {
 
     let mut s = 0;
     while s < Square::N {
-        attacks[s] = attacks::generate_knight_attacks(Square::from_index(s as u8));
+        attacks[s] = attacks::generate_knight_attacks(Square::from_index(s));
         s += 1;
     }
 

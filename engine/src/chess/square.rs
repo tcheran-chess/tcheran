@@ -151,44 +151,44 @@ impl Square {
         Self::from_idxs(file.idx(), rank.idx())
     }
 
-    pub const fn from_index(idx: u8) -> Self {
+    pub const fn from_raw(idx: u8) -> Self {
         debug_assert!(idx < 64);
         Self(idx)
     }
 
-    pub const fn from_array_index(idx: usize) -> Self {
+    pub const fn from_index(idx: usize) -> Self {
         debug_assert!(idx < 64);
         Self(idx as u8)
     }
 
     pub const fn from_idxs(file_idx: u8, rank_idx: u8) -> Self {
         let idx = rank_idx * 8 + file_idx;
-        Self::from_index(idx)
+        Self::from_raw(idx)
     }
 
     #[inline(always)]
     pub const fn bb(self) -> Bitboard {
-        Bitboard::new(1 << self.0)
+        Bitboard::from_raw(1 << self.0)
     }
 
     #[inline(always)]
-    pub const fn idx(self) -> u8 {
+    pub const fn raw(self) -> u8 {
         self.0
     }
 
     #[inline(always)]
-    pub const fn array_idx(self) -> usize {
+    pub const fn idx(self) -> usize {
         self.0 as usize
     }
 
     #[inline(always)]
     pub fn rank(self) -> Rank {
-        Rank::from_idx(self.idx() / 8)
+        Rank::from_idx(self.0 / 8)
     }
 
     #[inline(always)]
     pub fn file(self) -> File {
-        File::from_idx(self.idx() % 8)
+        File::from_idx(self.0 % 8)
     }
 
     pub fn notation(self) -> String {
@@ -233,7 +233,7 @@ impl Square {
 
     #[inline(always)]
     pub const fn mirror_vertically(self) -> Self {
-        Self(self.idx() ^ 0b11_1000)
+        Self(self.0 ^ 0b11_1000)
     }
 
     #[inline(always)]

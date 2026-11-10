@@ -5,7 +5,7 @@ static ATTACKS_TABLE: [Bitboard; Square::N] = const {
 
     let mut s = 0;
     while s < Square::N {
-        attacks[s] = attacks::generate_king_attacks(Square::from_index(s as u8));
+        attacks[s] = attacks::generate_king_attacks(Square::from_index(s));
         s += 1;
     }
 
@@ -13,5 +13,5 @@ static ATTACKS_TABLE: [Bitboard; Square::N] = const {
 };
 
 pub const fn lookup_king_attacks(s: Square) -> Bitboard {
-    ATTACKS_TABLE[s.array_idx()]
+    ATTACKS_TABLE[s.idx()]
 }

@@ -5,33 +5,26 @@ use crate::chess::{
     prelude::*,
 };
 
-static ROOK_NOT_MASKS: [Bitboard; Square::N] = unsafe {
-    std::mem::transmute::<[u8; size_of::<Bitboard>() * Square::N], [Bitboard; Square::N]>(
-        *include_bytes!(concat!(env!("OUT_DIR"), "/rook_not_masks.bin")),
-    )
-};
+macro_rules! table {
+    ($file:literal, $len:expr) => {
+        unsafe {
+            std::mem::transmute::<[u8; size_of::<Bitboard>() * $len], [Bitboard; $len]>(
+                *include_bytes!(concat!(env!("OUT_DIR"), "/", $file)),
+            )
+        }
+    };
+}
 
-static BISHOP_NOT_MASKS: [Bitboard; Square::N] = unsafe {
-    std::mem::transmute::<[u8; size_of::<Bitboard>() * Square::N], [Bitboard; Square::N]>(
-        *include_bytes!(concat!(env!("OUT_DIR"), "/bishop_not_masks.bin")),
-    )
-};
-
-static ATTACKS_TABLE: [Bitboard; ATTACKS_TABLE_SIZE] = unsafe {
-    std::mem::transmute::<
-        [u8; size_of::<Bitboard>() * ATTACKS_TABLE_SIZE],
-        [Bitboard; ATTACKS_TABLE_SIZE],
-    >(*include_bytes!(concat!(env!("OUT_DIR"), "/magics.bin")))
-};
+static ROOK_NOT_MASKS: [Bitboard; Square::N] = table!("rook_not_masks.bin", Square::N);
+static BISHOP_NOT_MASKS: [Bitboard; Square::N] = table!("bishop_not_masks.bin", Square::N);
+static ATTACKS_TABLE: [Bitboard; ATTACKS_TABLE_SIZE] = table!("magics.bin", ATTACKS_TABLE_SIZE);
 
 pub const fn lookup_rook_attacks(s: Square, blockers: Bitboard) -> Bitboard {
-    let index = table_index(s, blockers, &ROOK_MAGICS, &ROOK_NOT_MASKS, ROOK_SHIFT);
-    ATTACKS_TABLE[index]
+    ATTACKS_TABLE[table_index(s, blockers, &ROOK_MAGICS, &ROOK_NOT_MASKS, ROOK_SHIFT)]
 }
 
 pub const fn lookup_bishop_attacks(s: Square, blockers: Bitboard) -> Bitboard {
-    let index = table_index(s, blockers, &BISHOP_MAGICS, &BISHOP_NOT_MASKS, BISHOP_SHIFT);
-    ATTACKS_TABLE[index]
+    ATTACKS_TABLE[table_index(s, blockers, &BISHOP_MAGICS, &BISHOP_NOT_MASKS, BISHOP_SHIFT)]
 }
 
 const fn table_index(
@@ -42,8 +35,7 @@ const fn table_index(
     shift: usize,
 ) -> usize {
     let (magic, index) = magics[square.idx()];
-    let relevant_occupancies = blockers.or(not_masks[square.idx()]);
-    let mut offset = relevant_occupancies.raw().wrapping_mul(magic);
-    offset >>= Square::N - shift;
+    let relevant_occupancies = blockers.or(not_masks[square.idx()]).raw();
+    let offset = relevant_occupancies.wrapping_mul(magic) >> (Square::N - shift);
     index + offset as usize
 }

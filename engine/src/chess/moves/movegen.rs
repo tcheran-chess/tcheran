@@ -92,21 +92,13 @@ pub fn generate_quiets(game: &Game, f: &mut impl FnMut(Move)) {
         !(our_pieces | their_pieces)
     };
 
-    let promotion_squares = !our_pieces & back_rank(!game.player);
-
-    let pawn_dst_mask = if number_of_checkers == 1 {
-        game.checkers & promotion_squares
-    } else {
-        promotion_squares
-    };
-
     let pinned = game.pinned[game.player];
 
     generate_pawn_quiets(
         game,
         game.board.pawns(game.player),
         all_pieces,
-        dst_mask | pawn_dst_mask,
+        dst_mask,
         pinned,
         king,
         f,

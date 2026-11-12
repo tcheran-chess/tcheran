@@ -85,7 +85,17 @@ fn fen_position(input: &str) -> Result<Board, ()> {
         all_pieces[i * File::N..(i + 1) * File::N].copy_from_slice(&rank.0);
     }
 
-    all_pieces.try_into()
+    let mut board = Board::EMPTY;
+
+    for (i, maybe_piece) in all_pieces.into_iter().enumerate() {
+        let Some(piece) = maybe_piece else {
+            continue;
+        };
+
+        board.set_at(Square::from_index(i), piece);
+    }
+
+    Ok(board)
 }
 
 fn fen_color(input: &str) -> Result<Player, ()> {

@@ -161,25 +161,3 @@ impl std::fmt::Debug for Board {
         )
     }
 }
-
-impl TryFrom<[Option<Piece>; Square::N]> for Board {
-    type Error = ();
-
-    fn try_from(squares: [Option<Piece>; Square::N]) -> Result<Self, ()> {
-        let mut board = Self {
-            pieces: [Bitboard::EMPTY; PieceKind::N],
-            colors: [Bitboard::EMPTY; Player::N],
-            squares: [None; Square::N],
-        };
-
-        for (i, maybe_piece) in squares.into_iter().enumerate() {
-            let Some(piece) = maybe_piece else {
-                continue;
-            };
-
-            board.set_at(Square::from_index(i), piece);
-        }
-
-        Ok(board)
-    }
-}

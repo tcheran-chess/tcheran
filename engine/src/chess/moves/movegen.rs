@@ -227,7 +227,7 @@ fn generate_pawn_quiets(
     let unpinned_pawns = pawns & !pinned;
     let pinned_pawns = pawns & pinned;
 
-    let can_push = unpinned_pawns | (pinned_pawns & king.file().bitboard());
+    let can_push = unpinned_pawns | (pinned_pawns & king.file().bb());
 
     let will_promote_rank = pawn_back_rank(them);
     let non_promotion_pushes = can_push & !will_promote_rank;

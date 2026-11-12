@@ -46,7 +46,7 @@ impl File {
         FILE_NOTATION[self as usize]
     }
 
-    pub const fn bitboard(self) -> Bitboard {
+    pub const fn bb(self) -> Bitboard {
         FILE_BITBOARDS[self as usize]
     }
 }

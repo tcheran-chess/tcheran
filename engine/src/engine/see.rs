@@ -184,14 +184,14 @@ mod tests {
 
     #[test]
     fn test_see_bad_captures() {
-        should_be_bad_capture("8/k1q5/8/4p3/8/4Q3/K7/8 w - - 0 1", (E3, E5));
-        should_be_bad_capture("8/k1q2n2/8/4p2R/8/2B1Q3/K7/8 w - - 0 1", (E3, E5));
+        should_be_bad_capture("k7/2q5/8/4p3/8/4Q3/8/K7 w - - 0 1", (E3, E5));
+        should_be_bad_capture("k7/2q2n2/8/4p2R/8/2B1Q3/8/K7 w - - 0 1", (E3, E5));
         should_be_bad_capture("k7/2q2n2/8/4p2R/5P2/2B1Q3/8/6K1 w - - 0 1", (E3, E5));
     }
 
     #[test]
     fn test_see_good_captures() {
-        should_be_good_capture("8/k1q5/8/4p3/8/4Q1B1/K7/8 w - - 0 1", (E3, E5));
+        should_be_good_capture("k7/2q5/8/4p3/8/4Q1B1/8/K7 w - - 0 1", (E3, E5));
         should_be_good_capture("k7/2q2n2/8/4p2R/5P2/2B1Q3/8/6K1 w - - 0 1", (C3, E5));
         should_be_good_capture("K7/8/8/3p4/4P3/8/8/7k w - - 0 1", (E4, E5));
     }

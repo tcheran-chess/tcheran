@@ -14,6 +14,7 @@
 * Add 'set x y' as a shorthand for 'setoption name x value y'
 * Fix SAN ambiguity case when pieces do not share the same file or rank
 * Only little-endian systems are supported
+* The engine will now error if a 'position fen' command with an illegal position is run
 
 ## [14.0]
 

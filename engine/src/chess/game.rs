@@ -124,6 +124,12 @@ impl<T> std::ops::IndexMut<CastleSide> for [T; CastleSide::N] {
     }
 }
 
+#[derive(Debug)]
+pub enum IllegalPositionReason {
+    IncorrectNumberOfKings,
+    CanCaptureKing,
+}
+
 #[derive(Debug, Clone)]
 pub struct History {
     pub mv: Option<Move>,
@@ -514,6 +520,27 @@ impl Game {
             bishop_attacks(their_king, blockers),
             rook_attacks(their_king, blockers),
         ];
+    }
+
+    pub fn check_legality(&self) -> Result<(), IllegalPositionReason> {
+        let moves = self.moves();
+
+        // Each player should have a single king
+        for player in Player::ALL {
+            if self.board.king(player).count() != 1 {
+                return Err(IllegalPositionReason::IncorrectNumberOfKings);
+            }
+        }
+
+        // Kings should not be able to be captured
+        if moves
+            .iter()
+            .any(|m| self.board.all_kings().contains(m.to()))
+        {
+            return Err(IllegalPositionReason::CanCaptureKing);
+        }
+
+        Ok(())
     }
 
     // Logic ported from Stormphrax

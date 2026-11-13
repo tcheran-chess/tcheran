@@ -15,6 +15,7 @@
 * Fix SAN ambiguity case when pieces do not share the same file or rank
 * Only little-endian systems are supported
 * The engine will now error if a 'position fen' command with an illegal position is run
+* Updated to Rust 1.100
 
 ## [14.0]
 

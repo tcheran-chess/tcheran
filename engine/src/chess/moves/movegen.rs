@@ -13,7 +13,7 @@ pub fn generate_legal_moves(game: &Game, mut f: impl FnMut(Move)) {
 
 pub fn generate_tacticals(game: &Game, f: &mut impl FnMut(Move)) {
     let (our_pieces, their_pieces) = game.board.occupancies(game.player);
-    let all_pieces = our_pieces | their_pieces;
+    let pieces = our_pieces | their_pieces;
     let king = game.board.king_square(game.player);
 
     let number_of_checkers = game.checkers.count();
@@ -55,7 +55,7 @@ pub fn generate_tacticals(game: &Game, f: &mut impl FnMut(Move)) {
 
     generate_diagonal_slider_captures(
         game.board.diagonal_sliders(game.player),
-        all_pieces,
+        pieces,
         dst_mask,
         pinned,
         king,
@@ -63,7 +63,7 @@ pub fn generate_tacticals(game: &Game, f: &mut impl FnMut(Move)) {
     );
     generate_orthogonal_slider_captures(
         game.board.orthogonal_sliders(game.player),
-        all_pieces,
+        pieces,
         dst_mask,
         pinned,
         king,
@@ -74,14 +74,14 @@ pub fn generate_tacticals(game: &Game, f: &mut impl FnMut(Move)) {
 
 pub fn generate_quiets(game: &Game, f: &mut impl FnMut(Move)) {
     let (our_pieces, their_pieces) = game.board.occupancies(game.player);
-    let all_pieces = our_pieces | their_pieces;
+    let pieces = our_pieces | their_pieces;
     let king = game.board.king_square(game.player);
 
     let number_of_checkers = game.checkers.count();
 
     // If we're in check by more than one attacker, we can only get out of check via a king move
     if number_of_checkers > 1 {
-        generate_king_quiets(game, king, all_pieces, f);
+        generate_king_quiets(game, king, pieces, f);
         return;
     }
 
@@ -94,19 +94,11 @@ pub fn generate_quiets(game: &Game, f: &mut impl FnMut(Move)) {
 
     let pinned = game.pinned[game.player];
 
-    generate_pawn_quiets(
-        game,
-        game.board.pawns(game.player),
-        all_pieces,
-        dst_mask,
-        pinned,
-        king,
-        f,
-    );
+    generate_pawn_quiets(game, game.board.pawns(game.player), pieces, dst_mask, pinned, king, f);
     generate_knight_quiets(game.board.knights(game.player), dst_mask, pinned, f);
     generate_diagonal_slider_quiets(
         game.board.diagonal_sliders(game.player),
-        all_pieces,
+        pieces,
         dst_mask,
         pinned,
         king,
@@ -114,16 +106,16 @@ pub fn generate_quiets(game: &Game, f: &mut impl FnMut(Move)) {
     );
     generate_orthogonal_slider_quiets(
         game.board.orthogonal_sliders(game.player),
-        all_pieces,
+        pieces,
         dst_mask,
         pinned,
         king,
         f,
     );
-    generate_king_quiets(game, king, all_pieces, f);
+    generate_king_quiets(game, king, pieces, f);
 
     if !game.checkers.any() {
-        generate_castles(game, all_pieces, f);
+        generate_castles(game, pieces, f);
     }
 }
 
@@ -207,7 +199,7 @@ fn generate_pawn_tacticals(
 fn generate_pawn_quiets(
     game: &Game,
     pawns: Bitboard,
-    all_pieces: Bitboard,
+    pieces: Bitboard,
     dst_mask: Bitboard,
     pinned: Bitboard,
     king: Square,
@@ -225,21 +217,21 @@ fn generate_pawn_quiets(
     let non_promotion_pushes = can_push & !will_promote_rank;
     let promotion_pushes = can_push & will_promote_rank;
 
-    let single_push_destinations = non_promotion_pushes.forward(us) & !all_pieces;
+    let single_push_destinations = non_promotion_pushes.forward(us) & !pieces;
     for dst in single_push_destinations & dst_mask {
         let src = dst.backward(us);
         f(Move::quiet(src, dst));
     }
 
     let double_push_destinations =
-        (single_push_destinations & double_push_rank(us)).forward(us) & !all_pieces;
+        (single_push_destinations & double_push_rank(us)).forward(us) & !pieces;
 
     for dst in double_push_destinations & dst_mask {
         let src = dst.backward(us).backward(us);
         f(Move::double_push(src, dst));
     }
 
-    let underpromotion_destinations = promotion_pushes.forward(us) & !all_pieces;
+    let underpromotion_destinations = promotion_pushes.forward(us) & !pieces;
     for dst in underpromotion_destinations & dst_mask {
         let src = dst.backward(us);
         f(Move::push_promotion(src, dst, PromotionPieceKind::Rook));
@@ -278,14 +270,14 @@ fn generate_knight_quiets(
 
 fn generate_diagonal_slider_captures(
     diagonal_sliders: Bitboard,
-    all_pieces: Bitboard,
+    pieces: Bitboard,
     dst_mask: Bitboard,
     pinned: Bitboard,
     king: Square,
     f: &mut impl FnMut(Move),
 ) {
     for src in diagonal_sliders & !pinned {
-        let destinations = bishop_attacks(src, all_pieces) & dst_mask;
+        let destinations = bishop_attacks(src, pieces) & dst_mask;
         for dst in destinations {
             f(Move::capture(src, dst));
         }
@@ -293,7 +285,7 @@ fn generate_diagonal_slider_captures(
 
     for src in diagonal_sliders & pinned {
         let pin_ray = ray_skewering(king, src);
-        let destinations = bishop_attacks(src, all_pieces) & dst_mask & pin_ray;
+        let destinations = bishop_attacks(src, pieces) & dst_mask & pin_ray;
         for dst in destinations {
             f(Move::capture(src, dst));
         }
@@ -302,14 +294,14 @@ fn generate_diagonal_slider_captures(
 
 fn generate_diagonal_slider_quiets(
     diagonal_sliders: Bitboard,
-    all_pieces: Bitboard,
+    pieces: Bitboard,
     dst_mask: Bitboard,
     pinned: Bitboard,
     king: Square,
     f: &mut impl FnMut(Move),
 ) {
     for src in diagonal_sliders & !pinned {
-        let destinations = bishop_attacks(src, all_pieces) & dst_mask;
+        let destinations = bishop_attacks(src, pieces) & dst_mask;
         for dst in destinations {
             f(Move::quiet(src, dst));
         }
@@ -317,7 +309,7 @@ fn generate_diagonal_slider_quiets(
 
     for src in diagonal_sliders & pinned {
         let pin_ray = ray_skewering(king, src);
-        let destinations = bishop_attacks(src, all_pieces) & dst_mask & pin_ray;
+        let destinations = bishop_attacks(src, pieces) & dst_mask & pin_ray;
         for dst in destinations {
             f(Move::quiet(src, dst));
         }
@@ -326,14 +318,14 @@ fn generate_diagonal_slider_quiets(
 
 fn generate_orthogonal_slider_captures(
     orthogonal_sliders: Bitboard,
-    all_pieces: Bitboard,
+    pieces: Bitboard,
     dst_mask: Bitboard,
     pinned: Bitboard,
     king: Square,
     f: &mut impl FnMut(Move),
 ) {
     for src in orthogonal_sliders & !pinned {
-        let destinations = rook_attacks(src, all_pieces) & dst_mask;
+        let destinations = rook_attacks(src, pieces) & dst_mask;
         for dst in destinations {
             f(Move::capture(src, dst));
         }
@@ -341,7 +333,7 @@ fn generate_orthogonal_slider_captures(
 
     for src in orthogonal_sliders & pinned {
         let pin_ray = ray_skewering(king, src);
-        let destinations = rook_attacks(src, all_pieces) & dst_mask & pin_ray;
+        let destinations = rook_attacks(src, pieces) & dst_mask & pin_ray;
         for dst in destinations {
             f(Move::capture(src, dst));
         }
@@ -350,14 +342,14 @@ fn generate_orthogonal_slider_captures(
 
 fn generate_orthogonal_slider_quiets(
     orthogonal_sliders: Bitboard,
-    all_pieces: Bitboard,
+    pieces: Bitboard,
     dst_mask: Bitboard,
     pinned: Bitboard,
     king: Square,
     f: &mut impl FnMut(Move),
 ) {
     for src in orthogonal_sliders & !pinned {
-        let destinations = rook_attacks(src, all_pieces) & dst_mask;
+        let destinations = rook_attacks(src, pieces) & dst_mask;
         for dst in destinations {
             f(Move::quiet(src, dst));
         }
@@ -365,7 +357,7 @@ fn generate_orthogonal_slider_quiets(
 
     for src in orthogonal_sliders & pinned {
         let pin_ray = ray_skewering(king, src);
-        let destinations = rook_attacks(src, all_pieces) & dst_mask & pin_ray;
+        let destinations = rook_attacks(src, pieces) & dst_mask & pin_ray;
         for dst in destinations {
             f(Move::quiet(src, dst));
         }
@@ -384,20 +376,20 @@ fn generate_king_captures(
     }
 }
 
-fn generate_king_quiets(game: &Game, king: Square, all_pieces: Bitboard, f: &mut impl FnMut(Move)) {
-    let destinations = king_attacks(king) & !all_pieces & !game.threats;
+fn generate_king_quiets(game: &Game, king: Square, pieces: Bitboard, f: &mut impl FnMut(Move)) {
+    let destinations = king_attacks(king) & !pieces & !game.threats;
     for dst in destinations {
         f(Move::quiet(king, dst));
     }
 }
 
-fn generate_castles(game: &Game, all_pieces: Bitboard, f: &mut impl FnMut(Move)) {
+fn generate_castles(game: &Game, pieces: Bitboard, f: &mut impl FnMut(Move)) {
     let castle_rights_for_player = game.castle_rights[game.player];
 
     if let Some(kingside_dst) = castle_rights_for_player.king_side {
         generate_castle_move_for_side(
             game,
-            all_pieces,
+            pieces,
             f,
             kingside_dst,
             squares::kingside_rook_castle_end(game.player),
@@ -408,7 +400,7 @@ fn generate_castles(game: &Game, all_pieces: Bitboard, f: &mut impl FnMut(Move))
     if let Some(queenside_dst) = castle_rights_for_player.queen_side {
         generate_castle_move_for_side(
             game,
-            all_pieces,
+            pieces,
             f,
             queenside_dst,
             squares::queenside_rook_castle_end(game.player),
@@ -419,7 +411,7 @@ fn generate_castles(game: &Game, all_pieces: Bitboard, f: &mut impl FnMut(Move))
 
 fn generate_castle_move_for_side(
     game: &Game,
-    all_pieces: Bitboard,
+    pieces: Bitboard,
     f: &mut impl FnMut(Move),
     rook: Square,
     rook_dst: Square,
@@ -434,7 +426,7 @@ fn generate_castle_move_for_side(
     let required_safe_squares = ray_between(king, king_dst) | king.bb() | king_dst.bb();
     let required_empty_squares = required_safe_squares | ray_between(king, rook) | rook_dst.bb();
 
-    let blockers = all_pieces ^ king.bb() ^ rook.bb();
+    let blockers = pieces ^ king.bb() ^ rook.bb();
 
     if (required_empty_squares & blockers).is_empty()
         && (required_safe_squares & game.threats).is_empty()

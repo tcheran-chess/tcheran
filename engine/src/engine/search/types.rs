@@ -124,18 +124,13 @@ impl RootMoves {
     }
 
     pub fn default_for(game: &Game) -> Self {
-        let moves: Vec<_> = game
+        let moves = game
             .moves()
-            .into_iter()
+            .iter()
             .map(|mv| RootMove::for_move(*mv))
             .collect();
 
-        let mut movelist = ArrayVec::<RootMove, MAX_LEGAL_MOVES>::new();
-        for m in moves {
-            movelist.push(m);
-        }
-
-        Self::new(movelist)
+        Self::new(moves)
     }
 
     fn find_mv(&self, mv: Move) -> Option<&RootMove> {

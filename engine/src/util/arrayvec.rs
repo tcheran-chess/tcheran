@@ -88,6 +88,18 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
     }
 }
 
+impl<T: Copy, const N: usize> std::iter::FromIterator<T> for ArrayVec<T, N> {
+    fn from_iter<I: IntoIterator<Item = T>>(iter: I) -> Self {
+        let mut array_vec = Self::new();
+
+        for value in iter {
+            array_vec.push(value);
+        }
+
+        array_vec
+    }
+}
+
 impl<'a, T: Copy, const N: usize> IntoIterator for &'a ArrayVec<T, N> {
     type Item = &'a T;
     type IntoIter = std::slice::Iter<'a, T>;

@@ -110,6 +110,7 @@ parameters!(
     non_pawn_correction_history_weight: i32 = 88 [48..256];
     threat_correction_history_weight: i32 = 149 [48..256];
     one_ply_contcorrhist_weight: i32 = 150 [48..256];
+    two_ply_contcorrhist_weight: i32 = 150 [48..256];
 
     // Time Management
     default_moves_to_go: u32 = 20 [8..32];

@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+* Add ply-4 in continuation correction history (6.61 +- 4.24)
+
 #### Non-regression
 
 * Fix some issues with upcoming repetition detection (4.56 +- 4.34)

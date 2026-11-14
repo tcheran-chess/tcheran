@@ -8,6 +8,7 @@ cfg_select! {
             reason = "Generated code"
         )]
         mod bindings;
+        mod fathom;
 
         mod tablebases;
         pub use tablebases::*;

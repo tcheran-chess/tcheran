@@ -1,11 +1,11 @@
-use std::{cmp::Reverse, collections::HashSet, mem::MaybeUninit};
+use std::{cmp::Reverse, collections::HashSet};
 
 use crate::{
-    chess::{MAX_LEGAL_MOVES, moves::MoveListExt, prelude::*},
+    chess::{MAX_LEGAL_MOVES, prelude::*},
     engine::{
         eval::Eval,
-        search::{RootMove, RootMoves, RootTbInfo},
-        tablebases::bindings::{self, TbRootMove, TbRootMoves},
+        search::{RootMoves, RootTbInfo},
+        tablebases::fathom,
     },
     util::arrayvec::ArrayVec,
 };
@@ -25,15 +25,10 @@ impl Tablebase {
     }
 
     pub fn set_paths(&mut self, path: &str) {
-        let path = std::ffi::CString::new(path).unwrap();
-        let was_set = unsafe { bindings::tb_init(path.as_ptr()) };
-        let n_men = unsafe { bindings::TB_LARGEST as usize };
+        let was_set = fathom::tb_init(path);
+        let n_men = fathom::n_men();
 
-        assert!(
-            was_set && n_men != 0,
-            "Invalid tablebase path: {}",
-            path.to_str().unwrap_or_default()
-        );
+        assert!(was_set && n_men != 0, "Invalid tablebase path: {}", path);
 
         self.is_enabled = true;
         self.n_men = n_men as u8;
@@ -66,26 +61,7 @@ impl Tablebase {
             return None;
         }
 
-        let ep_square = game.en_passant_target.map_or(0, |ep| u32::from(ep.raw()));
-
-        unsafe {
-            let wdl = bindings::tb_probe_wdl(
-                game.board.occupancy_for(White).raw(),
-                game.board.occupancy_for(Black).raw(),
-                game.board.all_kings().raw(),
-                game.board.all_queens().raw(),
-                game.board.all_rooks().raw(),
-                game.board.all_bishops().raw(),
-                game.board.all_knights().raw(),
-                game.board.all_pawns().raw(),
-                0,
-                0,
-                ep_square,
-                game.player == White,
-            );
-
-            Self::to_outcome(wdl)
-        }
+        fathom::tb_probe_wdl(game)
     }
 
     pub fn root_wdl_dtz(
@@ -99,65 +75,14 @@ impl Tablebase {
             return None;
         }
 
-        let mut c_moves: MaybeUninit<TbRootMoves> = MaybeUninit::uninit();
-
-        let ep_square = game.en_passant_target.map_or(0, |ep| u32::from(ep.raw()));
         let has_repeated_position = Self::has_repeated_position(game);
 
-        let dtz_found = unsafe {
-            bindings::tb_probe_root_dtz(
-                game.board.occupancy_for(White).raw(),
-                game.board.occupancy_for(Black).raw(),
-                game.board.all_kings().raw(),
-                game.board.all_queens().raw(),
-                game.board.all_rooks().raw(),
-                game.board.all_bishops().raw(),
-                game.board.all_knights().raw(),
-                game.board.all_pawns().raw(),
-                game.halfmove_clock,
-                0,
-                ep_square,
-                game.player == White,
-                has_repeated_position,
-                true,
-                c_moves.as_mut_ptr(),
-            )
-        } != 0;
+        let (root_moves, dtz_found) = fathom::tb_probe_root_dtz(game, has_repeated_position)
+            .map(|moves| (moves, true))
+            .or_else(|| fathom::tb_probe_root_wdl(game).map(|moves| (moves, false)))?;
 
-        let wdl_found = if !dtz_found {
-            unsafe {
-                bindings::tb_probe_root_wdl(
-                    game.board.occupancy_for(White).raw(),
-                    game.board.occupancy_for(Black).raw(),
-                    game.board.all_kings().raw(),
-                    game.board.all_queens().raw(),
-                    game.board.all_rooks().raw(),
-                    game.board.all_bishops().raw(),
-                    game.board.all_knights().raw(),
-                    game.board.all_pawns().raw(),
-                    game.halfmove_clock,
-                    0,
-                    ep_square,
-                    game.player == White,
-                    true,
-                    c_moves.as_mut_ptr(),
-                ) != 0
-            }
-        } else {
-            false
-        };
-
-        if !dtz_found && !wdl_found {
-            return None;
-        }
-
-        let tb_moves = unsafe { c_moves.assume_init() };
-
-        assert_ne!(tb_moves.size, 0, "Unexpected 0 tb moves in position {}", game.to_fen());
-
-        let mut root_moves_vec: Vec<_> = (0..tb_moves.size as usize)
-            .map(|i| tb_moves.moves[i])
-            .map(|m| Self::to_root_move(game, &m))
+        let mut root_moves_vec: Vec<_> = root_moves
+            .into_iter()
             .filter(|m| allowed_moves.has_move(m.mv))
             .collect();
 
@@ -176,48 +101,16 @@ impl Tablebase {
 
         root_moves_vec.sort_by_key(|m| Reverse(m.tb_rank));
 
-        let best_rank = root_moves_vec[0].tb_rank;
+        let best_rank = root_moves_vec.first()?.tb_rank;
 
-        let mut root_moves = ArrayVec::<RootMove, MAX_LEGAL_MOVES>::new();
-        for mv in root_moves_vec {
-            if mv.tb_rank != best_rank {
-                break;
-            }
-
-            root_moves.push(mv);
-        }
+        let root_moves: ArrayVec<_, { MAX_LEGAL_MOVES }> = root_moves_vec
+            .into_iter()
+            .take_while(|mv| mv.tb_rank == best_rank)
+            .collect();
 
         let probe_wdl = !dtz_found && root_moves.get(0).tb_score.is_win();
 
         Some((RootMoves::new(root_moves), RootTbInfo { probe_wdl }))
-    }
-
-    fn to_root_move(game: &Game, tb: &TbRootMove) -> RootMove {
-        let tb_mv = u32::from(tb.move_);
-
-        let to_bits = tb_mv & 0x3f;
-        let from_bits = (tb_mv >> 6) & 0x3f;
-        let promotion_bits = (tb_mv >> 12) & 0x7;
-
-        let from = Square::from_raw(from_bits as u8);
-        let to = Square::from_raw(to_bits as u8);
-
-        let promotion = match promotion_bits {
-            bindings::TB_PROMOTES_QUEEN => Some(PromotionPieceKind::Queen),
-            bindings::TB_PROMOTES_ROOK => Some(PromotionPieceKind::Rook),
-            bindings::TB_PROMOTES_BISHOP => Some(PromotionPieceKind::Bishop),
-            bindings::TB_PROMOTES_KNIGHT => Some(PromotionPieceKind::Knight),
-            _ => None,
-        };
-
-        RootMove {
-            mv: game
-                .moves()
-                .expect_matching_with_promotion(from, to, promotion),
-
-            tb_score: Self::to_eval(tb.tbScore),
-            tb_rank: tb.tbRank,
-        }
     }
 
     fn has_repeated_position(game: &Game) -> bool {
@@ -229,29 +122,5 @@ impl Tablebase {
             .rev()
             .take(game.halfmove_clock as usize)
             .any(|position| !seen.insert(position.hash))
-    }
-
-    fn to_outcome(outcome: std::ffi::c_uint) -> Option<Outcome> {
-        use Outcome::*;
-
-        match outcome {
-            bindings::TB_WIN => Some(Win),
-            bindings::TB_LOSS => Some(Loss),
-            bindings::TB_DRAW | bindings::TB_CURSED_WIN | bindings::TB_BLESSED_LOSS => Some(Draw),
-            bindings::TB_RESULT_FAILED => None,
-            _ => unreachable!(),
-        }
-    }
-
-    fn to_eval(tb_score: i32) -> Eval {
-        if tb_score > 30000 {
-            return Eval::tb_mate_in(0);
-        }
-
-        if tb_score < -30000 {
-            return Eval::tb_mated_in(0);
-        }
-
-        Eval::DRAW
     }
 }

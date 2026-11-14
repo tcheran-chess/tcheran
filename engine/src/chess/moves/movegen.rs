@@ -115,7 +115,7 @@ pub fn generate_quiets(game: &Game, f: &mut impl FnMut(Move)) {
     generate_king_quiets(game, king, pieces, f);
 
     if !game.checkers.any() {
-        generate_castles(game, pieces, f);
+        generate_castles(game, pieces, pinned, f);
     }
 }
 
@@ -383,13 +383,14 @@ fn generate_king_quiets(game: &Game, king: Square, pieces: Bitboard, f: &mut imp
     }
 }
 
-fn generate_castles(game: &Game, pieces: Bitboard, f: &mut impl FnMut(Move)) {
+fn generate_castles(game: &Game, pieces: Bitboard, pinned: Bitboard, f: &mut impl FnMut(Move)) {
     let castle_rights_for_player = game.castle_rights[game.player];
 
     if let Some(kingside_dst) = castle_rights_for_player.king_side {
         generate_castle_move_for_side(
             game,
             pieces,
+            pinned,
             f,
             kingside_dst,
             squares::kingside_rook_castle_end(game.player),
@@ -401,6 +402,7 @@ fn generate_castles(game: &Game, pieces: Bitboard, f: &mut impl FnMut(Move)) {
         generate_castle_move_for_side(
             game,
             pieces,
+            pinned,
             f,
             queenside_dst,
             squares::queenside_rook_castle_end(game.player),
@@ -412,12 +414,13 @@ fn generate_castles(game: &Game, pieces: Bitboard, f: &mut impl FnMut(Move)) {
 fn generate_castle_move_for_side(
     game: &Game,
     pieces: Bitboard,
+    pinned: Bitboard,
     f: &mut impl FnMut(Move),
     rook: Square,
     rook_dst: Square,
     king_dst: Square,
 ) {
-    if game.pinned[game.player].contains(rook) {
+    if pinned.contains(rook) {
         return;
     }
 

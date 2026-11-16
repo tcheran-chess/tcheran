@@ -37,6 +37,7 @@ parameters!(
     // Move loop techniques
     futility_prune_base_value: i32 = 496 [128..1024];
     futility_prune_depth_multiplier: i32 = 148 [8..256];
+    futility_prune_history_multiplier: i32 = 120 [8..256];
     futility_prune_depth: u8 = 8 [4..12];
 
     history_prune_depth: u8 = 4 [2..16];

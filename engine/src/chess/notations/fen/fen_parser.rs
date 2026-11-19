@@ -1,5 +1,8 @@
 use crate::{
-    chess::{CastleRights, game::IllegalPositionReason, prelude::*, ranks::back_rank, squares},
+    chess::{
+        CastleRights, CastleSide, game::IllegalPositionReason, prelude::*, ranks::back_rank,
+        squares,
+    },
     engine::util::chars::StrParsingExtensions,
 };
 
@@ -118,28 +121,20 @@ fn fen_color(input: &str) -> Result<Player, ()> {
     })
 }
 
-#[derive(PartialEq, Eq, Hash, Clone, Copy)]
-enum FenCastleRight {
-    WhiteKingside,
-    WhiteQueenside,
-    BlackKingside,
-    BlackQueenside,
-}
-
-fn standard_castle_right(input: char) -> Result<(FenCastleRight, Square), ()> {
-    use FenCastleRight::*;
+fn standard_castle_right(input: char) -> Result<(Player, CastleSide, Square), ()> {
+    use CastleSide::*;
 
     Ok(match input {
-        'K' => (WhiteKingside, squares::WHITE_STANDARD_KINGSIDE_ROOK_START),
-        'Q' => (WhiteQueenside, squares::WHITE_STANDARD_QUEENSIDE_ROOK_START),
-        'k' => (BlackKingside, squares::BLACK_STANDARD_KINGSIDE_ROOK_START),
-        'q' => (BlackQueenside, squares::BLACK_STANDARD_QUEENSIDE_ROOK_START),
+        'K' => (White, Kingside, squares::WHITE_STANDARD_KINGSIDE_ROOK_START),
+        'Q' => (White, Queenside, squares::WHITE_STANDARD_QUEENSIDE_ROOK_START),
+        'k' => (Black, Kingside, squares::BLACK_STANDARD_KINGSIDE_ROOK_START),
+        'q' => (Black, Queenside, squares::BLACK_STANDARD_QUEENSIDE_ROOK_START),
         _ => return Err(()),
     })
 }
 
-fn frc_castle_right(input: char, board: &Board) -> Result<(FenCastleRight, Square), ()> {
-    use FenCastleRight::*;
+fn frc_castle_right(input: char, board: &Board) -> Result<(Player, CastleSide, Square), ()> {
+    use CastleSide::*;
 
     let leftmost_rook = |player: Player| {
         File::ALL
@@ -158,68 +153,63 @@ fn frc_castle_right(input: char, board: &Board) -> Result<(FenCastleRight, Squar
             .ok_or(())
     };
 
+    let shredder_squares = |s: char, player: Player| {
+        let king_file = board.king_square(White).file();
+        let file = fen_file(s.to_ascii_lowercase())?;
+        let square = Square::from_file_and_rank(file, back_rank(player));
+
+        Ok((king_file, file, square))
+    };
+
+    let castle_side = |file: File, king_file: File| {
+        if file < king_file {
+            Queenside
+        } else {
+            Kingside
+        }
+    };
+
     Ok(match input {
         'A'..='H' => {
-            let king_file = board.king_square(White).file();
-
-            let file = fen_file(input.to_ascii_lowercase())?;
-            let square = Square::from_file_and_rank(file, Rank::R1);
-
-            let right = if file < king_file {
-                WhiteQueenside
-            } else {
-                WhiteKingside
-            };
-
-            (right, square)
+            let (king_file, file, square) = shredder_squares(input, White)?;
+            (White, castle_side(file, king_file), square)
         }
         'a'..='h' => {
-            let king_file = board.king_square(Black).file();
-
-            let file = fen_file(input.to_ascii_lowercase())?;
-            let square = Square::from_file_and_rank(file, Rank::R8);
-
-            let right = if file < king_file {
-                BlackQueenside
-            } else {
-                BlackKingside
-            };
-
-            (right, square)
+            let (king_file, file, square) = shredder_squares(input, Black)?;
+            (Black, castle_side(file, king_file), square)
         }
-        'K' => (WhiteKingside, rightmost_rook(White)?),
-        'Q' => (WhiteQueenside, leftmost_rook(White)?),
-        'k' => (BlackKingside, rightmost_rook(Black)?),
-        'q' => (BlackQueenside, leftmost_rook(Black)?),
+        'K' => (White, Kingside, rightmost_rook(White)?),
+        'Q' => (White, Queenside, leftmost_rook(White)?),
+        'k' => (Black, Kingside, rightmost_rook(Black)?),
+        'q' => (Black, Queenside, leftmost_rook(Black)?),
         _ => return Err(()),
     })
 }
 
 fn fen_castling(input: &str, frc: bool, board: &Board) -> Result<[CastleRights; Player::N], ()> {
+    use CastleSide::*;
+
     if input == "-" {
         return Ok([CastleRights::none(), CastleRights::none()]);
     }
 
-    let mut white_castle_rights = CastleRights::none();
-    let mut black_castle_rights = CastleRights::none();
+    let mut castle_rights = [CastleRights::none(), CastleRights::none()];
 
     for c in input.chars() {
-        let (right, square) = if !frc {
+        let (player, side, square) = if !frc {
             standard_castle_right(c)?
         } else {
             frc_castle_right(c, board)?
         };
 
-        match right {
-            FenCastleRight::WhiteKingside => &mut white_castle_rights.king_side,
-            FenCastleRight::WhiteQueenside => &mut white_castle_rights.queen_side,
-            FenCastleRight::BlackKingside => &mut black_castle_rights.king_side,
-            FenCastleRight::BlackQueenside => &mut black_castle_rights.queen_side,
+        match side {
+            Kingside => &mut castle_rights[player].king_side,
+            Queenside => &mut castle_rights[player].queen_side,
         }
         .replace(square);
     }
 
-    Ok([white_castle_rights, black_castle_rights])
+    Ok(castle_rights)
 }
 
 fn fen_file(input: char) -> Result<File, ()> {
@@ -385,6 +375,19 @@ mod tests {
             parse("rnbq1rk1/pp2bppp/2pppn2/8/8/1PN1P1Q1/P1PPBPPP/R1B1K1NR b HA - 0 7", true)
                 .is_ok()
         );
+    }
+
+    #[test]
+    fn parse_dfrc_castle_rights() {
+        let game = parse("2k5/8/8/8/8/8/8/RR1KR2R w BE - 0 1", true).unwrap();
+
+        assert_eq!(game.castle_rights[White].queen_side, Some(B1));
+        assert_eq!(game.castle_rights[White].king_side, Some(E1));
+
+        let game = parse("2k5/8/8/8/8/8/8/RR1KR2R w KQ - 0 1", true).unwrap();
+
+        assert_eq!(game.castle_rights[White].queen_side, Some(A1));
+        assert_eq!(game.castle_rights[White].king_side, Some(H1));
     }
 
     #[test]

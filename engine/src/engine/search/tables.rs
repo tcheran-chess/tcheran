@@ -357,23 +357,21 @@ impl CorrectionHistories {
                 .get(game.player, ZobristHash(game.threats.raw()))
                 * threat_correction_history_weight();
 
+        let contcorr_plies = [2usize, 4];
+        let weights = [one_ply_contcorrhist_weight(), two_ply_contcorrhist_weight()];
+
         if let Some(their_ply) = ctx.stack.get_prev(plies, 1)
             && let Some((their_move, their_piece)) = their_ply.mv
         {
-            if let Some(our_ply) = ctx.stack.get_prev(plies, 2)
-                && let Some((our_mv, our_piece)) = our_ply.mv
-            {
-                corr += Eval(
-                    self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()].get(),
-                ) * one_ply_contcorrhist_weight();
-            }
-
-            if let Some(our_ply) = ctx.stack.get_prev(plies, 4)
-                && let Some((our_mv, our_piece)) = our_ply.mv
-            {
-                corr += Eval(
-                    self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()].get(),
-                ) * two_ply_contcorrhist_weight();
+            for (our_ply, weight) in contcorr_plies.into_iter().zip(weights) {
+                if let Some(our_ply) = ctx.stack.get_prev(plies, our_ply)
+                    && let Some((our_mv, our_piece)) = our_ply.mv
+                {
+                    corr += Eval(
+                        self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()]
+                            .get(),
+                    ) * weight;
+                }
             }
         }
 
@@ -417,18 +415,15 @@ impl CorrectionHistories {
                 CorrectionHistoryTable::MAX_UPDATE,
             );
 
-            if let Some(our_ply) = stack.get_prev(plies, 2)
-                && let Some((our_move, our_piece)) = our_ply.mv
-            {
-                self.continuation[our_piece][our_move.to()][their_piece][their_move.to()]
-                    .update(bonus);
-            }
+            let contcorr_plies = [2usize, 4];
 
-            if let Some(our_ply) = stack.get_prev(plies, 4)
-                && let Some((our_mv, our_piece)) = our_ply.mv
-            {
-                self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()]
-                    .update(bonus);
+            for (our_ply) in contcorr_plies {
+                if let Some(our_ply) = stack.get_prev(plies, our_ply)
+                    && let Some((our_mv, our_piece)) = our_ply.mv
+                {
+                    self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()]
+                        .update(bonus);
+                }
             }
         }
     }

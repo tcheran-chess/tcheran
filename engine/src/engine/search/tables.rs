@@ -331,6 +331,8 @@ pub struct CorrectionHistories {
 }
 
 impl CorrectionHistories {
+    const PLIES: [usize; 2] = [2, 4];
+
     pub fn new() -> Self {
         Self {
             pawn: CorrectionHistoryTable::new(),
@@ -357,23 +359,20 @@ impl CorrectionHistories {
                 .get(game.player, ZobristHash(game.threats.raw()))
                 * threat_correction_history_weight();
 
+        let weights = [one_ply_contcorrhist_weight(), two_ply_contcorrhist_weight()];
+
         if let Some(their_ply) = ctx.stack.get_prev(plies, 1)
             && let Some((their_move, their_piece)) = their_ply.mv
         {
-            if let Some(our_ply) = ctx.stack.get_prev(plies, 2)
-                && let Some((our_mv, our_piece)) = our_ply.mv
-            {
-                corr += Eval(
-                    self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()].get(),
-                ) * one_ply_contcorrhist_weight();
-            }
-
-            if let Some(our_ply) = ctx.stack.get_prev(plies, 4)
-                && let Some((our_mv, our_piece)) = our_ply.mv
-            {
-                corr += Eval(
-                    self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()].get(),
-                ) * two_ply_contcorrhist_weight();
+            for (i, ply) in Self::PLIES.into_iter().enumerate() {
+                if let Some(our_ply) = ctx.stack.get_prev(plies, ply)
+                    && let Some((our_mv, our_piece)) = our_ply.mv
+                {
+                    corr += Eval(
+                        self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()]
+                            .get(),
+                    ) * weights[i];
+                }
             }
         }
 
@@ -417,18 +416,13 @@ impl CorrectionHistories {
                 CorrectionHistoryTable::MAX_UPDATE,
             );
 
-            if let Some(our_ply) = stack.get_prev(plies, 2)
-                && let Some((our_move, our_piece)) = our_ply.mv
-            {
-                self.continuation[our_piece][our_move.to()][their_piece][their_move.to()]
-                    .update(bonus);
-            }
-
-            if let Some(our_ply) = stack.get_prev(plies, 4)
-                && let Some((our_mv, our_piece)) = our_ply.mv
-            {
-                self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()]
-                    .update(bonus);
+            for ply in Self::PLIES {
+                if let Some(our_ply) = stack.get_prev(plies, ply)
+                    && let Some((our_mv, our_piece)) = our_ply.mv
+                {
+                    self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()]
+                        .update(bonus);
+                }
             }
         }
     }

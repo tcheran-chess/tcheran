@@ -325,8 +325,8 @@ pub struct CorrectionHistories {
     non_pawn: [Box<CorrectionHistoryTable>; Player::N],
     threat: Box<CorrectionHistoryTable>,
     continuation: Box<
-        [[[[HistoryEntry<{ CorrectionHistoryTable::MAX }>; Square::N]; Piece::N]; Square::N];
-            Piece::N],
+        [[[[[HistoryEntry<{ CorrectionHistoryTable::MAX }>; Square::N]; Piece::N]; Square::N];
+            Piece::N]; 2],
     >,
 }
 
@@ -369,8 +369,9 @@ impl CorrectionHistories {
                     && let Some((our_mv, our_piece)) = our_ply.mv
                 {
                     corr += Eval(
-                        self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()]
-                            .get(),
+                        self.continuation[our_ply.in_check as usize][our_piece][our_mv.to()]
+                            [their_piece][their_move.to()]
+                        .get(),
                     ) * weights[i];
                 }
             }
@@ -420,8 +421,9 @@ impl CorrectionHistories {
                 if let Some(our_ply) = stack.get_prev(plies, ply)
                     && let Some((our_mv, our_piece)) = our_ply.mv
                 {
-                    self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()]
-                        .update(bonus);
+                    self.continuation[our_ply.in_check as usize][our_piece][our_mv.to()]
+                        [their_piece][their_move.to()]
+                    .update(bonus);
                 }
             }
         }

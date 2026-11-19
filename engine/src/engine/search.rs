@@ -276,6 +276,8 @@ pub fn negamax(
 
     // Check extension
     let in_check = game.in_check();
+    ctx.stack.get(plies).in_check = in_check;
+
     if in_check {
         depth += 1;
     }
@@ -942,6 +944,7 @@ pub fn quiescence(
     }
 
     let in_check = game.in_check();
+    ctx.stack.get(plies).in_check = in_check;
 
     if plies == MAX_SEARCH_DEPTH {
         return if in_check {

@@ -284,6 +284,7 @@ impl SearchStack {
 pub struct SearchStackEntry {
     pub mv: Option<(Move, Piece)>,
     pub eval: Eval,
+    pub raw_eval: Eval,
 
     pub excluded_mv: Option<Move>,
     pub double_extensions: u8,
@@ -295,6 +296,7 @@ impl SearchStackEntry {
     pub const fn new() -> Self {
         Self {
             mv: None,
+            raw_eval: Eval::MIN,
             eval: Eval::MIN,
 
             excluded_mv: None,

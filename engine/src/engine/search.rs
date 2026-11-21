@@ -396,6 +396,14 @@ pub fn negamax(
 
     let eval_delta = ctx.stack.last(plies).map_or(Eval(0), |p| eval + p.eval);
 
+    if !is_pv
+        && let Some(last) = ctx.stack.last(plies)
+        && last.mv.is_none()
+        && eval_delta < -16
+    {
+        return s.beta;
+    }
+
     let mut score_estimate = eval;
     if !in_check
         && !in_singular_search

@@ -401,18 +401,7 @@ pub fn negamax(
     } else {
         let raw_eval = eval(ctx.nnue, game);
         let eval = correct_eval(game, raw_eval, ctx, plies);
-
-        ctx.tt.insert(
-            game.hash,
-            NodeBound::None,
-            None,
-            Eval::NONE,
-            raw_eval,
-            Depth::ZERO,
-            plies,
-            tt_pv,
-        );
-
+        ctx.tt.insert_eval(game.hash, raw_eval, tt_pv);
         (raw_eval, eval)
     };
 
@@ -995,18 +984,7 @@ pub fn quiescence(
     } else {
         let raw_eval = eval(ctx.nnue, game);
         let eval = correct_eval(game, raw_eval, ctx, plies);
-
-        ctx.tt.insert(
-            game.hash,
-            NodeBound::None,
-            None,
-            Eval::NONE,
-            raw_eval,
-            Depth::ZERO,
-            plies,
-            tt_pv,
-        );
-
+        ctx.tt.insert_eval(game.hash, raw_eval, tt_pv);
         (raw_eval, eval)
     };
 

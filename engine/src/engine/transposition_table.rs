@@ -350,7 +350,7 @@ impl TranspositionTable {
         eval
     }
 
-    pub fn insert(
+    fn insert_entry(
         &self,
         key: ZobristHash,
         bound: NodeBound,
@@ -412,6 +412,24 @@ impl TranspositionTable {
             cluster.entries[least_valuable_entry_idx] = new_entry;
             raw_cluster.write(cluster);
         }
+    }
+
+    pub fn insert(
+        &self,
+        key: ZobristHash,
+        bound: NodeBound,
+        best_move: Option<Move>,
+        score: Eval,
+        eval: Eval,
+        depth: Depth,
+        plies: u8,
+        was_pv: bool,
+    ) {
+        self.insert_entry(key, bound, best_move, score, eval, depth, plies, was_pv);
+    }
+
+    pub fn insert_eval(&self, key: ZobristHash, eval: Eval, was_pv: bool) {
+        self.insert_entry(key, NodeBound::None, None, Eval::NONE, eval, Depth::ZERO, 0, was_pv);
     }
 
     pub fn get(&self, key: ZobristHash, plies: u8) -> Option<TranspositionTableHit> {

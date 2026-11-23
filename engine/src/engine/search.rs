@@ -417,6 +417,9 @@ pub fn negamax(
         (raw_eval, eval)
     };
 
+    ctx.stack.get(plies).eval = eval;
+    ctx.stack.get(plies + 1).fail_highs = 0;
+
     let mut score_estimate = eval;
     if !in_check
         && !in_singular_search
@@ -425,9 +428,6 @@ pub fn negamax(
     {
         score_estimate = tt_entry.score;
     }
-
-    ctx.stack.get(plies).eval = eval;
-    ctx.stack.get(plies + 1).fail_highs = 0;
 
     let improving = if in_check {
         false

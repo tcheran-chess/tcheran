@@ -420,6 +420,8 @@ pub fn negamax(
     ctx.stack.get(plies).eval = eval;
     ctx.stack.get(plies + 1).fail_highs = 0;
 
+    let eval_delta = ctx.stack.last(plies).map_or(Eval(0), |p| eval + p.eval);
+
     let mut score_estimate = eval;
     if !in_check
         && !in_singular_search
@@ -450,7 +452,7 @@ pub fn negamax(
         && let Some(last) = ctx.stack.last(plies)
         && last.reduction >= 3
         && last.eval != Eval::NONE
-        && eval + last.eval < 0
+        && eval_delta < 0
     {
         depth += 1;
     }
@@ -463,7 +465,7 @@ pub fn negamax(
         && let Some(last) = ctx.stack.last(plies)
         && last.reduction >= 1
         && last.eval != Eval::NONE
-        && eval + last.eval > hindsight_extension_margin()
+        && eval_delta > hindsight_extension_margin()
     {
         depth -= 1;
     }

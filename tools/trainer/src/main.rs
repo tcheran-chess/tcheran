@@ -1,5 +1,6 @@
 mod bullet_extensions;
 mod data;
+mod inputs;
 mod trainer;
 
 fn main() {

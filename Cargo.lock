@@ -97,12 +97,15 @@ dependencies = [
 [[package]]
 name = "bullet-compiler"
 version = "0.1.0"
-source = "git+https://github.com/jw1912/bullet#2ea3d2d0f7e597b0d645f6e8040cf37818f51bce"
+source = "git+https://github.com/jw1912/bullet#d4ef28e807302ee39432556aa0c70f0d5ac47199"
+dependencies = [
+ "half",
+]
 
 [[package]]
 name = "bullet-gpu"
 version = "0.1.0"
-source = "git+https://github.com/jw1912/bullet#2ea3d2d0f7e597b0d645f6e8040cf37818f51bce"
+source = "git+https://github.com/jw1912/bullet#d4ef28e807302ee39432556aa0c70f0d5ac47199"
 dependencies = [
  "bullet-compiler",
  "objc2",
@@ -114,7 +117,7 @@ dependencies = [
 [[package]]
 name = "bullet-trainer"
 version = "0.1.0"
-source = "git+https://github.com/jw1912/bullet#2ea3d2d0f7e597b0d645f6e8040cf37818f51bce"
+source = "git+https://github.com/jw1912/bullet#d4ef28e807302ee39432556aa0c70f0d5ac47199"
 dependencies = [
  "bullet-compiler",
  "bullet-gpu",
@@ -125,7 +128,7 @@ dependencies = [
 [[package]]
 name = "bullet_lib"
 version = "1.0.0"
-source = "git+https://github.com/jw1912/bullet#2ea3d2d0f7e597b0d645f6e8040cf37818f51bce"
+source = "git+https://github.com/jw1912/bullet#d4ef28e807302ee39432556aa0c70f0d5ac47199"
 dependencies = [
  "bullet-compiler",
  "bullet-gpu",
@@ -258,6 +261,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6"
 
 [[package]]
+name = "crunchy"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
+
+[[package]]
 name = "data"
 version = "0.0.0"
 dependencies = [
@@ -352,6 +361,17 @@ dependencies = [
  "libc",
  "r-efi 6.0.0",
  "rand_core 0.10.1",
+]
+
+[[package]]
+name = "half"
+version = "2.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ea2d84b969582b4b1864a92dc5d27cd2b77b622a8d79306834f1be5ba20d84b"
+dependencies = [
+ "cfg-if",
+ "crunchy",
+ "zerocopy",
 ]
 
 [[package]]
@@ -839,6 +859,7 @@ checksum = "5d99f8c9a7727884afe522e9bd5edbfc91a3312b36a77b5fb8926e4c31a41801"
 name = "trainer"
 version = "0.0.0"
 dependencies = [
+ "bullet-trainer",
  "bullet_lib",
  "viriformat",
 ]

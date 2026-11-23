@@ -1,24 +1,27 @@
 use bullet_lib::{
     game::{
-        inputs::{ChessBucketsMirrored, get_num_buckets},
+        inputs::{ChessBucketsMirrored, SparseInputType, get_num_buckets},
         outputs::MaterialCount,
     },
-    nn::{
-        InitSettings, Shape,
-        optimiser::{Ranger, RangerOptimiser, RangerParams},
+    trainer::schedule::{
+        lr::{self, LrScheduler},
+        wdl,
     },
-    trainer::{
-        save::SavedFormat,
-        schedule::{TrainingSchedule, TrainingSteps, lr, wdl},
-        settings::LocalSettings,
+    value::save::save_to_checkpoint,
+};
+use bullet_trainer::{
+    model::{InitSettings, ModelDefinition, ModelEvaluator, ModelInputs, ModelWeights, SavedFormat},
+    optimiser::{
+        Optimiser,
+        ranger::{Ranger, RangerParams},
     },
-    value::{ValueTrainer, ValueTrainerBuilder},
+    reader::ReadMapLoader,
+    run::{DefaultDevice, HostPool, Step, TrainingSchedule, TrainingSteps, train},
 };
 
-use crate::{bullet_extensions::*, data::data};
+use crate::{bullet_extensions::*, data::data, inputs};
 
-type Optimiser = Ranger;
-type OptimiserT = RangerOptimiser;
+type OptimiserState<G> = Ranger<G>;
 type OptimiserParams = RangerParams;
 
 pub const SCALE: f32 = 400.0;
@@ -52,124 +55,163 @@ const L1_SHIFT_SCALE: f32 = Q0 as f32 / ((1 << L1_SHIFT) as f32);
 const I8_RANGE: f32 = i8::MAX as f32 / (Q1 as f32);
 const L1_RANGE: f32 = I8_RANGE * L1_SHIFT_SCALE * L1_SHIFT_SCALE;
 
-pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount<OUTPUT_BUCKETS>> {
-    let mut trainer = ValueTrainerBuilder::default()
-        .dual_perspective()
-        .optimiser(Optimiser::default())
-        .inputs(ChessBucketsMirrored::new(BUCKET_SCHEME))
-        .output_buckets(MaterialCount::<OUTPUT_BUCKETS>)
-        .save_format(&[
-            // Merge in the factoriser weights
-            SavedFormat::id("l0w")
-                .transform(|store, weights| {
-                    let factoriser = store.get("l0f").values.f32().repeat(INPUT_BUCKETS);
-                    weights.into_iter().zip(factoriser).map(|(a, b)| a + b).collect()
-                })
-                .round()
-                .quantise::<i16>(Q0),
-            SavedFormat::id("l0b").round().quantise::<i16>(Q0),
-            SavedFormat::id("l1w")
-                .transform(|_, mut weights| {
-                    for i in &mut weights {
-                        *i /= L1_SHIFT_SCALE * L1_SHIFT_SCALE;
-                    }
-                    weights
-                })
-                .round()
-                .quantise::<i8>(Q1),
-            SavedFormat::id("l1b").round().quantise::<i32>(Q * (1 << L1_SHIFT)),
-            SavedFormat::id("l2w").round().quantise::<i32>(Q),
-            SavedFormat::id("l2b").round().quantise::<i32>(Q.pow(3)),
-            SavedFormat::id("l3w").round().quantise::<i32>(Q),
-            SavedFormat::id("l3b").round().quantise::<i32>(Q.pow(4)),
-        ])
-        .build_custom(|builder, (stm_inputs, ntm_inputs, output_buckets), target| {
+const DATA_DIR: &str = "etc/data";
+const CHECKPOINT_DIR: &str = "etc/checkpoints";
+const CHECKPOINT_RATE: usize = 10;
+
+pub fn run(net_name: &str) {
+    let psqt = ChessBucketsMirrored::new(BUCKET_SCHEME);
+    let output_buckets = MaterialCount::<OUTPUT_BUCKETS>;
+
+    let inputs = ModelInputs::default()
+        .add_sparse("stm/psqt", (psqt.num_inputs(), 1), psqt.max_active())
+        .add_sparse("ntm/psqt", (psqt.num_inputs(), 1), psqt.max_active())
+        .add_sparse("buckets", (OUTPUT_BUCKETS, 1), 1)
+        .add_dense("targets", (1, 1));
+
+    let definition =
+        ModelDefinition::build(&inputs, |builder, (((stm_inputs, ntm_inputs), output_buckets), target)| {
             // features & factoriser
-            let l0f = builder.new_weights("l0f", Shape::new(L1, FEATURES), InitSettings::Zeroed);
-            let mut l0 = builder.new_affine("l0", FEATURES * INPUT_BUCKETS, L1);
+            let l0f = builder.new_weights("l0/fac", (L1, FEATURES), InitSettings::Zeroed);
+            let mut l0 = builder.new_affine("l0/", FEATURES * INPUT_BUCKETS, L1);
             l0.init_with_effective_input_size(20000);
             l0.weights = l0.weights + l0f.repeat(INPUT_BUCKETS);
 
             // weights
-            let l1 = builder.new_affine("l1", L1, OUTPUT_BUCKETS * L2);
-            let l2 = builder.new_affine("l2", L2 * 2, OUTPUT_BUCKETS * L3);
-            let l3 = builder.new_affine("l3", L3, OUTPUT_BUCKETS);
+            let l1 = builder.new_affine("l1/", L1, OUTPUT_BUCKETS * L2);
+            let l2 = builder.new_affine("l2/", L2 * 2, OUTPUT_BUCKETS * L3);
+            let l3 = builder.new_affine("l3/", L3, OUTPUT_BUCKETS);
 
             // inference
             let ft = |input, start, end| l0.slice(start, end).forward(input).crelu();
             let stm_hidden = ft(stm_inputs, 0, L1 / 2) * ft(stm_inputs, L1 / 2, L1);
             let ntm_hidden = ft(ntm_inputs, 0, L1 / 2) * ft(ntm_inputs, L1 / 2, L1);
+            let l0_out = stm_hidden.concat(ntm_hidden);
 
-            let h1 = stm_hidden.concat(ntm_hidden);
-
-            let l1_out = l1.forward(h1).select(output_buckets);
+            let l1_out = l1.forward(l0_out).select(output_buckets);
             let h2 = l1_out.concat(l1_out.abs_pow(2.0)).crelu();
-            let h3 = l2.forward(h2).select(output_buckets).crelu();
+
+            let l2_out = l2.forward(h2).select(output_buckets);
+            let h3 = l2_out.crelu();
+
             let output = l3.forward(h3).select(output_buckets);
 
             // loss
             let loss = output.sigmoid().squared_error(target);
-
-            let sparsity_loss = h1.reduce_sum_rows() / (L1 as f32);
+            let sparsity_loss = l0_out.reduce_sum_rows() / (L1 as f32);
             let loss = loss + 0.005 * sparsity_loss;
 
-            (output, loss)
+            (Some(loss.reduce_sum_batch()), vec![("output".to_string(), output)])
         });
+
+    let weights = ModelWeights::new(&definition, 12_412_421);
+    let device = DefaultDevice::new(0).unwrap();
+
+    let params = OptimiserParams::default();
+    let mut evaluator = ModelEvaluator::new(&definition, device.clone()).unwrap();
+    let mut optimiser = Optimiser::<_, OptimiserState<_>>::new(definition, weights, device.clone(), params).unwrap();
 
     // Accounting for factoriser weight magnitudes (as per Bullet example)
     let l0_clipping = OptimiserParams::clipped(-0.99..0.99);
-    trainer.optimiser.set_params_for_weight("l0w", l0_clipping);
-    trainer.optimiser.set_params_for_weight("l0f", l0_clipping);
+    optimiser.set_params_for_weight("l0/fac", l0_clipping);
+    optimiser.set_params_for_weight("l0/w", l0_clipping);
 
     let l1_clipping = OptimiserParams::clipped(-L1_RANGE..L1_RANGE);
-    trainer.optimiser.set_params_for_weight("l1w", l1_clipping);
+    optimiser.set_params_for_weight("l1/w", l1_clipping);
 
-    trainer
-}
+    let saved_format = vec![
+        SavedFormat::id("l0/w")
+            .transform(move |weights, values| {
+                let factoriser = weights.get("l0/fac").values.f32().repeat(INPUT_BUCKETS);
+                assert_eq!(values.len(), factoriser.len());
+                values
+                    .iter()
+                    .zip(factoriser)
+                    .map(|(&weight, fac)| weight + fac)
+                    .collect()
+            })
+            .round()
+            .quantise::<i16>(Q0),
+        SavedFormat::id("l0/b").round().quantise::<i16>(Q0),
+        SavedFormat::id("l1/w")
+            .transform(|_, mut weights| {
+                for i in &mut weights {
+                    *i /= L1_SHIFT_SCALE * L1_SHIFT_SCALE;
+                }
+                weights
+            })
+            .round()
+            .quantise::<i8>(Q1),
+        SavedFormat::id("l1/b").round().quantise::<i32>(Q * (1 << L1_SHIFT)),
+        SavedFormat::id("l2/w").round().quantise::<i32>(Q),
+        SavedFormat::id("l2/b").round().quantise::<i32>(Q.pow(3)),
+        SavedFormat::id("l3/w").round().quantise::<i32>(Q),
+        SavedFormat::id("l3/b").round().quantise::<i32>(Q.pow(4)),
+    ];
 
-pub fn run(net_name: &str) {
-    let mut trainer = trainer();
+    let params = (&inputs, &psqt, output_buckets);
+    let data = data(DATA_DIR);
+
+    let mut run = |stage, end_superbatch, lr_schedule, mapper| {
+        train(
+            &mut optimiser,
+            TrainingSchedule {
+                steps: TrainingSteps::default(end_superbatch),
+                lr_schedule,
+                log_rate: 128,
+                track_grad_norms: false,
+            },
+            ReadMapLoader::new(data.clone(), mapper, 8),
+            |_, _, _| {},
+            |optimiser, step| {
+                let sb = step.superbatch();
+                if sb.is_multiple_of(CHECKPOINT_RATE) || sb == step.final_superbatch() {
+                    let path = format!("{CHECKPOINT_DIR}/{net_name}-{stage}-{sb}");
+                    save_to_checkpoint(optimiser, &saved_format, &path);
+                    println!("Saved [{path}]");
+                }
+            },
+        )
+        .unwrap();
+    };
+
+    // let checkpoint_name = "...";
+    // let checkpoint_path = format!("{CHECKPOINT_DIR}/{checkpoint_name}/optimiser_state");
+    // println!("Loading checkpoint [{checkpoint_path}]");
+    // optimiser.load_from_checkpoint(&checkpoint_path).unwrap();
 
     // Schedule 1
     let schedule1_superbatches: usize = 400;
-    let schedule1 = TrainingSchedule {
-        net_id: format!("{net_name}-s1"),
-        eval_scale: SCALE,
-        steps: TrainingSteps::default(schedule1_superbatches),
-        wdl_scheduler: wdl::Warmup {
-            warmup_batches: 100,
-            inner: wdl::LinearWDL { start: 0.2, end: 0.6 },
-        },
-        lr_scheduler: lr::CosineDecayLR {
+    run(
+        "s1",
+        schedule1_superbatches,
+        lr::CosineDecayLR {
             initial_lr: 0.001,
             final_lr: 0.0000081,
             final_superbatch: schedule1_superbatches,
-        },
-        save_rate: 10,
-    };
+        }
+        .boxed(),
+        inputs::make_inputs_mapper(
+            params,
+            wdl::Warmup {
+                warmup_batches: 100,
+                inner: wdl::LinearWDL { start: 0.2, end: 0.6 },
+            },
+        ),
+    );
 
     // Schedule 2
     let schedule2_superbatches: usize = 100;
-    let schedule2 = TrainingSchedule {
-        net_id: format!("{net_name}-s2"),
-        eval_scale: SCALE,
-        steps: TrainingSteps::default(schedule2_superbatches),
-        wdl_scheduler: wdl::ConstantWDL { value: 0.75 },
-        lr_scheduler: lr::ConstantLR { value: 0.00000081 },
-        save_rate: 10,
-    };
+    run(
+        "s2",
+        schedule2_superbatches,
+        lr::ConstantLR { value: 0.00000081 }.boxed(),
+        inputs::make_inputs_mapper(params, wdl::ConstantWDL { value: 0.75 }),
+    );
 
-    let settings = LocalSettings {
-        threads: 8,
-        test_set: None,
-        output_directory: "etc/checkpoints",
-        batch_queue_size: 32,
-    };
-
-    let data = data("./etc/data");
-
-    trainer.run(&schedule1, &settings, &data);
-    trainer.run(&schedule2, &settings, &data);
+    evaluator.load_device_weights(optimiser.weights()).unwrap();
+    let evaluator_mapper = inputs::make_inputs_mapper(params, wdl::ConstantWDL { value: 0.0 });
+    let pool = HostPool::new(device.clone());
 
     // Fens from Pawnocchio
     for fen in [
@@ -249,7 +291,16 @@ pub fn run(net_name: &str) {
         "6K1/8/b6R/N2p2P1/8/q1Q5/6r1/2Bk3n b - - 0 1",
         "7K/r2R3b/1Q6/8/2q5/1nPB2k1/N3p3/8 w - - 0 1",
     ] {
-        let eval = trainer.eval(fen);
+        let pos = format!("{fen} | 0 | 0.0").parse().unwrap();
+        let inputs = evaluator_mapper
+            .map(&pool, &[pos], Step::default(), 1)
+            .unwrap()
+            .to_device(&device)
+            .unwrap();
+        let output = evaluator.evaluate(&inputs).unwrap().get("output").unwrap();
+        let [eval] = output.to_host().unwrap().f32()[..] else {
+            panic!()
+        };
         println!("FEN: {fen}");
         println!("EVAL: {}", eval * SCALE);
     }

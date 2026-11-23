@@ -19,7 +19,7 @@ use crate::bullet_extensions::*;
 
 type Optimiser = Ranger;
 type OptimiserT = RangerOptimiser;
-type Params = RangerParams;
+type OptimiserParams = RangerParams;
 
 pub const SCALE: f32 = 400.0;
 
@@ -115,11 +115,11 @@ pub fn trainer() -> ValueTrainer<OptimiserT, ChessBucketsMirrored, MaterialCount
         });
 
     // Accounting for factoriser weight magnitudes (as per Bullet example)
-    let l0_clipping = Params::clipped(-0.99..0.99);
+    let l0_clipping = OptimiserParams::clipped(-0.99..0.99);
     trainer.optimiser.set_params_for_weight("l0w", l0_clipping);
     trainer.optimiser.set_params_for_weight("l0f", l0_clipping);
 
-    let l1_clipping = Params::clipped(-L1_RANGE..L1_RANGE);
+    let l1_clipping = OptimiserParams::clipped(-L1_RANGE..L1_RANGE);
     trainer.optimiser.set_params_for_weight("l1w", l1_clipping);
 
     trainer

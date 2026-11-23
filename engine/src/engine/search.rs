@@ -961,7 +961,10 @@ pub fn quiescence(
     let mut tt_pv = is_pv;
 
     if let Some(ref tt_entry) = tt_entry {
-        if !is_pv && score_is_usable(tt_entry.score, tt_entry.bound, s) {
+        if !is_pv
+            && score_is_usable(tt_entry.score, tt_entry.bound, s)
+            && !tt_entry.score.is_decisive()
+        {
             return tt_entry.score;
         }
 

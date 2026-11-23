@@ -8,6 +8,7 @@
 #### Non-regression
 
 * Fix some issues with upcoming repetition detection (4.56 +- 4.34)
+* Decisive scores are no longer returned when doing TT cutoffs in qsearch (0.56 +- 2.46)
 * Use a linear formula for best move stability (-0.22 +- 2.04)
 * Introduce root moves array
 

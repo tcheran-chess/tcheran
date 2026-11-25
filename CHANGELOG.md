@@ -4,6 +4,7 @@
 
 * Add ply-4 in continuation correction history (6.61 +- 4.24)
 * Add score stability time management (3.98 +- 2.95)
+* Stop doing recursive null move pruning (3.52 +- 2.74)
 
 #### Non-regression
 

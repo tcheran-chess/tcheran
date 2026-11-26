@@ -64,11 +64,7 @@ impl Tablebase {
         fathom::tb_probe_wdl(game)
     }
 
-    pub fn root_wdl_dtz(
-        &self,
-        game: &Game,
-        allowed_moves: &RootMoves,
-    ) -> Option<(RootMoves, RootTbInfo)> {
+    pub fn root_wdl_dtz(&self, game: &Game, allowed_moves: &RootMoves) -> Option<(RootMoves, RootTbInfo)> {
         debug_assert!(self.is_enabled);
 
         if game.castle_rights[White].any() || game.castle_rights[Black].any() {

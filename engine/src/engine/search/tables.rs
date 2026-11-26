@@ -20,15 +20,9 @@ pub fn init() {
             for move_count in 1..64 {
                 for is_quiet in [false, true] {
                     let base = if is_quiet { quiet_base } else { tactial_base };
-                    let factor = if is_quiet {
-                        quiet_factor
-                    } else {
-                        tactial_factor
-                    };
+                    let factor = if is_quiet { quiet_factor } else { tactial_factor };
 
-                    let reduction = (base
-                        + (f32::ln(depth as f32) * f32::ln(move_count as f32) / factor))
-                        as u8;
+                    let reduction = (base + (f32::ln(depth as f32) * f32::ln(move_count as f32) / factor)) as u8;
 
                     LMR_TABLE[depth][move_count][usize::from(is_quiet)] = reduction;
                 }
@@ -40,10 +34,7 @@ pub fn init() {
 static mut LMR_TABLE: [[[u8; 2]; 64]; MAX_PLIES_ARRAY_SIZE] = [[[0; 2]; 64]; MAX_PLIES_ARRAY_SIZE];
 
 pub fn lmr_reduction(depth: Depth, move_count: usize, is_quiet: bool) -> u8 {
-    unsafe {
-        LMR_TABLE[depth.idx().min(MAX_PLIES_ARRAY_SIZE - 1)][move_count.min(63)]
-            [usize::from(is_quiet)]
-    }
+    unsafe { LMR_TABLE[depth.idx().min(MAX_PLIES_ARRAY_SIZE - 1)][move_count.min(63)][usize::from(is_quiet)] }
 }
 
 pub struct HistoryEntry<const MAX: i16>(i16);
@@ -100,17 +91,11 @@ fn threat_indices(game: &Game, mv: Move) -> (usize, usize) {
 pub struct QuietHistoryTable(ByPlayer<FromTo<Threats<HistoryEntry<{ Self::MAX }>>>>);
 
 pub fn quiet_history_bonus(depth: Depth) -> i32 {
-    min(
-        depth * quiet_history_bonus_factor() - quiet_history_bonus_offset(),
-        quiet_history_max_bonus(),
-    )
+    min(depth * quiet_history_bonus_factor() - quiet_history_bonus_offset(), quiet_history_max_bonus())
 }
 
 pub fn quiet_history_malus(depth: Depth) -> i32 {
-    -min(
-        depth * quiet_history_malus_factor() - quiet_history_malus_offset(),
-        quiet_history_max_malus(),
-    )
+    -min(depth * quiet_history_malus_factor() - quiet_history_malus_offset(), quiet_history_max_malus())
 }
 
 impl QuietHistoryTable {
@@ -145,17 +130,11 @@ impl QuietHistoryTable {
 pub struct TacticalHistoryTable(PieceTo<[Threats<HistoryEntry<{ Self::MAX }>>; PieceKind::N + 1]>);
 
 pub fn capture_history_bonus(depth: Depth) -> i32 {
-    min(
-        depth * capture_history_bonus_factor() - capture_history_bonus_offset(),
-        capture_history_max_bonus(),
-    )
+    min(depth * capture_history_bonus_factor() - capture_history_bonus_offset(), capture_history_max_bonus())
 }
 
 pub fn capture_history_malus(depth: Depth) -> i32 {
-    -min(
-        depth * capture_history_malus_factor() - capture_history_malus_offset(),
-        capture_history_max_malus(),
-    )
+    -min(depth * capture_history_malus_factor() - capture_history_malus_offset(), capture_history_max_malus())
 }
 
 impl TacticalHistoryTable {
@@ -171,8 +150,7 @@ impl TacticalHistoryTable {
         let captured_piece = game.board.captured_piece(mv).map_or(0, |p| p as usize + 1);
         let (from_threatened, to_threatened) = threat_indices(game, mv);
 
-        self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened]
-            .get()
+        self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened].get()
     }
 
     fn update_for_move(&mut self, mv: Move, game: &Game, bonus: i32) {
@@ -181,8 +159,7 @@ impl TacticalHistoryTable {
         let captured_piece = game.board.captured_piece(mv).map_or(0, |p| p as usize + 1);
         let (from_threatened, to_threatened) = threat_indices(game, mv);
 
-        self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened]
-            .update(bonus);
+        self.0[capturing_piece][capture_square][captured_piece][from_threatened][to_threatened].update(bonus);
     }
 
     pub fn update(&mut self, mv: Move, game: &Game, depth: Depth, other_captures_tried: &MoveList) {
@@ -223,13 +200,7 @@ impl ContHistTable {
         unsafe { Box::new_zeroed().assume_init() }
     }
 
-    fn get_ply(
-        &self,
-        game: &Game,
-        previous_piece_moved: Piece,
-        previous_moved_to: Square,
-        mv: Move,
-    ) -> i32 {
+    fn get_ply(&self, game: &Game, previous_piece_moved: Piece, previous_moved_to: Square, mv: Move) -> i32 {
         let moved = game.board.piece_guaranteed_at(mv.from());
         self.0[previous_piece_moved][previous_moved_to][moved][mv.to()].get()
     }
@@ -241,9 +212,7 @@ impl ContHistTable {
                 stack
                     .get_prev(plies, i)
                     .and_then(|s| s.mv)
-                    .map_or(0, |(prev_move, prev_moved)| {
-                        self.get_ply(game, prev_moved, prev_move.to(), mv)
-                    })
+                    .map_or(0, |(prev_move, prev_moved)| self.get_ply(game, prev_moved, prev_move.to(), mv))
             })
             .sum::<i32>()
     }
@@ -257,8 +226,7 @@ impl ContHistTable {
         total: i32,
         bonus: i32,
     ) {
-        self.0[previous_piece_moved][previous_moved_to][moved][moved_to]
-            .update_with_base(total, bonus);
+        self.0[previous_piece_moved][previous_moved_to][moved][moved_to].update_with_base(total, bonus);
     }
 
     fn update_ply(
@@ -275,25 +243,11 @@ impl ContHistTable {
         let malus = continuation_history_malus(depth);
 
         let moved = game.board.piece_guaranteed_at(mv.from());
-        self.update_for_move(
-            previous_piece_moved,
-            previous_move.to(),
-            moved,
-            mv.to(),
-            total,
-            bonus,
-        );
+        self.update_for_move(previous_piece_moved, previous_move.to(), moved, mv.to(), total, bonus);
 
         for quiet_tried in quiets_tried {
             let try_moved = game.board.piece_guaranteed_at(quiet_tried.from());
-            self.update_for_move(
-                previous_piece_moved,
-                previous_move.to(),
-                try_moved,
-                quiet_tried.to(),
-                total,
-                malus,
-            );
+            self.update_for_move(previous_piece_moved, previous_move.to(), try_moved, quiet_tried.to(), total, malus);
         }
     }
 
@@ -324,10 +278,7 @@ pub struct CorrectionHistories {
     minor: Box<CorrectionHistoryTable>,
     non_pawn: [Box<CorrectionHistoryTable>; Player::N],
     threat: Box<CorrectionHistoryTable>,
-    continuation: Box<
-        [[[[HistoryEntry<{ CorrectionHistoryTable::MAX }>; Square::N]; Piece::N]; Square::N];
-            Piece::N],
-    >,
+    continuation: Box<[[[[HistoryEntry<{ CorrectionHistoryTable::MAX }>; Square::N]; Piece::N]; Square::N]; Piece::N]>,
 }
 
 impl CorrectionHistories {
@@ -345,19 +296,13 @@ impl CorrectionHistories {
     }
 
     pub fn get(&self, game: &Game, ctx: &SearchContext<'_>, plies: u8) -> Eval {
-        let mut corr = self.pawn.get(game.player, game.pawn_hash)
-            * pawn_correction_history_weight()
-            + self.major.get(game.player, game.major_piece_hash)
-                * major_correction_history_weight()
-            + self.minor.get(game.player, game.minor_piece_hash)
-                * minor_correction_history_weight()
+        let mut corr = self.pawn.get(game.player, game.pawn_hash) * pawn_correction_history_weight()
+            + self.major.get(game.player, game.major_piece_hash) * major_correction_history_weight()
+            + self.minor.get(game.player, game.minor_piece_hash) * minor_correction_history_weight()
             + (self.non_pawn[White].get(game.player, game.non_pawn_hash[White])
                 + self.non_pawn[Black].get(game.player, game.non_pawn_hash[Black]))
                 * non_pawn_correction_history_weight()
-            + self
-                .threat
-                .get(game.player, ZobristHash(game.threats.raw()))
-                * threat_correction_history_weight();
+            + self.threat.get(game.player, ZobristHash(game.threats.raw())) * threat_correction_history_weight();
 
         let weights = [one_ply_contcorrhist_weight(), two_ply_contcorrhist_weight()];
 
@@ -368,10 +313,8 @@ impl CorrectionHistories {
                 if let Some(our_ply) = ctx.stack.get_prev(plies, ply)
                     && let Some((our_mv, our_piece)) = our_ply.mv
                 {
-                    corr += Eval(
-                        self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()]
-                            .get(),
-                    ) * weights[i];
+                    corr += Eval(self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()].get())
+                        * weights[i];
                 }
             }
         }
@@ -379,25 +322,14 @@ impl CorrectionHistories {
         corr / 2048
     }
 
-    pub fn update(
-        &mut self,
-        game: &Game,
-        stack: &SearchStack,
-        plies: u8,
-        depth: Depth,
-        eval: Eval,
-        score: Eval,
-    ) {
+    pub fn update(&mut self, game: &Game, stack: &SearchStack, plies: u8, depth: Depth, eval: Eval, score: Eval) {
         let eval_diff = score - eval;
 
-        self.pawn
-            .update(game.player, game.pawn_hash, depth, eval_diff);
+        self.pawn.update(game.player, game.pawn_hash, depth, eval_diff);
 
-        self.major
-            .update(game.player, game.major_piece_hash, depth, eval_diff);
+        self.major.update(game.player, game.major_piece_hash, depth, eval_diff);
 
-        self.minor
-            .update(game.player, game.minor_piece_hash, depth, eval_diff);
+        self.minor.update(game.player, game.minor_piece_hash, depth, eval_diff);
 
         self.non_pawn[White].update(game.player, game.non_pawn_hash[White], depth, eval_diff);
 
@@ -410,18 +342,13 @@ impl CorrectionHistories {
             && let Some((their_move, their_piece)) = their_ply.mv
         {
             let raw_bonus = eval_diff.0 * depth.as_i32() / 8;
-            let bonus = i32::clamp(
-                raw_bonus,
-                -CorrectionHistoryTable::MAX_UPDATE,
-                CorrectionHistoryTable::MAX_UPDATE,
-            );
+            let bonus = i32::clamp(raw_bonus, -CorrectionHistoryTable::MAX_UPDATE, CorrectionHistoryTable::MAX_UPDATE);
 
             for ply in Self::PLIES {
                 if let Some(our_ply) = stack.get_prev(plies, ply)
                     && let Some((our_mv, our_piece)) = our_ply.mv
                 {
-                    self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()]
-                        .update(bonus);
+                    self.continuation[our_piece][our_mv.to()][their_piece][their_move.to()].update(bonus);
                 }
             }
         }
@@ -429,9 +356,7 @@ impl CorrectionHistories {
 }
 
 const CORRECTION_HISTORY_SIZE: usize = 16384;
-pub struct CorrectionHistoryTable(
-    [[HistoryEntry<{ Self::MAX }>; CORRECTION_HISTORY_SIZE]; Player::N],
-);
+pub struct CorrectionHistoryTable([[HistoryEntry<{ Self::MAX }>; CORRECTION_HISTORY_SIZE]; Player::N]);
 
 impl CorrectionHistoryTable {
     pub const MAX: i16 = 1024;

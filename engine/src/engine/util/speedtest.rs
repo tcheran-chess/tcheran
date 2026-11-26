@@ -8,8 +8,7 @@ use crate::{
     engine::{
         options::{EngineOptions, defaults},
         search::{
-            NullReporter, PersistentState, RootMoves, TimeControl, time_control::StopControl,
-            types::SearchResults,
+            NullReporter, PersistentState, RootMoves, TimeControl, time_control::StopControl, types::SearchResults,
         },
         uci::{ThreadCommand, Threads},
     },

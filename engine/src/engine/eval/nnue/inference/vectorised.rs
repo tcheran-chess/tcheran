@@ -95,10 +95,7 @@ pub unsafe fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 *
     let (pairs, remainder) = nnz_idxs[..nnz_count].as_chunks::<2>();
     let mut sums = [zero; L2 / I32_LANES];
 
-    #[expect(
-        clippy::cast_ptr_alignment,
-        reason = "Intentionally loading i32s as blocks of u8s for dpbusd"
-    )]
+    #[expect(clippy::cast_ptr_alignment, reason = "Intentionally loading i32s as blocks of u8s for dpbusd")]
     let input_i32 = input.cast::<i32>();
 
     for &[idx1, idx2] in pairs {

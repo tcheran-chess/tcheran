@@ -145,11 +145,7 @@ pub fn st_search(
     )
 }
 
-pub fn iterative_deepening(
-    game: &mut Game,
-    ctx: &mut SearchContext<'_>,
-    reporter: &dyn Reporter,
-) -> SearchResult {
+pub fn iterative_deepening(game: &mut Game, ctx: &mut SearchContext<'_>, reporter: &dyn Reporter) -> SearchResult {
     let mut result: Option<SearchResult> = None;
     let mut score = Eval::MIN;
 
@@ -172,9 +168,9 @@ pub fn iterative_deepening(
             break;
         }
 
-        let new_best_move = *pv.first().unwrap_or_else(|| {
-            panic!("No PV move at depth {} for position {}", depth, game.to_fen())
-        });
+        let new_best_move = *pv
+            .first()
+            .unwrap_or_else(|| panic!("No PV move at depth {} for position {}", depth, game.to_fen()));
 
         ctx.update_after_search(new_best_move, score);
 
@@ -268,8 +264,7 @@ pub fn negamax(
     let excluded_mv = ctx.stack.get(plies).excluded_mv;
     let in_singular_search = excluded_mv.is_some();
 
-    ctx.stack.get(plies).double_extensions =
-        ctx.stack.last(plies).map_or(0, |p| p.double_extensions);
+    ctx.stack.get(plies).double_extensions = ctx.stack.last(plies).map_or(0, |p| p.double_extensions);
 
     ctx.stack.get(plies + 1).fail_highs = 0;
 
@@ -294,11 +289,7 @@ pub fn negamax(
         }
 
         if plies == MAX_SEARCH_DEPTH {
-            return if in_check {
-                Eval::DRAW
-            } else {
-                eval(ctx.nnue, game)
-            };
+            return if in_check { Eval::DRAW } else { eval(ctx.nnue, game) };
         }
 
         // Mate distance pruning
@@ -335,11 +326,7 @@ pub fn negamax(
     };
 
     if let Some(ref tt_entry) = tt_entry {
-        if !is_root
-            && !is_pv
-            && tt_entry.depth >= depth
-            && score_is_usable(tt_entry.score, tt_entry.bound, s)
-        {
+        if !is_root && !is_pv && tt_entry.depth >= depth && score_is_usable(tt_entry.score, tt_entry.bound, s) {
             return tt_entry.score;
         }
 
@@ -503,8 +490,7 @@ pub fn negamax(
     {
         ctx.tt.prefetch(game.approx_zobrist_after_null_move());
 
-        let reduction = Depth(null_move_pruning_base_reduction())
-            + depth / null_move_pruning_reduction_factor();
+        let reduction = Depth(null_move_pruning_base_reduction()) + depth / null_move_pruning_reduction_factor();
 
         ctx.stack.get(plies).mv = None;
 
@@ -528,11 +514,7 @@ pub fn negamax(
 
         if null_score >= s.beta {
             if depth <= 14 || ctx.min_nmp_ply > 0 {
-                return if null_score.is_decisive() {
-                    s.beta
-                } else {
-                    null_score
-                };
+                return if null_score.is_decisive() { s.beta } else { null_score };
             }
 
             ctx.min_nmp_ply = plies + u8::try_from(((depth - reduction) * 3) / 4).unwrap_or(0);
@@ -656,8 +638,7 @@ pub fn negamax(
         node_pv.clear();
 
         let history = if mv.is_quiet() {
-            ctx.tables.quiet_history.get(game, mv)
-                + ctx.tables.conthist.get(game, ctx.stack, plies, mv)
+            ctx.tables.quiet_history.get(game, mv) + ctx.tables.conthist.get(game, ctx.stack, plies, mv)
         } else {
             ctx.tables.tactical_history.get(game, mv)
         };
@@ -670,8 +651,7 @@ pub fn negamax(
             && !in_check
             && mv.is_quiet()
             && lmr_depth <= futility_prune_depth()
-            && eval + futility_prune_base_value() + lmr_depth * futility_prune_depth_multiplier()
-                <= s.alpha
+            && eval + futility_prune_base_value() + lmr_depth * futility_prune_depth_multiplier() <= s.alpha
             && !best_score.is_loss()
         {
             moves.skip_quiets();
@@ -706,8 +686,8 @@ pub fn negamax(
             }
         }
 
-        let lmp_moves = (lmp_move_threshold() as usize + (lmr_depth.idx() * lmr_depth.idx()))
-            / (1 + usize::from(!improving));
+        let lmp_moves =
+            (lmp_move_threshold() as usize + (lmr_depth.idx() * lmr_depth.idx())) / (1 + usize::from(!improving));
 
         if lmr_depth <= lmp_depth()
             && !is_root
@@ -738,17 +718,14 @@ pub fn negamax(
         let search_depth = depth + extension - 1;
         let mut score = Eval::NONE;
 
-        if depth >= lmr_start_depth()
-            && moves_tried >= lmr_move_threshold() as usize + usize::from(is_root)
-        {
+        if depth >= lmr_start_depth() && moves_tried >= lmr_move_threshold() as usize + usize::from(is_root) {
             let reduction = {
                 let mut r = i32::from(lmr_reduction(depth, moves_tried, mv.is_quiet())) * 1024;
 
                 // Reducing more
                 r += i32::from(cut_node) * lmr_cut_node_factor();
                 r += i32::from(!is_pv) * lmr_is_not_pv_factor();
-                r += i32::from(ctx.stack.get(plies + 1).fail_highs > 2)
-                    * lmr_many_fail_highs_factor();
+                r += i32::from(ctx.stack.get(plies + 1).fail_highs > 2) * lmr_many_fail_highs_factor();
 
                 // Reducing less:
                 r -= i32::from(in_check) * lmr_in_check_factor();
@@ -757,23 +734,15 @@ pub fn negamax(
                 r / 1024
             };
 
-            let reduced_search_depth =
-                Depth((search_depth.as_i32() - reduction).clamp(1, search_depth.as_i32()) as u8);
+            let reduced_search_depth = Depth((search_depth.as_i32() - reduction).clamp(1, search_depth.as_i32()) as u8);
 
             // We already found a good move (i.e. we raised alpha).
             // Now, we just need to prove that the other moves are worse.
             // We search them with a reduced window to prove that they are at least worse.
 
             ctx.stack.get(plies).reduction = reduction;
-            score = -negamax(
-                game,
-                -s.zero_window_around_alpha(),
-                reduced_search_depth,
-                plies + 1,
-                true,
-                &mut node_pv,
-                ctx,
-            );
+            score =
+                -negamax(game, -s.zero_window_around_alpha(), reduced_search_depth, plies + 1, true, &mut node_pv, ctx);
             ctx.stack.get(plies).reduction = 0;
 
             // If we raised alpha, but we were searching with reduced depth, we probably want to double
@@ -790,15 +759,8 @@ pub fn negamax(
                 );
             }
         } else if !is_pv || moves_tried > 1 {
-            score = -negamax(
-                game,
-                -s.zero_window_around_alpha(),
-                search_depth,
-                plies + 1,
-                !cut_node,
-                &mut node_pv,
-                ctx,
-            );
+            score =
+                -negamax(game, -s.zero_window_around_alpha(), search_depth, plies + 1, !cut_node, &mut node_pv, ctx);
         }
 
         if is_pv && (moves_tried == 1 || score > s.alpha) {
@@ -878,9 +840,7 @@ pub fn negamax(
                 .conthist
                 .update(game, ctx.stack, plies, mv, history_depth, &quiets_tried);
 
-            ctx.tables
-                .quiet_history
-                .update(game, mv, history_depth, &quiets_tried);
+            ctx.tables.quiet_history.update(game, mv, history_depth, &quiets_tried);
         }
     }
 
@@ -895,16 +855,8 @@ pub fn negamax(
     }
 
     if !in_singular_search {
-        ctx.tt.insert(
-            game.hash,
-            tt_node_bound,
-            best_move,
-            best_score,
-            raw_eval,
-            depth,
-            plies,
-            tt_pv,
-        );
+        ctx.tt
+            .insert(game.hash, tt_node_bound, best_move, best_score, raw_eval, depth, plies, tt_pv);
     }
 
     best_score
@@ -933,11 +885,7 @@ pub fn quiescence(
     let in_check = game.in_check();
 
     if plies == MAX_SEARCH_DEPTH {
-        return if in_check {
-            Eval::DRAW
-        } else {
-            eval(ctx.nnue, game)
-        };
+        return if in_check { Eval::DRAW } else { eval(ctx.nnue, game) };
     }
 
     if s.alpha < Eval::DRAW && has_upcoming_repetition(game, plies) {
@@ -961,10 +909,7 @@ pub fn quiescence(
     let mut tt_pv = is_pv;
 
     if let Some(ref tt_entry) = tt_entry {
-        if !is_pv
-            && score_is_usable(tt_entry.score, tt_entry.bound, s)
-            && !tt_entry.score.is_decisive()
-        {
+        if !is_pv && score_is_usable(tt_entry.score, tt_entry.bound, s) && !tt_entry.score.is_decisive() {
             return tt_entry.score;
         }
 

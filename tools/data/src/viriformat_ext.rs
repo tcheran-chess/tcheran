@@ -1,7 +1,5 @@
 use engine::chess::{moves::Move, prelude::*};
-use viriformat::chess::{
-    chessmove::Move as ViriMove, piece::PieceType as ViriPieceType, types::Square as ViriSquare,
-};
+use viriformat::chess::{chessmove::Move as ViriMove, piece::PieceType as ViriPieceType, types::Square as ViriSquare};
 
 pub trait ToViriExt {
     type Output;

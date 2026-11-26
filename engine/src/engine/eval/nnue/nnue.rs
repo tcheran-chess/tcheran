@@ -187,9 +187,7 @@ impl NetworkStack {
                 self.update(i, game, pov);
             } else {
                 let current_entry = &mut self.stack[self.current_idx];
-                current_entry
-                    .network
-                    .refresh(&game.board, pov, &mut self.cache);
+                current_entry.network.refresh(&game.board, pov, &mut self.cache);
                 current_entry.correct[pov] = true;
             }
         }
@@ -220,8 +218,8 @@ impl NetworkStack {
                     return None;
                 }
 
-                let changed_input_bucket = input_bucket(entry.changes.mv.from(), pov)
-                    != input_bucket(entry.changes.mv.to(), pov);
+                let changed_input_bucket =
+                    input_bucket(entry.changes.mv.from(), pov) != input_bucket(entry.changes.mv.to(), pov);
 
                 if changed_input_bucket {
                     return None;
@@ -256,13 +254,7 @@ impl NetworkStack {
                 let bucket = input_bucket(king, pov);
                 let add1 = nnue_index(add1.piece, add1.square, king, pov);
                 let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
-                NNUE::add1_sub1(
-                    &previous_entry.network[pov],
-                    &mut entry.network[pov],
-                    bucket,
-                    add1,
-                    sub1,
-                );
+                NNUE::add1_sub1(&previous_entry.network[pov], &mut entry.network[pov], bucket, add1, sub1);
             }
             ([add1], [sub1, sub2]) => {
                 let bucket = input_bucket(king, pov);
@@ -270,14 +262,7 @@ impl NetworkStack {
                 let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
                 let sub2 = nnue_index(sub2.piece, sub2.square, king, pov);
 
-                NNUE::add1_sub2(
-                    &previous_entry.network[pov],
-                    &mut entry.network[pov],
-                    bucket,
-                    add1,
-                    sub1,
-                    sub2,
-                );
+                NNUE::add1_sub2(&previous_entry.network[pov], &mut entry.network[pov], bucket, add1, sub1, sub2);
             }
             ([add1, add2], [sub1, sub2]) => {
                 let bucket = input_bucket(king, pov);
@@ -286,15 +271,7 @@ impl NetworkStack {
                 let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
                 let sub2 = nnue_index(sub2.piece, sub2.square, king, pov);
 
-                NNUE::add2_sub2(
-                    &previous_entry.network[pov],
-                    &mut entry.network[pov],
-                    bucket,
-                    add1,
-                    add2,
-                    sub1,
-                    sub2,
-                );
+                NNUE::add2_sub2(&previous_entry.network[pov], &mut entry.network[pov], bucket, add1, add2, sub1, sub2);
             }
             (_, _) => unreachable!(),
         }
@@ -314,10 +291,7 @@ pub struct NNUE {
 impl Default for NNUE {
     fn default() -> Self {
         Self {
-            accumulators: [
-                Accumulator(NETWORK.l0_biases),
-                Accumulator(NETWORK.l0_biases),
-            ],
+            accumulators: [Accumulator(NETWORK.l0_biases), Accumulator(NETWORK.l0_biases)],
         }
     }
 }
@@ -398,13 +372,7 @@ impl NNUE {
         }
     }
 
-    fn add1_sub1(
-        previous_acc: &Accumulator,
-        acc: &mut Accumulator,
-        bucket: usize,
-        add1: usize,
-        sub1: usize,
-    ) {
+    fn add1_sub1(previous_acc: &Accumulator, acc: &mut Accumulator, bucket: usize, add1: usize, sub1: usize) {
         let add1_features = &NETWORK.l0_weights[bucket][add1];
         let sub1_features = &NETWORK.l0_weights[bucket][sub1];
 
@@ -445,9 +413,7 @@ impl NNUE {
         let sub2_features = &NETWORK.l0_weights[bucket][sub2];
 
         for i in 0..L1 {
-            acc.0[i] = previous_acc.0[i] + add1_features[i] + add2_features[i]
-                - sub1_features[i]
-                - sub2_features[i];
+            acc.0[i] = previous_acc.0[i] + add1_features[i] + add2_features[i] - sub1_features[i] - sub2_features[i];
         }
     }
 
@@ -496,10 +462,7 @@ fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
 
     let c = piece.player as usize ^ pov as usize;
 
-    let square_idx = sq
-        .relative_for(pov)
-        .mirrored_horizontally_if(should_mirror(king))
-        .idx();
+    let square_idx = sq.relative_for(pov).mirrored_horizontally_if(should_mirror(king)).idx();
 
     c * COLOR_STRIDE + p * PIECE_STRIDE + square_idx
 }

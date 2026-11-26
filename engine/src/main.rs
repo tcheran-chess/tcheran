@@ -25,10 +25,7 @@ fn run() -> ExitCode {
     let uci_input_mode = if args.len() == 1 {
         UciInputMode::Stdin
     } else {
-        let commands = args[1..]
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>();
+        let commands = args[1..].iter().map(ToString::to_string).collect::<Vec<_>>();
 
         UciInputMode::Commands(commands)
     };

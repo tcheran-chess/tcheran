@@ -39,18 +39,10 @@ impl UciMove {
             // If the move is castling, it's represented internally as 'captures rook'
             // in standard chess, so account for that.
             to = match mv.to() {
-                squares::WHITE_STANDARD_KINGSIDE_ROOK_START => {
-                    squares::kingside_king_castle_end(White)
-                }
-                squares::WHITE_STANDARD_QUEENSIDE_ROOK_START => {
-                    squares::queenside_king_castle_end(White)
-                }
-                squares::BLACK_STANDARD_KINGSIDE_ROOK_START => {
-                    squares::kingside_king_castle_end(Black)
-                }
-                squares::BLACK_STANDARD_QUEENSIDE_ROOK_START => {
-                    squares::queenside_king_castle_end(Black)
-                }
+                squares::WHITE_STANDARD_KINGSIDE_ROOK_START => squares::kingside_king_castle_end(White),
+                squares::WHITE_STANDARD_QUEENSIDE_ROOK_START => squares::queenside_king_castle_end(White),
+                squares::BLACK_STANDARD_KINGSIDE_ROOK_START => squares::kingside_king_castle_end(Black),
+                squares::BLACK_STANDARD_QUEENSIDE_ROOK_START => squares::queenside_king_castle_end(Black),
                 _ => to,
             };
         }

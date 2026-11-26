@@ -51,13 +51,7 @@ impl MovePicker {
         }
     }
 
-    pub fn next(
-        &mut self,
-        game: &Game,
-        tables: &Tables,
-        stack: &SearchStack,
-        plies: u8,
-    ) -> Option<Move> {
+    pub fn next(&mut self, game: &Game, tables: &Tables, stack: &SearchStack, plies: u8) -> Option<Move> {
         use GenStage::*;
 
         if self.stage == BestMove {
@@ -215,8 +209,7 @@ mod tests {
 
     #[test]
     fn test_movepicker_does_not_skip_bad_tacticals_when_no_good_tacticals() {
-        let game =
-            Game::from_valid_fen("rnbqkbnr/pp1ppppp/8/2p5/3P4/5N2/PPP1PPPP/RNBQKB1R b KQkq - 0 2");
+        let game = Game::from_valid_fen("rnbqkbnr/pp1ppppp/8/2p5/3P4/5N2/PPP1PPPP/RNBQKB1R b KQkq - 0 2");
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
@@ -230,9 +223,7 @@ mod tests {
 
     #[test]
     fn test_movepicker_does_not_return_to_start_if_no_bad_tacticals() {
-        let game = Game::from_valid_fen(
-            "rnbqkb1r/ppp1pppp/5n2/3p4/4P3/2N5/PPPP1PPP/R1BQKBNR w KQkq - 0 3",
-        );
+        let game = Game::from_valid_fen("rnbqkb1r/ppp1pppp/5n2/3p4/4P3/2N5/PPPP1PPP/R1BQKBNR w KQkq - 0 3");
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
@@ -246,9 +237,7 @@ mod tests {
 
     #[test]
     fn test_movepicker_yields_en_passant_correctly() {
-        let game = Game::from_valid_fen(
-            "r1bqkb1r/ppp1pppp/2n2n2/2Pp4/8/5N2/PP1PPPPP/RNBQKB1R w KQkq d6 0 4",
-        );
+        let game = Game::from_valid_fen("r1bqkb1r/ppp1pppp/2n2n2/2Pp4/8/5N2/PP1PPPPP/RNBQKB1R w KQkq d6 0 4");
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);
@@ -262,8 +251,7 @@ mod tests {
 
     #[test]
     fn test_movepicker_generates_caps_in_quiescence() {
-        let game =
-            Game::from_valid_fen("rnb1kbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
+        let game = Game::from_valid_fen("rnb1kbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2");
 
         let mut moves: Vec<Move> = Vec::new();
         let mut move_provider = MovePicker::new(None);

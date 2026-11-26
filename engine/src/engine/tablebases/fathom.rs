@@ -142,9 +142,7 @@ fn to_root_move(game: &Game, tb: &bindings::TbRootMove) -> RootMove {
     };
 
     RootMove {
-        mv: game
-            .moves()
-            .expect_matching_with_promotion(from, to, promotion),
+        mv: game.moves().expect_matching_with_promotion(from, to, promotion),
 
         tb_score: to_eval(tb.tbScore),
         tb_rank: tb.tbRank,

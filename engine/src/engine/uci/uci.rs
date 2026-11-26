@@ -28,8 +28,8 @@ use crate::{
         },
         options::{EngineOptions, defaults},
         search::{
-            NullReporter, PersistentState, Reporter, RootMoves, RootTbInfo, ThreadData,
-            TimeControl, search, time_control::StopControl, types::SearchResults,
+            NullReporter, PersistentState, Reporter, RootMoves, RootTbInfo, ThreadData, TimeControl, search,
+            time_control::StopControl, types::SearchResults,
         },
         uci::{
             bench::bench,
@@ -181,9 +181,8 @@ impl Uci {
             UciCommand::Uci => {
                 self.reporter.pretty_output.store(false, Ordering::Relaxed);
 
-                self.reporter.send(&UciResponse::Id(IdParam::Name(format!(
-                    "{ENGINE_NAME} {ENGINE_VERSION}"
-                ))));
+                self.reporter
+                    .send(&UciResponse::Id(IdParam::Name(format!("{ENGINE_NAME} {ENGINE_VERSION}"))));
                 self.reporter
                     .send(&UciResponse::Id(IdParam::Author("Jonathan Gilchrist")));
 
@@ -200,8 +199,7 @@ impl Uci {
             UciCommand::IsReady => self.reporter.send(&UciResponse::ReadyOk),
             UciCommand::SetOption { name, value } => {
                 if self.threads.busy() {
-                    self.reporter
-                        .generic_report("cannot set options while searching");
+                    self.reporter.generic_report("cannot set options while searching");
                     return Ok(ExecuteResult::KeepGoing);
                 }
 
@@ -223,8 +221,7 @@ impl Uci {
             }
             UciCommand::UciNewGame => {
                 if self.threads.busy() {
-                    self.reporter
-                        .generic_report("cannot start new game while searching");
+                    self.reporter.generic_report("cannot start new game while searching");
                     return Ok(ExecuteResult::KeepGoing);
                 }
 
@@ -239,8 +236,7 @@ impl Uci {
             }
             UciCommand::Position { position, moves } => {
                 if self.threads.busy() {
-                    self.reporter
-                        .generic_report("cannot set position while searching");
+                    self.reporter.generic_report("cannot set position while searching");
                     return Ok(ExecuteResult::KeepGoing);
                 }
 
@@ -299,18 +295,14 @@ impl Uci {
                 }
 
                 if self.persistent_state.tablebase.can_probe(&self.game)
-                    && let Some((tb_root_moves, tb_info)) = self
-                        .persistent_state
-                        .tablebase
-                        .root_wdl_dtz(&self.game, &root_moves)
+                    && let Some((tb_root_moves, tb_info)) =
+                        self.persistent_state.tablebase.root_wdl_dtz(&self.game, &root_moves)
                 {
                     root_moves = tb_root_moves;
                     root_tb_info = Some(tb_info);
                 }
 
-                self.threads
-                    .thread_control
-                    .start_search(self.options.threads as u32);
+                self.threads.thread_control.start_search(self.options.threads as u32);
 
                 self.persistent_state.new_search();
 
@@ -409,8 +401,7 @@ impl Uci {
                 let result = perft::perft(*depth, &mut self.game);
                 let time_taken = started_at.elapsed();
 
-                let nodes_per_second =
-                    util::metrics::nodes_per_second(u64::try_from(result).unwrap(), time_taken);
+                let nodes_per_second = util::metrics::nodes_per_second(u64::try_from(result).unwrap(), time_taken);
 
                 println!("positions: {result}");
                 println!("time taken: {time_taken:?}");
@@ -480,11 +471,9 @@ impl Uci {
 
                         match piece {
                             Some(piece) if piece.kind != King => {
-                                let normalized_contribution = wdl::normalize(
-                                    piece_contributions[sq].for_player(White),
-                                    &self.game.board,
-                                )
-                                .to_white_eval(White);
+                                let normalized_contribution =
+                                    wdl::normalize(piece_contributions[sq].for_player(White), &self.game.board)
+                                        .to_white_eval(White);
 
                                 print!("{: ^7}", normalized_contribution.to_string());
                             }
@@ -497,19 +486,14 @@ impl Uci {
                     println!();
 
                     if *rank == Rank::R1 {
-                        println!(
-                            "└───────┴───────┴───────┴───────┴───────┴───────┴───────┴───────┘"
-                        );
+                        println!("└───────┴───────┴───────┴───────┴───────┴───────┴───────┴───────┘");
                     } else {
-                        println!(
-                            "├───────┼───────┼───────┼───────┼───────┼───────┼───────┼───────┤"
-                        );
+                        println!("├───────┼───────┼───────┼───────┼───────┼───────┼───────┼───────┤");
                     }
                 }
 
                 let raw_eval = nnue.evaluate(White, &self.game);
-                let normalised_eval =
-                    wdl::normalize(raw_eval, &self.game.board).to_white_eval(White);
+                let normalised_eval = wdl::normalize(raw_eval, &self.game.board).to_white_eval(White);
 
                 println!();
                 println!("Raw evaluation: {}", raw_eval.to_white_eval(White));
@@ -540,19 +524,12 @@ impl Uci {
                 return Err("datagen feature is not enabled".to_string());
             }
             #[cfg(feature = "datagen")]
-            UciCommand::GenFens {
-                n,
-                seed,
-                book,
-                dfrc,
-            } => {
+            UciCommand::GenFens { n, seed, book, dfrc } => {
                 use crate::engine::util::datagen;
 
-                let starting_positions =
-                    datagen::generate_random_starting_positions(*n, *seed, book.to_owned(), *dfrc);
+                let starting_positions = datagen::generate_random_starting_positions(*n, *seed, book.to_owned(), *dfrc);
                 for pos in starting_positions {
-                    self.reporter
-                        .generic_report(&format!("genfens {}", pos.to_fen()));
+                    self.reporter.generic_report(&format!("genfens {}", pos.to_fen()));
                 }
             }
             #[cfg(not(feature = "spsa"))]
@@ -638,9 +615,7 @@ pub fn uci_options() -> Vec<UciOption> {
     let options = vec![
         UciOption::spin("Hash", |refs, value| {
             refs.options.hash_size = value.into();
-            refs.state
-                .tt
-                .resize(refs.options.hash_size, refs.options.threads);
+            refs.state.tt.resize(refs.options.hash_size, refs.options.threads);
         })
         .default(defaults::HASH_SIZE as i32)
         .with_bounds(0, 1024 * 1024)
@@ -732,11 +707,7 @@ fn worker_thread_loop(rx: &Receiver<ThreadCommand>, id: usize) {
                 thread_data.new_search(&game);
 
                 // Only send messages from the main search thread
-                let reporter: &(dyn Reporter + Send + Sync) = if is_main_thread {
-                    reporter
-                } else {
-                    &NullReporter
-                };
+                let reporter: &(dyn Reporter + Send + Sync) = if is_main_thread { reporter } else { &NullReporter };
 
                 // Only do time control on the main thread
                 let time_control = if is_main_thread {

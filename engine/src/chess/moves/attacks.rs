@@ -59,11 +59,7 @@ pub fn generate_rook_attacks(square: Square, pieces: Bitboard) -> Bitboard {
 }
 
 #[allow(unused, reason = "Here for completeness")]
-fn generate_sliding_attacks(
-    square: Square,
-    directions: &[Direction],
-    pieces: Bitboard,
-) -> Bitboard {
+fn generate_sliding_attacks(square: Square, directions: &[Direction], pieces: Bitboard) -> Bitboard {
     let mut attacks = Bitboard::EMPTY;
 
     for direction in directions {

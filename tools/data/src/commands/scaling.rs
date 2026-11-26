@@ -33,14 +33,9 @@ static CHUNK_SIZE: usize = 100_000;
 pub fn run(options: &ScalingOptions) -> Result<()> {
     let file = File::open(&options.input)?;
 
-    let fens = BufReader::new(file)
-        .lines()
-        .collect::<Result<Vec<_>, _>>()?;
+    let fens = BufReader::new(file).lines().collect::<Result<Vec<_>, _>>()?;
 
-    let stats = fens
-        .par_chunks(CHUNK_SIZE)
-        .map(chunk_stats)
-        .collect::<Vec<_>>();
+    let stats = fens.par_chunks(CHUNK_SIZE).map(chunk_stats).collect::<Vec<_>>();
 
     let stats = aggregate_stats(&stats);
 

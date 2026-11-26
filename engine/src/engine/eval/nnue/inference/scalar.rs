@@ -1,8 +1,5 @@
 #![allow(unused, reason = "Only here to debug vectorised inference or for unsupported platforms")]
-#![expect(
-    clippy::needless_range_loop,
-    reason = "Looping over layers rather than outputs for readability"
-)]
+#![expect(clippy::needless_range_loop, reason = "Looping over layers rather than outputs for readability")]
 
 use crate::engine::eval::nnue::{
     Accumulator,
@@ -42,8 +39,8 @@ pub fn propagate_l1(input: &[u8; L1], output_bucket: usize) -> [i32; L2 * 2] {
             let l1_block = l1 / 4;
             let k = l1 % 4;
 
-            intermediate[l2] += i32::from(input[l1])
-                * i32::from(NETWORK.l1_weights[output_bucket][l1_block][l2 * 4 + k]);
+            intermediate[l2] +=
+                i32::from(input[l1]) * i32::from(NETWORK.l1_weights[output_bucket][l1_block][l2 * 4 + k]);
         }
     }
 

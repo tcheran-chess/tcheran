@@ -148,9 +148,7 @@ fn parse_from_square(game: &Game, from: &str, to: Square) -> Result<Square, Pars
 
         let matching_source_squares: Vec<Square> = piece_moves
             .into_iter()
-            .filter(|&(piece, mv)| {
-                piece == moved_piece && mv.to() == to && ambiguity_resolution.satisfied_by(mv)
-            })
+            .filter(|&(piece, mv)| piece == moved_piece && mv.to() == to && ambiguity_resolution.satisfied_by(mv))
             .map(|(_, mv)| mv.from())
             .collect();
 
@@ -167,9 +165,7 @@ fn parse_from_square(game: &Game, from: &str, to: Square) -> Result<Square, Pars
     // we moved a pawn, so restrict to pawn moves only.
     let matching_source_squares: Vec<Square> = piece_moves
         .into_iter()
-        .filter(|&(piece, mv)| {
-            piece == Pawn && mv.to() == to && ambiguity_resolution.satisfied_by(mv)
-        })
+        .filter(|&(piece, mv)| piece == Pawn && mv.to() == to && ambiguity_resolution.satisfied_by(mv))
         .map(|(_, mv)| mv.from())
         .collect::<HashSet<_>>()
         .into_iter()
@@ -203,9 +199,7 @@ fn parse_move_squares(game: &Game, mv: &str) -> Result<(Square, Square), ParseEr
 }
 
 fn parse_capture_squares(game: &Game, mv: &str) -> Result<(Square, Square), ParseError> {
-    let (from, to) = mv
-        .split_once(constants::CAPTURE)
-        .ok_or(ParseError::NoXInCaptureMove)?;
+    let (from, to) = mv.split_once(constants::CAPTURE).ok_or(ParseError::NoXInCaptureMove)?;
 
     let to = parse_to_square(to)?;
     let from = parse_from_square(game, from, to)?;
@@ -264,9 +258,7 @@ pub fn parse_move(game: &Game, mv: &str) -> Result<Move, ParseError> {
 
     let (from, to) = parse_squares(game, mv)?;
 
-    Ok(game
-        .moves()
-        .expect_matching_with_promotion(from, to, promotion))
+    Ok(game.moves().expect_matching_with_promotion(from, to, promotion))
 }
 
 #[cfg(test)]
@@ -291,11 +283,9 @@ mod tests {
         let game = Game::from_valid_fen(fen);
         let mv = parse_move(&game, san).unwrap();
 
-        let expected_mv = game.moves().expect_matching_with_promotion(
-            expected_mv.0,
-            expected_mv.1,
-            Some(expected_mv.2),
-        );
+        let expected_mv =
+            game.moves()
+                .expect_matching_with_promotion(expected_mv.0, expected_mv.1, Some(expected_mv.2));
 
         assert_eq!(mv, expected_mv);
     }
@@ -307,11 +297,7 @@ mod tests {
 
     #[test]
     fn san_simple_pawn_capture() {
-        test_parse_san(
-            "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2",
-            (E4, D5),
-            "exd5",
-        );
+        test_parse_san("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2", (E4, D5), "exd5");
     }
 
     #[test]
@@ -321,11 +307,7 @@ mod tests {
 
     #[test]
     fn san_test_en_passant() {
-        test_parse_san(
-            "rnbqkbnr/ppp2ppp/4p3/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3",
-            (E5, D6),
-            "exd6",
-        );
+        test_parse_san("rnbqkbnr/ppp2ppp/4p3/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3", (E5, D6), "exd6");
     }
 
     #[test]
@@ -363,21 +345,13 @@ mod tests {
 
     #[test]
     fn san_plus_for_check() {
-        test_parse_san_with_promotion(
-            "k7/6P1/8/8/8/8/8/K7 w - - 0 1",
-            (G7, G8, PromotionPieceKind::Queen),
-            "g8=Q+",
-        );
+        test_parse_san_with_promotion("k7/6P1/8/8/8/8/8/K7 w - - 0 1", (G7, G8, PromotionPieceKind::Queen), "g8=Q+");
     }
 
     #[test]
     fn pawn_capture_bug_from_pgn_conversion_20260115() {
         // cxd4 was interpreted as potentially referring to a knight capture due to not filtering to pawn moves
-        test_parse_san(
-            "r2qk2r/pp2b3/2n1bppn/2p1p2p/P1PP3P/1P1P1NP1/1B3PB1/RN1Q1RK1 b kq - 0 13",
-            (C5, D4),
-            "cxd4",
-        );
+        test_parse_san("r2qk2r/pp2b3/2n1bppn/2p1p2p/P1PP3P/1P1P1NP1/1B3PB1/RN1Q1RK1 b kq - 0 13", (C5, D4), "cxd4");
     }
 
     #[test]

@@ -94,12 +94,7 @@ fn acceptable_starting_position(
     }
 }
 
-pub fn generate_random_starting_positions(
-    n: u64,
-    seed: u64,
-    _book: String,
-    dfrc: bool,
-) -> Vec<Game> {
+pub fn generate_random_starting_positions(n: u64, seed: u64, _book: String, dfrc: bool) -> Vec<Game> {
     let mut rand = StdRng::seed_from_u64(seed);
 
     let mut games = Vec::new();

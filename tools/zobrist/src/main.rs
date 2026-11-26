@@ -13,19 +13,14 @@ fn suffix(n: usize, bound: usize) -> &'static str {
     if n == bound - 1 { "" } else { ", " }
 }
 
-#[expect(
-    unused_assignments,
-    reason = "We define some components as 0 first to ensure we keep the order"
-)]
+#[expect(unused_assignments, reason = "We define some components as 0 first to ensure we keep the order")]
 #[expect(clippy::needless_range_loop, reason = "Feels more readable this way")]
 fn main() -> ExitCode {
     let mut random = StdRng::seed_from_u64(0);
 
-    let mut piece_square: [[[ZobristComponent; PIECE_N]; SQUARE_N]; PLAYER_N] =
-        [[[0; PIECE_N]; SQUARE_N]; PLAYER_N];
+    let mut piece_square: [[[ZobristComponent; PIECE_N]; SQUARE_N]; PLAYER_N] = [[[0; PIECE_N]; SQUARE_N]; PLAYER_N];
 
-    let mut castling: [[ZobristComponent; CASTLE_RIGHTS_SIDE_N]; PLAYER_N] =
-        [[0; CASTLE_RIGHTS_SIDE_N]; PLAYER_N];
+    let mut castling: [[ZobristComponent; CASTLE_RIGHTS_SIDE_N]; PLAYER_N] = [[0; CASTLE_RIGHTS_SIDE_N]; PLAYER_N];
 
     let mut en_passant_square: [ZobristComponent; SQUARE_N] = [0; SQUARE_N];
     let mut side_to_play: ZobristComponent = 0;
@@ -63,9 +58,7 @@ fn main() -> ExitCode {
     println!("    pub type ZobristComponent = u64;");
     println!();
 
-    println!(
-        "    pub const PIECE_SQUARE: [[[ZobristComponent; PieceKind::N]; Square::N]; Player::N] = ["
-    );
+    println!("    pub const PIECE_SQUARE: [[[ZobristComponent; PieceKind::N]; Square::N]; Player::N] = [");
     for player in &piece_square {
         println!("        [");
 

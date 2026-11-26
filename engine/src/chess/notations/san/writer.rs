@@ -158,9 +158,7 @@ mod tests {
     ) {
         let game = Game::from_valid_fen(fen);
         let (from, to, promotion) = mv;
-        let mv = game
-            .moves()
-            .expect_matching_with_promotion(from, to, Some(promotion));
+        let mv = game.moves().expect_matching_with_promotion(from, to, Some(promotion));
         let san = format_move(&game, mv);
 
         assert_eq!(&san, expected_san);
@@ -173,11 +171,7 @@ mod tests {
 
     #[test]
     fn san_simple_pawn_capture() {
-        test_san_string(
-            "rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2",
-            (E4, D5),
-            "exd5",
-        );
+        test_san_string("rnbqkbnr/ppp1pppp/8/3p4/4P3/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 2", (E4, D5), "exd5");
     }
 
     #[test]
@@ -187,11 +181,7 @@ mod tests {
 
     #[test]
     fn san_test_en_passant() {
-        test_san_string(
-            "rnbqkbnr/ppp2ppp/4p3/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3",
-            (E5, D6),
-            "exd6",
-        );
+        test_san_string("rnbqkbnr/ppp2ppp/4p3/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3", (E5, D6), "exd6");
     }
 
     #[test]
@@ -211,11 +201,7 @@ mod tests {
         let ambiguous_move = (A8, B8);
 
         assert_eq!(
-            required_ambiguity_resolution(
-                &game,
-                game.moves()
-                    .expect_matching(ambiguous_move.0, ambiguous_move.1)
-            ),
+            required_ambiguity_resolution(&game, game.moves().expect_matching(ambiguous_move.0, ambiguous_move.1)),
             AmbiguityResolution::File
         );
 
@@ -229,11 +215,7 @@ mod tests {
         let ambiguous_move = (A1, A3);
 
         assert_eq!(
-            required_ambiguity_resolution(
-                &game,
-                game.moves()
-                    .expect_matching(ambiguous_move.0, ambiguous_move.1)
-            ),
+            required_ambiguity_resolution(&game, game.moves().expect_matching(ambiguous_move.0, ambiguous_move.1)),
             AmbiguityResolution::Rank
         );
 
@@ -247,11 +229,7 @@ mod tests {
         let ambiguous_move = (H4, E1);
 
         assert_eq!(
-            required_ambiguity_resolution(
-                &game,
-                game.moves()
-                    .expect_matching(ambiguous_move.0, ambiguous_move.1)
-            ),
+            required_ambiguity_resolution(&game, game.moves().expect_matching(ambiguous_move.0, ambiguous_move.1)),
             AmbiguityResolution::Exact
         );
 
@@ -268,19 +246,11 @@ mod tests {
 
     #[test]
     fn san_plus_for_check() {
-        test_san_string_with_promotion(
-            "k7/6P1/8/8/8/8/8/K7 w - - 0 1",
-            (G7, G8, PromotionPieceKind::Queen),
-            "g8=Q+",
-        );
+        test_san_string_with_promotion("k7/6P1/8/8/8/8/8/K7 w - - 0 1", (G7, G8, PromotionPieceKind::Queen), "g8=Q+");
     }
 
     #[test]
     fn san_ambiguity_20261016() {
-        test_san_string(
-            "2r2r1k/4ppnp/2bp2pN/p4PP1/1p2P2P/1Pq5/P1PQ1N2/1K1RR3 w - - 1 34",
-            (F2, G4),
-            "Nfg4",
-        );
+        test_san_string("2r2r1k/4ppnp/2bp2pN/p4PP1/1p2P2P/1Pq5/P1PQ1N2/1K1RR3 w - - 1 34", (F2, G4), "Nfg4");
     }
 }

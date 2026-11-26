@@ -54,10 +54,7 @@ pub struct OptionCallbackRefs<'uci> {
 }
 
 impl UciOption {
-    pub fn check(
-        name: &'static str,
-        f: impl Fn(&mut OptionCallbackRefs<'_>, bool) + 'static,
-    ) -> UciCheckOptionBuilder {
+    pub fn check(name: &'static str, f: impl Fn(&mut OptionCallbackRefs<'_>, bool) + 'static) -> UciCheckOptionBuilder {
         UciCheckOptionBuilder {
             name,
             set_fn: Box::new(f),
@@ -101,9 +98,8 @@ impl UciOption {
         options: &mut EngineOptions,
         reporter: &UciReporter,
     ) -> Result<(), String> {
-        let state = Arc::get_mut(state).unwrap_or_else(|| {
-            panic!("Unable to get unique access to state while setting option {}", self.name)
-        });
+        let state = Arc::get_mut(state)
+            .unwrap_or_else(|| panic!("Unable to get unique access to state while setting option {}", self.name));
 
         let mut refs = OptionCallbackRefs {
             game,
@@ -120,9 +116,7 @@ impl UciOption {
 
                 set_fn(&mut refs, value);
             }
-            UciOptionType::Spin {
-                min, max, set_fn, ..
-            } => {
+            UciOptionType::Spin { min, max, set_fn, .. } => {
                 let value = value.parse::<i32>().map_err(|_| "Invalid value")?;
 
                 if value > *max {

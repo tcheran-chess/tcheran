@@ -1,16 +1,16 @@
 use crate::chess::{
-    moves::tables::magic_consts::{
-        ATTACKS_TABLE_SIZE, BISHOP_MAGICS, BISHOP_SHIFT, ROOK_MAGICS, ROOK_SHIFT,
-    },
+    moves::tables::magic_consts::{ATTACKS_TABLE_SIZE, BISHOP_MAGICS, BISHOP_SHIFT, ROOK_MAGICS, ROOK_SHIFT},
     prelude::*,
 };
 
 macro_rules! table {
     ($file:literal, $len:expr) => {
         unsafe {
-            std::mem::transmute::<[u8; size_of::<Bitboard>() * $len], [Bitboard; $len]>(
-                *include_bytes!(concat!(env!("OUT_DIR"), "/", $file)),
-            )
+            std::mem::transmute::<[u8; size_of::<Bitboard>() * $len], [Bitboard; $len]>(*include_bytes!(concat!(
+                env!("OUT_DIR"),
+                "/",
+                $file
+            )))
         }
     };
 }

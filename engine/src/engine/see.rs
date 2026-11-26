@@ -20,13 +20,7 @@ pub const fn see_value(piece_kind: PieceKind) -> Eval {
     Eval(unsafe { SEE_VALUES[piece_kind as usize] })
 }
 
-pub fn init_see_values(
-    pawn_value: i32,
-    knight_value: i32,
-    bishop_value: i32,
-    rook_value: i32,
-    queen_value: i32,
-) {
+pub fn init_see_values(pawn_value: i32, knight_value: i32, bishop_value: i32, rook_value: i32, queen_value: i32) {
     unsafe {
         SEE_VALUES[Pawn] = pawn_value;
         SEE_VALUES[Knight] = knight_value;
@@ -82,9 +76,7 @@ pub fn see(game: &Game, mv: Move, threshold: i32) -> bool {
     let black_pinned = game.pinned[Black];
     let black_pin_ray = ray_skewering(board.king_square(Black), to);
 
-    let not_pinned = !(white_pinned | black_pinned)
-        | (white_pinned & white_pin_ray)
-        | (black_pinned & black_pin_ray);
+    let not_pinned = !(white_pinned | black_pinned) | (white_pinned & white_pin_ray) | (black_pinned & black_pin_ray);
 
     let mut diagonal_sliders = board.all_diagonal_sliders() & occupied;
     let mut orthorgonal_sliders = board.all_orthogonal_sliders() & occupied;
@@ -110,8 +102,7 @@ pub fn see(game: &Game, mv: Move, threshold: i32) -> bool {
         // we can use
         let mut attacker_sq = None;
         for potential_attacker_kind in PieceKind::ALL {
-            let mut potential_attacker_squares =
-                my_attackers & board.pieces_of_kind(potential_attacker_kind, color);
+            let mut potential_attacker_squares = my_attackers & board.pieces_of_kind(potential_attacker_kind, color);
 
             if potential_attacker_squares.any() {
                 attacker_sq = Some(potential_attacker_squares.pop_lsb_inplace().single());

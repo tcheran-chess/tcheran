@@ -96,9 +96,7 @@ fn init_table() {
                     Knight => knight_attacks(from),
                     Bishop => bishop_attacks(from, Bitboard::EMPTY),
                     Rook => rook_attacks(from, Bitboard::EMPTY),
-                    Queen => {
-                        bishop_attacks(from, Bitboard::EMPTY) | rook_attacks(from, Bitboard::EMPTY)
-                    }
+                    Queen => bishop_attacks(from, Bitboard::EMPTY) | rook_attacks(from, Bitboard::EMPTY),
                     King => king_attacks(from),
                     Pawn => unreachable!(),
                 };

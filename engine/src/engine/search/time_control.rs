@@ -132,12 +132,7 @@ impl StopControl {
 const CHECK_TERMINATION_NODE_FREQUENCY: u64 = 2048;
 
 impl TimeStrategy {
-    pub fn new(
-        game: &Game,
-        time_control: TimeControl,
-        control: StopControl,
-        options: &EngineOptions,
-    ) -> Self {
+    pub fn new(game: &Game, time_control: TimeControl, control: StopControl, options: &EngineOptions) -> Self {
         let params = Params::new();
         let mut started_at = None;
         let mut soft_stop = Duration::default();
@@ -153,10 +148,7 @@ impl TimeStrategy {
                 soft_stop = move_time;
                 hard_stop = move_time;
             }
-            TimeControl::Clocks {
-                ref clocks,
-                start_time,
-            } => {
+            TimeControl::Clocks { ref clocks, start_time } => {
                 started_at = Some(start_time);
                 let (mut time_remaining, increment) = clocks.for_player(game.player);
                 let moves_to_go = clocks.moves_to_go.unwrap_or(default_moves_to_go());
@@ -165,13 +157,10 @@ impl TimeStrategy {
                     .saturating_sub(options.move_overhead)
                     .max(options.move_overhead);
 
-                let base_time =
-                    time_remaining / moves_to_go + increment.mul_f32(params.increment_to_use);
+                let base_time = time_remaining / moves_to_go + increment.mul_f32(params.increment_to_use);
 
                 hard_stop = time_remaining.mul_f32(params.hard_time_multiplier);
-                soft_stop = base_time
-                    .mul_f32(params.soft_time_multiplier)
-                    .min(hard_stop);
+                soft_stop = base_time.mul_f32(params.soft_time_multiplier).min(hard_stop);
             }
             TimeControl::Nodes { hard, .. } => {
                 if let Some(hard_limit) = hard {
@@ -290,8 +279,7 @@ impl TimeStrategy {
         let mut scale = 1.0;
 
         let best_move_scale_adjustment = {
-            (self.params.best_move_tm_base
-                - self.best_move_stability as f32 * self.params.best_move_tm_multiplier)
+            (self.params.best_move_tm_base - self.best_move_stability as f32 * self.params.best_move_tm_multiplier)
                 .max(self.params.best_move_tm_min)
         };
 
@@ -305,8 +293,7 @@ impl TimeStrategy {
             let nodes_for_best_move = self.nodes_used[best_move.from()][best_move.to()];
             let fraction_used_for_best_move = nodes_for_best_move as f32 / nodes_visited as f32;
 
-            (self.params.node_tm_base
-                - (fraction_used_for_best_move * self.params.node_tm_multiplier))
+            (self.params.node_tm_base - (fraction_used_for_best_move * self.params.node_tm_multiplier))
                 .max(self.params.node_tm_min)
         };
 

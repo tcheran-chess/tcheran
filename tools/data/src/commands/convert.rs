@@ -47,12 +47,7 @@ impl Visitor for PgnToViri {
         ControlFlow::Continue(Tags::default())
     }
 
-    fn tag(
-        &mut self,
-        tags: &mut Self::Tags,
-        name: &[u8],
-        value: RawTag<'_>,
-    ) -> ControlFlow<Self::Output> {
+    fn tag(&mut self, tags: &mut Self::Tags, name: &[u8], value: RawTag<'_>) -> ControlFlow<Self::Output> {
         let name = String::from_utf8_lossy(name).to_string();
         let value = String::from_utf8_lossy(value.as_bytes()).to_string();
 
@@ -102,42 +97,26 @@ impl Visitor for PgnToViri {
         })
     }
 
-    fn san(
-        &mut self,
-        movetext: &mut Self::Movetext,
-        san_plus: SanPlus,
-    ) -> ControlFlow<Self::Output> {
+    fn san(&mut self, movetext: &mut Self::Movetext, san_plus: SanPlus) -> ControlFlow<Self::Output> {
         let san = san_plus.san.to_string();
 
-        let mv = san::parse_move(&movetext.game, &san).unwrap_or_else(|_| {
-            panic!("Malformed move: {san} in position {}", movetext.game.to_fen())
-        });
+        let mv = san::parse_move(&movetext.game, &san)
+            .unwrap_or_else(|_| panic!("Malformed move: {san} in position {}", movetext.game.to_fen()));
 
         movetext.moves.push(mv);
 
         ControlFlow::Continue(())
     }
 
-    fn comment(
-        &mut self,
-        movetext: &mut Self::Movetext,
-        comment: RawComment<'_>,
-    ) -> ControlFlow<Self::Output> {
+    fn comment(&mut self, movetext: &mut Self::Movetext, comment: RawComment<'_>) -> ControlFlow<Self::Output> {
         movetext.comments_seen += 1;
-        assert_eq!(
-            movetext.comments_seen,
-            movetext.moves.len(),
-            "Malformed PGN: Moves found without comments"
-        );
+        assert_eq!(movetext.comments_seen, movetext.moves.len(), "Malformed PGN: Moves found without comments");
 
         let comment = String::from_utf8_lossy(comment.as_bytes()).to_string();
         let mv = *movetext.moves.last().expect("Malformed PGN: No moves");
 
         // Assumes the structure of the comments is +score.scoredecimal/depth
-        let score = comment
-            .split_once('/')
-            .expect("Move comment should contain '/'")
-            .0;
+        let score = comment.split_once('/').expect("Move comment should contain '/'").0;
 
         let score = if score.contains('M') {
             let is_mated = score.contains('-');
@@ -146,11 +125,7 @@ impl Visitor for PgnToViri {
             (score.parse::<f64>().unwrap() * 100.0) as i16
         };
 
-        let score = if movetext.game.player == White {
-            score
-        } else {
-            -score
-        };
+        let score = if movetext.game.player == White { score } else { -score };
 
         movetext.game.make_move(mv);
         movetext.virigame.add_move(mv.to_viri(), score);
@@ -194,9 +169,7 @@ pub fn run(options: &ConvertOptions) -> Result<()> {
 
     let positions_per_second = (positions as f64 / elapsed.as_secs_f64()) as u64;
 
-    println!(
-        "Converted {games} games ({positions} positions) in {elapsed:?} ({positions_per_second} pos/s)"
-    );
+    println!("Converted {games} games ({positions} positions) in {elapsed:?} ({positions_per_second} pos/s)");
 
     writer.flush()?;
     Ok(())

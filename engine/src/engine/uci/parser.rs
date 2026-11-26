@@ -77,11 +77,7 @@ pub fn uci_move(input: &str) -> Result<UciMove, String> {
                 None
             };
 
-            UciMove {
-                from,
-                to,
-                promotion,
-            }
+            UciMove { from, to, promotion }
         }
         _ => return Err(format!("expected uci move, got {input}")),
     })
@@ -220,20 +216,16 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, String> {
         match arg {
             "infinite" => infinite = true,
             "wtime" => {
-                clocks.clocks[White] =
-                    Some(parse_duration(args.next().ok_or("expected duration for wtime")?)?);
+                clocks.clocks[White] = Some(parse_duration(args.next().ok_or("expected duration for wtime")?)?);
             }
             "btime" => {
-                clocks.clocks[Black] =
-                    Some(parse_duration(args.next().ok_or("expected duration for btime")?)?);
+                clocks.clocks[Black] = Some(parse_duration(args.next().ok_or("expected duration for btime")?)?);
             }
             "winc" => {
-                clocks.increments[White] =
-                    Some(parse_duration(args.next().ok_or("expected duration for winc")?)?);
+                clocks.increments[White] = Some(parse_duration(args.next().ok_or("expected duration for winc")?)?);
             }
             "binc" => {
-                clocks.increments[Black] =
-                    Some(parse_duration(args.next().ok_or("expected duration for binc")?)?);
+                clocks.increments[Black] = Some(parse_duration(args.next().ok_or("expected duration for binc")?)?);
             }
             "movestogo" => {
                 clocks.moves_to_go = Some(
@@ -244,8 +236,7 @@ fn cmd_go(args: &[&str]) -> Result<UciCommand, String> {
                 );
             }
             "movetime" => {
-                movetime =
-                    Some(parse_duration(args.next().ok_or("expected duration for movetime")?)?);
+                movetime = Some(parse_duration(args.next().ok_or("expected duration for movetime")?)?);
             }
             "depth" => {
                 depth = Some(
@@ -371,9 +362,7 @@ fn cmd_perft(args: &[&str]) -> Result<UciCommand, String> {
         return Err("invalid number of arguments".to_string());
     };
 
-    let depth = depth
-        .parse::<u8>()
-        .map_err(|_| "invalid depth".to_string())?;
+    let depth = depth.parse::<u8>().map_err(|_| "invalid depth".to_string())?;
 
     Ok(UciCommand::Perft { depth })
 }
@@ -383,9 +372,7 @@ fn cmd_perft_div(args: &[&str]) -> Result<UciCommand, String> {
         return Err("invalid number of arguments".to_string());
     };
 
-    let depth = depth
-        .parse::<u8>()
-        .map_err(|_| "invalid depth".to_string())?;
+    let depth = depth.parse::<u8>().map_err(|_| "invalid depth".to_string())?;
 
     Ok(UciCommand::PerftDiv { depth })
 }
@@ -578,8 +565,7 @@ mod tests {
 
     #[test]
     fn test_position_fen_then_moves() {
-        let result =
-            parse("position fen 6r1/p2p4/3Ppk2/p1R2p2/8/3b4/1r6/4K3 b - - 5 45 moves a7a6 c1d1");
+        let result = parse("position fen 6r1/p2p4/3Ppk2/p1R2p2/8/3b4/1r6/4K3 b - - 5 45 moves a7a6 c1d1");
         assert!(result.is_ok());
 
         let components = result.unwrap();

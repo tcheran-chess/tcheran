@@ -2,10 +2,7 @@ use crate::{
     chess::prelude::*,
     engine::{
         eval::Eval,
-        search::{
-            NullReporter, PersistentState, SearchResult, ThreadData, TimeControl, st_search,
-            types::Depth,
-        },
+        search::{NullReporter, PersistentState, SearchResult, ThreadData, TimeControl, st_search, types::Depth},
     },
 };
 
@@ -23,11 +20,7 @@ fn test_expected_move(fen: &str, depth: Depth, mv: (Square, Square)) -> SearchRe
 
 #[test]
 fn test_mate_on_100th_halfmove_detected() {
-    let result = test_expected_move(
-        "4Q3/8/1p4pk/1PbB1p1p/7P/p3P1PK/P3qP2/8 w - - 99 88",
-        Depth(5),
-        (E8, H8),
-    );
+    let result = test_expected_move("4Q3/8/1p4pk/1PbB1p1p/7P/p3P1PK/P3qP2/8 w - - 99 88", Depth(5), (E8, H8));
 
     assert_eq!(result.score, Eval::mate_in(1));
 }

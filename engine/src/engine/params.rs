@@ -144,15 +144,11 @@ mod tests {
 
         for param in params {
             match param.t {
-                UciOptionType::Spin {
-                    default, min, max, ..
-                } => {
+                UciOptionType::Spin { default, min, max, .. } => {
                     assert!(default >= min, "{} is less than its min, {}", param.name, min);
                     assert!(default <= max, "{} is greater than its min, {}", param.name, max);
                 }
-                UciOptionType::Check { .. }
-                | UciOptionType::String { .. }
-                | UciOptionType::Button { .. } => {}
+                UciOptionType::Check { .. } | UciOptionType::String { .. } | UciOptionType::Button { .. } => {}
             }
         }
     }

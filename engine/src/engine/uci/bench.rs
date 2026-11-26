@@ -83,26 +83,26 @@ const POSITIONS: [&str; 88] = [
     "6Q1/8/1kp4P/2q1p3/2PpP3/2nP2P1/p7/5BK1 b - - 1 35", // Fischer vs Petrosian - double promotion
     "5R2/2k3PK/8/5N2/7P/5q2/8/q7 w - - 0 69", // McShane - Aronian 2012 - knight promotion
     "rnbqk1nr/ppp2ppp/8/4P3/1BP5/8/PP2KpPP/RN1Q1BNR b kq - 1 7", // Albin Countergambit, Lasker Trap - knight promotion
-    "8/nRp5/8/8/8/7k/8/7K w - - 0 1",                            // R vs NP
-    "8/bRp5/8/8/8/7k/8/7K w - - 0 1",                            // R vs BP
-    "8/8/4k3/3n1n2/5P2/8/3K4/8 b - - 0 12",                      // NN vs P endgame
-    "8/bQr5/8/8/8/7k/8/7K w - - 0 1", // Q vs RB, leading to Q vs R or Q vs B
-    "8/nQr5/8/8/8/7k/8/7K w - - 0 1", // Q vs RN, leading to Q vs R or Q vs N
-    "4kq2/8/n7/8/8/3Q3b/8/3K4 w - - 0 1", // Q vs QBN, leading to Q vs QB or Q vs QN
-    "8/5R2/1n2RK2/8/8/7k/4r3/8 b - - 0 1", // RR vs RN endgame, where if black takes, they actually loses
-    "8/n3p3/8/2B5/2b5/7k/P7/7K w - - 0 1", // BP vs BNP endgame, leading to B vs BN
-    "8/n3p3/8/2B5/1n6/7k/P7/7K w - - 0 1", // BP vs NNP endgame, leading to B vs NN
-    "8/bRn5/8/7b/8/7k/8/7K w - - 0 1",     // R vs BBN, leading to R vs BN or R vs BB
-    "1b6/1R1r4/8/1n6/7k/8/8/7K w - - 0 1", // R vs RBN, leading to R vs BN or R vs RB or R vs RN
-    "8/q5rk/8/8/8/8/Q5RK/7N w - - 0 1",    // Endgame that can lead to QN vs Q or RN vs R positions
+    "8/nRp5/8/8/8/7k/8/7K w - - 0 1",         // R vs NP
+    "8/bRp5/8/8/8/7k/8/7K w - - 0 1",         // R vs BP
+    "8/8/4k3/3n1n2/5P2/8/3K4/8 b - - 0 12",   // NN vs P endgame
+    "8/bQr5/8/8/8/7k/8/7K w - - 0 1",         // Q vs RB, leading to Q vs R or Q vs B
+    "8/nQr5/8/8/8/7k/8/7K w - - 0 1",         // Q vs RN, leading to Q vs R or Q vs N
+    "4kq2/8/n7/8/8/3Q3b/8/3K4 w - - 0 1",     // Q vs QBN, leading to Q vs QB or Q vs QN
+    "8/5R2/1n2RK2/8/8/7k/4r3/8 b - - 0 1",    // RR vs RN endgame, where if black takes, they actually loses
+    "8/n3p3/8/2B5/2b5/7k/P7/7K w - - 0 1",    // BP vs BNP endgame, leading to B vs BN
+    "8/n3p3/8/2B5/1n6/7k/P7/7K w - - 0 1",    // BP vs NNP endgame, leading to B vs NN
+    "8/bRn5/8/7b/8/7k/8/7K w - - 0 1",        // R vs BBN, leading to R vs BN or R vs BB
+    "1b6/1R1r4/8/1n6/7k/8/8/7K w - - 0 1",    // R vs RBN, leading to R vs BN or R vs RB or R vs RN
+    "8/q5rk/8/8/8/8/Q5RK/7N w - - 0 1",       // Endgame that can lead to QN vs Q or RN vs R positions
     "1kr5/2bp3q/Q7/1K6/6q1/6B1/8/8 w - - 0 1", // Endgame where triple repetition can and needs to be forced by white
     "1kr5/2bp3q/R7/1K6/6q1/6B1/8/8 w - - 96 200", // Endgame where 50 moves draw can and needs to be forced by white
     "rnbqk2r/pppp1ppp/5n2/8/Bb2N3/8/PPPPQPPP/RNB1K2R w KQkq - 2 1", // Petroff defense alike position with double check Q and N
     "rnb1kb1r/pppp1ppp/5n2/8/4N3/8/PPPP1PPP/RNB1R1K1 w kq - 2 5",   // Double check R and N
     "rnbqk2r/ppp2ppp/3p4/8/1b2Bn2/8/PPPPQPPP/RNB1K2R w KQkq - 2 5", // Double check Q and B
     "rnbqk2r/ppp2ppp/3p4/8/1b2B3/3n4/PPPP1PPP/RNBQR1K1 w kq - 2 5", // Double check R and B
-    "r3k2r/ppp2ppp/n7/1N1p4/Bb6/8/PPPP1PPP/RNBQ1RK1 w kq - 2 1", // Double check B and N, castling rights
-    "r3k2r/ppp2ppp/n7/1N1p4/Bb6/8/PPPP1PPP/RNBQ1RK1 w - - 2 1", // Double check B and N, no castling rights
+    "r3k2r/ppp2ppp/n7/1N1p4/Bb6/8/PPPP1PPP/RNBQ1RK1 w kq - 2 1",    // Double check B and N, castling rights
+    "r3k2r/ppp2ppp/n7/1N1p4/Bb6/8/PPPP1PPP/RNBQ1RK1 w - - 2 1",     // Double check B and N, no castling rights
     "5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28", // En passant discovered check
 ];
 
@@ -166,9 +166,7 @@ pub fn bench(depth: Option<Depth>) -> (u64, Duration) {
         #[cfg(feature = "nnue-stats")]
         println!(
             "{:.2}%",
-            stats::NNZ_COUNT.load(Ordering::Relaxed) as f64
-                / stats::NNZ_TOTAL.load(Ordering::Relaxed) as f64
-                * 100.0
+            stats::NNZ_COUNT.load(Ordering::Relaxed) as f64 / stats::NNZ_TOTAL.load(Ordering::Relaxed) as f64 * 100.0
         );
     }
 

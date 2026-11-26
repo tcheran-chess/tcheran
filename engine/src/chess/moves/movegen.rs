@@ -53,22 +53,8 @@ pub fn generate_tacticals(game: &Game, f: &mut impl FnMut(Move)) {
 
     generate_knight_captures(game.board.knights(game.player), dst_mask, pinned, f);
 
-    generate_diagonal_slider_captures(
-        game.board.diagonal_sliders(game.player),
-        pieces,
-        dst_mask,
-        pinned,
-        king,
-        f,
-    );
-    generate_orthogonal_slider_captures(
-        game.board.orthogonal_sliders(game.player),
-        pieces,
-        dst_mask,
-        pinned,
-        king,
-        f,
-    );
+    generate_diagonal_slider_captures(game.board.diagonal_sliders(game.player), pieces, dst_mask, pinned, king, f);
+    generate_orthogonal_slider_captures(game.board.orthogonal_sliders(game.player), pieces, dst_mask, pinned, king, f);
     generate_king_captures(game, king, their_pieces, f);
 }
 
@@ -96,22 +82,8 @@ pub fn generate_quiets(game: &Game, f: &mut impl FnMut(Move)) {
 
     generate_pawn_quiets(game, game.board.pawns(game.player), pieces, dst_mask, pinned, king, f);
     generate_knight_quiets(game.board.knights(game.player), dst_mask, pinned, f);
-    generate_diagonal_slider_quiets(
-        game.board.diagonal_sliders(game.player),
-        pieces,
-        dst_mask,
-        pinned,
-        king,
-        f,
-    );
-    generate_orthogonal_slider_quiets(
-        game.board.orthogonal_sliders(game.player),
-        pieces,
-        dst_mask,
-        pinned,
-        king,
-        f,
-    );
+    generate_diagonal_slider_quiets(game.board.diagonal_sliders(game.player), pieces, dst_mask, pinned, king, f);
+    generate_orthogonal_slider_quiets(game.board.orthogonal_sliders(game.player), pieces, dst_mask, pinned, king, f);
     generate_king_quiets(game, king, pieces, f);
 
     if !game.checkers.any() {
@@ -165,8 +137,7 @@ fn generate_pawn_tacticals(
     }
 
     let will_promote_rank = pawn_back_rank(them);
-    let promotion_destinations =
-        (unpinned_pawns & will_promote_rank).forward(us) & dst_mask & !their_pieces;
+    let promotion_destinations = (unpinned_pawns & will_promote_rank).forward(us) & dst_mask & !their_pieces;
 
     // Queen promotions
     for dst in promotion_destinations {
@@ -223,8 +194,7 @@ fn generate_pawn_quiets(
         f(Move::quiet(src, dst));
     }
 
-    let double_push_destinations =
-        (single_push_destinations & double_push_rank(us)).forward(us) & !pieces;
+    let double_push_destinations = (single_push_destinations & double_push_rank(us)).forward(us) & !pieces;
 
     for dst in double_push_destinations & dst_mask {
         let src = dst.backward(us).backward(us);
@@ -240,12 +210,7 @@ fn generate_pawn_quiets(
     }
 }
 
-fn generate_knight_captures(
-    knights: Bitboard,
-    dst_mask: Bitboard,
-    pinned: Bitboard,
-    f: &mut impl FnMut(Move),
-) {
+fn generate_knight_captures(knights: Bitboard, dst_mask: Bitboard, pinned: Bitboard, f: &mut impl FnMut(Move)) {
     for knight in knights & !pinned {
         let destinations = knight_attacks(knight) & dst_mask;
         for dst in destinations {
@@ -254,12 +219,7 @@ fn generate_knight_captures(
     }
 }
 
-fn generate_knight_quiets(
-    knights: Bitboard,
-    dst_mask: Bitboard,
-    pinned: Bitboard,
-    f: &mut impl FnMut(Move),
-) {
+fn generate_knight_quiets(knights: Bitboard, dst_mask: Bitboard, pinned: Bitboard, f: &mut impl FnMut(Move)) {
     for knight in knights & !pinned {
         let destinations = knight_attacks(knight) & dst_mask;
         for dst in destinations {
@@ -364,12 +324,7 @@ fn generate_orthogonal_slider_quiets(
     }
 }
 
-fn generate_king_captures(
-    game: &Game,
-    king: Square,
-    their_pieces: Bitboard,
-    f: &mut impl FnMut(Move),
-) {
+fn generate_king_captures(game: &Game, king: Square, their_pieces: Bitboard, f: &mut impl FnMut(Move)) {
     let destinations = king_attacks(king) & their_pieces & !game.threats;
     for dst in destinations {
         f(Move::capture(king, dst));
@@ -431,9 +386,7 @@ fn generate_castle_move_for_side(
 
     let blockers = pieces ^ king.bb() ^ rook.bb();
 
-    if (required_empty_squares & blockers).is_empty()
-        && (required_safe_squares & game.threats).is_empty()
-    {
+    if (required_empty_squares & blockers).is_empty() && (required_safe_squares & game.threats).is_empty() {
         f(Move::castles(king, rook));
     }
 }
@@ -475,18 +428,12 @@ mod tests {
 
     #[test]
     fn test_cant_capture_own_king() {
-        should_not_allow_move(
-            "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1",
-            (F1, G1),
-        );
+        should_not_allow_move("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", (F1, G1));
     }
 
     #[test]
     fn test_kiwipete_en_passant_bug() {
-        should_allow_move(
-            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R b KQkq a3 0 1",
-            (B4, A3),
-        );
+        should_allow_move("r3k2r/p1ppqpb1/bn2pnp1/3PN3/Pp2P3/2N2Q1p/1PPBBPPP/R3K2R b KQkq a3 0 1", (B4, A3));
     }
 
     #[test]
@@ -504,10 +451,7 @@ mod tests {
 
     #[test]
     fn test_forbid_pushing_pawn_into_pinning_piece() {
-        should_not_allow_move(
-            "rnbq2kr/pp1Pbppp/2p3Q1/8/2B5/8/PPP1NnPP/RNB1K2R b KQ - 4 9",
-            (F7, G6),
-        );
+        should_not_allow_move("rnbq2kr/pp1Pbppp/2p3Q1/8/2B5/8/PPP1NnPP/RNB1K2R b KQ - 4 9", (F7, G6));
     }
 
     #[test]
@@ -518,24 +462,17 @@ mod tests {
     #[test]
     fn test_en_passant_bug_20251130() {
         // Thanks to Werner for reporting: https://talkchess.com/viewtopic.php?p=986038
-        should_allow_move(
-            "5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28",
-            (G4, F3),
-        );
+        should_allow_move("5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28", (G4, F3));
     }
 
     #[test]
     fn test_castling_bug_20260209() {
-        should_not_allow_move(
-            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q2/PPP1BPpP/R1B1K2R w KQkq - 0 2",
-            (E1, A1),
-        );
+        should_not_allow_move("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q2/PPP1BPpP/R1B1K2R w KQkq - 0 2", (E1, A1));
     }
 
     #[test]
     fn test_en_passant_diagonal_pin_20260413() {
-        let mut game =
-            Game::from_valid_fen("q7/2p3k1/3b2p1/pp1Pnp1p/3Q3P/P1P3P1/1P3PK1/2NB4 b - - 1 33");
+        let mut game = Game::from_valid_fen("q7/2p3k1/3b2p1/pp1Pnp1p/3Q3P/P1P3P1/1P3PK1/2NB4 b - - 1 33");
         game.make_move(game.moves().expect_matching(C7, C5));
 
         assert!(game.moves().iter().any(|m| (m.from(), m.to()) == (D5, C6)));
@@ -543,9 +480,6 @@ mod tests {
 
     #[test]
     fn test_allow_pawn_to_capture_along_pin_ray_20260426() {
-        should_allow_move(
-            "r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/5N2/qp1P2PP/R2Q1RK1 w kq - 0 2",
-            (C5, B6),
-        );
+        should_allow_move("r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/5N2/qp1P2PP/R2Q1RK1 w kq - 0 2", (C5, B6));
     }
 }

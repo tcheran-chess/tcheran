@@ -1,9 +1,6 @@
 use crate::chess::{
     bitboard::bitboards,
-    moves::{
-        MoveList, bishop_attacks, generate_legal_moves, king_attacks, knight_attacks, pawn_attacks,
-        rook_attacks,
-    },
+    moves::{MoveList, bishop_attacks, generate_legal_moves, king_attacks, knight_attacks, pawn_attacks, rook_attacks},
     notations,
     prelude::*,
     ranks::{back_rank, pawn_back_rank, promotion_rank},
@@ -84,19 +81,13 @@ impl CastleRights {
         if let Some(king_side) = self.king_side
             && to == king_side
         {
-            return Some((
-                squares::kingside_king_castle_end(player),
-                squares::kingside_rook_castle_end(player),
-            ));
+            return Some((squares::kingside_king_castle_end(player), squares::kingside_rook_castle_end(player)));
         }
 
         if let Some(queen_side) = self.queen_side
             && to == queen_side
         {
-            return Some((
-                squares::queenside_king_castle_end(player),
-                squares::queenside_rook_castle_end(player),
-            ));
+            return Some((squares::queenside_king_castle_end(player), squares::queenside_rook_castle_end(player)));
         }
 
         None
@@ -344,8 +335,7 @@ impl Game {
                 // This logic is from Carp
                 (knight_count == 2 && !king_on_edge)
                     || (bishop_count == 2
-                        && ((bishops & bitboards::LIGHT_SQUARES).count() != 1
-                            || (one_piece_each && !king_in_corner)))
+                        && ((bishops & bitboards::LIGHT_SQUARES).count() != 1 || (one_piece_each && !king_in_corner)))
                     || (knight_count == 1 && bishop_count == 1 && one_piece_each && !king_in_corner)
             }
             _ => false,
@@ -356,8 +346,7 @@ impl Game {
     pub fn zugzwang_likely(&self) -> bool {
         let player = self.player;
 
-        self.board.occupancy_for(player)
-            == self.board.king_square(player).bb() | self.board.pawns(player)
+        self.board.occupancy_for(player) == self.board.king_square(player).bb() | self.board.pawns(player)
     }
 
     #[inline(always)]
@@ -367,10 +356,9 @@ impl Game {
 
     #[inline(always)]
     pub fn is_direct_check(&self, mv: Move) -> bool {
-        let moved_piece_kind = mv.promotion().map_or_else(
-            || self.board.piece_guaranteed_at(mv.from()).kind,
-            PromotionPieceKind::piece,
-        );
+        let moved_piece_kind = mv
+            .promotion()
+            .map_or_else(|| self.board.piece_guaranteed_at(mv.from()).kind, PromotionPieceKind::piece);
 
         let zones = match moved_piece_kind {
             Pawn => self.check_zones[0],
@@ -492,13 +480,11 @@ impl Game {
             let our_pieces = self.board.occupancy_for(player);
             let their_pieces = self.board.occupancy_for(!player);
 
-            let potential_diagonal_pinners = all_diagonal_sliders
-                & bishop_attacks(our_king, their_pieces)
-                & self.board.diagonal_sliders(!player);
+            let potential_diagonal_pinners =
+                all_diagonal_sliders & bishop_attacks(our_king, their_pieces) & self.board.diagonal_sliders(!player);
 
-            let potential_orthogonal_pinners = all_orthogonal_sliders
-                & rook_attacks(our_king, their_pieces)
-                & self.board.orthogonal_sliders(!player);
+            let potential_orthogonal_pinners =
+                all_orthogonal_sliders & rook_attacks(our_king, their_pieces) & self.board.orthogonal_sliders(!player);
 
             for pinner in potential_orthogonal_pinners | potential_diagonal_pinners {
                 let between_ray = ray_between(our_king, pinner);
@@ -533,10 +519,7 @@ impl Game {
         }
 
         // Kings should not be able to be captured
-        if moves
-            .iter()
-            .any(|m| self.board.all_kings().contains(m.to()))
-        {
+        if moves.iter().any(|m| self.board.all_kings().contains(m.to())) {
             return Err(IllegalPositionReason::CanCaptureKing);
         }
 
@@ -655,19 +638,16 @@ impl Game {
                 }
 
                 let required_safe_squares = ray_between(from, king_dst) | from.bb() | king_dst.bb();
-                let required_empty_squares =
-                    required_safe_squares | ray_between(from, to) | rook_dst.bb();
+                let required_empty_squares = required_safe_squares | ray_between(from, to) | rook_dst.bb();
 
                 let blockers = occupancy.without(from).without(to);
 
-                (required_empty_squares & blockers).is_empty()
-                    && (required_safe_squares & self.threats).is_empty()
+                (required_empty_squares & blockers).is_empty() && (required_safe_squares & self.threats).is_empty()
             } else {
                 let required_empty_squares = ray_between(from, to);
                 let required_safe_squares = ray_between(from, king_dst) | king_dst.bb();
 
-                (required_empty_squares & occupancy).is_empty()
-                    && (required_safe_squares & self.threats).is_empty()
+                (required_empty_squares & occupancy).is_empty() && (required_safe_squares & self.threats).is_empty()
             };
         }
 
@@ -693,18 +673,16 @@ impl Game {
                 let capture_square = en_passant_target.forward(them);
                 let occupancy_after_ep = occupancy.without(from).with(to).without(capture_square);
 
-                let orthogonal_checks = rook_attacks(our_king, occupancy_after_ep)
-                    & self.board.orthogonal_sliders(them);
+                let orthogonal_checks =
+                    rook_attacks(our_king, occupancy_after_ep) & self.board.orthogonal_sliders(them);
 
-                let diagonal_checks = bishop_attacks(our_king, occupancy_after_ep)
-                    & self.board.diagonal_sliders(them);
+                let diagonal_checks = bishop_attacks(our_king, occupancy_after_ep) & self.board.diagonal_sliders(them);
 
                 return orthogonal_checks.is_empty() && diagonal_checks.is_empty();
             }
 
             let promotion_rank = promotion_rank(us);
-            if from.rank() == promotion_rank && !mv.is_promotion()
-                || mv.is_promotion() && from.rank() != promotion_rank
+            if from.rank() == promotion_rank && !mv.is_promotion() || mv.is_promotion() && from.rank() != promotion_rank
             {
                 return false;
             }
@@ -851,8 +829,7 @@ impl Game {
         self.en_passant_target = new_en_passant_target;
 
         if mv.is_castling()
-            && let Some((king_to, rook_to)) =
-                self.castle_rights[player].castle_dst_squares(player, to)
+            && let Some((king_to, rook_to)) = self.castle_rights[player].castle_dst_squares(player, to)
         {
             self.set_at(king_to, moved_piece, observer);
 
@@ -964,8 +941,7 @@ impl Game {
 
         // Undo castling, if we castled
         if mv.is_castling()
-            && let Some((king_to, rook_to)) =
-                self.castle_rights[player].castle_dst_squares(player, to)
+            && let Some((king_to, rook_to)) = self.castle_rights[player].castle_dst_squares(player, to)
         {
             self.board.remove_at(king_to);
             self.board.remove_at(rook_to);
@@ -975,8 +951,7 @@ impl Game {
         if mv.is_en_passant() {
             let capture_square = to.backward(player);
 
-            self.board
-                .set_at(capture_square, Piece::new(other_player, Pawn));
+            self.board.set_at(capture_square, Piece::new(other_player, Pawn));
         }
 
         // If we castled, the piece we moved doesn't end up on the 'to' square.
@@ -1021,8 +996,7 @@ impl Game {
         let king = self.board.king_square(self.player);
         let them = !self.player;
 
-        let potential_capturers =
-            self.board.pawns(self.player) & pawn_attacks(en_passant_target, them);
+        let potential_capturers = self.board.pawns(self.player) & pawn_attacks(en_passant_target, them);
 
         for pawn in potential_capturers {
             let blockers = self
@@ -1099,22 +1073,13 @@ mod tests {
     #[test]
     fn test_draw_by_insufficient_material() {
         // Knight vs Bishop mate
-        assert!(
-            !Game::from_valid_fen("5b1K/5k1N/8/8/8/8/8/8 b - - 1 1")
-                .is_stalemate_by_insufficient_material()
-        );
+        assert!(!Game::from_valid_fen("5b1K/5k1N/8/8/8/8/8/8 b - - 1 1").is_stalemate_by_insufficient_material());
 
         // Bishop vs Knight - draw
-        assert!(
-            Game::from_valid_fen("8/8/3k4/4n3/8/2KB4/8/8 w - - 0 1")
-                .is_stalemate_by_insufficient_material()
-        );
+        assert!(Game::from_valid_fen("8/8/3k4/4n3/8/2KB4/8/8 w - - 0 1").is_stalemate_by_insufficient_material());
 
         // Rook vs Knight mate
-        assert!(
-            !Game::from_valid_fen("8/8/4k3/4n3/8/2KR4/8/8 w - - 0 1")
-                .is_stalemate_by_insufficient_material()
-        );
+        assert!(!Game::from_valid_fen("8/8/4k3/4n3/8/2KR4/8/8 w - - 0 1").is_stalemate_by_insufficient_material());
     }
 
     #[test]
@@ -1125,22 +1090,17 @@ mod tests {
         assert_eq!(game.en_passant_target, None);
 
         // Bishop pinning the capturing pawn diagonally
-        let mut game = Game::from_valid_fen(
-            "r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 b kq - 0 1",
-        );
+        let mut game = Game::from_valid_fen("r3k2r/Pppp1ppp/1b3nbN/nPP5/BB2P3/q4N2/Pp1P2PP/R2Q1RK1 b kq - 0 1");
         game.make_move(game.moves().expect_matching(D7, D5));
 
         assert_eq!(game.en_passant_target, None);
 
-        let mut game =
-            Game::from_valid_fen("r7/r7/bp1k3p/2p1p1pP/Pp1pP1P1/1P3P2/2P3K1/1R1RN3 w - - 9 40");
+        let mut game = Game::from_valid_fen("r7/r7/bp1k3p/2p1p1pP/Pp1pP1P1/1P3P2/2P3K1/1R1RN3 w - - 9 40");
         game.make_move(game.moves().expect_matching(C2, C4));
 
         assert_eq!(game.en_passant_target, Some(C3));
 
-        let mut game = Game::from_valid_fen(
-            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-        );
+        let mut game = Game::from_valid_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
         game.make_move(game.moves().expect_matching(A2, A4));
 
         assert_eq!(game.en_passant_target, Some(A3));
@@ -1148,16 +1108,13 @@ mod tests {
 
     #[test]
     fn test_islegal_castling_in_kiwipete() {
-        let game = Game::from_valid_fen(
-            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1",
-        );
+        let game = Game::from_valid_fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
         assert!(game.is_legal(Move::castles(E1, H1)));
     }
 
     #[test]
     fn test_islegal_en_passant_in_bench_position() {
-        let game =
-            Game::from_valid_fen("5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28");
+        let game = Game::from_valid_fen("5r2/1p3k2/pBp1p1b1/3rq1b1/PPR1pPpp/4Q1P1/4P1BP/5RK1 b - f3 0 28");
         assert!(game.is_legal(Move::en_passant(G4, F3)));
     }
 }

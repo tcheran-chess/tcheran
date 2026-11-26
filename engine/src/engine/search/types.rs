@@ -56,10 +56,8 @@ impl PersistentState {
     }
 
     fn reset_counters(&self) {
-        self.node_counter
-            .store(0, std::sync::atomic::Ordering::Relaxed);
-        self.tbhits_counter
-            .store(0, std::sync::atomic::Ordering::Relaxed);
+        self.node_counter.store(0, std::sync::atomic::Ordering::Relaxed);
+        self.tbhits_counter.store(0, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -124,11 +122,7 @@ impl RootMoves {
     }
 
     pub fn default_for(game: &Game) -> Self {
-        let moves = game
-            .moves()
-            .iter()
-            .map(|mv| RootMove::for_move(*mv))
-            .collect();
+        let moves = game.moves().iter().map(|mv| RootMove::for_move(*mv)).collect();
 
         Self::new(moves)
     }
@@ -236,8 +230,7 @@ impl<'s> SearchContext<'s> {
 
 impl SearchContext<'_> {
     pub fn should_start_new_search(&mut self, depth: Depth) -> bool {
-        self.time_control
-            .should_start_new_search(self.nodes.get(), depth)
+        self.time_control.should_start_new_search(self.nodes.get(), depth)
     }
 
     pub fn stopped(&mut self) -> bool {
@@ -307,19 +300,10 @@ impl SearchStackEntry {
 
 #[derive(Debug, Clone)]
 pub enum TimeControl {
-    Clocks {
-        clocks: Clocks,
-        start_time: Instant,
-    },
-    ExactTime {
-        time: Duration,
-        start_time: Instant,
-    },
+    Clocks { clocks: Clocks, start_time: Instant },
+    ExactTime { time: Duration, start_time: Instant },
     Depth(Depth),
-    Nodes {
-        soft: Option<u64>,
-        hard: Option<u64>,
-    },
+    Nodes { soft: Option<u64>, hard: Option<u64> },
     Infinite,
 }
 
@@ -566,11 +550,7 @@ pub struct SearchResults(Vec<OnceLock<SearchResult>>);
 
 impl SearchResults {
     pub fn new(n: usize) -> Self {
-        Self(
-            (0..n)
-                .map(|_| OnceLock::new())
-                .collect::<Vec<OnceLock<SearchResult>>>(),
-        )
+        Self((0..n).map(|_| OnceLock::new()).collect::<Vec<OnceLock<SearchResult>>>())
     }
 
     pub fn set(&self, n: usize, result: &SearchResult) {

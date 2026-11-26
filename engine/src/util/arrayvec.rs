@@ -32,10 +32,7 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
         debug_assert!(self.len < N);
 
         unsafe {
-            self.data
-                .get_unchecked_mut(self.len)
-                .as_mut_ptr()
-                .write(value);
+            self.data.get_unchecked_mut(self.len).as_mut_ptr().write(value);
         };
 
         self.len += 1;
@@ -69,8 +66,7 @@ impl<T: Copy, const N: usize> ArrayVec<T, N> {
     }
 
     pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, T> {
-        unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr().cast(), self.len) }
-            .iter_mut()
+        unsafe { std::slice::from_raw_parts_mut(self.data.as_mut_ptr().cast(), self.len) }.iter_mut()
     }
 
     pub fn retain(&mut self, mut f: impl FnMut(&T) -> bool) {

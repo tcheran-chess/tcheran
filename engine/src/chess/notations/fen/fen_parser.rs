@@ -1,8 +1,5 @@
 use crate::{
-    chess::{
-        CastleRights, CastleSide, game::IllegalPositionReason, prelude::*, ranks::back_rank,
-        squares,
-    },
+    chess::{CastleRights, CastleSide, game::IllegalPositionReason, prelude::*, ranks::back_rank, squares},
     engine::util::chars::StrParsingExtensions,
 };
 
@@ -34,8 +31,7 @@ impl std::fmt::Display for ParseError {
                     f,
                     "Illegal position: {}",
                     match reason {
-                        IllegalPositionReason::IncorrectNumberOfKings =>
-                            "Incorrect number of kings",
+                        IllegalPositionReason::IncorrectNumberOfKings => "Incorrect number of kings",
                         IllegalPositionReason::CanCaptureKing => "King can be captured",
                     }
                 )
@@ -162,11 +158,7 @@ fn frc_castle_right(input: char, board: &Board) -> Result<(Player, CastleSide, S
     };
 
     let castle_side = |file: File, king_file: File| {
-        if file < king_file {
-            Queenside
-        } else {
-            Kingside
-        }
+        if file < king_file { Queenside } else { Kingside }
     };
 
     Ok(match input {
@@ -355,26 +347,17 @@ mod tests {
 
     #[test]
     fn parse_kiwipete() {
-        assert!(
-            parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", false)
-                .is_ok()
-        );
+        assert!(parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1", false).is_ok());
     }
 
     #[test]
     fn parse_kiwipete_without_halfmove_and_fullmove() {
-        assert!(
-            parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ", false)
-                .is_ok()
-        );
+        assert!(parse("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ", false).is_ok());
     }
 
     #[test]
     fn parse_simple_frc() {
-        assert!(
-            parse("rnbq1rk1/pp2bppp/2pppn2/8/8/1PN1P1Q1/P1PPBPPP/R1B1K1NR b HA - 0 7", true)
-                .is_ok()
-        );
+        assert!(parse("rnbq1rk1/pp2bppp/2pppn2/8/8/1PN1P1Q1/P1PPBPPP/R1B1K1NR b HA - 0 7", true).is_ok());
     }
 
     #[test]

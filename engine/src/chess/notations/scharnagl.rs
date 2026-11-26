@@ -1,10 +1,6 @@
 use crate::chess::{CastleRights, prelude::*, ranks::back_rank};
 
-fn place_in_nth_available(
-    n: usize,
-    rank: &mut [Option<PieceKind>; File::N],
-    piece: PieceKind,
-) -> File {
+fn place_in_nth_available(n: usize, rank: &mut [Option<PieceKind>; File::N], piece: PieceKind) -> File {
     assert!(n < File::N);
 
     let mut x = 0;
@@ -139,13 +135,7 @@ mod tests {
     #[test]
     fn test_dfrc_from_idx() {
         check_dfrc_idx_matches_fen(0, "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1");
-        check_dfrc_idx_matches_fen(
-            23484,
-            "nbqnbrkr/pppppppp/8/8/8/8/PPPPPPPP/RBNNQKBR w HAhf - 0 1",
-        );
-        check_dfrc_idx_matches_fen(
-            92382,
-            "bbqnrnkr/pppppppp/8/8/8/8/PPPPPPPP/NQRKNBBR w HChe - 0 1",
-        );
+        check_dfrc_idx_matches_fen(23484, "nbqnbrkr/pppppppp/8/8/8/8/PPPPPPPP/RBNNQKBR w HAhf - 0 1");
+        check_dfrc_idx_matches_fen(92382, "bbqnrnkr/pppppppp/8/8/8/8/PPPPPPPP/NQRKNBBR w HChe - 0 1");
     }
 }

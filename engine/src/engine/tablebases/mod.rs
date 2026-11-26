@@ -1,12 +1,6 @@
 cfg_select! {
     feature = "syzygy" => {
-        #[allow(
-            unused,
-            nonstandard_style,
-            clippy::all,
-            clippy::use_self,
-            reason = "Generated code"
-        )]
+        #[allow(unused, nonstandard_style, clippy::all, clippy::use_self, reason = "Generated code")]
         mod bindings;
         mod fathom;
 
@@ -41,11 +35,7 @@ cfg_select! {
                 None
             }
 
-            pub fn root_wdl_dtz(
-                &self,
-                _game: &Game,
-                _allowed_moves: &RootMoves,
-            ) -> Option<(RootMoves, RootTbInfo)> {
+            pub fn root_wdl_dtz(&self, _game: &Game, _allowed_moves: &RootMoves) -> Option<(RootMoves, RootTbInfo)> {
                 None
             }
         }

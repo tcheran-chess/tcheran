@@ -59,8 +59,7 @@ fn file_stats(file: &PathBuf, should_filter: bool) -> Result<FileStats> {
         stats.positions += all_positions as u64;
 
         if should_filter {
-            let actual_positions_after_filtering =
-                usize::try_from(game.filter_pass_count(&filter))?;
+            let actual_positions_after_filtering = usize::try_from(game.filter_pass_count(&filter))?;
             let filtered_in_this_game = game.moves.len() - actual_positions_after_filtering;
             stats.kept_positions += actual_positions_after_filtering as u64;
             stats.filtered_positions += filtered_in_this_game as u64;
@@ -138,8 +137,5 @@ pub fn run(options: &CountOptions) {
         aggregate_stats.kept_positions,
         aggregate_stats.kept_percent()
     );
-    println!(
-        "wins: {}, draws: {}, losses: {}",
-        aggregate_stats.wins, aggregate_stats.draws, aggregate_stats.losses
-    );
+    println!("wins: {}, draws: {}, losses: {}", aggregate_stats.wins, aggregate_stats.draws, aggregate_stats.losses);
 }

@@ -151,12 +151,7 @@ impl UciReporter {
                     && self.show_wdl.load(Ordering::Relaxed)
                 {
                     let format_wdl = |n: f64| (1000.0 * n).round() as i32;
-                    print!(
-                        " wdl {} {} {}",
-                        format_wdl(wdl.win),
-                        format_wdl(wdl.draw),
-                        format_wdl(wdl.loss)
-                    );
+                    print!(" wdl {} {} {}", format_wdl(wdl.win), format_wdl(wdl.draw), format_wdl(wdl.loss));
                 }
 
                 if let Some(time) = time {
@@ -198,9 +193,7 @@ impl UciReporter {
                     UciOptionType::Check { default, .. } => {
                         print!(" type check default {default}");
                     }
-                    UciOptionType::Spin {
-                        default, min, max, ..
-                    } => {
+                    UciOptionType::Spin { default, min, max, .. } => {
                         print!(" type spin default {default} min {min} max {max}");
                     }
                     UciOptionType::String { default, .. } => {
@@ -277,12 +270,8 @@ impl UciReporter {
 
         let as_percentage = |n: f64| (100.0 * n).round() as i32;
         let wdl = wdl::wdl(result.score, &game.board);
-        let formatted_wdl = format!(
-            "({}/{}/{})",
-            as_percentage(wdl.win),
-            as_percentage(wdl.draw),
-            as_percentage(wdl.loss)
-        );
+        let formatted_wdl =
+            format!("({}/{}/{})", as_percentage(wdl.win), as_percentage(wdl.draw), as_percentage(wdl.loss));
 
         print!(" {BRIGHT_BLACK}{formatted_wdl:<10}{RESET}");
 
@@ -303,10 +292,7 @@ impl UciReporter {
         let (nps, nps_unit) = metrics::unit_suffix(nps);
         print!("  {BRIGHT_BLACK}{:>8}{RESET}", format!("{}{}nps", nps, nps_unit.str()));
 
-        print!(
-            "  {BRIGHT_BLACK}{:>4}{RESET}",
-            format!("{:.0}%", result.stats.hashfull as f64 / 10.0)
-        );
+        print!("  {BRIGHT_BLACK}{:>4}{RESET}", format!("{:.0}%", result.stats.hashfull as f64 / 10.0));
 
         let mut hidden_plies = 0;
         let mut decisive_move = None;

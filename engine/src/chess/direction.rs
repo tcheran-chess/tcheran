@@ -24,12 +24,7 @@ impl Direction {
 
     pub const CARDINAL: &'static [Self; 4] = &[Self::North, Self::East, Self::South, Self::West];
 
-    pub const DIAGONAL: &'static [Self; 4] = &[
-        Self::NorthEast,
-        Self::SouthEast,
-        Self::SouthWest,
-        Self::NorthWest,
-    ];
+    pub const DIAGONAL: &'static [Self; 4] = &[Self::NorthEast, Self::SouthEast, Self::SouthWest, Self::NorthWest];
 }
 
 impl std::ops::Not for Direction {

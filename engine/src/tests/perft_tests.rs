@@ -19,10 +19,7 @@ fn test_perft(fen: &str, depth: u8, expected_positions: usize) {
     assert_eq!(expected_positions, perft(depth, &mut game));
 
     if ENABLE_MOVEPICKER_PERFT {
-        assert_eq!(
-            expected_positions,
-            movepicker_perft(depth, &mut game, &mut Tables::new(), &mut SearchStack::new())
-        );
+        assert_eq!(expected_positions, movepicker_perft(depth, &mut game, &mut Tables::new(), &mut SearchStack::new()));
     }
 
     if ENABLE_ISLEGAL_PERFT {
@@ -30,12 +27,7 @@ fn test_perft(fen: &str, depth: u8, expected_positions: usize) {
     }
 }
 
-fn movepicker_perft(
-    depth: u8,
-    game: &mut Game,
-    tables: &mut Tables,
-    stack: &mut SearchStack,
-) -> usize {
+fn movepicker_perft(depth: u8, game: &mut Game, tables: &mut Tables, stack: &mut SearchStack) -> usize {
     if depth == 0 {
         return 1;
     }
@@ -244,11 +236,7 @@ fn perft_gist_8() {
 
 #[test]
 fn perft_gist_9() {
-    test_perft(
-        "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10",
-        3,
-        89890,
-    );
+    test_perft("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10", 3, 89890);
 }
 
 #[test]

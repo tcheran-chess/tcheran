@@ -15,12 +15,10 @@ include!("src/engine/eval/nnue/network.rs");
 include!("src/chess/moves/tables/magic_consts.rs");
 
 const NETWORK_FILE: &str = "v25-fbb7eab6.nnue";
-const DOWNLOAD_BASE_URL: &str =
-    "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks";
+const DOWNLOAD_BASE_URL: &str = "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks";
 
 fn main() {
-    let target_endianness =
-        env::var("CARGO_CFG_TARGET_ENDIAN").expect("Unable to determine target endianness");
+    let target_endianness = env::var("CARGO_CFG_TARGET_ENDIAN").expect("Unable to determine target endianness");
     assert_eq!(target_endianness, "little", "Only little endian targets are supported");
 
     generate_engine_version();
@@ -136,10 +134,7 @@ pub fn preprocess_network(file: &PathBuf) -> PathBuf {
     preprocessing::preprocess(&raw_network, &mut network);
 
     let bytes = unsafe {
-        std::slice::from_raw_parts(
-            std::ptr::from_ref::<Network>(network.as_ref()).cast::<u8>(),
-            size_of::<Network>(),
-        )
+        std::slice::from_raw_parts(std::ptr::from_ref::<Network>(network.as_ref()).cast::<u8>(), size_of::<Network>())
     };
 
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());

@@ -7,32 +7,17 @@ pub const MAX_LEGAL_MOVES: usize = 218;
 pub type MoveList = ArrayVec<Move, MAX_LEGAL_MOVES>;
 
 pub trait MoveListExt {
-    fn find_matching(
-        &self,
-        from: Square,
-        to: Square,
-        promotion: Option<PromotionPieceKind>,
-    ) -> Option<Move>;
+    fn find_matching(&self, from: Square, to: Square, promotion: Option<PromotionPieceKind>) -> Option<Move>;
 
     fn contains(&self, mv: Move) -> bool;
 
     fn expect_matching(&self, from: Square, to: Square) -> Move;
 
-    fn expect_matching_with_promotion(
-        &self,
-        from: Square,
-        to: Square,
-        promotion: Option<PromotionPieceKind>,
-    ) -> Move;
+    fn expect_matching_with_promotion(&self, from: Square, to: Square, promotion: Option<PromotionPieceKind>) -> Move;
 }
 
 impl MoveListExt for ArrayVec<Move, MAX_LEGAL_MOVES> {
-    fn find_matching(
-        &self,
-        from: Square,
-        to: Square,
-        promotion: Option<PromotionPieceKind>,
-    ) -> Option<Move> {
+    fn find_matching(&self, from: Square, to: Square, promotion: Option<PromotionPieceKind>) -> Option<Move> {
         for i in 0..self.len() {
             let mv = *self.get(i);
 
@@ -45,22 +30,15 @@ impl MoveListExt for ArrayVec<Move, MAX_LEGAL_MOVES> {
     }
 
     fn contains(&self, mv: Move) -> bool {
-        self.find_matching(mv.from(), mv.to(), mv.promotion())
-            .is_some()
+        self.find_matching(mv.from(), mv.to(), mv.promotion()).is_some()
     }
 
     fn expect_matching(&self, from: Square, to: Square) -> Move {
         self.find_matching(from, to, None).expect("Illegal move")
     }
 
-    fn expect_matching_with_promotion(
-        &self,
-        from: Square,
-        to: Square,
-        promotion: Option<PromotionPieceKind>,
-    ) -> Move {
-        self.find_matching(from, to, promotion)
-            .expect("Illegal move")
+    fn expect_matching_with_promotion(&self, from: Square, to: Square, promotion: Option<PromotionPieceKind>) -> Move {
+        self.find_matching(from, to, promotion).expect("Illegal move")
     }
 }
 
@@ -158,9 +136,7 @@ impl Move {
         // we'd need both the source and destination squares to be A1 (0).
         Self(unsafe {
             NonZeroU16::new_unchecked(
-                (from.raw() as u16)
-                    | (to.raw() as u16) << TO_SHIFT
-                    | ((flags as u16) << FLAGS_SHIFT),
+                (from.raw() as u16) | (to.raw() as u16) << TO_SHIFT | ((flags as u16) << FLAGS_SHIFT),
             )
         })
     }
@@ -212,11 +188,7 @@ impl Move {
     }
 
     #[inline]
-    pub const fn capture_promotion(
-        from: Square,
-        to: Square,
-        promotion: PromotionPieceKind,
-    ) -> Self {
+    pub const fn capture_promotion(from: Square, to: Square, promotion: PromotionPieceKind) -> Self {
         Self::new(
             from,
             to,

@@ -1,6 +1,9 @@
-use bullet_lib::TrainingSteps;
-use bullet_lib::nn::optimiser::{AdamWParams, RangerParams};
 use std::ops::Range;
+
+use bullet_lib::{
+    TrainingSteps,
+    nn::optimiser::{AdamWParams, RangerParams},
+};
 
 pub trait TrainingStepsImpl {
     fn default(n_superbatches: usize) -> Self;

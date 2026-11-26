@@ -1,9 +1,11 @@
 // Network parameters
 pub const PSQT_FEATURES: usize = 768;
 
-pub const L1: usize = 1024;
+pub const L1: usize = 512;
 pub const L2: usize = 16;
 pub const L3: usize = 32;
+
+pub const THREAT_INPUTS: usize = 2 * (6 * 84 + 10 * 336 + 8 * 560 + 8 * 896 + 10 * 1456);
 
 pub const OUTPUT_BUCKETS: usize = 8;
 
@@ -19,7 +21,7 @@ pub const L0_SHIFT: u32 = 9;
 pub const L1_SHIFT: u32 = 8;
 
 // Eval scaling factor
-pub const SCALE: i32 = 313;
+pub const SCALE: i32 = 303;
 
 // Redefinitions of Square::N / File::N / Rank::N so this file can be
 // included directly in build.rs
@@ -31,6 +33,7 @@ const FILE_N: usize = 8;
 #[repr(C, align(64))]
 pub struct Network {
     pub l0_psqt_weights: [[[i16; L1]; PSQT_FEATURES]; INPUT_BUCKETS],
+    pub l0_threat_weights: [[i8; L1]; THREAT_INPUTS],
     pub l0_biases: [i16; L1],
     pub l1_weights: [[[i8; L2 * 4]; L1 / 4]; OUTPUT_BUCKETS],
     pub l1_biases: [[i32; L2]; OUTPUT_BUCKETS],

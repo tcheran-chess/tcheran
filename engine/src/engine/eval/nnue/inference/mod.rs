@@ -40,8 +40,14 @@ pub mod stats {
     }
 }
 
-pub fn forward(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> i32 {
-    let act_ft = activate_ft(us, them, output_bucket);
+pub fn forward(
+    us_psqt: &Accumulator,
+    us_threats: &Accumulator,
+    them_psqt: &Accumulator,
+    them_threats: &Accumulator,
+    output_bucket: usize,
+) -> i32 {
+    let act_ft = activate_ft(us_psqt, us_threats, them_psqt, them_threats, output_bucket);
     #[cfg(feature = "nnue-stats")]
     stats::log_l0_activations(&act_ft);
 
@@ -52,12 +58,18 @@ pub fn forward(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> i3
     (scaled / i64::from(Q * Q * Q * Q)) as i32
 }
 
-fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> [u8; L1] {
+fn activate_ft(
+    us_psqt: &Accumulator,
+    us_threats: &Accumulator,
+    them_psqt: &Accumulator,
+    them_threats: &Accumulator,
+    output_bucket: usize,
+) -> [u8; L1] {
     cfg_select! {
         any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon") => unsafe {
-            vectorised::activate_ft(us, them, output_bucket)
+            vectorised::activate_ft(us_psqt, us_threats, them_psqt, them_threats, output_bucket)
         },
-        _ => scalar::activate_ft(us, them, output_bucket),
+        _ => scalar::activate_ft(us_psqt, us_threats, them_psqt, them_threats, output_bucket),
     }
 }
 

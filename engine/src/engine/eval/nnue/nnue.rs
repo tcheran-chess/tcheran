@@ -8,7 +8,8 @@ use crate::{
                 features,
                 features::psqt::accumulator::PsqtStackEntry,
                 inference,
-                network::{BUCKET_LAYOUT, L1, Network, OUTPUT_BUCKETS},
+                network::{BUCKET_LAYOUT, INPUT_BUCKETS, L1, Network, OUTPUT_BUCKETS},
+                threats,
             },
         },
         search::MAX_PLIES_ARRAY_SIZE,
@@ -21,6 +22,12 @@ pub static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!(
 #[derive(Clone)]
 #[repr(C, align(64))]
 pub struct Accumulator(pub [i16; L1]);
+
+impl Accumulator {
+    pub fn zero() -> Self {
+        Accumulator([0; L1])
+    }
+}
 
 pub fn input_bucket(king: Square, pov: Player) -> usize {
     BUCKET_LAYOUT[king
@@ -93,10 +100,24 @@ impl NNUE {
         // We should now have a full stack of materialised accumulators, all the way up to our current one
         // so we can evaluate that.
         let current_entry = self.current_entry();
-        let (us, them) =
+        let (us_psqt, them_psqt) =
             (&current_entry.psqt.accumulators[game.player], &current_entry.psqt.accumulators[!game.player]);
-        let output = inference::forward(us, them, output_bucket(game));
+
+        let (mut us_threats, mut them_threats) = (Accumulator::zero(), Accumulator::zero());
+        Self::add_threat_inputs(&mut us_threats, &game.board, game.player);
+        Self::add_threat_inputs(&mut them_threats, &game.board, game.player.other());
+
+        let output = inference::forward(&us_psqt, &us_threats, &them_psqt, &them_threats, output_bucket(game));
         Eval(output)
+    }
+
+    fn add_threat_inputs(accumulator: &mut Accumulator, board: &Board, pov: Player) {
+        threats::map_features(board, pov, |feature| {
+            let weights = &NETWORK.l0_threat_weights[feature];
+            for (value, &weight) in accumulator.0.iter_mut().zip(weights) {
+                *value += i16::from(weight);
+            }
+        });
     }
 }
 

@@ -840,7 +840,6 @@ name = "trainer"
 version = "0.0.0"
 dependencies = [
  "bullet_lib",
- "clap",
  "viriformat",
 ]
 

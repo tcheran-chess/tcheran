@@ -29,8 +29,8 @@ fn should_mirror(king: Square) -> bool {
 
 #[derive(Debug, Clone)]
 pub struct NNUEChanges {
-    pub adds: ArrayVec<NNUEChange, 2>,
-    pub subs: ArrayVec<NNUEChange, 2>,
+    pub adds: ArrayVec<(Piece, Square), 2>,
+    pub subs: ArrayVec<(Piece, Square), 2>,
     pub mv: Move,
     pub moved_piece: Piece,
 }
@@ -42,18 +42,12 @@ impl MoveObserver for NNUEChanges {
     }
 
     fn set(&mut self, sq: Square, piece: Piece) {
-        self.adds.push(NNUEChange::new(sq, piece));
+        self.adds.push((piece, sq));
     }
 
     fn remove(&mut self, sq: Square, piece: Piece) {
-        self.subs.push(NNUEChange::new(sq, piece));
+        self.subs.push((piece, sq));
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct NNUEChange {
-    pub piece: Piece,
-    pub square: Square,
 }
 
 impl NNUEChanges {
@@ -74,12 +68,6 @@ impl NNUEChanges {
 
         self.mv = Move::quiet(H8, H8);
         self.moved_piece = Piece::WHITE_PAWN;
-    }
-}
-
-impl NNUEChange {
-    pub fn new(square: Square, piece: Piece) -> Self {
-        Self { piece, square }
     }
 }
 
@@ -137,11 +125,11 @@ impl NetworkStackEntry {
                 let piece = Piece::new(player, piece);
 
                 for square in to_add {
-                    adds.push(nnue_index(piece, square, king, pov));
+                    adds.push(nnue_index((piece, square), king, pov));
                 }
 
                 for square in to_sub {
-                    subs.push(nnue_index(piece, square, king, pov));
+                    subs.push(nnue_index((piece, square), king, pov));
                 }
             }
         }
@@ -243,7 +231,7 @@ impl NetworkStackEntry {
         for pov in Player::ALL {
             let king = game.board.king_square(pov);
             let bucket = input_bucket(king, pov);
-            Self::sub1(&mut self.accumulators[pov], bucket, nnue_index(piece, square, king, pov));
+            Self::sub1(&mut self.accumulators[pov], bucket, nnue_index((piece, square), king, pov));
         }
 
         let eval_without_feature = self.evaluate(player, game);
@@ -252,7 +240,7 @@ impl NetworkStackEntry {
         for pov in Player::ALL {
             let king = game.board.king_square(pov);
             let bucket = input_bucket(king, pov);
-            Self::add1(&mut self.accumulators[pov], bucket, nnue_index(piece, square, king, pov));
+            Self::add1(&mut self.accumulators[pov], bucket, nnue_index((piece, square), king, pov));
         }
 
         eval - eval_without_feature
@@ -394,10 +382,10 @@ impl NNUE {
         pov: Player,
     ) {
         match (entry.changes.adds.as_slice(), entry.changes.subs.as_slice()) {
-            ([add1], [sub1]) => {
+            (&[add1], &[sub1]) => {
                 let bucket = input_bucket(king, pov);
-                let add1 = nnue_index(add1.piece, add1.square, king, pov);
-                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
+                let add1 = nnue_index(add1, king, pov);
+                let sub1 = nnue_index(sub1, king, pov);
                 NetworkStackEntry::add1_sub1(
                     &previous_entry.accumulators[pov],
                     &mut entry.accumulators[pov],
@@ -406,11 +394,11 @@ impl NNUE {
                     sub1,
                 );
             }
-            ([add1], [sub1, sub2]) => {
+            (&[add1], &[sub1, sub2]) => {
                 let bucket = input_bucket(king, pov);
-                let add1 = nnue_index(add1.piece, add1.square, king, pov);
-                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
-                let sub2 = nnue_index(sub2.piece, sub2.square, king, pov);
+                let add1 = nnue_index(add1, king, pov);
+                let sub1 = nnue_index(sub1, king, pov);
+                let sub2 = nnue_index(sub2, king, pov);
 
                 NetworkStackEntry::add1_sub2(
                     &previous_entry.accumulators[pov],
@@ -421,12 +409,12 @@ impl NNUE {
                     sub2,
                 );
             }
-            ([add1, add2], [sub1, sub2]) => {
+            (&[add1, add2], &[sub1, sub2]) => {
                 let bucket = input_bucket(king, pov);
-                let add1 = nnue_index(add1.piece, add1.square, king, pov);
-                let add2 = nnue_index(add2.piece, add2.square, king, pov);
-                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
-                let sub2 = nnue_index(sub2.piece, sub2.square, king, pov);
+                let add1 = nnue_index(add1, king, pov);
+                let add2 = nnue_index(add2, king, pov);
+                let sub1 = nnue_index(sub1, king, pov);
+                let sub2 = nnue_index(sub2, king, pov);
 
                 NetworkStackEntry::add2_sub2(
                     &previous_entry.accumulators[pov],
@@ -448,7 +436,7 @@ impl NNUE {
 #[repr(C, align(64))]
 pub struct Accumulator(pub [i16; L1]);
 
-fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
+fn nnue_index((piece, sq): (Piece, Square), king: Square, pov: Player) -> usize {
     const COLOR_STRIDE: usize = Square::N * PieceKind::N;
     const PIECE_STRIDE: usize = Square::N;
 

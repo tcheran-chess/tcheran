@@ -33,179 +33,11 @@ pub fn should_mirror(king: Square) -> bool {
     king.file() >= File::E
 }
 
-#[derive(Debug, Clone)]
-pub struct NNUEChanges {
-    pub adds: ArrayVec<(Piece, Square), 2>,
-    pub subs: ArrayVec<(Piece, Square), 2>,
-    pub mv: Move,
-    pub moved_piece: Piece,
-}
-
-impl MoveObserver for NNUEChanges {
-    fn init(&mut self, moved_piece: Piece, mv: Move) {
-        self.moved_piece = moved_piece;
-        self.mv = mv;
-    }
-
-    fn set(&mut self, sq: Square, piece: Piece) {
-        self.adds.push((piece, sq));
-    }
-
-    fn remove(&mut self, sq: Square, piece: Piece) {
-        self.subs.push((piece, sq));
-    }
-}
-
-impl NNUEChanges {
-    pub fn uninit() -> Self {
-        Self {
-            adds: ArrayVec::new(),
-            subs: ArrayVec::new(),
-
-            // Values chosen arbitrarily since they will always be overwritten
-            mv: Move::quiet(H8, H8),
-            moved_piece: Piece::WHITE_PAWN,
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.adds.clear();
-        self.subs.clear();
-
-        self.mv = Move::quiet(H8, H8);
-        self.moved_piece = Piece::WHITE_PAWN;
-    }
-}
-
 pub struct NNUE {
     stack: Vec<NetworkStackEntry>,
     current_idx: usize,
 
     cache: Box<AccumulatorCache>,
-}
-
-#[derive(Clone)]
-pub struct NetworkStackEntry {
-    pub accumulators: [Accumulator; Player::N],
-    changes: NNUEChanges,
-    correct: [bool; Player::N],
-}
-
-impl NetworkStackEntry {
-    fn refresh(&mut self, board: &Board, pov: Player, cache: &mut AccumulatorCache) {
-        let king = board.king_square(pov);
-        let cache_entry = cache.get(pov, king);
-
-        let mut adds = ArrayVec::<_, 32>::new();
-        let mut subs = ArrayVec::<_, 32>::new();
-
-        for player in Player::ALL {
-            for piece in PieceKind::ALL {
-                let pieces = board.pieces_of_kind(piece, player);
-                let old_pieces = cache_entry.board.pieces_of_kind(piece, player);
-
-                let to_add = pieces & !old_pieces;
-                let to_sub = !pieces & old_pieces;
-
-                let piece = Piece::new(player, piece);
-
-                for square in to_add {
-                    adds.push(nnue_index((piece, square), king, pov));
-                }
-
-                for square in to_sub {
-                    subs.push(nnue_index((piece, square), king, pov));
-                }
-            }
-        }
-
-        let bucket = input_bucket(king, pov);
-
-        for add in &adds {
-            Self::add1(&mut cache_entry.value, bucket, *add);
-        }
-
-        for sub in &subs {
-            Self::sub1(&mut cache_entry.value, bucket, *sub);
-        }
-
-        cache_entry.board = board.clone();
-
-        self.accumulators[pov] = cache_entry.value.clone();
-    }
-
-    fn add1(acc: &mut Accumulator, bucket: usize, add1: usize) {
-        let add1_features = &NETWORK.l0_weights[bucket][add1];
-
-        for i in 0..L1 {
-            acc.0[i] += add1_features[i];
-        }
-    }
-
-    fn sub1(acc: &mut Accumulator, bucket: usize, sub1: usize) {
-        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
-
-        for i in 0..L1 {
-            acc.0[i] -= sub1_features[i];
-        }
-    }
-
-    fn add1_sub1(previous_acc: &Accumulator, acc: &mut Accumulator, bucket: usize, add1: usize, sub1: usize) {
-        let add1_features = &NETWORK.l0_weights[bucket][add1];
-        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
-
-        for i in 0..L1 {
-            acc.0[i] = previous_acc.0[i] + add1_features[i] - sub1_features[i];
-        }
-    }
-
-    pub fn add1_sub2(
-        previous_acc: &Accumulator,
-        acc: &mut Accumulator,
-        bucket: usize,
-        add1: usize,
-        sub1: usize,
-        sub2: usize,
-    ) {
-        let add1_features = &NETWORK.l0_weights[bucket][add1];
-        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
-        let sub2_features = &NETWORK.l0_weights[bucket][sub2];
-
-        for i in 0..L1 {
-            acc.0[i] = previous_acc.0[i] + add1_features[i] - sub1_features[i] - sub2_features[i];
-        }
-    }
-
-    pub fn add2_sub2(
-        previous_acc: &Accumulator,
-        acc: &mut Accumulator,
-        bucket: usize,
-        add1: usize,
-        add2: usize,
-        sub1: usize,
-        sub2: usize,
-    ) {
-        let add1_features = &NETWORK.l0_weights[bucket][add1];
-        let add2_features = &NETWORK.l0_weights[bucket][add2];
-        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
-        let sub2_features = &NETWORK.l0_weights[bucket][sub2];
-
-        for i in 0..L1 {
-            acc.0[i] = previous_acc.0[i] + add1_features[i] + add2_features[i] - sub1_features[i] - sub2_features[i];
-        }
-    }
-
-    fn bucket(game: &Game) -> usize {
-        let divisor = 32usize.div_ceil(OUTPUT_BUCKETS);
-        (game.board.occupancy().count() as usize - 2) / divisor
-    }
-
-    pub fn evaluate(&self, player: Player, game: &Game) -> Eval {
-        let (us, them) = (&self.accumulators[player], &self.accumulators[player.other()]);
-        let output_bucket = Self::bucket(game);
-        let output = inference::forward(us, them, output_bucket);
-        Eval(output)
-    }
 }
 
 impl NNUE {
@@ -375,6 +207,174 @@ impl NNUE {
             }
             (_, _) => unreachable!(),
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct NNUEChanges {
+    pub adds: ArrayVec<(Piece, Square), 2>,
+    pub subs: ArrayVec<(Piece, Square), 2>,
+    pub mv: Move,
+    pub moved_piece: Piece,
+}
+
+impl MoveObserver for NNUEChanges {
+    fn init(&mut self, moved_piece: Piece, mv: Move) {
+        self.moved_piece = moved_piece;
+        self.mv = mv;
+    }
+
+    fn set(&mut self, sq: Square, piece: Piece) {
+        self.adds.push((piece, sq));
+    }
+
+    fn remove(&mut self, sq: Square, piece: Piece) {
+        self.subs.push((piece, sq));
+    }
+}
+
+impl NNUEChanges {
+    pub fn uninit() -> Self {
+        Self {
+            adds: ArrayVec::new(),
+            subs: ArrayVec::new(),
+
+            // Values chosen arbitrarily since they will always be overwritten
+            mv: Move::quiet(H8, H8),
+            moved_piece: Piece::WHITE_PAWN,
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.adds.clear();
+        self.subs.clear();
+
+        self.mv = Move::quiet(H8, H8);
+        self.moved_piece = Piece::WHITE_PAWN;
+    }
+}
+
+#[derive(Clone)]
+pub struct NetworkStackEntry {
+    pub accumulators: [Accumulator; Player::N],
+    changes: NNUEChanges,
+    correct: [bool; Player::N],
+}
+
+impl NetworkStackEntry {
+    fn refresh(&mut self, board: &Board, pov: Player, cache: &mut AccumulatorCache) {
+        let king = board.king_square(pov);
+        let cache_entry = cache.get(pov, king);
+
+        let mut adds = ArrayVec::<_, 32>::new();
+        let mut subs = ArrayVec::<_, 32>::new();
+
+        for player in Player::ALL {
+            for piece in PieceKind::ALL {
+                let pieces = board.pieces_of_kind(piece, player);
+                let old_pieces = cache_entry.board.pieces_of_kind(piece, player);
+
+                let to_add = pieces & !old_pieces;
+                let to_sub = !pieces & old_pieces;
+
+                let piece = Piece::new(player, piece);
+
+                for square in to_add {
+                    adds.push(nnue_index((piece, square), king, pov));
+                }
+
+                for square in to_sub {
+                    subs.push(nnue_index((piece, square), king, pov));
+                }
+            }
+        }
+
+        let bucket = input_bucket(king, pov);
+
+        for add in &adds {
+            Self::add1(&mut cache_entry.value, bucket, *add);
+        }
+
+        for sub in &subs {
+            Self::sub1(&mut cache_entry.value, bucket, *sub);
+        }
+
+        cache_entry.board = board.clone();
+
+        self.accumulators[pov] = cache_entry.value.clone();
+    }
+
+    fn add1(acc: &mut Accumulator, bucket: usize, add1: usize) {
+        let add1_features = &NETWORK.l0_weights[bucket][add1];
+
+        for i in 0..L1 {
+            acc.0[i] += add1_features[i];
+        }
+    }
+
+    fn sub1(acc: &mut Accumulator, bucket: usize, sub1: usize) {
+        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
+
+        for i in 0..L1 {
+            acc.0[i] -= sub1_features[i];
+        }
+    }
+
+    fn add1_sub1(previous_acc: &Accumulator, acc: &mut Accumulator, bucket: usize, add1: usize, sub1: usize) {
+        let add1_features = &NETWORK.l0_weights[bucket][add1];
+        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
+
+        for i in 0..L1 {
+            acc.0[i] = previous_acc.0[i] + add1_features[i] - sub1_features[i];
+        }
+    }
+
+    pub fn add1_sub2(
+        previous_acc: &Accumulator,
+        acc: &mut Accumulator,
+        bucket: usize,
+        add1: usize,
+        sub1: usize,
+        sub2: usize,
+    ) {
+        let add1_features = &NETWORK.l0_weights[bucket][add1];
+        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
+        let sub2_features = &NETWORK.l0_weights[bucket][sub2];
+
+        for i in 0..L1 {
+            acc.0[i] = previous_acc.0[i] + add1_features[i] - sub1_features[i] - sub2_features[i];
+        }
+    }
+
+    pub fn add2_sub2(
+        previous_acc: &Accumulator,
+        acc: &mut Accumulator,
+        bucket: usize,
+        add1: usize,
+        add2: usize,
+        sub1: usize,
+        sub2: usize,
+    ) {
+        let add1_features = &NETWORK.l0_weights[bucket][add1];
+        let add2_features = &NETWORK.l0_weights[bucket][add2];
+        let sub1_features = &NETWORK.l0_weights[bucket][sub1];
+        let sub2_features = &NETWORK.l0_weights[bucket][sub2];
+
+        for i in 0..L1 {
+            acc.0[i] = previous_acc.0[i] + add1_features[i] + add2_features[i] - sub1_features[i] - sub2_features[i];
+        }
+    }
+
+    fn bucket(game: &Game) -> usize {
+        let divisor = 32usize.div_ceil(OUTPUT_BUCKETS);
+        (game.board.occupancy().count() as usize - 2) / divisor
+    }
+
+    pub fn evaluate(&self, player: Player, game: &Game) -> Eval {
+        let (us, them) = (&self.accumulators[player], &self.accumulators[player.other()]);
+        let output_bucket = Self::bucket(game);
+        let output = inference::forward(us, them, output_bucket);
+        Eval(output)
     }
 }
 

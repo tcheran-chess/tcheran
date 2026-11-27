@@ -4,8 +4,9 @@ use crate::{
         eval::{
             Eval,
             nnue::{
+                cache::AccumulatorCache,
                 inference,
-                network::{BUCKET_LAYOUT, INPUT_BUCKETS, L1, Network, OUTPUT_BUCKETS},
+                network::{BUCKET_LAYOUT, L1, Network, OUTPUT_BUCKETS},
             },
         },
         search::MAX_PLIES_ARRAY_SIZE,
@@ -28,7 +29,7 @@ fn input_bucket(king: Square, pov: Player) -> usize {
 }
 
 #[inline]
-fn should_mirror(king: Square) -> bool {
+pub fn should_mirror(king: Square) -> bool {
     king.file() >= File::E
 }
 
@@ -76,24 +77,6 @@ impl NNUEChanges {
     }
 }
 
-// [pov][mirrored][bucket]
-struct AccumulatorCache([[[CacheEntry; INPUT_BUCKETS]; 2]; Player::N]);
-
-impl AccumulatorCache {
-    pub fn new() -> Box<Self> {
-        let mut cache = unsafe { Box::<Self>::new_zeroed().assume_init() };
-
-        for pov in 0..Player::N {
-            for side in 0..2 {
-                for bucket in 0..INPUT_BUCKETS {
-                    cache.0[pov][side][bucket] = CacheEntry::new();
-                }
-            }
-        }
-        cache
-    }
-}
-
 pub struct NNUE {
     stack: Vec<NetworkStackEntry>,
     current_idx: usize,
@@ -111,10 +94,7 @@ pub struct NetworkStackEntry {
 impl NetworkStackEntry {
     fn refresh(&mut self, board: &Board, pov: Player, cache: &mut AccumulatorCache) {
         let king = board.king_square(pov);
-        let king_side = usize::from(should_mirror(king));
-        let king_bucket = BUCKET_LAYOUT[king.relative_for(pov)];
-
-        let cache_entry = &mut cache.0[pov][king_side][king_bucket];
+        let cache_entry = cache.get(pov, king);
 
         let mut adds = ArrayVec::<_, 32>::new();
         let mut subs = ArrayVec::<_, 32>::new();
@@ -225,20 +205,6 @@ impl NetworkStackEntry {
         let output_bucket = Self::bucket(game);
         let output = inference::forward(us, them, output_bucket);
         Eval(output)
-    }
-}
-
-pub struct CacheEntry {
-    value: Accumulator,
-    board: Board,
-}
-
-impl CacheEntry {
-    fn new() -> Self {
-        Self {
-            value: Accumulator(NETWORK.l0_biases),
-            board: Board::EMPTY,
-        }
     }
 }
 

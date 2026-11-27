@@ -147,65 +147,10 @@ impl NNUE {
 
         for i in last_good_idx..self.current_idx {
             if let (prev, [entry, ..]) = self.stack.split_at_mut(i + 1) {
-                Self::update_accumulator(entry, &prev[i], king, pov);
+                entry.update(&prev[i], king, pov);
             }
 
             self.stack[i].correct[pov] = true;
-        }
-    }
-
-    fn update_accumulator(
-        entry: &mut NetworkStackEntry,
-        previous_entry: &NetworkStackEntry,
-        king: Square,
-        pov: Player,
-    ) {
-        match (entry.changes.adds.as_slice(), entry.changes.subs.as_slice()) {
-            (&[add1], &[sub1]) => {
-                let bucket = input_bucket(king, pov);
-                let add1 = nnue_index(add1, king, pov);
-                let sub1 = nnue_index(sub1, king, pov);
-                NetworkStackEntry::add1_sub1(
-                    &previous_entry.accumulators[pov],
-                    &mut entry.accumulators[pov],
-                    bucket,
-                    add1,
-                    sub1,
-                );
-            }
-            (&[add1], &[sub1, sub2]) => {
-                let bucket = input_bucket(king, pov);
-                let add1 = nnue_index(add1, king, pov);
-                let sub1 = nnue_index(sub1, king, pov);
-                let sub2 = nnue_index(sub2, king, pov);
-
-                NetworkStackEntry::add1_sub2(
-                    &previous_entry.accumulators[pov],
-                    &mut entry.accumulators[pov],
-                    bucket,
-                    add1,
-                    sub1,
-                    sub2,
-                );
-            }
-            (&[add1, add2], &[sub1, sub2]) => {
-                let bucket = input_bucket(king, pov);
-                let add1 = nnue_index(add1, king, pov);
-                let add2 = nnue_index(add2, king, pov);
-                let sub1 = nnue_index(sub1, king, pov);
-                let sub2 = nnue_index(sub2, king, pov);
-
-                NetworkStackEntry::add2_sub2(
-                    &previous_entry.accumulators[pov],
-                    &mut entry.accumulators[pov],
-                    bucket,
-                    add1,
-                    add2,
-                    sub1,
-                    sub2,
-                );
-            }
-            (_, _) => unreachable!(),
         }
     }
 }
@@ -302,6 +247,33 @@ impl NetworkStackEntry {
         cache_entry.board = board.clone();
 
         self.accumulators[pov] = cache_entry.value.clone();
+    }
+
+    fn update(&mut self, prev: &Self, king: Square, pov: Player) {
+        match (self.changes.adds.as_slice(), self.changes.subs.as_slice()) {
+            (&[add1], &[sub1]) => {
+                let bucket = input_bucket(king, pov);
+                let add1 = nnue_index(add1, king, pov);
+                let sub1 = nnue_index(sub1, king, pov);
+                Self::add1_sub1(&prev.accumulators[pov], &mut self.accumulators[pov], bucket, add1, sub1);
+            }
+            (&[add1], &[sub1, sub2]) => {
+                let bucket = input_bucket(king, pov);
+                let add1 = nnue_index(add1, king, pov);
+                let sub1 = nnue_index(sub1, king, pov);
+                let sub2 = nnue_index(sub2, king, pov);
+                Self::add1_sub2(&prev.accumulators[pov], &mut self.accumulators[pov], bucket, add1, sub1, sub2);
+            }
+            (&[add1, add2], &[sub1, sub2]) => {
+                let bucket = input_bucket(king, pov);
+                let add1 = nnue_index(add1, king, pov);
+                let add2 = nnue_index(add2, king, pov);
+                let sub1 = nnue_index(sub1, king, pov);
+                let sub2 = nnue_index(sub2, king, pov);
+                Self::add2_sub2(&prev.accumulators[pov], &mut self.accumulators[pov], bucket, add1, add2, sub1, sub2);
+            }
+            (_, _) => unreachable!(),
+        }
     }
 
     fn add1(acc: &mut Accumulator, bucket: usize, add1: usize) {

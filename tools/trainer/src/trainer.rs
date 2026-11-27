@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use bullet_lib::{
     game::{
         inputs::{ChessBucketsMirrored, SparseInputType, get_num_buckets},
@@ -55,11 +57,9 @@ const L1_SHIFT_SCALE: f32 = Q0 as f32 / ((1 << L1_SHIFT) as f32);
 const I8_RANGE: f32 = i8::MAX as f32 / (Q1 as f32);
 const L1_RANGE: f32 = I8_RANGE * L1_SHIFT_SCALE * L1_SHIFT_SCALE;
 
-const DATA_DIR: &str = "etc/data";
-const CHECKPOINT_DIR: &str = "etc/checkpoints";
 const CHECKPOINT_RATE: usize = 10;
 
-pub fn run(net_name: &str) {
+pub fn run(dir: &Path, net_name: &str) {
     let psqt = ChessBucketsMirrored::new(BUCKET_SCHEME);
     let output_buckets = MaterialCount::<OUTPUT_BUCKETS>;
 
@@ -150,7 +150,7 @@ pub fn run(net_name: &str) {
     ];
 
     let params = (&inputs, &psqt, output_buckets);
-    let data = data(DATA_DIR);
+    let data = data(&dir.join("data"));
 
     let mut run = |stage, end_superbatch, lr_schedule, mapper| {
         train(
@@ -166,7 +166,8 @@ pub fn run(net_name: &str) {
             |optimiser, step| {
                 let sb = step.superbatch();
                 if sb.is_multiple_of(CHECKPOINT_RATE) || sb == step.final_superbatch() {
-                    let path = format!("{CHECKPOINT_DIR}/{net_name}-{stage}-{sb}");
+                    let path = dir.join("checkpoints").join(format!("{net_name}-{stage}-{sb}"));
+                    let path = path.to_string_lossy();
                     save_to_checkpoint(optimiser, &saved_format, &path);
                     println!("Saved [{path}]");
                 }

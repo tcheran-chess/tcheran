@@ -1,6 +1,6 @@
 use bullet_lib::value::loader::ViriBinpackLoader;
 
-pub fn data(path: &str) -> ViriBinpackLoader {
+pub fn data(path: &std::path::Path) -> ViriBinpackLoader {
     let filter = viriformat::dataformat::Filter {
         // Tcheran's max eval value
         max_eval: 30000,

@@ -1,13 +1,13 @@
 use std::{fs, path::PathBuf};
 
 use crate::{
-    ATTACKS_TABLE_SIZE, BISHOP_MAGICS, BISHOP_SHIFT, FEATURES, INPUT_BUCKETS, L1, L2, L3, Network, OUTPUT_BUCKETS,
+    ATTACKS_TABLE_SIZE, BISHOP_MAGICS, BISHOP_SHIFT, INPUT_BUCKETS, L1, L2, L3, Network, OUTPUT_BUCKETS, PSQT_FEATURES,
     ROOK_MAGICS, ROOK_SHIFT,
 };
 
 #[repr(C, align(64))]
 pub struct RawNetwork {
-    pub l0_weights: [[[i16; L1]; FEATURES]; INPUT_BUCKETS],
+    pub l0_psqt_weights: [[[i16; L1]; PSQT_FEATURES]; INPUT_BUCKETS],
     pub l0_biases: [i16; L1],
     pub l1_weights: [[[i8; L2]; OUTPUT_BUCKETS]; L1],
     pub l1_biases: [[i32; L2]; OUTPUT_BUCKETS],
@@ -75,7 +75,7 @@ pub fn preprocess(src: &RawNetwork, dst: &mut Network) {
     };
 
     unsafe {
-        for (dst_bucket, src_bucket) in dst.l0_weights.iter_mut().zip(src.l0_weights.iter()) {
+        for (dst_bucket, src_bucket) in dst.l0_psqt_weights.iter_mut().zip(src.l0_psqt_weights.iter()) {
             for (src_row, dst_row) in src_bucket.iter().zip(dst_bucket.iter_mut()) {
                 for (dst_idx, &src_idx) in sparsity_permutation_indices.iter().enumerate() {
                     dst_row[dst_idx] = src_row[src_idx];

@@ -1,5 +1,5 @@
 // Network parameters
-pub const FEATURES: usize = 768;
+pub const PSQT_FEATURES: usize = 768;
 
 pub const L1: usize = 1024;
 pub const L2: usize = 16;
@@ -30,7 +30,7 @@ const FILE_N: usize = 8;
 /// Container for all network parameters
 #[repr(C, align(64))]
 pub struct Network {
-    pub l0_weights: [[[i16; L1]; FEATURES]; INPUT_BUCKETS],
+    pub l0_psqt_weights: [[[i16; L1]; PSQT_FEATURES]; INPUT_BUCKETS],
     pub l0_biases: [i16; L1],
     pub l1_weights: [[[i8; L2 * 4]; L1 / 4]; OUTPUT_BUCKETS],
     pub l1_biases: [[i32; L2]; OUTPUT_BUCKETS],

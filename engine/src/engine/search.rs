@@ -706,7 +706,8 @@ pub fn negamax(
         let nodes_before = ctx.nodes.get();
         ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.from())));
 
-        game.make_move_observed(mv, ctx.nnue.next_changes());
+        ctx.nnue.push();
+        game.make_move_observed(mv, ctx.nnue.current_entry());
         moves_tried += 1;
 
         // Only apply the extension to the singular move
@@ -988,7 +989,8 @@ pub fn quiescence(
 
         ctx.stack.get(plies).mv = Some((mv, game.board.piece_guaranteed_at(mv.from())));
 
-        game.make_move_observed(mv, ctx.nnue.next_changes());
+        ctx.nnue.push();
+        game.make_move_observed(mv, ctx.nnue.current_entry());
         moves_tried += 1;
 
         let move_score = -quiescence(game, -s, plies + 1, &mut node_pv, ctx);

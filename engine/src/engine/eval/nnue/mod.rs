@@ -1,4 +1,5 @@
 mod cache;
+pub mod features;
 pub mod inference;
 pub mod network;
 mod nnue;

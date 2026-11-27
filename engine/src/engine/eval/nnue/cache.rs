@@ -8,7 +8,7 @@ use crate::{
 };
 
 // [pov][mirrored][bucket]
-pub(super) struct AccumulatorCache([[[CacheEntry; INPUT_BUCKETS]; 2]; Player::N]);
+pub(in crate::engine::eval::nnue) struct AccumulatorCache([[[CacheEntry; INPUT_BUCKETS]; 2]; Player::N]);
 
 impl AccumulatorCache {
     pub fn new() -> Box<Self> {

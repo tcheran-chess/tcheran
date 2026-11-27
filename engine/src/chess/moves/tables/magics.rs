@@ -3,6 +3,7 @@ use crate::chess::{
     prelude::*,
 };
 
+#[rustfmt::skip]
 macro_rules! table {
     ($file:literal, $len:expr) => {
         unsafe {

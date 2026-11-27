@@ -7,15 +7,24 @@ use crate::engine::eval::nnue::{
     nnue::NETWORK,
 };
 
-pub fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> [u8; L1] {
+pub fn activate_ft(
+    us_psqt: &Accumulator,
+    us_threats: &Accumulator,
+    them_psqt: &Accumulator,
+    them_threats: &Accumulator,
+    output_bucket: usize,
+) -> [u8; L1] {
     let mut output = [0u8; L1];
 
-    for (side, acc) in [us, them].into_iter().enumerate() {
+    for (side, [psqt_acc, threat_acc]) in [[us_psqt, us_threats], [them_psqt, them_threats]]
+        .into_iter()
+        .enumerate()
+    {
         let base = side * (L1 / 2);
 
         for i in 0..(L1 / 2) {
-            let left: i16 = acc.0[i];
-            let right: i16 = acc.0[i + L1 / 2];
+            let left: i16 = psqt_acc.0[i] + threat_acc.0[i];
+            let right: i16 = psqt_acc.0[i + L1 / 2] + threat_acc.0[i + L1 / 2];
 
             let left_clamped = left.clamp(0, Q0 as i16) as u16;
             let right_clamped = right.clamp(0, Q0 as i16) as u16;

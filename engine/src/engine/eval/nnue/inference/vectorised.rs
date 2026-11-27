@@ -13,36 +13,54 @@ const L1_SHIFT: ShiftType = network::L1_SHIFT as ShiftType;
 
 #[cfg(any(target_feature = "avx512bw", target_feature = "avx2", target_feature = "neon"))]
 #[allow(unused, reason = "May be unused when SIMD is unavailable")]
-pub unsafe fn activate_ft(us: &Accumulator, them: &Accumulator, output_bucket: usize) -> [u8; L1] {
+pub unsafe fn activate_ft(
+    us_psqt: &Accumulator,
+    us_threats: &Accumulator,
+    them_psqt: &Accumulator,
+    them_threats: &Accumulator,
+    output_bucket: usize,
+) -> [u8; L1] {
     let mut output: [u8; L1] = [0; L1];
 
     let zero = zero_i16s();
     let q0 = splat_i16(Q0 as i16);
 
-    let us = us.0.as_ptr();
-    let them = them.0.as_ptr();
+    let us_psqt = us_psqt.0.as_ptr();
+    let us_threats = us_threats.0.as_ptr();
+    let them_psqt = them_psqt.0.as_ptr();
+    let them_threats = them_threats.0.as_ptr();
     let output_ptr = output.as_mut_ptr();
 
     for l1 in (0..L1 / 2).step_by(2 * I16_LANES) {
-        let us0 = load_i16s(us.add(l1));
-        let us1 = load_i16s(us.add(l1 + L1 / 2));
-        let us2 = load_i16s(us.add(l1 + I16_LANES));
-        let us3 = load_i16s(us.add(l1 + L1 / 2 + I16_LANES));
+        let us_psqt_0 = load_i16s(us_psqt.add(l1));
+        let us_psqt_1 = load_i16s(us_psqt.add(l1 + L1 / 2));
+        let us_psqt_2 = load_i16s(us_psqt.add(l1 + I16_LANES));
+        let us_psqt_3 = load_i16s(us_psqt.add(l1 + L1 / 2 + I16_LANES));
 
-        let us_clamped0 = clamp_i16s(us0, zero, q0);
-        let us_clamped1 = clamp_i16s(us1, zero, q0);
-        let us_clamped2 = clamp_i16s(us2, zero, q0);
-        let us_clamped3 = clamp_i16s(us3, zero, q0);
+        let us_threats_0 = load_i16s(us_threats.add(l1));
+        let us_threats_1 = load_i16s(us_threats.add(l1 + L1 / 2));
+        let us_threats_2 = load_i16s(us_threats.add(l1 + I16_LANES));
+        let us_threats_3 = load_i16s(us_threats.add(l1 + L1 / 2 + I16_LANES));
 
-        let them0 = load_i16s(them.add(l1));
-        let them1 = load_i16s(them.add(l1 + L1 / 2));
-        let them2 = load_i16s(them.add(l1 + I16_LANES));
-        let them3 = load_i16s(them.add(l1 + L1 / 2 + I16_LANES));
+        let us_clamped0 = clamp_i16s(add_i16s(us_psqt_0, us_threats_0), zero, q0);
+        let us_clamped1 = clamp_i16s(add_i16s(us_psqt_1, us_threats_1), zero, q0);
+        let us_clamped2 = clamp_i16s(add_i16s(us_psqt_2, us_threats_2), zero, q0);
+        let us_clamped3 = clamp_i16s(add_i16s(us_psqt_3, us_threats_3), zero, q0);
 
-        let them_clamped0 = clamp_i16s(them0, zero, q0);
-        let them_clamped1 = clamp_i16s(them1, zero, q0);
-        let them_clamped2 = clamp_i16s(them2, zero, q0);
-        let them_clamped3 = clamp_i16s(them3, zero, q0);
+        let them_psqt_0 = load_i16s(them_psqt.add(l1));
+        let them_psqt_1 = load_i16s(them_psqt.add(l1 + L1 / 2));
+        let them_psqt_2 = load_i16s(them_psqt.add(l1 + I16_LANES));
+        let them_psqt_3 = load_i16s(them_psqt.add(l1 + L1 / 2 + I16_LANES));
+
+        let them_threats_0 = load_i16s(them_threats.add(l1));
+        let them_threats_1 = load_i16s(them_threats.add(l1 + L1 / 2));
+        let them_threats_2 = load_i16s(them_threats.add(l1 + I16_LANES));
+        let them_threats_3 = load_i16s(them_threats.add(l1 + L1 / 2 + I16_LANES));
+
+        let them_clamped0 = clamp_i16s(add_i16s(them_psqt_0, them_threats_0), zero, q0);
+        let them_clamped1 = clamp_i16s(add_i16s(them_psqt_1, them_threats_1), zero, q0);
+        let them_clamped2 = clamp_i16s(add_i16s(them_psqt_2, them_threats_2), zero, q0);
+        let them_clamped3 = clamp_i16s(add_i16s(them_psqt_3, them_threats_3), zero, q0);
 
         let us_pair1 = shift_left_mul_high_i16s(us_clamped0, us_clamped1);
         let us_pair2 = shift_left_mul_high_i16s(us_clamped2, us_clamped3);

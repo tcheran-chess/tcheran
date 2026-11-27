@@ -6,7 +6,7 @@ use crate::{
             nnue::{
                 cache::AccumulatorCache,
                 features,
-                features::psqt::accumulator::PsqtStackEntry,
+                features::{psqt::accumulator::PsqtStackEntry, threats::accumulator::ThreatsStackEntry},
                 inference,
                 network::{BUCKET_LAYOUT, L1, Network, OUTPUT_BUCKETS},
             },
@@ -49,6 +49,7 @@ pub struct NNUE {
 #[derive(Clone)]
 pub struct NetworkStackEntry {
     pub psqt: PsqtStackEntry,
+    pub threats: ThreatsStackEntry,
 }
 
 impl NNUE {
@@ -57,6 +58,7 @@ impl NNUE {
             stack: vec![
                 NetworkStackEntry {
                     psqt: PsqtStackEntry::default(),
+                    threats: ThreatsStackEntry::default(),
                 };
                 MAX_PLIES_ARRAY_SIZE
             ],
@@ -93,9 +95,11 @@ impl NNUE {
         // We should now have a full stack of materialised accumulators, all the way up to our current one
         // so we can evaluate that.
         let current_entry = self.current_entry();
-        let (us, them) =
+        let (us_psqt, them_psqt) =
             (&current_entry.psqt.accumulators[game.player], &current_entry.psqt.accumulators[!game.player]);
-        let output = inference::forward(us, them, output_bucket(game));
+        let (us_threats, them_threats) =
+            (&current_entry.threats.accumulators[game.player], &current_entry.threats.accumulators[!game.player]);
+        let output = inference::forward(us_psqt, us_threats, them_psqt, them_threats, output_bucket(game));
         Eval(output)
     }
 }
@@ -103,23 +107,28 @@ impl NNUE {
 impl NetworkStackEntry {
     pub(self) fn clear(&mut self) {
         self.psqt.clear();
+        self.threats.clear();
     }
 
     pub(self) fn refresh(&mut self, board: &Board, pov: Player, cache: &mut AccumulatorCache) {
         self.psqt.refresh(board, pov, cache);
+        self.threats.refresh(board, pov);
     }
 }
 
 impl MoveObserver for NetworkStackEntry {
     fn init(&mut self, moved_piece: Piece, mv: Move) {
         self.psqt.init(moved_piece, mv);
+        self.threats.init(moved_piece, mv);
     }
 
     fn set(&mut self, sq: Square, piece: Piece) {
         self.psqt.set(sq, piece);
+        self.threats.set(sq, piece);
     }
 
     fn remove(&mut self, sq: Square, piece: Piece) {
         self.psqt.remove(sq, piece);
+        self.threats.remove(sq, piece);
     }
 }

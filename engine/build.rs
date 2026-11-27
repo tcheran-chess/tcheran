@@ -14,7 +14,7 @@ include!("src/engine/eval/nnue/network.rs");
 // Make magic number consts available for preprocessing
 include!("src/chess/moves/tables/magic_consts.rs");
 
-const NETWORK_FILE: &str = "v25-fbb7eab6.nnue";
+const NETWORK_FILE: &str = "threat-inputs-s2.nnue";
 const DOWNLOAD_BASE_URL: &str = "https://github.com/tcheran-chess/tcheran-networks/releases/download/networks";
 
 fn main() {

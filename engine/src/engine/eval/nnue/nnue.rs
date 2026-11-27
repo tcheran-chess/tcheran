@@ -221,30 +221,6 @@ impl NetworkStackEntry {
         let output = inference::forward(us, them, output_bucket);
         Eval(output)
     }
-
-    pub fn approx_contribution(&mut self, game: &Game, square: Square, player: Player) -> Eval {
-        let eval = self.evaluate(player, game);
-
-        let piece = game.board.piece_guaranteed_at(square);
-
-        // Remove this feature from the accumulator to see what the eval looks like without it
-        for pov in Player::ALL {
-            let king = game.board.king_square(pov);
-            let bucket = input_bucket(king, pov);
-            Self::sub1(&mut self.accumulators[pov], bucket, nnue_index((piece, square), king, pov));
-        }
-
-        let eval_without_feature = self.evaluate(player, game);
-
-        // Add the feature back again
-        for pov in Player::ALL {
-            let king = game.board.king_square(pov);
-            let bucket = input_bucket(king, pov);
-            Self::add1(&mut self.accumulators[pov], bucket, nnue_index((piece, square), king, pov));
-        }
-
-        eval - eval_without_feature
-    }
 }
 
 pub struct CacheEntry {
@@ -300,7 +276,7 @@ impl NNUE {
         self.current_idx -= 1;
     }
 
-    pub fn current_entry(&mut self) -> &mut NetworkStackEntry {
+    fn current_entry(&mut self) -> &mut NetworkStackEntry {
         &mut self.stack[self.current_idx]
     }
 

@@ -28,6 +28,11 @@ fn input_bucket(king: Square, pov: Player) -> usize {
         .idx()]
 }
 
+fn output_bucket(game: &Game) -> usize {
+    let divisor = 32usize.div_ceil(OUTPUT_BUCKETS);
+    (game.board.occupancy().count() as usize - 2) / divisor
+}
+
 #[inline]
 pub fn should_mirror(king: Square) -> bool {
     king.file() >= File::E
@@ -105,7 +110,10 @@ impl NNUE {
 
         // We should now have a full stack of materialised accumulators, all the way up to our current one
         // so we can evaluate that.
-        self.current_entry().evaluate(game.player, game)
+        let current_entry = self.current_entry();
+        let (us, them) = (&current_entry.accumulators[game.player], &current_entry.accumulators[!game.player]);
+        let output = inference::forward(us, them, output_bucket(game));
+        Eval(output)
     }
 
     fn last_good_efficient_update_index(&self, pov: Player) -> Option<usize> {
@@ -335,18 +343,6 @@ impl NetworkStackEntry {
         for i in 0..L1 {
             acc.0[i] = previous_acc.0[i] + add1_features[i] + add2_features[i] - sub1_features[i] - sub2_features[i];
         }
-    }
-
-    fn bucket(game: &Game) -> usize {
-        let divisor = 32usize.div_ceil(OUTPUT_BUCKETS);
-        (game.board.occupancy().count() as usize - 2) / divisor
-    }
-
-    pub fn evaluate(&self, player: Player, game: &Game) -> Eval {
-        let (us, them) = (&self.accumulators[player], &self.accumulators[player.other()]);
-        let output_bucket = Self::bucket(game);
-        let output = inference::forward(us, them, output_bucket);
-        Eval(output)
     }
 }
 

@@ -1,4 +1,4 @@
-use crate::{chess::prelude::*, engine::eval::nnue::NetworkStack};
+use crate::{chess::prelude::*, engine::eval::nnue::NNUE};
 
 #[cfg(not(feature = "datagen"))]
 fn scale_eval(eval: Eval, game: &Game) -> Eval {
@@ -19,7 +19,7 @@ fn scale_eval(eval: Eval, game: &Game) -> Eval {
     Eval(scaled)
 }
 
-pub fn eval(nnue: &mut NetworkStack, game: &Game) -> Eval {
+pub fn eval(nnue: &mut NNUE, game: &Game) -> Eval {
     let eval = nnue.evaluate(game);
 
     #[cfg(not(feature = "datagen"))]

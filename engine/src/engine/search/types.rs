@@ -7,7 +7,7 @@ use std::{
 use crate::{
     chess::{MAX_LEGAL_MOVES, prelude::*},
     engine::{
-        eval::{Eval, nnue::NetworkStack},
+        eval::{Eval, nnue::NNUE},
         options::EngineOptions,
         search::{
             MAX_PLIES_ARRAY_SIZE,
@@ -64,7 +64,7 @@ impl PersistentState {
 pub struct ThreadData {
     pub id: usize,
     pub tables: Tables,
-    pub nnue: NetworkStack,
+    pub nnue: NNUE,
     pub stack: SearchStack,
 }
 
@@ -73,7 +73,7 @@ impl ThreadData {
         Self {
             id,
             tables: Tables::new(),
-            nnue: NetworkStack::new(),
+            nnue: NNUE::new(),
             stack: SearchStack::new(),
         }
     }
@@ -85,11 +85,11 @@ impl ThreadData {
 
     pub fn reset(&mut self) {
         self.tables = Tables::new();
-        self.nnue = NetworkStack::new();
+        self.nnue = NNUE::new();
         self.stack = SearchStack::new();
     }
 
-    pub fn mut_refs(&mut self) -> (&mut Tables, &mut SearchStack, &mut NetworkStack) {
+    pub fn mut_refs(&mut self) -> (&mut Tables, &mut SearchStack, &mut NNUE) {
         (&mut self.tables, &mut self.stack, &mut self.nnue)
     }
 }
@@ -168,7 +168,7 @@ pub struct SearchContext<'s> {
     pub options: &'s EngineOptions,
 
     pub tables: &'s mut Tables,
-    pub nnue: &'s mut NetworkStack,
+    pub nnue: &'s mut NNUE,
     pub stack: &'s mut SearchStack,
 
     pub root_moves: &'s RootMoves,
@@ -196,7 +196,7 @@ impl<'s> SearchContext<'s> {
         tbhits_counter: &'s AtomicU64,
         tables: &'s mut Tables,
         search_stack: &'s mut SearchStack,
-        nnue: &'s mut NetworkStack,
+        nnue: &'s mut NNUE,
         root_moves: &'s RootMoves,
         root_tb_info: Option<RootTbInfo>,
         time_control: TimeControl,

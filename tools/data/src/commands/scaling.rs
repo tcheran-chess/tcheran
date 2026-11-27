@@ -9,7 +9,7 @@ use anyhow::Result;
 use clap::Args;
 use engine::{
     chess::prelude::*,
-    engine::eval::{nnue, nnue::NetworkStack},
+    engine::eval::{nnue, nnue::NNUE},
 };
 use rayon::{iter::ParallelIterator, prelude::ParallelSlice};
 
@@ -66,7 +66,7 @@ fn chunk_stats(fens: &[String]) -> Stats {
 
     for fen in fens {
         let game = Game::from_fen(fen).unwrap();
-        let mut nnue = NetworkStack::new();
+        let mut nnue = NNUE::new();
         nnue.setup(&game.board);
 
         let eval = nnue.evaluate(&game).0;

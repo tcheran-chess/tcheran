@@ -84,7 +84,7 @@ impl NNUEChange {
 }
 
 // [pov][mirrored][bucket]
-pub struct AccumulatorCache([[[CacheEntry; INPUT_BUCKETS]; 2]; Player::N]);
+struct AccumulatorCache([[[CacheEntry; INPUT_BUCKETS]; 2]; Player::N]);
 
 impl AccumulatorCache {
     pub fn new() -> Box<Self> {
@@ -101,7 +101,7 @@ impl AccumulatorCache {
     }
 }
 
-pub struct NetworkStack {
+pub struct NNUE {
     stack: Vec<NetworkStackEntry>,
     current_idx: usize,
 
@@ -110,208 +110,13 @@ pub struct NetworkStack {
 
 #[derive(Clone)]
 pub struct NetworkStackEntry {
-    pub network: NNUE,
+    pub accumulators: [Accumulator; Player::N],
     changes: NNUEChanges,
     correct: [bool; Player::N],
 }
 
-pub struct CacheEntry {
-    value: Accumulator,
-    board: Board,
-}
-
-impl CacheEntry {
-    fn new() -> Self {
-        Self {
-            value: Accumulator(NETWORK.l0_biases),
-            board: Board::EMPTY,
-        }
-    }
-}
-
-impl NetworkStack {
-    pub fn new() -> Self {
-        Self {
-            stack: vec![
-                NetworkStackEntry {
-                    network: NNUE::default(),
-                    changes: NNUEChanges::uninit(),
-                    correct: [false; Player::N],
-                };
-                MAX_PLIES_ARRAY_SIZE
-            ],
-            current_idx: 0,
-
-            cache: AccumulatorCache::new(),
-        }
-    }
-
-    pub fn setup(&mut self, board: &Board) {
-        for pov in Player::ALL {
-            self.stack[0].network.refresh(board, pov, &mut self.cache);
-            self.stack[0].correct[pov] = true;
-        }
-
-        self.current_idx = 0;
-    }
-
-    pub fn next_changes(&mut self) -> &mut NNUEChanges {
-        self.current_idx += 1;
-
-        self.stack[self.current_idx].changes.clear();
-        self.stack[self.current_idx].correct = [false; Player::N];
-
-        &mut self.stack[self.current_idx].changes
-    }
-
-    pub fn pop(&mut self) {
-        self.current_idx -= 1;
-    }
-
-    fn current_entry(&mut self) -> &mut NetworkStackEntry {
-        &mut self.stack[self.current_idx]
-    }
-
-    pub fn evaluate(&mut self, game: &Game) -> Eval {
-        // First, we need to cycle through our stack and update any network accumulators that we
-        // deferred updates for.
-        for pov in Player::ALL {
-            if self.current_entry().correct[pov] {
-                continue;
-            }
-
-            // We can efficiently update if there hasn't been a move since our last 'correct' accumulator
-            // that causes us to need to do a full refresh (e.g. a king crossing the horizontal mirroring
-            // boundary).
-            if let Some(i) = self.last_good_efficient_update_index(pov) {
-                self.update(i, game, pov);
-            } else {
-                let current_entry = &mut self.stack[self.current_idx];
-                current_entry.network.refresh(&game.board, pov, &mut self.cache);
-                current_entry.correct[pov] = true;
-            }
-        }
-
-        // We should now have a full stack of materialised accumulators, all the way up to our current one
-        // so we can evaluate that.
-        self.current_entry().network.evaluate(game.player, game)
-    }
-
-    fn last_good_efficient_update_index(&self, pov: Player) -> Option<usize> {
-        // Starting at the current accumulator, look back until we find either a correct accumulator
-        // we can work forward from, or a change in board state that means we can't do efficient updates.
-        for i in (0..=self.current_idx).rev() {
-            let entry = &self.stack[i];
-
-            if entry.correct[pov] {
-                return Some(i);
-            }
-
-            // If the king crossed over the middle of the board, the board either becomes, or stops being
-            // mirrored and will require a full refresh.
-            if entry.changes.moved_piece.kind == King {
-                let from = entry.changes.mv.from();
-                let to = entry.changes.mv.to();
-
-                let crossed_mirroring_boundary = should_mirror(from) != should_mirror(to);
-                if crossed_mirroring_boundary {
-                    return None;
-                }
-
-                let changed_input_bucket =
-                    input_bucket(entry.changes.mv.from(), pov) != input_bucket(entry.changes.mv.to(), pov);
-
-                if changed_input_bucket {
-                    return None;
-                }
-            }
-        }
-
-        None
-    }
-
-    fn update(&mut self, last_good_idx: usize, game: &Game, pov: Player) {
-        // We know the king is on the same side of the board for all entries since last_good_idx by definition
-        let king = game.board.king_square(pov);
-
-        for i in last_good_idx..self.current_idx {
-            if let (prev, [entry, ..]) = self.stack.split_at_mut(i + 1) {
-                Self::update_accumulator(entry, &prev[i], king, pov);
-            }
-
-            self.stack[i].correct[pov] = true;
-        }
-    }
-
-    fn update_accumulator(
-        entry: &mut NetworkStackEntry,
-        previous_entry: &NetworkStackEntry,
-        king: Square,
-        pov: Player,
-    ) {
-        match (entry.changes.adds.as_slice(), entry.changes.subs.as_slice()) {
-            ([add1], [sub1]) => {
-                let bucket = input_bucket(king, pov);
-                let add1 = nnue_index(add1.piece, add1.square, king, pov);
-                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
-                NNUE::add1_sub1(&previous_entry.network[pov], &mut entry.network[pov], bucket, add1, sub1);
-            }
-            ([add1], [sub1, sub2]) => {
-                let bucket = input_bucket(king, pov);
-                let add1 = nnue_index(add1.piece, add1.square, king, pov);
-                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
-                let sub2 = nnue_index(sub2.piece, sub2.square, king, pov);
-
-                NNUE::add1_sub2(&previous_entry.network[pov], &mut entry.network[pov], bucket, add1, sub1, sub2);
-            }
-            ([add1, add2], [sub1, sub2]) => {
-                let bucket = input_bucket(king, pov);
-                let add1 = nnue_index(add1.piece, add1.square, king, pov);
-                let add2 = nnue_index(add2.piece, add2.square, king, pov);
-                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
-                let sub2 = nnue_index(sub2.piece, sub2.square, king, pov);
-
-                NNUE::add2_sub2(&previous_entry.network[pov], &mut entry.network[pov], bucket, add1, add2, sub1, sub2);
-            }
-            (_, _) => unreachable!(),
-        }
-    }
-}
-
-/// A column of the feature-weights matrix.
-#[derive(Clone)]
-#[repr(C, align(64))]
-pub struct Accumulator(pub [i16; L1]);
-
-#[derive(Clone)]
-pub struct NNUE {
-    accumulators: [Accumulator; Player::N],
-}
-
-impl Default for NNUE {
-    fn default() -> Self {
-        Self {
-            accumulators: [Accumulator(NETWORK.l0_biases), Accumulator(NETWORK.l0_biases)],
-        }
-    }
-}
-
-impl std::ops::Index<Player> for NNUE {
-    type Output = Accumulator;
-
-    fn index(&self, index: Player) -> &Self::Output {
-        &self.accumulators[index as usize]
-    }
-}
-
-impl std::ops::IndexMut<Player> for NNUE {
-    fn index_mut(&mut self, index: Player) -> &mut Self::Output {
-        &mut self.accumulators[index as usize]
-    }
-}
-
-impl NNUE {
-    pub fn refresh(&mut self, board: &Board, pov: Player, cache: &mut AccumulatorCache) {
+impl NetworkStackEntry {
+    fn refresh(&mut self, board: &Board, pov: Player, cache: &mut AccumulatorCache) {
         let king = board.king_square(pov);
         let king_side = usize::from(should_mirror(king));
         let king_bucket = BUCKET_LAYOUT[king.relative_for(pov)];
@@ -423,7 +228,7 @@ impl NNUE {
     }
 
     pub fn evaluate(&self, player: Player, game: &Game) -> Eval {
-        let (us, them) = (&self[player], &self[player.other()]);
+        let (us, them) = (&self.accumulators[player], &self.accumulators[player.other()]);
         let output_bucket = Self::bucket(game);
         let output = inference::forward(us, them, output_bucket);
         Eval(output)
@@ -438,7 +243,7 @@ impl NNUE {
         for pov in Player::ALL {
             let king = game.board.king_square(pov);
             let bucket = input_bucket(king, pov);
-            Self::sub1(&mut self[pov], bucket, nnue_index(piece, square, king, pov));
+            Self::sub1(&mut self.accumulators[pov], bucket, nnue_index(piece, square, king, pov));
         }
 
         let eval_without_feature = self.evaluate(player, game);
@@ -447,12 +252,201 @@ impl NNUE {
         for pov in Player::ALL {
             let king = game.board.king_square(pov);
             let bucket = input_bucket(king, pov);
-            Self::add1(&mut self[pov], bucket, nnue_index(piece, square, king, pov));
+            Self::add1(&mut self.accumulators[pov], bucket, nnue_index(piece, square, king, pov));
         }
 
         eval - eval_without_feature
     }
 }
+
+pub struct CacheEntry {
+    value: Accumulator,
+    board: Board,
+}
+
+impl CacheEntry {
+    fn new() -> Self {
+        Self {
+            value: Accumulator(NETWORK.l0_biases),
+            board: Board::EMPTY,
+        }
+    }
+}
+
+impl NNUE {
+    pub fn new() -> Self {
+        Self {
+            stack: vec![
+                NetworkStackEntry {
+                    accumulators: [Accumulator(NETWORK.l0_biases), Accumulator(NETWORK.l0_biases)],
+                    changes: NNUEChanges::uninit(),
+                    correct: [false; Player::N],
+                };
+                MAX_PLIES_ARRAY_SIZE
+            ],
+            current_idx: 0,
+
+            cache: AccumulatorCache::new(),
+        }
+    }
+
+    pub fn setup(&mut self, board: &Board) {
+        for pov in Player::ALL {
+            self.stack[0].refresh(board, pov, &mut self.cache);
+            self.stack[0].correct[pov] = true;
+        }
+
+        self.current_idx = 0;
+    }
+
+    pub fn next_changes(&mut self) -> &mut NNUEChanges {
+        self.current_idx += 1;
+
+        self.stack[self.current_idx].changes.clear();
+        self.stack[self.current_idx].correct = [false; Player::N];
+
+        &mut self.stack[self.current_idx].changes
+    }
+
+    pub fn pop(&mut self) {
+        self.current_idx -= 1;
+    }
+
+    pub fn current_entry(&mut self) -> &mut NetworkStackEntry {
+        &mut self.stack[self.current_idx]
+    }
+
+    pub fn evaluate(&mut self, game: &Game) -> Eval {
+        // First, we need to cycle through our stack and update any network accumulators that we
+        // deferred updates for.
+        for pov in Player::ALL {
+            if self.current_entry().correct[pov] {
+                continue;
+            }
+
+            // We can efficiently update if there hasn't been a move since our last 'correct' accumulator
+            // that causes us to need to do a full refresh (e.g. a king crossing the horizontal mirroring
+            // boundary).
+            if let Some(i) = self.last_good_efficient_update_index(pov) {
+                self.update(i, game, pov);
+            } else {
+                let current_entry = &mut self.stack[self.current_idx];
+                current_entry.refresh(&game.board, pov, &mut self.cache);
+                current_entry.correct[pov] = true;
+            }
+        }
+
+        // We should now have a full stack of materialised accumulators, all the way up to our current one
+        // so we can evaluate that.
+        self.current_entry().evaluate(game.player, game)
+    }
+
+    fn last_good_efficient_update_index(&self, pov: Player) -> Option<usize> {
+        // Starting at the current accumulator, look back until we find either a correct accumulator
+        // we can work forward from, or a change in board state that means we can't do efficient updates.
+        for i in (0..=self.current_idx).rev() {
+            let entry = &self.stack[i];
+
+            if entry.correct[pov] {
+                return Some(i);
+            }
+
+            // If the king crossed over the middle of the board, the board either becomes, or stops being
+            // mirrored and will require a full refresh.
+            if entry.changes.moved_piece.kind == King {
+                let from = entry.changes.mv.from();
+                let to = entry.changes.mv.to();
+
+                let crossed_mirroring_boundary = should_mirror(from) != should_mirror(to);
+                if crossed_mirroring_boundary {
+                    return None;
+                }
+
+                let changed_input_bucket =
+                    input_bucket(entry.changes.mv.from(), pov) != input_bucket(entry.changes.mv.to(), pov);
+
+                if changed_input_bucket {
+                    return None;
+                }
+            }
+        }
+
+        None
+    }
+
+    fn update(&mut self, last_good_idx: usize, game: &Game, pov: Player) {
+        // We know the king is on the same side of the board for all entries since last_good_idx by definition
+        let king = game.board.king_square(pov);
+
+        for i in last_good_idx..self.current_idx {
+            if let (prev, [entry, ..]) = self.stack.split_at_mut(i + 1) {
+                Self::update_accumulator(entry, &prev[i], king, pov);
+            }
+
+            self.stack[i].correct[pov] = true;
+        }
+    }
+
+    fn update_accumulator(
+        entry: &mut NetworkStackEntry,
+        previous_entry: &NetworkStackEntry,
+        king: Square,
+        pov: Player,
+    ) {
+        match (entry.changes.adds.as_slice(), entry.changes.subs.as_slice()) {
+            ([add1], [sub1]) => {
+                let bucket = input_bucket(king, pov);
+                let add1 = nnue_index(add1.piece, add1.square, king, pov);
+                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
+                NetworkStackEntry::add1_sub1(
+                    &previous_entry.accumulators[pov],
+                    &mut entry.accumulators[pov],
+                    bucket,
+                    add1,
+                    sub1,
+                );
+            }
+            ([add1], [sub1, sub2]) => {
+                let bucket = input_bucket(king, pov);
+                let add1 = nnue_index(add1.piece, add1.square, king, pov);
+                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
+                let sub2 = nnue_index(sub2.piece, sub2.square, king, pov);
+
+                NetworkStackEntry::add1_sub2(
+                    &previous_entry.accumulators[pov],
+                    &mut entry.accumulators[pov],
+                    bucket,
+                    add1,
+                    sub1,
+                    sub2,
+                );
+            }
+            ([add1, add2], [sub1, sub2]) => {
+                let bucket = input_bucket(king, pov);
+                let add1 = nnue_index(add1.piece, add1.square, king, pov);
+                let add2 = nnue_index(add2.piece, add2.square, king, pov);
+                let sub1 = nnue_index(sub1.piece, sub1.square, king, pov);
+                let sub2 = nnue_index(sub2.piece, sub2.square, king, pov);
+
+                NetworkStackEntry::add2_sub2(
+                    &previous_entry.accumulators[pov],
+                    &mut entry.accumulators[pov],
+                    bucket,
+                    add1,
+                    add2,
+                    sub1,
+                    sub2,
+                );
+            }
+            (_, _) => unreachable!(),
+        }
+    }
+}
+
+/// A column of the feature-weights matrix.
+#[derive(Clone)]
+#[repr(C, align(64))]
+pub struct Accumulator(pub [i16; L1]);
 
 fn nnue_index(piece: Piece, sq: Square, king: Square, pov: Player) -> usize {
     const COLOR_STRIDE: usize = Square::N * PieceKind::N;

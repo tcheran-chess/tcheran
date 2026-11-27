@@ -21,11 +21,7 @@ use crate::{
         prelude::*,
     },
     engine::{
-        eval::{
-            WhiteEval,
-            nnue::{AccumulatorCache, NNUE},
-            wdl,
-        },
+        eval::{WhiteEval, nnue::NNUE, wdl},
         options::{EngineOptions, defaults},
         search::{
             NullReporter, PersistentState, Reporter, RootMoves, RootTbInfo, ThreadData, TimeControl, search,
@@ -423,12 +419,8 @@ impl Uci {
                 println!();
             }
             UciCommand::Eval => {
-                let mut nnue = NNUE::default();
-                let mut cache = AccumulatorCache::new();
-
-                for player in Player::ALL {
-                    nnue.refresh(&self.game.board, player, &mut cache);
-                }
+                let mut nnue = NNUE::new();
+                nnue.setup(&self.game.board);
 
                 let mut piece_contributions: [WhiteEval; Square::N] = [WhiteEval(0); Square::N];
                 for sq in Bitboard::FULL {
@@ -440,6 +432,7 @@ impl Uci {
                     }
 
                     piece_contributions[sq] = nnue
+                        .current_entry()
                         .approx_contribution(&self.game.clone(), sq, White)
                         .to_white_eval(White);
                 }
@@ -492,11 +485,11 @@ impl Uci {
                     }
                 }
 
-                let raw_eval = nnue.evaluate(White, &self.game);
-                let normalised_eval = wdl::normalize(raw_eval, &self.game.board).to_white_eval(White);
+                let raw_eval = nnue.evaluate(&self.game);
+                let normalised_eval = wdl::normalize(raw_eval, &self.game.board).to_white_eval(self.game.player);
 
                 println!();
-                println!("Raw evaluation: {}", raw_eval.to_white_eval(White));
+                println!("Raw evaluation: {}", raw_eval.to_white_eval(self.game.player));
                 println!("Normalised evaluation: {normalised_eval}");
                 println!();
             }

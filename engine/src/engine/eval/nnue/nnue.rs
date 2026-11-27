@@ -15,6 +15,11 @@ use crate::{
 
 pub static NETWORK: Network = unsafe { std::mem::transmute(*include_bytes!(env!("NETWORK"))) };
 
+/// A column of the feature-weights matrix.
+#[derive(Clone)]
+#[repr(C, align(64))]
+pub struct Accumulator(pub [i16; L1]);
+
 fn input_bucket(king: Square, pov: Player) -> usize {
     BUCKET_LAYOUT[king
         .relative_for(pov)
@@ -406,11 +411,6 @@ impl NNUE {
         }
     }
 }
-
-/// A column of the feature-weights matrix.
-#[derive(Clone)]
-#[repr(C, align(64))]
-pub struct Accumulator(pub [i16; L1]);
 
 fn nnue_index((piece, sq): (Piece, Square), king: Square, pov: Player) -> usize {
     const COLOR_STRIDE: usize = Square::N * PieceKind::N;
